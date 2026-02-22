@@ -2,7 +2,6 @@ import { uniqueId } from 'lodash';
 
 import {
   IconLayoutDashboard,
-  IconUsers,
   IconTruckDelivery,
   IconPhone,
   IconBriefcase,
@@ -21,6 +20,8 @@ import {
   IconArrowDownCircle,
   IconArrowUpCircle,
   IconPoint,
+  IconAddressBook,
+  IconBuilding,
 } from '@tabler/icons-react';
 
 const ErpMenuItems = [
@@ -40,29 +41,34 @@ const ErpMenuItems = [
   },
   {
     id: uniqueId(),
-    title: 'Clients',
-    icon: IconUsers,
-    href: '/erp/clients',
+    title: 'Contacts',
+    icon: IconAddressBook,
+    href: '/erp/contacts',
   },
   {
     id: uniqueId(),
-    title: 'Vendors',
-    icon: IconTruckDelivery,
-    href: '/erp/vendors',
+    title: 'Companies',
+    icon: IconBuilding,
+    href: '/erp/companies',
   },
-  // Temporarily hidden modules
-  // {
-  //   id: uniqueId(),
-  //   title: 'Leads',
-  //   icon: IconPhone,
-  //   href: '/erp/leads',
-  // },
-  // {
-  //   id: uniqueId(),
-  //   title: 'Deals',
-  //   icon: IconBriefcase,
-  //   href: '/erp/deals',
-  // },
+  {
+    id: uniqueId(),
+    title: 'Suppliers',
+    icon: IconTruckDelivery,
+    href: '/erp/suppliers',
+  },
+  {
+    id: uniqueId(),
+    title: 'Leads',
+    icon: IconPhone,
+    href: '/erp/leads',
+  },
+  {
+    id: uniqueId(),
+    title: 'Deals',
+    icon: IconBriefcase,
+    href: '/erp/deals',
+  },
   // {
   //   navlabel: true,
   //   subheader: 'Products & Services',

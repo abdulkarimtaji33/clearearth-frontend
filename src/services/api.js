@@ -210,6 +210,85 @@ class ApiService {
     return this.delete(`/vendors/${id}`);
   }
 
+  // Contacts
+  async getContacts(params) {
+    return this.get('/contacts', params);
+  }
+
+  async getContact(id) {
+    return this.get(`/contacts/${id}`);
+  }
+
+  async createContact(data) {
+    return this.post('/contacts', data);
+  }
+
+  async updateContact(id, data) {
+    return this.put(`/contacts/${id}`, data);
+  }
+
+  async deleteContact(id) {
+    return this.delete(`/contacts/${id}`);
+  }
+
+  // Companies
+  async getCompanies(params) {
+    return this.get('/companies', params);
+  }
+
+  async getCompany(id) {
+    return this.get(`/companies/${id}`);
+  }
+
+  async createCompany(data) {
+    return this.post('/companies', data);
+  }
+
+  async updateCompany(id, data) {
+    return this.put(`/companies/${id}`, data);
+  }
+
+  async deleteCompany(id) {
+    return this.delete(`/companies/${id}`);
+  }
+
+  async addCompanyContact(companyId, data) {
+    return this.post(`/companies/${companyId}/contacts`, data);
+  }
+
+  async removeCompanyContact(companyId, contactId) {
+    return this.delete(`/companies/${companyId}/contacts/${contactId}`);
+  }
+
+  // Suppliers
+  async getSuppliers(params) {
+    return this.get('/suppliers', params);
+  }
+
+  async getSupplier(id) {
+    return this.get(`/suppliers/${id}`);
+  }
+
+  async createSupplier(data) {
+    return this.post('/suppliers', data);
+  }
+
+  async updateSupplier(id, data) {
+    return this.put(`/suppliers/${id}`, data);
+  }
+
+  async deleteSupplier(id) {
+    return this.delete(`/suppliers/${id}`);
+  }
+
+  async addSupplierContact(supplierId, data) {
+    return this.post(`/suppliers/${supplierId}/contacts`, data);
+  }
+
+  async removeSupplierContact(supplierId, contactId) {
+    return this.delete(`/suppliers/${supplierId}/contacts/${contactId}`);
+  }
+
   // Leads
   async getLeads(params) {
     return this.get('/leads', params);

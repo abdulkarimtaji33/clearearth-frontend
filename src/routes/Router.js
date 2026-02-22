@@ -17,6 +17,12 @@ const ClientList = Loadable(lazy(() => import('../views/erp/clients/ClientList')
 const ClientForm = Loadable(lazy(() => import('../views/erp/clients/ClientForm')));
 const VendorList = Loadable(lazy(() => import('../views/erp/vendors/VendorList')));
 const VendorForm = Loadable(lazy(() => import('../views/erp/vendors/VendorForm')));
+const ContactList = Loadable(lazy(() => import('../views/erp/contacts/ContactList')));
+const ContactForm = Loadable(lazy(() => import('../views/erp/contacts/ContactForm')));
+const CompanyList = Loadable(lazy(() => import('../views/erp/companies/CompanyList')));
+const CompanyForm = Loadable(lazy(() => import('../views/erp/companies/CompanyForm')));
+const SupplierList = Loadable(lazy(() => import('../views/erp/suppliers/SupplierList')));
+const SupplierForm = Loadable(lazy(() => import('../views/erp/suppliers/SupplierForm')));
 const LeadList = Loadable(lazy(() => import('../views/erp/leads/LeadList')));
 const LeadForm = Loadable(lazy(() => import('../views/erp/leads/LeadForm')));
 const DealList = Loadable(lazy(() => import('../views/erp/deals/DealList')));
@@ -211,6 +217,15 @@ const Router = [
       { path: '/erp/vendors', element: <VendorList /> },
       { path: '/erp/vendors/create', element: <VendorForm /> },
       { path: '/erp/vendors/edit/:id', element: <VendorForm /> },
+      { path: '/erp/contacts', element: <ContactList /> },
+      { path: '/erp/contacts/create', element: <ContactForm /> },
+      { path: '/erp/contacts/edit/:id', element: <ContactForm /> },
+      { path: '/erp/companies', element: <CompanyList /> },
+      { path: '/erp/companies/create', element: <CompanyForm /> },
+      { path: '/erp/companies/edit/:id', element: <CompanyForm /> },
+      { path: '/erp/suppliers', element: <SupplierList /> },
+      { path: '/erp/suppliers/create', element: <SupplierForm /> },
+      { path: '/erp/suppliers/edit/:id', element: <SupplierForm /> },
       { path: '/erp/leads', element: <LeadList /> },
       { path: '/erp/leads/create', element: <LeadForm /> },
       { path: '/erp/leads/edit/:id', element: <LeadForm /> },

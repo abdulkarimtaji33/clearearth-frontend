@@ -133,52 +133,70 @@ const CompanyView = () => {
           />
         </Box>
 
-        {/* Contact Information */}
+        {/* Company Details */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
           <CardContent sx={{ p: 5 }}>
             <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
-              Contact Information
+              Company Details
             </Typography>
             <Divider sx={{ my: 3 }} />
             
-            <InfoRow 
-              label="Email" 
-              value={company.email} 
-              icon={<IconMail size={18} />}
-            />
-            <InfoRow 
-              label="Phone" 
-              value={company.phone} 
-              icon={<IconPhone size={18} />}
-            />
-            <InfoRow 
-              label="Website" 
-              value={company.website} 
-              icon={<IconWorld size={18} />}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Location Details */}
-        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-          <CardContent sx={{ p: 5 }}>
-            <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
-              Location
-            </Typography>
-            <Divider sx={{ my: 3 }} />
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <InfoRow 
+                  label="Email" 
+                  value={company.email} 
+                  icon={<IconMail size={18} />}
+                />
+                <InfoRow 
+                  label="Phone" 
+                  value={company.phone} 
+                  icon={<IconPhone size={18} />}
+                />
+                <InfoRow 
+                  label="Website" 
+                  value={company.website} 
+                  icon={<IconWorld size={18} />}
+                />
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <InfoRow label="Country" value={company.country} />
+                <InfoRow label="City" value={company.city} />
+                <InfoRow label="Address" value={company.address} />
+              </Grid>
+            </Grid>
             
-            <InfoRow label="Country" value={company.country} />
-            <InfoRow label="City" value={company.city} />
-            <InfoRow label="Address" value={company.address} />
+            {company.notes && (
+              <>
+                <Divider sx={{ my: 3 }} />
+                <Typography variant="subtitle2" fontWeight={600} mb={2} color="text.primary">
+                  Notes
+                </Typography>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {company.notes}
+                </Typography>
+              </>
+            )}
+            
+            <Divider sx={{ my: 3 }} />
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <InfoRow label="Created" value={new Date(company.created_at).toLocaleString()} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <InfoRow label="Last Updated" value={new Date(company.updated_at).toLocaleString()} />
+              </Grid>
+            </Grid>
           </CardContent>
         </Card>
 
-        {/* Company Contacts */}
+        {/* Related Contacts */}
         {company.contacts && company.contacts.length > 0 && (
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
             <CardContent sx={{ p: 5 }}>
               <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
-                Company Contacts ({company.contacts.length})
+                Related Contacts ({company.contacts.length})
               </Typography>
               <Divider sx={{ my: 3 }} />
 
@@ -230,33 +248,72 @@ const CompanyView = () => {
           </Card>
         )}
 
-        {/* Notes */}
-        {company.notes && (
+        {/* Related Deals */}
+        {company.deals && company.deals.length > 0 && (
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
             <CardContent sx={{ p: 5 }}>
               <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
-                Notes
+                Related Deals ({company.deals.length})
               </Typography>
               <Divider sx={{ my: 3 }} />
-              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                {company.notes}
-              </Typography>
+
+              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: 'primary.lighter' }}>
+                      <TableCell sx={{ fontWeight: 700 }}>Deal Number</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Value</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Payment</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {company.deals.map((deal) => (
+                      <TableRow key={deal.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/deals/view/${deal.id}`)}>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600} color="primary.main">
+                            {deal.deal_number}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600}>
+                            {deal.title}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {deal.currency} {parseFloat(deal.total_value || 0).toFixed(2)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {deal.deal_date ? new Date(deal.deal_date).toLocaleDateString() : '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={deal.status} 
+                            size="small" 
+                            color={deal.status === 'completed' ? 'success' : deal.status === 'cancelled' ? 'error' : 'default'}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={deal.payment_status} 
+                            size="small" 
+                            color={deal.payment_status === 'paid' ? 'success' : deal.payment_status === 'partial' ? 'warning' : 'default'}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </CardContent>
           </Card>
         )}
-
-        {/* Timestamps */}
-        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-          <CardContent sx={{ p: 5 }}>
-            <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
-              Audit Information
-            </Typography>
-            <Divider sx={{ my: 3 }} />
-            
-            <InfoRow label="Created" value={new Date(company.created_at).toLocaleString()} />
-            <InfoRow label="Last Updated" value={new Date(company.updated_at).toLocaleString()} />
-          </CardContent>
-        </Card>
       </Box>
     </PageContainer>
   );

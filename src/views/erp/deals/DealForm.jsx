@@ -269,7 +269,7 @@ const DealForm = () => {
 
   return (
     <PageContainer title={isEdit ? 'Edit Deal' : 'Create Deal'} description="Manage deal details">
-      <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+      <Box sx={{ maxWidth: 1600, mx: 'auto', px: 2 }}>
         <Stack direction="row" alignItems="center" spacing={2} mb={4}>
           <Button
             variant="outlined"
@@ -371,117 +371,113 @@ const DealForm = () => {
                   </Typography>
                   <Divider sx={{ mb: 4 }} />
                   
-                  <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" fontWeight={600} mb={1.5} color="text.primary">
-                        Source Lead
-                      </Typography>
-                      <Autocomplete
-                        fullWidth
-                        options={leads}
-                        getOptionLabel={(opt) => `${opt.lead_number || ''} - ${opt.email || ''}`}
-                        value={leads.find((l) => l.id === values.leadId) || null}
-                        onChange={(_, val) => setFieldValue('leadId', val?.id || null)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Select lead..."
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          />
-                        )}
-                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
-                      />
-                    </Grid>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                      <Box>
+                        <Autocomplete
+                          fullWidth
+                          options={leads}
+                          getOptionLabel={(opt) => `${opt.lead_number || ''} - ${opt.email || ''}`}
+                          value={leads.find((l) => l.id === values.leadId) || null}
+                          onChange={(_, val) => setFieldValue('leadId', val?.id || null)}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Source Lead"
+                              placeholder="Select lead..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Box>
+                      
+                      <Box>
+                        <Autocomplete
+                          fullWidth
+                          options={companies}
+                          getOptionLabel={(opt) => opt.company_name || ''}
+                          value={companies.find((c) => c.id === values.companyId) || null}
+                          onChange={(_, val) => setFieldValue('companyId', val?.id || null)}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Company (Client)"
+                              placeholder="Select company..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Box>
+                    </Box>
                     
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" fontWeight={600} mb={1.5} color="text.primary">
-                        Company (Client)
-                      </Typography>
-                      <Autocomplete
-                        fullWidth
-                        options={companies}
-                        getOptionLabel={(opt) => opt.company_name || ''}
-                        value={companies.find((c) => c.id === values.companyId) || null}
-                        onChange={(_, val) => setFieldValue('companyId', val?.id || null)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Select company..."
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          />
-                        )}
-                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
-                      />
-                    </Grid>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                      <Box>
+                        <Autocomplete
+                          fullWidth
+                          options={contacts}
+                          getOptionLabel={(opt) => `${opt.first_name} ${opt.last_name} ${opt.email ? `(${opt.email})` : ''}`}
+                          value={contacts.find((c) => c.id === values.contactId) || null}
+                          onChange={(_, val) => setFieldValue('contactId', val?.id || null)}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Contact Person"
+                              placeholder="Select contact..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Box>
+                      
+                      <Box>
+                        <Autocomplete
+                          fullWidth
+                          options={suppliers}
+                          getOptionLabel={(opt) => opt.company_name || ''}
+                          value={suppliers.find((s) => s.id === values.supplierId) || null}
+                          onChange={(_, val) => setFieldValue('supplierId', val?.id || null)}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Supplier (Optional)"
+                              placeholder="Select supplier..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Box>
+                    </Box>
                     
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" fontWeight={600} mb={1.5} color="text.primary">
-                        Contact Person
-                      </Typography>
-                      <Autocomplete
-                        fullWidth
-                        options={contacts}
-                        getOptionLabel={(opt) => `${opt.first_name} ${opt.last_name} ${opt.email ? `(${opt.email})` : ''}`}
-                        value={contacts.find((c) => c.id === values.contactId) || null}
-                        onChange={(_, val) => setFieldValue('contactId', val?.id || null)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Select contact..."
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          />
-                        )}
-                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" fontWeight={600} mb={1.5} color="text.primary">
-                        Supplier (Optional)
-                      </Typography>
-                      <Autocomplete
-                        fullWidth
-                        options={suppliers}
-                        getOptionLabel={(opt) => opt.company_name || ''}
-                        value={suppliers.find((s) => s.id === values.supplierId) || null}
-                        onChange={(_, val) => setFieldValue('supplierId', val?.id || null)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Select supplier..."
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          />
-                        )}
-                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" fontWeight={600} mb={1.5} color="text.primary">
-                        Assigned To
-                      </Typography>
-                      <Autocomplete
-                        fullWidth
-                        options={users}
-                        getOptionLabel={(opt) => `${opt.first_name} ${opt.last_name}`}
-                        value={users.find((u) => u.id === values.assignedTo) || null}
-                        onChange={(_, val) => setFieldValue('assignedTo', val?.id || null)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Select user..."
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          />
-                        )}
-                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
-                      />
-                    </Grid>
-                  </Grid>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                      <Box>
+                        <Autocomplete
+                          fullWidth
+                          options={users}
+                          getOptionLabel={(opt) => `${opt.first_name} ${opt.last_name}`}
+                          value={users.find((u) => u.id === values.assignedTo) || null}
+                          onChange={(_, val) => setFieldValue('assignedTo', val?.id || null)}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Assigned To"
+                              placeholder="Select user..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
                 </CardContent>
               </Card>
 

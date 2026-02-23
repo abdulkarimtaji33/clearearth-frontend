@@ -284,7 +284,7 @@ const CompanyView = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
-                            {deal.currency} {parseFloat(deal.total_value || 0).toFixed(2)}
+                            {deal.currency} {parseFloat(deal.total || 0).toFixed(2)}
                           </Typography>
                         </TableCell>
                         <TableCell>

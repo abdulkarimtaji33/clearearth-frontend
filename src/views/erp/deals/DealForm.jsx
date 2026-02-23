@@ -372,7 +372,7 @@ const DealForm = () => {
                   <Divider sx={{ mb: 4 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12}>
                       <Autocomplete
                         fullWidth
                         options={leads}
@@ -407,6 +407,7 @@ const DealForm = () => {
                           />
                         )}
                         isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -425,6 +426,7 @@ const DealForm = () => {
                           />
                         )}
                         isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -443,6 +445,7 @@ const DealForm = () => {
                           />
                         )}
                         isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -461,6 +464,7 @@ const DealForm = () => {
                           />
                         )}
                         isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
                       />
                     </Grid>
                   </Grid>

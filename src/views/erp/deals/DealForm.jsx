@@ -382,12 +382,13 @@ const DealForm = () => {
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Source Lead (Optional)"
+                            label="Source Lead"
                             placeholder="Select lead..."
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           />
                         )}
                         isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>

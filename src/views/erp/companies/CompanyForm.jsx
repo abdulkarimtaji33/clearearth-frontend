@@ -22,6 +22,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Paper,
+  Divider,
+  Stack,
   Chip,
 } from '@mui/material';
 import { Formik } from 'formik';
@@ -31,17 +34,10 @@ import { IconArrowLeft, IconPlus, IconTrash, IconUserPlus } from '@tabler/icons-
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
-const INDUSTRY_TYPES = [
-  'Technology', 'Manufacturing', 'Retail', 'Healthcare', 'Finance',
-  'Construction', 'Education', 'Transportation & Logistics', 'Energy',
-  'Real Estate', 'Hospitality', 'Agriculture', 'Environmental Services', 'Other',
-];
-
-const CONTACT_ROLES = ['Sales', 'Finance', 'HR', 'Operations', 'Technical', 'Management', 'Other'];
-
 const validationSchema = Yup.object({
   companyName: Yup.string().required('Company name is required'),
   email: Yup.string().email('Invalid email').nullable(),
+  phone: Yup.string().required('Phone is required'),
 });
 
 const contactValidationSchema = Yup.object({
@@ -64,9 +60,18 @@ const CompanyForm = () => {
   const [contactRole, setContactRole] = useState('');
   const [savingContact, setSavingContact] = useState(false);
   const [newContactValues, setNewContactValues] = useState({
-    firstName: '', lastName: '', email: '', phone: '', jobTitle: '', department: '',
+    firstName: '', lastName: '', email: '', phone: '', designation: '', department: '',
   });
   const [newContactErrors, setNewContactErrors] = useState({});
+  
+  // Dropdown states
+  const [dropdowns, setDropdowns] = useState({
+    designations: [],
+    industryTypes: [],
+    cities: [],
+    countries: [],
+    contactRoles: [],
+  });
 
   const [initialValues, setInitialValues] = useState({
     companyName: '',
@@ -95,8 +100,26 @@ const CompanyForm = () => {
     }
   }, []);
 
+  const fetchDropdowns = useCallback(async () => {
+    try {
+      const response = await apiService.getAllDropdowns();
+      if (response.success) {
+        setDropdowns({
+          designations: response.data.designations || [],
+          industryTypes: response.data.industry_types || [],
+          cities: response.data.uae_cities || [],
+          countries: response.data.countries || [],
+          contactRoles: response.data.contact_roles || [],
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch dropdowns:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchAllContacts();
+    fetchDropdowns();
     if (isEdit) fetchCompany();
   }, [id]);
 
@@ -160,7 +183,19 @@ const CompanyForm = () => {
       }
       setTimeout(() => navigate('/erp/companies'), 1000);
     } catch (err) {
-      setError(err.message || 'Failed to save company');
+      // Display detailed validation errors
+      let errorMessage = err.message || 'Failed to save company';
+      if (err.errors) {
+        if (typeof err.errors === 'string') {
+          errorMessage = err.errors;
+        } else if (Array.isArray(err.errors)) {
+          errorMessage = err.errors.map(e => e.msg || e.message || e).join(', ');
+        } else if (typeof err.errors === 'object') {
+          errorMessage = Object.values(err.errors).join(', ');
+        }
+      }
+      setError(errorMessage);
+      console.error('Validation Error Details:', err);
     } finally {
       setSubmitting(false);
     }
@@ -219,7 +254,7 @@ const CompanyForm = () => {
             isPrimary: false,
           },
         ]);
-        setNewContactValues({ firstName: '', lastName: '', email: '', phone: '', jobTitle: '', department: '' });
+        setNewContactValues({ firstName: '', lastName: '', email: '', phone: '', designation: '', department: '' });
         setContactRole('');
         setNewContactDialogOpen(false);
         setAddContactDialogOpen(false);
@@ -253,18 +288,28 @@ const CompanyForm = () => {
 
   return (
     <PageContainer title={isEdit ? 'Edit Company' : 'Add Company'} description="Manage company details">
-      <Box>
-        <Box display="flex" alignItems="center" mb={3} gap={2}>
-          <Button variant="outlined" startIcon={<IconArrowLeft />} onClick={() => navigate('/erp/companies')}>
+      <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+        <Stack direction="row" alignItems="center" spacing={2} mb={4}>
+          <Button
+            variant="outlined"
+            startIcon={<IconArrowLeft size={20} />}
+            onClick={() => navigate('/erp/companies')}
+            sx={{ borderRadius: 2 }}
+          >
             Back
           </Button>
-          <Typography variant="h4" fontWeight="600">
-            {isEdit ? 'Edit Company' : 'Add New Company'}
-          </Typography>
-        </Box>
+          <Box>
+            <Typography variant="h3" fontWeight={700}>
+              {isEdit ? 'Edit Company' : 'Add New Company'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mt={0.5}>
+              {isEdit ? 'Update company information' : 'Create a new company in the system'}
+            </Typography>
+          </Box>
+        </Stack>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>{success}</Alert>}
 
         <Formik
           initialValues={initialValues}
@@ -275,41 +320,120 @@ const CompanyForm = () => {
           {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => (
             <form onSubmit={formikSubmit}>
               {/* Company Information */}
-              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', mb: 3 }}>
-                <CardContent>
-                  <Typography variant="h6" fontWeight={600} mb={3}>Company Information</Typography>
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: 5 }}>
+                  <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
+                    Company Information
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={4}>
+                    Basic company details and contact information
+                  </Typography>
+                  <Divider sx={{ mb: 4 }} />
+                  
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
-                        label="Company Name *"
+                        label="Company Name"
                         name="companyName"
                         value={values.companyName}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.companyName && Boolean(errors.companyName)}
                         helperText={touched.companyName && errors.companyName}
+                        required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Autocomplete
-                        options={contacts}
-                        getOptionLabel={(opt) =>
-                          typeof opt === 'object'
-                            ? `${opt.first_name} ${opt.last_name}${opt.email ? ` (${opt.email})` : ''}`
-                            : ''
-                        }
-                        value={contacts.find((c) => c.id === values.primaryContactId) || null}
-                        onChange={(_, val) => setFieldValue('primaryContactId', val?.id || null)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Primary Contact Person"
-                            placeholder="Select or search contact..."
-                          />
-                        )}
-                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="Phone"
+                        name="phone"
+                        value={values.phone}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        error={touched.phone && Boolean(errors.phone)}
+                        helperText={touched.phone && errors.phone}
+                        required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="Email"
+                        name="email"
+                        type="email"
+                        value={values.email}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        error={touched.email && Boolean(errors.email)}
+                        helperText={touched.email && errors.email}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Box position="relative">
+                        <Autocomplete
+                          fullWidth
+                          options={contacts}
+                          getOptionLabel={(opt) =>
+                            typeof opt === 'object'
+                              ? `${opt.first_name} ${opt.last_name}${opt.email ? ` (${opt.email})` : ''}`
+                              : ''
+                          }
+                          value={contacts.find((c) => c.id === values.primaryContactId) || null}
+                          onChange={(_, val) => setFieldValue('primaryContactId', val?.id || null)}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Primary Contact Person"
+                              placeholder="Select or search contact..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                          ListboxProps={{
+                            style: { maxHeight: '300px' }
+                          }}
+                          sx={{
+                            '& .MuiAutocomplete-inputRoot': {
+                              minWidth: '280px',
+                            }
+                          }}
+                        />
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: -8,
+                            right: 12,
+                            backgroundColor: 'background.paper',
+                            px: 1,
+                            zIndex: 1,
+                          }}
+                        >
+                          <Button
+                            size="small"
+                            onClick={() => setNewContactDialogOpen(true)}
+                            sx={{ 
+                              textTransform: 'none',
+                              fontSize: '0.75rem',
+                              fontWeight: 500,
+                              minWidth: 'auto',
+                              px: 0.5,
+                              py: 0,
+                              color: 'primary.main',
+                              '&:hover': {
+                                backgroundColor: 'transparent',
+                                textDecoration: 'underline',
+                              }
+                            }}
+                          >
+                            + Add New
+                          </Button>
+                        </Box>
+                      </Box>
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
@@ -320,10 +444,18 @@ const CompanyForm = () => {
                         value={values.industryType}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: {
+                            PaperProps: {
+                              style: { maxHeight: 350 }
+                            }
+                          }
+                        }}
                       >
                         <MenuItem value="">None</MenuItem>
-                        {INDUSTRY_TYPES.map((t) => (
-                          <MenuItem key={t} value={t}>{t}</MenuItem>
+                        {dropdowns.industryTypes.map((t) => (
+                          <MenuItem key={t.id} value={t.value}>{t.display_name}</MenuItem>
                         ))}
                       </TextField>
                     </Grid>
@@ -336,29 +468,7 @@ const CompanyForm = () => {
                         value={values.website}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Email"
-                        name="email"
-                        type="email"
-                        value={values.email}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={touched.email && Boolean(errors.email)}
-                        helperText={touched.email && errors.email}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Phone"
-                        name="phone"
-                        value={values.phone}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
@@ -369,6 +479,14 @@ const CompanyForm = () => {
                         name="status"
                         value={values.status}
                         onChange={handleChange}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: {
+                            PaperProps: {
+                              style: { maxHeight: 250 }
+                            }
+                          }
+                        }}
                       >
                         <MenuItem value="active">Active</MenuItem>
                         <MenuItem value="inactive">Inactive</MenuItem>
@@ -379,52 +497,88 @@ const CompanyForm = () => {
               </Card>
 
               {/* Location Details */}
-              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', mb: 3 }}>
-                <CardContent>
-                  <Typography variant="h6" fontWeight={600} mb={3}>Location Details</Typography>
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: 5 }}>
+                  <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
+                    Location Details
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={4}>
+                    Address and location information
+                  </Typography>
+                  <Divider sx={{ mb: 4 }} />
+                  
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
+                        select
                         label="Country"
                         name="country"
                         value={values.country}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                      />
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: {
+                            PaperProps: {
+                              style: { maxHeight: 250 }
+                            }
+                          }
+                        }}
+                      >
+                        {dropdowns.countries.map((c) => (
+                          <MenuItem key={c.id} value={c.value}>{c.display_name}</MenuItem>
+                        ))}
+                      </TextField>
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
+                        select
                         label="City"
                         name="city"
                         value={values.city}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                      />
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: {
+                            PaperProps: {
+                              style: { maxHeight: 300 }
+                            }
+                          }
+                        }}
+                      >
+                        <MenuItem value="">Select City</MenuItem>
+                        {dropdowns.cities.map((city) => (
+                          <MenuItem key={city.id} value={city.value}>{city.display_name}</MenuItem>
+                        ))}
+                      </TextField>
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
-                        multiline
-                        rows={1}
-                        label="Address"
+                        label="Address Details"
                         name="address"
+                        placeholder="Street, Building, etc."
                         value={values.address}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
                         multiline
-                        rows={3}
+                        rows={4}
                         label="Notes"
                         name="notes"
+                        placeholder="Add any additional notes or comments..."
                         value={values.notes}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
                   </Grid>
@@ -432,80 +586,106 @@ const CompanyForm = () => {
               </Card>
 
               {/* Additional Contacts */}
-              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', mb: 3 }}>
-                <CardContent>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: 5 }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap" gap={2}>
                     <Box>
-                      <Typography variant="h6" fontWeight={600}>Company Contacts</Typography>
-                      <Typography variant="body2" color="textSecondary">
+                      <Typography variant="h4" fontWeight={700} color="primary.main">
+                        Company Contacts
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" mt={1}>
                         Add multiple contacts per department (Sales, Finance, HR, etc.)
                       </Typography>
                     </Box>
                     <Button
-                      variant="outlined"
-                      startIcon={<IconUserPlus />}
+                      variant="contained"
+                      startIcon={<IconUserPlus size={20} />}
                       onClick={() => setAddContactDialogOpen(true)}
+                      sx={{ minWidth: '160px', borderRadius: 2, fontWeight: 600 }}
                     >
                       Add Contact
                     </Button>
-                  </Box>
+                  </Stack>
 
                   {linkedContacts.length === 0 ? (
                     <Box
                       sx={{
                         border: '2px dashed',
                         borderColor: 'divider',
-                        borderRadius: 2,
-                        p: 3,
+                        borderRadius: 3,
+                        p: 6,
                         textAlign: 'center',
                         color: 'text.secondary',
+                        backgroundColor: 'grey.50',
                       }}
                     >
-                      <Typography variant="body2">
-                        No contacts added yet. Click "Add Contact" to link contacts to this company.
+                      <Typography variant="body1" fontWeight={500}>
+                        No contacts added yet
+                      </Typography>
+                      <Typography variant="body2" mt={1}>
+                        Click "Add Contact" to link contacts to this company
                       </Typography>
                     </Box>
                   ) : (
-                    <TableContainer>
-                      <Table size="small">
+                    <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                      <Table>
                         <TableHead>
-                          <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                            <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }}>Role / Department</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 600 }}>Remove</TableCell>
+                          <TableRow sx={{ backgroundColor: 'primary.lighter' }}>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem', py: 2 }}>Name</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem', py: 2 }}>Email</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem', py: 2 }}>Phone</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.9375rem', py: 2, minWidth: 220 }}>Role / Department</TableCell>
+                            <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.9375rem', py: 2, width: 100 }}>Action</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {linkedContacts.map((c) => (
-                            <TableRow key={c.contactId}>
-                              <TableCell>
-                                {c.firstName} {c.lastName}
+                          {linkedContacts.map((c, index) => (
+                            <TableRow key={c.contactId} hover>
+                              <TableCell sx={{ py: 2 }}>
+                                <Typography variant="body2" fontWeight={600}>
+                                  {c.firstName} {c.lastName}
+                                </Typography>
                               </TableCell>
-                              <TableCell>{c.email || '-'}</TableCell>
-                              <TableCell>{c.phone || '-'}</TableCell>
-                              <TableCell>
+                              <TableCell sx={{ py: 2 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  {c.email || '-'}
+                                </Typography>
+                              </TableCell>
+                              <TableCell sx={{ py: 2 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  {c.phone || '-'}
+                                </Typography>
+                              </TableCell>
+                              <TableCell sx={{ py: 2 }}>
                                 <TextField
                                   select
                                   size="small"
                                   value={c.role || ''}
                                   onChange={(e) => handleLinkedContactRoleChange(c.contactId, e.target.value)}
-                                  sx={{ minWidth: 140 }}
+                                  fullWidth
+                                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                  SelectProps={{
+                                    MenuProps: {
+                                      PaperProps: {
+                                        style: { maxHeight: 250 }
+                                      }
+                                    }
+                                  }}
                                 >
                                   <MenuItem value="">No role</MenuItem>
-                                  {CONTACT_ROLES.map((r) => (
-                                    <MenuItem key={r} value={r}>{r}</MenuItem>
+                                  {dropdowns.contactRoles.map((r) => (
+                                    <MenuItem key={r.id} value={r.value}>{r.display_name}</MenuItem>
                                   ))}
                                 </TextField>
                               </TableCell>
-                              <TableCell align="right">
+                              <TableCell align="center" sx={{ py: 2 }}>
                                 <IconButton
                                   size="small"
                                   color="error"
                                   onClick={() => handleRemoveLinkedContact(c.contactId)}
+                                  sx={{ '&:hover': { backgroundColor: 'error.lighter' } }}
                                 >
-                                  <IconTrash size={16} />
+                                  <IconTrash size={18} />
                                 </IconButton>
                               </TableCell>
                             </TableRow>
@@ -517,24 +697,48 @@ const CompanyForm = () => {
                 </CardContent>
               </Card>
 
-              <Box display="flex" gap={2} justifyContent="flex-end">
-                <Button variant="outlined" size="large" onClick={() => navigate('/erp/companies')}>
+              <Stack direction="row" spacing={2} justifyContent="flex-end" mt={3}>
+                <Button 
+                  variant="outlined" 
+                  size="large" 
+                  onClick={() => navigate('/erp/companies')}
+                  sx={{ minWidth: '140px', borderRadius: 2, fontWeight: 600 }}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" variant="contained" size="large" disabled={isSubmitting}>
+                <Button 
+                  type="submit" 
+                  variant="contained" 
+                  size="large" 
+                  disabled={isSubmitting}
+                  sx={{ minWidth: '180px', borderRadius: 2, fontWeight: 600 }}
+                >
                   {isSubmitting ? 'Saving...' : isEdit ? 'Update Company' : 'Create Company'}
                 </Button>
-              </Box>
+              </Stack>
             </form>
           )}
         </Formik>
       </Box>
 
       {/* Add Contact Dialog */}
-      <Dialog open={addContactDialogOpen} onClose={() => setAddContactDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add Contact to Company</DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <Grid container spacing={2}>
+      <Dialog 
+        open={addContactDialogOpen} 
+        onClose={() => setAddContactDialogOpen(false)} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 }
+        }}
+      >
+        <DialogTitle sx={{ pb: 2, pt: 4, px: 4 }}>
+          <Typography variant="h4" fontWeight={700}>Add Contact to Company</Typography>
+          <Typography variant="body2" color="text.secondary" mt={1}>
+            Select an existing contact or create a new one
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, px: 4 }}>
+          <Grid container spacing={3}>
             <Grid item xs={12}>
               <Autocomplete
                 options={contacts}
@@ -546,9 +750,21 @@ const CompanyForm = () => {
                 value={selectedContactToAdd}
                 onChange={(_, val) => setSelectedContactToAdd(val)}
                 renderInput={(params) => (
-                  <TextField {...params} label="Select Contact" placeholder="Search contacts..." autoFocus />
+                  <TextField 
+                    {...params} 
+                    label="Select Contact" 
+                    placeholder="Search contacts..." 
+                    autoFocus 
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
                 )}
                 isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                ListboxProps={{ style: { maxHeight: 300 } }}
+                sx={{
+                  '& .MuiAutocomplete-inputRoot': {
+                    minWidth: '300px',
+                  }
+                }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -558,36 +774,53 @@ const CompanyForm = () => {
                 label="Role / Department"
                 value={contactRole}
                 onChange={(e) => setContactRole(e.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      style: { maxHeight: 300 }
+                    }
+                  }
+                }}
               >
                 <MenuItem value="">No role</MenuItem>
-                {CONTACT_ROLES.map((r) => (
-                  <MenuItem key={r} value={r}>{r}</MenuItem>
+                {dropdowns.contactRoles.map((r) => (
+                  <MenuItem key={r.id} value={r.value}>{r.display_name}</MenuItem>
                 ))}
               </TextField>
             </Grid>
             <Grid item xs={12}>
+              <Divider sx={{ my: 1 }} />
               <Button
                 fullWidth
                 variant="outlined"
-                startIcon={<IconPlus />}
+                startIcon={<IconPlus size={18} />}
                 onClick={() => {
                   setAddContactDialogOpen(false);
                   setNewContactDialogOpen(true);
                 }}
+                size="large"
+                sx={{ borderRadius: 2, fontWeight: 600 }}
               >
                 + Add New Contact (not in list)
               </Button>
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => { setAddContactDialogOpen(false); setSelectedContactToAdd(null); setContactRole(''); }}>
+        <DialogActions sx={{ px: 4, pb: 4, pt: 3 }}>
+          <Button 
+            onClick={() => { setAddContactDialogOpen(false); setSelectedContactToAdd(null); setContactRole(''); }}
+            size="large"
+            sx={{ minWidth: '120px', borderRadius: 2, fontWeight: 600 }}
+          >
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={handleAddExistingContact}
             disabled={!selectedContactToAdd}
+            size="large"
+            sx={{ minWidth: '150px', borderRadius: 2, fontWeight: 600 }}
           >
             Add Contact
           </Button>
@@ -595,34 +828,51 @@ const CompanyForm = () => {
       </Dialog>
 
       {/* New Contact Creation Dialog */}
-      <Dialog open={newContactDialogOpen} onClose={() => setNewContactDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Create New Contact</DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
+      <Dialog 
+        open={newContactDialogOpen} 
+        onClose={() => setNewContactDialogOpen(false)} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 }
+        }}
+      >
+        <DialogTitle sx={{ pb: 2, pt: 4, px: 4 }}>
+          <Typography variant="h4" fontWeight={700}>Create New Contact</Typography>
+          <Typography variant="body2" color="text.secondary" mt={1}>
+            Add a new contact and link to this company
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, px: 4 }}>
           {newContactErrors.submit && (
-            <Alert severity="error" sx={{ mb: 2 }}>{newContactErrors.submit}</Alert>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{newContactErrors.submit}</Alert>
           )}
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="First Name *"
+                label="First Name"
                 value={newContactValues.firstName}
                 onChange={(e) => setNewContactValues((v) => ({ ...v, firstName: e.target.value }))}
                 error={Boolean(newContactErrors.firstName)}
                 helperText={newContactErrors.firstName}
+                required
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Last Name *"
+                label="Last Name"
                 value={newContactValues.lastName}
                 onChange={(e) => setNewContactValues((v) => ({ ...v, lastName: e.target.value }))}
                 error={Boolean(newContactErrors.lastName)}
                 helperText={newContactErrors.lastName}
+                required
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Email"
@@ -631,45 +881,89 @@ const CompanyForm = () => {
                 onChange={(e) => setNewContactValues((v) => ({ ...v, email: e.target.value }))}
                 error={Boolean(newContactErrors.email)}
                 helperText={newContactErrors.email}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Phone"
                 value={newContactValues.phone}
                 onChange={(e) => setNewContactValues((v) => ({ ...v, phone: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Job Title"
-                value={newContactValues.jobTitle}
-                onChange={(e) => setNewContactValues((v) => ({ ...v, jobTitle: e.target.value }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 select
-                label="Role / Department"
+                label="Designation"
+                value={newContactValues.designation}
+                onChange={(e) => setNewContactValues((v) => ({ ...v, designation: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      style: { maxHeight: 300 }
+                    }
+                  }
+                }}
+              >
+                <MenuItem value="">None</MenuItem>
+                {dropdowns.designations.map((d) => (
+                  <MenuItem key={d.id} value={d.value}>{d.display_name}</MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Department"
+                placeholder="e.g. Sales, Finance"
+                value={newContactValues.department}
+                onChange={(e) => setNewContactValues((v) => ({ ...v, department: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                select
+                label="Role / Department for this Company"
                 value={contactRole}
                 onChange={(e) => setContactRole(e.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      style: { maxHeight: 300 }
+                    }
+                  }
+                }}
               >
                 <MenuItem value="">No role</MenuItem>
-                {CONTACT_ROLES.map((r) => (
-                  <MenuItem key={r} value={r}>{r}</MenuItem>
+                {dropdowns.contactRoles.map((r) => (
+                  <MenuItem key={r.id} value={r.value}>{r.display_name}</MenuItem>
                 ))}
               </TextField>
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => { setNewContactDialogOpen(false); setNewContactErrors({}); }}>
+        <DialogActions sx={{ px: 4, pb: 4, pt: 3 }}>
+          <Button 
+            onClick={() => { setNewContactDialogOpen(false); setNewContactErrors({}); }}
+            size="large"
+            sx={{ minWidth: '120px', borderRadius: 2, fontWeight: 600 }}
+          >
             Cancel
           </Button>
-          <Button variant="contained" onClick={handleCreateAndAddContact} disabled={savingContact}>
+          <Button 
+            variant="contained" 
+            onClick={handleCreateAndAddContact} 
+            disabled={savingContact}
+            size="large"
+            sx={{ minWidth: '160px', borderRadius: 2, fontWeight: 600 }}
+          >
             {savingContact ? 'Creating...' : 'Create & Add'}
           </Button>
         </DialogActions>

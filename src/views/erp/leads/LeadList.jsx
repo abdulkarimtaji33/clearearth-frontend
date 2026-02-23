@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -40,6 +40,7 @@ const LeadList = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
@@ -47,11 +48,7 @@ const LeadList = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedLead, setSelectedLead] = useState(null);
 
-  useEffect(() => {
-    fetchLeads();
-  }, [page, rowsPerPage, search]);
-
-  const fetchLeads = async () => {
+  const fetchLeads = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiService.getLeads({
@@ -60,15 +57,19 @@ const LeadList = () => {
         search,
       });
       if (response.success) {
-        setLeads(response.data.items || response.data);
-        setTotalCount(response.data.pagination?.total || response.data.length);
+        setLeads(Array.isArray(response.data) ? response.data : []);
+        setTotalCount(response.pagination?.totalItems || 0);
       }
     } catch (err) {
       setError(err.message || 'Failed to load leads');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, rowsPerPage, search]);
+
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
 
   const handleSearch = (event) => {
     setSearch(event.target.value);
@@ -106,10 +107,21 @@ const LeadList = () => {
   const handleConvert = async (id) => {
     try {
       await apiService.convertLead(id, {});
+      setSuccess('Lead marked as converted successfully');
       fetchLeads();
-      navigate('/erp/deals');
     } catch (err) {
       setError(err.message || 'Failed to convert lead');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this lead?')) {
+      try {
+        await apiService.deleteLead(id);
+        fetchLeads();
+      } catch (err) {
+        setError(err.message || 'Failed to delete lead');
+      }
     }
   };
 
@@ -161,6 +173,11 @@ const LeadList = () => {
             {error}
           </Alert>
         )}
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+            {success}
+          </Alert>
+        )}
 
         <Card>
           <CardContent>
@@ -185,11 +202,12 @@ const LeadList = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Lead Source</TableCell>
-                    <TableCell>Name</TableCell>
+                    <TableCell>Lead #</TableCell>
+                    <TableCell>Company</TableCell>
+                    <TableCell>Contact Person</TableCell>
                     <TableCell>Email</TableCell>
                     <TableCell>Phone</TableCell>
-                    <TableCell>Service Interest</TableCell>
+                    <TableCell>Source</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Assigned To</TableCell>
                     <TableCell align="right">Actions</TableCell>
@@ -198,15 +216,24 @@ const LeadList = () => {
                 <TableBody>
                   {leads.map((lead) => (
                     <TableRow key={lead.id} hover>
-                      <TableCell>{lead.lead_source}</TableCell>
-                      <TableCell>{`${lead.first_name} ${lead.last_name}`}</TableCell>
+                      <TableCell>{lead.lead_number || '-'}</TableCell>
+                      <TableCell>{lead.company?.company_name || '-'}</TableCell>
+                      <TableCell>
+                        {lead.contact
+                          ? `${lead.contact.first_name} ${lead.contact.last_name}`
+                          : '-'}
+                      </TableCell>
                       <TableCell>{lead.email}</TableCell>
                       <TableCell>{lead.phone}</TableCell>
-                      <TableCell>{lead.service_interest}</TableCell>
+                      <TableCell>{lead.source || '-'}</TableCell>
                       <TableCell>
                         <Chip label={lead.status} size="small" color={getStatusColor(lead.status)} />
                       </TableCell>
-                      <TableCell>{lead.assigned_to_name || '-'}</TableCell>
+                      <TableCell>
+                        {lead.assignedUser
+                          ? `${lead.assignedUser.first_name} ${lead.assignedUser.last_name}`
+                          : '-'}
+                      </TableCell>
                       <TableCell align="right">
                         <IconButton size="small" onClick={(e) => handleMenuOpen(e, lead)}>
                           <IconDotsVertical size={18} />
@@ -257,7 +284,13 @@ const LeadList = () => {
               Convert to Deal
             </MenuItem>
           )}
-          <MenuItem onClick={() => { handleMenuClose(); }}>
+          <MenuItem 
+            onClick={() => { 
+              handleDelete(selectedLead?.id); 
+              handleMenuClose(); 
+            }}
+            sx={{ color: 'error.main' }}
+          >
             <IconTrash size={18} style={{ marginRight: 8 }} />
             Delete
           </MenuItem>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -11,20 +11,27 @@ import {
   Alert,
   CircularProgress,
   Autocomplete,
+  Divider,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
-import { IconArrowLeft } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
 const validationSchema = Yup.object({
-  deal_name: Yup.string().required('Deal name is required'),
-  client_id: Yup.number().required('Client is required'),
-  service_type: Yup.string().required('Service type is required'),
-  expected_value: Yup.number().min(0, 'Value must be positive'),
-  expected_close_date: Yup.date().required('Expected close date is required'),
+  title: Yup.string().required('Title is required'),
+  dealDate: Yup.date().required('Deal date is required'),
 });
 
 const DealForm = () => {
@@ -32,68 +39,227 @@ const DealForm = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [clients, setClients] = useState([]);
+  const [success, setSuccess] = useState('');
+  
+  const [leads, setLeads] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [users, setUsers] = useState([]);
+  
+  const [dropdowns, setDropdowns] = useState({
+    dealStatus: [],
+    paymentStatus: [],
+  });
+
+  const [lineItems, setLineItems] = useState([]);
+  const [subtotal, setSubtotal] = useState(0);
+  const [vatAmount, setVatAmount] = useState(0);
+  const [total, setTotal] = useState(0);
+
   const [initialValues, setInitialValues] = useState({
-    deal_name: '',
-    client_id: '',
-    service_type: '',
-    expected_value: '',
-    expected_close_date: '',
+    leadId: null,
+    companyId: null,
+    contactId: null,
+    supplierId: null,
+    title: '',
     description: '',
+    dealDate: new Date().toISOString().split('T')[0],
+    vatPercentage: 5,
+    currency: 'AED',
+    status: 'draft',
+    paymentStatus: 'unpaid',
+    paidAmount: 0,
+    assignedTo: null,
     notes: '',
   });
 
-  useEffect(() => {
-    fetchClients();
-    if (id) {
-      fetchDeal();
-    }
-  }, [id]);
+  const isEdit = Boolean(id);
 
-  const fetchClients = async () => {
+  const fetchAllData = useCallback(async () => {
     try {
-      const response = await apiService.getClients({ pageSize: 100 });
+      const [leadsRes, companiesRes, contactsRes, suppliersRes, productsRes, usersRes] = await Promise.all([
+        apiService.getLeads({ pageSize: 500 }),
+        apiService.getCompanies({ pageSize: 500 }),
+        apiService.getContacts({ pageSize: 500 }),
+        apiService.getSuppliers({ pageSize: 500 }),
+        apiService.getProducts({ pageSize: 500, status: 'active' }),
+        apiService.getUsers({ pageSize: 500 }),
+      ]);
+      
+      if (leadsRes.success) setLeads(Array.isArray(leadsRes.data) ? leadsRes.data : []);
+      if (companiesRes.success) setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
+      if (contactsRes.success) setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : []);
+      if (suppliersRes.success) setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : []);
+      if (productsRes.success) setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+      if (usersRes.success) setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+    } catch (err) {
+      console.error('Failed to fetch data:', err);
+    }
+  }, []);
+
+  const fetchDropdowns = useCallback(async () => {
+    try {
+      const response = await apiService.getAllDropdowns();
       if (response.success) {
-        setClients(response.data.items || response.data);
+        setDropdowns({
+          dealStatus: response.data.deal_status || [],
+          paymentStatus: response.data.payment_status || [],
+        });
       }
     } catch (err) {
-      console.error('Failed to load clients:', err);
+      console.error('Failed to fetch dropdowns:', err);
     }
-  };
+  }, []);
 
-  const fetchDeal = async () => {
+  const fetchDeal = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiService.getDeal(id);
       if (response.success) {
-        setInitialValues(response.data);
+        const d = response.data;
+        setInitialValues({
+          leadId: d.lead_id || null,
+          companyId: d.company_id || null,
+          contactId: d.contact_id || null,
+          supplierId: d.supplier_id || null,
+          title: d.title || '',
+          description: d.description || '',
+          dealDate: d.deal_date ? new Date(d.deal_date).toISOString().split('T')[0] : '',
+          vatPercentage: d.vat_percentage || 5,
+          currency: d.currency || 'AED',
+          status: d.status || 'draft',
+          paymentStatus: d.payment_status || 'unpaid',
+          paidAmount: d.paid_amount || 0,
+          assignedTo: d.assigned_to || null,
+          notes: d.notes || '',
+        });
+        
+        // Load line items
+        const items = (d.items || []).map(item => ({
+          id: item.id,
+          productServiceId: item.product_service_id,
+          productName: item.productService?.name || '',
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+          lineTotal: item.line_total,
+          notes: item.notes || '',
+        }));
+        setLineItems(items);
       }
     } catch (err) {
       setError(err.message || 'Failed to load deal');
     } finally {
       setLoading(false);
     }
+  }, [id]);
+
+  useEffect(() => {
+    fetchAllData();
+    fetchDropdowns();
+    if (isEdit) {
+      fetchDeal();
+    }
+  }, [isEdit, fetchAllData, fetchDropdowns, fetchDeal]);
+
+  // Recalculate totals when line items or VAT changes
+  useEffect(() => {
+    const sub = lineItems.reduce((sum, item) => sum + parseFloat(item.lineTotal || 0), 0);
+    setSubtotal(sub);
+    
+    const vat = (sub * parseFloat(initialValues.vatPercentage || 5)) / 100;
+    setVatAmount(vat);
+    
+    setTotal(sub + vat);
+  }, [lineItems, initialValues.vatPercentage]);
+
+  const handleAddLineItem = () => {
+    setLineItems([...lineItems, {
+      productServiceId: null,
+      productName: '',
+      quantity: 1,
+      unitPrice: 0,
+      lineTotal: 0,
+      notes: '',
+    }]);
+  };
+
+  const handleRemoveLineItem = (index) => {
+    setLineItems(lineItems.filter((_, i) => i !== index));
+  };
+
+  const handleLineItemChange = (index, field, value) => {
+    const newItems = [...lineItems];
+    newItems[index][field] = value;
+    
+    // Auto-calculate line total
+    if (field === 'quantity' || field === 'unitPrice') {
+      const qty = parseFloat(newItems[index].quantity || 0);
+      const price = parseFloat(newItems[index].unitPrice || 0);
+      newItems[index].lineTotal = (qty * price).toFixed(2);
+    }
+    
+    // Auto-fill price when product is selected
+    if (field === 'productServiceId') {
+      const product = products.find(p => p.id === value);
+      if (product) {
+        newItems[index].productName = product.name;
+        newItems[index].unitPrice = product.price || 0;
+        const qty = parseFloat(newItems[index].quantity || 0);
+        newItems[index].lineTotal = (qty * parseFloat(product.price || 0)).toFixed(2);
+      }
+    }
+    
+    setLineItems(newItems);
   };
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
       setError('');
-      if (id) {
-        await apiService.updateDeal(id, values);
-      } else {
-        await apiService.createDeal(values);
+      
+      if (lineItems.length === 0) {
+        setError('Please add at least one product/service');
+        setSubmitting(false);
+        return;
       }
-      navigate('/erp/deals');
+
+      const payload = {
+        ...values,
+        items: lineItems.map(item => ({
+          productServiceId: item.productServiceId,
+          quantity: parseFloat(item.quantity),
+          unitPrice: parseFloat(item.unitPrice),
+          notes: item.notes,
+        })),
+      };
+
+      if (isEdit) {
+        await apiService.updateDeal(id, payload);
+        setSuccess('Deal updated successfully!');
+      } else {
+        await apiService.createDeal(payload);
+        setSuccess('Deal created successfully!');
+      }
+      setTimeout(() => navigate('/erp/deals'), 1000);
     } catch (err) {
-      setError(err.message || 'Failed to save deal');
+      let errorMessage = err.message || 'Failed to save deal';
+      if (err.errors) {
+        if (typeof err.errors === 'string') {
+          errorMessage = err.errors;
+        } else if (Array.isArray(err.errors)) {
+          errorMessage = err.errors.map(e => e.msg || e.message || e).join(', ');
+        }
+      }
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (loading && isEdit) {
     return (
-      <PageContainer title={id ? 'Edit Deal' : 'Create Deal'}>
+      <PageContainer title="Loading...">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <CircularProgress />
         </Box>
@@ -102,148 +268,488 @@ const DealForm = () => {
   }
 
   return (
-    <PageContainer title={id ? 'Edit Deal' : 'Create Deal'}>
-      <Box>
-        <Box display="flex" alignItems="center" mb={3}>
-          <Button startIcon={<IconArrowLeft />} onClick={() => navigate('/erp/deals')} sx={{ mr: 2 }}>
+    <PageContainer title={isEdit ? 'Edit Deal' : 'Create Deal'} description="Manage deal details">
+      <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+        <Stack direction="row" alignItems="center" spacing={2} mb={4}>
+          <Button
+            variant="outlined"
+            startIcon={<IconArrowLeft size={20} />}
+            onClick={() => navigate('/erp/deals')}
+            sx={{ borderRadius: 2 }}
+          >
             Back
           </Button>
-          <Typography variant="h4" fontWeight="600">
-            {id ? 'Edit Deal' : 'Create Deal'}
-          </Typography>
-        </Box>
+          <Box>
+            <Typography variant="h3" fontWeight={700}>
+              {isEdit ? 'Edit Deal' : 'Create New Deal'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mt={0.5}>
+              {isEdit ? 'Update deal information' : 'Create a new business deal'}
+            </Typography>
+          </Box>
+        </Stack>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>{success}</Alert>}
 
-        <Card>
-          <CardContent>
-            <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit} enableReinitialize>
-              {({ values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting, setFieldValue }) => (
-                <form onSubmit={handleSubmit}>
+        <Formik
+          initialValues={initialValues}
+          validationSchema={validationSchema}
+          enableReinitialize
+          onSubmit={handleSubmit}
+        >
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => (
+            <form onSubmit={formikSubmit}>
+              {/* Basic Information */}
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: 5 }}>
+                  <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
+                    Deal Information
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={4}>
+                    Basic details about the deal
+                  </Typography>
+                  <Divider sx={{ mb: 4 }} />
+                  
                   <Grid container spacing={3}>
-                    <Grid size={12}>
-                      <Typography variant="h6" mb={2}>Deal Information</Typography>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid item xs={12} md={8}>
                       <TextField
                         fullWidth
-                        label="Deal Name"
-                        name="deal_name"
-                        value={values.deal_name}
+                        label="Deal Title"
+                        name="title"
+                        value={values.title}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        error={touched.deal_name && Boolean(errors.deal_name)}
-                        helperText={touched.deal_name && errors.deal_name}
+                        error={touched.title && Boolean(errors.title)}
+                        helperText={touched.title && errors.title}
+                        required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <Autocomplete
-                        options={clients}
-                        getOptionLabel={(option) => option.client_type === 'company' ? option.company_name : `${option.first_name} ${option.last_name}`}
-                        value={clients.find(c => c.id === values.client_id) || null}
-                        onChange={(e, value) => setFieldValue('client_id', value?.id || '')}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Client"
-                            error={touched.client_id && Boolean(errors.client_id)}
-                            helperText={touched.client_id && errors.client_id}
-                          />
-                        )}
-                      />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
-                        select
-                        label="Service Type"
-                        name="service_type"
-                        value={values.service_type}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={touched.service_type && Boolean(errors.service_type)}
-                        helperText={touched.service_type && errors.service_type}
-                      >
-                        <MenuItem value="waste_collection">Waste Collection</MenuItem>
-                        <MenuItem value="recycling">Recycling</MenuItem>
-                        <MenuItem value="disposal">Disposal</MenuItem>
-                        <MenuItem value="itad">ITAD Services</MenuItem>
-                        <MenuItem value="consulting">Consulting</MenuItem>
-                      </TextField>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Expected Value (AED)"
-                        name="expected_value"
-                        type="number"
-                        value={values.expected_value}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={touched.expected_value && Boolean(errors.expected_value)}
-                        helperText={touched.expected_value && errors.expected_value}
-                      />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Expected Close Date"
-                        name="expected_close_date"
+                        label="Deal Date"
+                        name="dealDate"
                         type="date"
-                        InputLabelProps={{ shrink: true }}
-                        value={values.expected_close_date}
+                        value={values.dealDate}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        error={touched.expected_close_date && Boolean(errors.expected_close_date)}
-                        helperText={touched.expected_close_date && errors.expected_close_date}
+                        error={touched.dealDate && Boolean(errors.dealDate)}
+                        helperText={touched.dealDate && errors.dealDate}
+                        required
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-
-                    <Grid size={12}>
+                    <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Description"
-                        name="description"
                         multiline
                         rows={3}
+                        label="Description"
+                        name="description"
+                        placeholder="Describe the deal..."
                         value={values.description}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
 
-                    <Grid size={12}>
+              {/* Relationships */}
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: 5 }}>
+                  <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
+                    Related Entities
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={4}>
+                    Link this deal to leads, companies, contacts, and suppliers
+                  </Typography>
+                  <Divider sx={{ mb: 4 }} />
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <Autocomplete
+                        fullWidth
+                        options={leads}
+                        getOptionLabel={(opt) => `${opt.lead_number || ''} - ${opt.email || ''}`}
+                        value={leads.find((l) => l.id === values.leadId) || null}
+                        onChange={(_, val) => setFieldValue('leadId', val?.id || null)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Source Lead (Optional)"
+                            placeholder="Select lead..."
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                        )}
+                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Autocomplete
+                        fullWidth
+                        options={companies}
+                        getOptionLabel={(opt) => opt.company_name || ''}
+                        value={companies.find((c) => c.id === values.companyId) || null}
+                        onChange={(_, val) => setFieldValue('companyId', val?.id || null)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Company (Client)"
+                            placeholder="Select company..."
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                        )}
+                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Autocomplete
+                        fullWidth
+                        options={contacts}
+                        getOptionLabel={(opt) => `${opt.first_name} ${opt.last_name} ${opt.email ? `(${opt.email})` : ''}`}
+                        value={contacts.find((c) => c.id === values.contactId) || null}
+                        onChange={(_, val) => setFieldValue('contactId', val?.id || null)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Contact Person"
+                            placeholder="Select contact..."
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                        )}
+                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Autocomplete
+                        fullWidth
+                        options={suppliers}
+                        getOptionLabel={(opt) => opt.company_name || ''}
+                        value={suppliers.find((s) => s.id === values.supplierId) || null}
+                        onChange={(_, val) => setFieldValue('supplierId', val?.id || null)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Supplier (Optional)"
+                            placeholder="Select supplier..."
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                        )}
+                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Autocomplete
+                        fullWidth
+                        options={users}
+                        getOptionLabel={(opt) => `${opt.first_name} ${opt.last_name}`}
+                        value={users.find((u) => u.id === values.assignedTo) || null}
+                        onChange={(_, val) => setFieldValue('assignedTo', val?.id || null)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Assigned To"
+                            placeholder="Select user..."
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                        )}
+                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+
+              {/* Products/Services Line Items */}
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: 5 }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
+                    <Box>
+                      <Typography variant="h4" fontWeight={700} color="primary.main">
+                        Products & Services
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" mt={1}>
+                        Add line items to this deal
+                      </Typography>
+                    </Box>
+                    <Button
+                      variant="contained"
+                      startIcon={<IconPlus size={20} />}
+                      onClick={handleAddLineItem}
+                      sx={{ borderRadius: 2, fontWeight: 600 }}
+                    >
+                      Add Item
+                    </Button>
+                  </Stack>
+
+                  {lineItems.length === 0 ? (
+                    <Box
+                      sx={{
+                        border: '2px dashed',
+                        borderColor: 'divider',
+                        borderRadius: 3,
+                        p: 6,
+                        textAlign: 'center',
+                        backgroundColor: 'grey.50',
+                      }}
+                    >
+                      <Typography variant="body1" fontWeight={500} color="text.secondary">
+                        No items added yet
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" mt={1}>
+                        Click "Add Item" to add products or services
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+                      <Table>
+                        <TableHead>
+                          <TableRow sx={{ backgroundColor: 'primary.lighter' }}>
+                            <TableCell sx={{ fontWeight: 700, minWidth: 250 }}>Product/Service</TableCell>
+                            <TableCell sx={{ fontWeight: 700, width: 100 }}>Quantity</TableCell>
+                            <TableCell sx={{ fontWeight: 700, width: 130 }}>Unit Price</TableCell>
+                            <TableCell sx={{ fontWeight: 700, width: 130 }}>Line Total</TableCell>
+                            <TableCell sx={{ fontWeight: 700, width: 150 }}>Notes</TableCell>
+                            <TableCell align="center" sx={{ fontWeight: 700, width: 80 }}>Action</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {lineItems.map((item, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                <Autocomplete
+                                  options={products}
+                                  getOptionLabel={(opt) => `${opt.name} (${opt.category})`}
+                                  value={products.find((p) => p.id === item.productServiceId) || null}
+                                  onChange={(_, val) => handleLineItemChange(index, 'productServiceId', val?.id || null)}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      size="small"
+                                      placeholder="Select..."
+                                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                    />
+                                  )}
+                                  isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={item.quantity}
+                                  onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
+                                  inputProps={{ min: 0, step: 0.01 }}
+                                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={item.unitPrice}
+                                  onChange={(e) => handleLineItemChange(index, 'unitPrice', e.target.value)}
+                                  inputProps={{ min: 0, step: 0.01 }}
+                                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" fontWeight={600}>
+                                  {values.currency} {parseFloat(item.lineTotal || 0).toFixed(2)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  value={item.notes}
+                                  onChange={(e) => handleLineItemChange(index, 'notes', e.target.value)}
+                                  placeholder="Notes..."
+                                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                />
+                              </TableCell>
+                              <TableCell align="center">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleRemoveLineItem(index)}
+                                >
+                                  <IconTrash size={18} />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
+
+                  {/* Totals Summary */}
+                  {lineItems.length > 0 && (
+                    <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+                      <Box sx={{ width: 350 }}>
+                        <Stack spacing={2}>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="body1">Subtotal:</Typography>
+                            <Typography variant="body1" fontWeight={600}>
+                              {values.currency} {subtotal.toFixed(2)}
+                            </Typography>
+                          </Stack>
+                          <Stack direction="row" justifyContent="space-between" alignItems="center">
+                            <Typography variant="body1">VAT:</Typography>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <TextField
+                                size="small"
+                                name="vatPercentage"
+                                type="number"
+                                value={values.vatPercentage}
+                                onChange={(e) => {
+                                  handleChange(e);
+                                  const newVat = (subtotal * parseFloat(e.target.value || 0)) / 100;
+                                  setVatAmount(newVat);
+                                  setTotal(subtotal + newVat);
+                                }}
+                                inputProps={{ min: 0, max: 100, step: 0.1 }}
+                                sx={{ width: 80, '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                              />
+                              <Typography variant="body2">%</Typography>
+                              <Typography variant="body1" fontWeight={600}>
+                                = {values.currency} {vatAmount.toFixed(2)}
+                              </Typography>
+                            </Stack>
+                          </Stack>
+                          <Divider />
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="h5" fontWeight={700}>Total:</Typography>
+                            <Typography variant="h5" fontWeight={700} color="primary.main">
+                              {values.currency} {total.toFixed(2)}
+                            </Typography>
+                          </Stack>
+                        </Stack>
+                      </Box>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Status & Payment */}
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: 5 }}>
+                  <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
+                    Status & Payment
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={4}>
+                    Deal status and payment tracking
+                  </Typography>
+                  <Divider sx={{ mb: 4 }} />
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
+                        select
+                        label="Deal Status"
+                        name="status"
+                        value={values.status}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      >
+                        {dropdowns.dealStatus.map((s) => (
+                          <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Payment Status"
+                        name="paymentStatus"
+                        value={values.paymentStatus}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      >
+                        {dropdowns.paymentStatus.map((s) => (
+                          <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="Paid Amount"
+                        name="paidAmount"
+                        type="number"
+                        value={values.paidAmount}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        inputProps={{ min: 0, step: 0.01 }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        helperText={`Total: ${values.currency} ${total.toFixed(2)}`}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Currency"
+                        name="currency"
+                        value={values.currency}
+                        onChange={handleChange}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      >
+                        <MenuItem value="AED">AED</MenuItem>
+                        <MenuItem value="USD">USD</MenuItem>
+                        <MenuItem value="EUR">EUR</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
                         label="Notes"
                         name="notes"
-                        multiline
-                        rows={2}
+                        placeholder="Add any additional notes..."
                         value={values.notes}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-
-                    <Grid size={12}>
-                      <Box display="flex" justifyContent="flex-end" gap={2} mt={2}>
-                        <Button onClick={() => navigate('/erp/deals')}>Cancel</Button>
-                        <Button type="submit" variant="contained" disabled={isSubmitting}>
-                          {isSubmitting ? 'Saving...' : id ? 'Update Deal' : 'Create Deal'}
-                        </Button>
-                      </Box>
-                    </Grid>
                   </Grid>
-                </form>
-              )}
-            </Formik>
-          </CardContent>
-        </Card>
+                </CardContent>
+              </Card>
+
+              <Stack direction="row" spacing={2} justifyContent="flex-end" mt={3}>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={() => navigate('/erp/deals')}
+                  sx={{ minWidth: '140px', borderRadius: 2, fontWeight: 600 }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  disabled={isSubmitting}
+                  sx={{ minWidth: '180px', borderRadius: 2, fontWeight: 600 }}
+                >
+                  {isSubmitting ? 'Saving...' : isEdit ? 'Update Deal' : 'Create Deal'}
+                </Button>
+              </Stack>
+            </form>
+          )}
+        </Formik>
       </Box>
     </PageContainer>
   );

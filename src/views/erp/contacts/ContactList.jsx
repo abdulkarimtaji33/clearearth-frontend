@@ -214,9 +214,10 @@ const ContactList = () => {
                   <TableRow sx={{ backgroundColor: 'grey.50' }}>
                     <TableCell sx={{ fontWeight: 600 }}>Code</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Designation</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Company</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Job Title</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Department</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
@@ -225,7 +226,7 @@ const ContactList = () => {
                 <TableBody>
                   {contacts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                         <Typography color="textSecondary">
                           {search || statusFilter
                             ? 'No contacts found matching your filters'
@@ -237,7 +238,7 @@ const ContactList = () => {
                     contacts.map((contact) => (
                       <TableRow key={contact.id} hover>
                         <TableCell>
-                          <Typography variant="body2" fontWeight={600}>
+                          <Typography variant="body2" fontWeight={600} color="primary">
                             {contact.contact_code}
                           </Typography>
                         </TableCell>
@@ -246,10 +247,31 @@ const ContactList = () => {
                             {contact.first_name} {contact.last_name}
                           </Typography>
                         </TableCell>
-                        <TableCell>{contact.email || '-'}</TableCell>
-                        <TableCell>{contact.phone || contact.mobile || '-'}</TableCell>
-                        <TableCell>{contact.job_title || '-'}</TableCell>
-                        <TableCell>{contact.department || '-'}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="textSecondary">
+                            {contact.designation || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="textSecondary">
+                            {contact.company?.company_name || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="textSecondary">
+                            {contact.email || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="textSecondary">
+                            {contact.phone || contact.mobile || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="textSecondary">
+                            {contact.department || '-'}
+                          </Typography>
+                        </TableCell>
                         <TableCell>
                           <Chip
                             label={contact.status?.toUpperCase()}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -10,6 +10,8 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
+  Divider,
+  Stack,
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -19,11 +21,10 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
 const validationSchema = Yup.object({
-  product_code: Yup.string().required('Product code is required'),
-  product_name: Yup.string().required('Product name is required'),
+  name: Yup.string().required('Name is required'),
   category: Yup.string().required('Category is required'),
-  unit_price: Yup.number().min(0, 'Price must be positive').required('Unit price is required'),
-  unit_of_measure: Yup.string().required('Unit of measure is required'),
+  unitOfMeasure: Yup.string().required('Unit of measure is required'),
+  price: Yup.number().min(0, 'Price must be positive').required('Price is required'),
 });
 
 const ProductForm = () => {
@@ -31,55 +32,100 @@ const ProductForm = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [initialValues, setInitialValues] = useState({
-    product_code: '',
-    product_name: '',
-    category: '',
-    description: '',
-    unit_price: '',
-    unit_of_measure: '',
-    specifications: '',
+  const [success, setSuccess] = useState('');
+  
+  const [dropdowns, setDropdowns] = useState({
+    categories: [],
+    unitsOfMeasure: [],
   });
 
-  useEffect(() => {
-    if (id) {
-      fetchProduct();
-    }
-  }, [id]);
+  const [initialValues, setInitialValues] = useState({
+    name: '',
+    category: '',
+    description: '',
+    unitOfMeasure: '',
+    price: '',
+    currency: 'AED',
+    status: 'active',
+  });
 
-  const fetchProduct = async () => {
+  const isEdit = Boolean(id);
+
+  const fetchDropdowns = useCallback(async () => {
+    try {
+      const response = await apiService.getAllDropdowns();
+      if (response.success) {
+        setDropdowns({
+          categories: response.data.product_categories || [],
+          unitsOfMeasure: response.data.units_of_measure || [],
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch dropdowns:', err);
+    }
+  }, []);
+
+  const fetchProduct = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiService.getProduct(id);
       if (response.success) {
-        setInitialValues(response.data);
+        const p = response.data;
+        setInitialValues({
+          name: p.name || '',
+          category: p.category || '',
+          description: p.description || '',
+          unitOfMeasure: p.unit_of_measure || '',
+          price: p.price || '',
+          currency: p.currency || 'AED',
+          status: p.status || 'active',
+        });
       }
     } catch (err) {
-      setError(err.message || 'Failed to load product');
+      setError(err.message || 'Failed to load product/service');
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchDropdowns();
+    if (isEdit) {
+      fetchProduct();
+    }
+  }, [isEdit, fetchDropdowns, fetchProduct]);
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
       setError('');
-      if (id) {
+      if (isEdit) {
         await apiService.updateProduct(id, values);
+        setSuccess('Product/Service updated successfully!');
       } else {
         await apiService.createProduct(values);
+        setSuccess('Product/Service created successfully!');
       }
-      navigate('/erp/products');
+      setTimeout(() => navigate('/erp/products'), 1000);
     } catch (err) {
-      setError(err.message || 'Failed to save product');
+      let errorMessage = err.message || 'Failed to save product/service';
+      if (err.errors) {
+        if (typeof err.errors === 'string') {
+          errorMessage = err.errors;
+        } else if (Array.isArray(err.errors)) {
+          errorMessage = err.errors.map(e => e.msg || e.message || e).join(', ');
+        } else if (typeof err.errors === 'object') {
+          errorMessage = Object.values(err.errors).join(', ');
+        }
+      }
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (loading && isEdit) {
     return (
-      <PageContainer title={id ? 'Edit Product' : 'Create Product'}>
+      <PageContainer title={isEdit ? 'Edit Product/Service' : 'Add Product/Service'}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <CircularProgress />
         </Box>
@@ -88,52 +134,75 @@ const ProductForm = () => {
   }
 
   return (
-    <PageContainer title={id ? 'Edit Product' : 'Create Product'}>
-      <Box>
-        <Box display="flex" alignItems="center" mb={3}>
-          <Button startIcon={<IconArrowLeft />} onClick={() => navigate('/erp/products')} sx={{ mr: 2 }}>
+    <PageContainer
+      title={isEdit ? 'Edit Product/Service' : 'Add Product/Service'}
+      description="Manage product or service details"
+    >
+      <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+        <Stack direction="row" alignItems="center" spacing={2} mb={4}>
+          <Button
+            variant="outlined"
+            startIcon={<IconArrowLeft size={20} />}
+            onClick={() => navigate('/erp/products')}
+            sx={{ borderRadius: 2 }}
+          >
             Back
           </Button>
-          <Typography variant="h4" fontWeight="600">
-            {id ? 'Edit Product' : 'Create Product'}
-          </Typography>
-        </Box>
+          <Box>
+            <Typography variant="h3" fontWeight={700}>
+              {isEdit ? 'Edit Product/Service' : 'Add New Product/Service'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mt={0.5}>
+              {isEdit ? 'Update product/service information' : 'Create a new product or service'}
+            </Typography>
+          </Box>
+        </Stack>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
+            {success}
+          </Alert>
+        )}
 
-        <Card>
-          <CardContent>
-            <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit} enableReinitialize>
-              {({ values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting }) => (
-                <form onSubmit={handleSubmit}>
+        <Formik
+          initialValues={initialValues}
+          validationSchema={validationSchema}
+          enableReinitialize
+          onSubmit={handleSubmit}
+        >
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting }) => (
+            <form onSubmit={formikSubmit}>
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: 5 }}>
+                  <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
+                    Product/Service Information
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={4}>
+                    Basic details about the product or service
+                  </Typography>
+                  <Divider sx={{ mb: 4 }} />
+                  
                   <Grid container spacing={3}>
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Product Code"
-                        name="product_code"
-                        value={values.product_code}
+                        label="Name"
+                        name="name"
+                        value={values.name}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        error={touched.product_code && Boolean(errors.product_code)}
-                        helperText={touched.product_code && errors.product_code}
+                        error={touched.name && Boolean(errors.name)}
+                        helperText={touched.name && errors.name}
+                        required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        label="Product Name"
-                        name="product_name"
-                        value={values.product_name}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={touched.product_name && Boolean(errors.product_name)}
-                        helperText={touched.product_name && errors.product_name}
-                      />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
                         select
@@ -144,88 +213,151 @@ const ProductForm = () => {
                         onBlur={handleBlur}
                         error={touched.category && Boolean(errors.category)}
                         helperText={touched.category && errors.category}
+                        required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: {
+                            PaperProps: {
+                              style: { maxHeight: 350 }
+                            }
+                          }
+                        }}
                       >
-                        <MenuItem value="materials">Materials</MenuItem>
-                        <MenuItem value="equipment">Equipment</MenuItem>
-                        <MenuItem value="supplies">Supplies</MenuItem>
-                        <MenuItem value="other">Other</MenuItem>
+                        <MenuItem value="">Select Category</MenuItem>
+                        {dropdowns.categories.map((cat) => (
+                          <MenuItem key={cat.id} value={cat.value}>{cat.display_name}</MenuItem>
+                        ))}
                       </TextField>
                     </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={4}
+                        label="Description"
+                        name="description"
+                        placeholder="Describe the product or service..."
+                        value={values.description}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
 
-                    <Grid size={{ xs: 12, md: 6 }}>
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: 5 }}>
+                  <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
+                    Pricing & Measurement
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={4}>
+                    Price and unit of measure details
+                  </Typography>
+                  <Divider sx={{ mb: 4 }} />
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
                         select
                         label="Unit of Measure"
-                        name="unit_of_measure"
-                        value={values.unit_of_measure}
+                        name="unitOfMeasure"
+                        value={values.unitOfMeasure}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        error={touched.unit_of_measure && Boolean(errors.unit_of_measure)}
-                        helperText={touched.unit_of_measure && errors.unit_of_measure}
+                        error={touched.unitOfMeasure && Boolean(errors.unitOfMeasure)}
+                        helperText={touched.unitOfMeasure && errors.unitOfMeasure}
+                        required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: {
+                            PaperProps: {
+                              style: { maxHeight: 350 }
+                            }
+                          }
+                        }}
                       >
-                        <MenuItem value="kg">Kilogram (kg)</MenuItem>
-                        <MenuItem value="ton">Ton</MenuItem>
-                        <MenuItem value="piece">Piece</MenuItem>
-                        <MenuItem value="liter">Liter</MenuItem>
-                        <MenuItem value="meter">Meter</MenuItem>
+                        <MenuItem value="">Select Unit</MenuItem>
+                        {dropdowns.unitsOfMeasure.map((unit) => (
+                          <MenuItem key={unit.id} value={unit.value}>{unit.display_name}</MenuItem>
+                        ))}
                       </TextField>
                     </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
-                        label="Unit Price (AED)"
-                        name="unit_price"
+                        label="Price"
+                        name="price"
                         type="number"
-                        value={values.unit_price}
+                        value={values.price}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        error={touched.unit_price && Boolean(errors.unit_price)}
-                        helperText={touched.unit_price && errors.unit_price}
+                        error={touched.price && Boolean(errors.price)}
+                        helperText={touched.price && errors.price}
+                        required
+                        inputProps={{ min: 0, step: 0.01 }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-
-                    <Grid size={12}>
+                    <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
-                        label="Description"
-                        name="description"
-                        multiline
-                        rows={3}
-                        value={values.description}
+                        select
+                        label="Currency"
+                        name="currency"
+                        value={values.currency}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                      />
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      >
+                        <MenuItem value="AED">AED</MenuItem>
+                        <MenuItem value="USD">USD</MenuItem>
+                        <MenuItem value="EUR">EUR</MenuItem>
+                      </TextField>
                     </Grid>
-
-                    <Grid size={12}>
+                    <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Specifications"
-                        name="specifications"
-                        multiline
-                        rows={2}
-                        value={values.specifications}
+                        select
+                        label="Status"
+                        name="status"
+                        value={values.status}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                      />
-                    </Grid>
-
-                    <Grid size={12}>
-                      <Box display="flex" justifyContent="flex-end" gap={2} mt={2}>
-                        <Button onClick={() => navigate('/erp/products')}>Cancel</Button>
-                        <Button type="submit" variant="contained" disabled={isSubmitting}>
-                          {isSubmitting ? 'Saving...' : id ? 'Update Product' : 'Create Product'}
-                        </Button>
-                      </Box>
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      >
+                        <MenuItem value="active">Active</MenuItem>
+                        <MenuItem value="inactive">Inactive</MenuItem>
+                      </TextField>
                     </Grid>
                   </Grid>
-                </form>
-              )}
-            </Formik>
-          </CardContent>
-        </Card>
+                </CardContent>
+              </Card>
+
+              <Stack direction="row" spacing={2} justifyContent="flex-end" mt={3}>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  onClick={() => navigate('/erp/products')}
+                  sx={{ minWidth: '140px', borderRadius: 2, fontWeight: 600 }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  disabled={isSubmitting}
+                  sx={{ minWidth: '180px', borderRadius: 2, fontWeight: 600 }}
+                >
+                  {isSubmitting ? 'Saving...' : isEdit ? 'Update Product/Service' : 'Create Product/Service'}
+                </Button>
+              </Stack>
+            </form>
+          )}
+        </Formik>
       </Box>
     </PageContainer>
   );

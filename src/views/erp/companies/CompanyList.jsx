@@ -36,6 +36,7 @@ import {
   IconDotsVertical,
   IconFilterOff,
   IconBuilding,
+  IconEye,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
@@ -87,6 +88,11 @@ const CompanyList = () => {
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedCompany(null);
+  };
+
+  const handleView = () => {
+    navigate(`/erp/companies/view/${selectedCompany.id}`);
+    handleMenuClose();
   };
 
   const handleEdit = () => {
@@ -294,6 +300,10 @@ const CompanyList = () => {
         </Card>
 
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+          <MenuItemMui onClick={handleView}>
+            <IconEye size={18} style={{ marginRight: 8 }} />
+            View
+          </MenuItemMui>
           <MenuItemMui onClick={handleEdit}>
             <IconEdit size={18} style={{ marginRight: 8 }} />
             Edit

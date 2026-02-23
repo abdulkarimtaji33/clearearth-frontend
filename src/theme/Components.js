@@ -445,10 +445,38 @@ export default function components(theme) {
           }
         },
         input: {
-          padding: '12px 14px',
+          padding: '14px 16px',
+          fontSize: '0.9375rem',
         },
         inputSizeSmall: {
-          padding: '8px 14px',
+          padding: '10px 14px',
+          fontSize: '0.875rem',
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          fontSize: '0.9375rem',
+          fontWeight: 500,
+        },
+        outlined: {
+          transform: 'translate(16px, 16px) scale(1)',
+          '&.MuiInputLabel-shrink': {
+            transform: 'translate(14px, -9px) scale(0.75)',
+          },
+        },
+      },
+    },
+    MuiSelect: {
+      styleOverrides: {
+        select: {
+          padding: '14px 16px',
+          fontSize: '0.9375rem',
+          minWidth: '200px',
+        },
+        outlined: {
+          padding: '14px 16px',
         },
       },
     },
@@ -456,10 +484,36 @@ export default function components(theme) {
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            padding: '4px 9px'
-          }
-        }
-      }
+            padding: '5px 9px',
+          },
+          '& .MuiAutocomplete-input': {
+            padding: '9px 7px',
+            fontSize: '0.9375rem',
+          },
+        },
+        listbox: {
+          fontSize: '0.9375rem',
+          '& .MuiAutocomplete-option': {
+            padding: '10px 16px',
+            minHeight: '48px',
+          },
+        },
+        paper: {
+          boxShadow: theme.shadows[8],
+        },
+      },
+    },
+    MuiTextField: {
+      defaultProps: {
+        variant: 'outlined',
+      },
+      styleOverrides: {
+        root: {
+          '& .MuiInputBase-root': {
+            fontSize: '0.9375rem',
+          },
+        },
+      },
     },
     MuiTooltip: {
       styleOverrides: {

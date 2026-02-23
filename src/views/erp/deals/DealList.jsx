@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
-  CardContent,
   Typography,
   Button,
   Table,
@@ -11,329 +10,278 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
-  TextField,
-  InputAdornment,
+  Paper,
   IconButton,
   Chip,
-  Menu,
-  MenuItem,
-  Grid,
-  LinearProgress,
-  CircularProgress,
+  TextField,
+  InputAdornment,
+  Stack,
+  Pagination,
   Alert,
-  ToggleButton,
-  ToggleButtonGroup,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
-import {
-  IconSearch,
-  IconPlus,
-  IconEdit,
-  IconTrash,
-  IconDotsVertical,
-  IconCheck,
-  IconList,
-  IconLayoutKanban,
-  IconCurrencyDollar,
-} from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconSearch, IconCurrencyDollar, IconEye } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
+const getStatusColor = (status) => {
+  const colors = {
+    draft: 'default',
+    pending: 'warning',
+    approved: 'info',
+    in_progress: 'primary',
+    completed: 'success',
+    cancelled: 'error',
+  };
+  return colors[status] || 'default';
+};
+
+const getPaymentStatusColor = (status) => {
+  const colors = {
+    unpaid: 'error',
+    partial: 'warning',
+    paid: 'success',
+  };
+  return colors[status] || 'default';
+};
+
 const DealList = () => {
   const navigate = useNavigate();
   const [deals, setDeals] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [success, setSuccess] = useState('');
   const [search, setSearch] = useState('');
-  const [totalCount, setTotalCount] = useState(0);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedDeal, setSelectedDeal] = useState(null);
-  const [viewMode, setViewMode] = useState('list');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [dealToDelete, setDealToDelete] = useState(null);
+
+  const pageSize = 10;
 
   useEffect(() => {
     fetchDeals();
-  }, [page, rowsPerPage, search]);
+  }, [page, search]);
 
   const fetchDeals = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getDeals({
-        page: page + 1,
-        pageSize: rowsPerPage,
-        search,
-      });
+      setError('');
+      const response = await apiService.getDeals({ page, pageSize, search });
       if (response.success) {
-        setDeals(response.data.items || response.data);
-        setTotalCount(response.data.pagination?.total || response.data.length);
+        setDeals(response.data || []);
+        setTotalPages(Math.ceil((response.pagination?.totalItems || 0) / pageSize));
       }
     } catch (err) {
-      setError(err.message || 'Failed to load deals');
+      setError(err.message || 'Failed to fetch deals');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (event) => {
-    setSearch(event.target.value);
-    setPage(0);
+  const handleSearch = (value) => {
+    setSearch(value);
+    setPage(1);
   };
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const handleMenuOpen = (event, deal) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedDeal(deal);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedDeal(null);
-  };
-
-  const handleFinalize = async (id) => {
+  const handleDelete = async () => {
+    if (!dealToDelete) return;
     try {
-      await apiService.finalizeDeal(id, { status: 'won' });
+      await apiService.deleteDeal(dealToDelete.id);
+      setSuccess('Deal deleted successfully');
+      setDeleteDialogOpen(false);
+      setDealToDelete(null);
       fetchDeals();
     } catch (err) {
-      setError(err.message || 'Failed to finalize deal');
+      setError(err.message || 'Failed to delete deal');
     }
   };
 
-  const getStageColor = (stage) => {
-    const stageMap = {
-      lead: 'default',
-      qualification: 'info',
-      proposal: 'primary',
-      negotiation: 'warning',
-      closed_won: 'success',
-      closed_lost: 'error',
-    };
-    return stageMap[stage] || 'default';
+  const openDeleteDialog = (deal) => {
+    setDealToDelete(deal);
+    setDeleteDialogOpen(true);
   };
-
-  const getStageProgress = (stage) => {
-    const stageMap = {
-      lead: 10,
-      qualification: 30,
-      proposal: 50,
-      negotiation: 75,
-      closed_won: 100,
-      closed_lost: 100,
-    };
-    return stageMap[stage] || 0;
-  };
-
-  if (loading && deals.length === 0) {
-    return (
-      <PageContainer title="Deals" description="Manage deals">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      </PageContainer>
-    );
-  }
 
   return (
-    <PageContainer title="Deals" description="Manage deals">
+    <PageContainer title="Deals" description="Manage all deals">
       <Box>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" fontWeight="600">
-            Deals
-          </Typography>
-          <Box display="flex" gap={2}>
-            <ToggleButtonGroup
-              value={viewMode}
-              exclusive
-              onChange={(e, value) => value && setViewMode(value)}
-              size="small"
-            >
-              <ToggleButton value="list">
-                <IconList size={18} />
-              </ToggleButton>
-              <ToggleButton value="kanban">
-                <IconLayoutKanban size={18} />
-              </ToggleButton>
-            </ToggleButtonGroup>
-            <Button
-              variant="contained"
-              startIcon={<IconPlus />}
-              onClick={() => navigate('/erp/deals/create')}
-            >
-              Add Deal
-            </Button>
-          </Box>
-        </Box>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
-
-        {viewMode === 'list' ? (
-          <Card>
-            <CardContent>
-              <Box mb={2}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Search deals..."
-                  value={search}
-                  onChange={handleSearch}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <IconSearch size={20} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Deal Name</TableCell>
-                      <TableCell>Client</TableCell>
-                      <TableCell>Service Type</TableCell>
-                      <TableCell>Value</TableCell>
-                      <TableCell>Stage</TableCell>
-                      <TableCell>Progress</TableCell>
-                      <TableCell>Expected Close</TableCell>
-                      <TableCell align="right">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {deals.map((deal) => (
-                      <TableRow key={deal.id} hover>
-                        <TableCell fontWeight="600">{deal.deal_name}</TableCell>
-                        <TableCell>{deal.client_name || '-'}</TableCell>
-                        <TableCell>{deal.service_type}</TableCell>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <IconCurrencyDollar size={16} />
-                            {(deal.expected_value || 0).toLocaleString()}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={deal.deal_stage?.replace('_', ' ')}
-                            size="small"
-                            color={getStageColor(deal.deal_stage)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <LinearProgress
-                              variant="determinate"
-                              value={getStageProgress(deal.deal_stage)}
-                              sx={{ width: 100, height: 6, borderRadius: 5 }}
-                            />
-                            <Typography variant="caption">
-                              {getStageProgress(deal.deal_stage)}%
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          {deal.expected_close_date
-                            ? new Date(deal.expected_close_date).toLocaleDateString()
-                            : '-'}
-                        </TableCell>
-                        <TableCell align="right">
-                          <IconButton size="small" onClick={(e) => handleMenuOpen(e, deal)}>
-                            <IconDotsVertical size={18} />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              <TablePagination
-                component="div"
-                count={totalCount}
-                page={page}
-                onPageChange={handleChangePage}
-                rowsPerPage={rowsPerPage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-                rowsPerPageOptions={[5, 10, 25, 50]}
-              />
-            </CardContent>
-          </Card>
-        ) : (
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
           <Box>
-            <Grid container spacing={2}>
-              {['lead', 'qualification', 'proposal', 'negotiation', 'closed_won'].map((stage) => (
-                <Grid size={{ xs: 12, md: 2.4 }} key={stage}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6" mb={2}>
-                        {stage.replace('_', ' ').toUpperCase()}
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        {deals.filter((d) => d.deal_stage === stage).length} deals
-                      </Typography>
-                      {deals
-                        .filter((d) => d.deal_stage === stage)
-                        .map((deal) => (
-                          <Card key={deal.id} sx={{ mt: 2, cursor: 'pointer' }}>
-                            <CardContent>
-                              <Typography variant="body2" fontWeight="600">
-                                {deal.deal_name}
-                              </Typography>
-                              <Typography variant="caption" color="textSecondary">
-                                AED {(deal.expected_value || 0).toLocaleString()}
-                              </Typography>
-                            </CardContent>
-                          </Card>
-                        ))}
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
+            <Typography variant="h3" fontWeight={700}>Deals</Typography>
+            <Typography variant="body2" color="text.secondary" mt={0.5}>
+              Manage all business deals and transactions
+            </Typography>
           </Box>
-        )}
-
-        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-          <MenuItem
-            onClick={() => {
-              navigate(`/erp/deals/edit/${selectedDeal?.id}`);
-              handleMenuClose();
-            }}
+          <Button
+            variant="contained"
+            startIcon={<IconPlus size={20} />}
+            onClick={() => navigate('/erp/deals/create')}
+            sx={{ borderRadius: 2, fontWeight: 600 }}
           >
-            <IconEdit size={18} style={{ marginRight: 8 }} />
-            Edit
-          </MenuItem>
-          {selectedDeal?.deal_stage === 'negotiation' && (
-            <MenuItem
-              onClick={() => {
-                handleFinalize(selectedDeal.id);
-                handleMenuClose();
+            Create Deal
+          </Button>
+        </Stack>
+
+        {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
+
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
+          <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
+            <TextField
+              fullWidth
+              placeholder="Search deals by title, number, or description..."
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <IconSearch size={20} />
+                  </InputAdornment>
+                ),
               }}
-            >
-              <IconCheck size={18} style={{ marginRight: 8 }} />
-              Finalize Deal
-            </MenuItem>
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          </Box>
+
+          <TableContainer component={Paper} elevation={0}>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ backgroundColor: 'primary.lighter' }}>
+                  <TableCell sx={{ fontWeight: 700 }}>Deal #</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Company</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Total</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Payment</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : deals.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
+                      <Typography variant="body1" color="text.secondary">
+                        No deals found
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  deals.map((deal) => (
+                    <TableRow key={deal.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600}>
+                          {deal.deal_number}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600}>{deal.title}</Typography>
+                        {deal.description && (
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {deal.description.substring(0, 50)}{deal.description.length > 50 ? '...' : ''}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{deal.company?.company_name || '-'}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600}>
+                          {deal.currency} {Number(deal.total).toFixed(2)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Subtotal: {Number(deal.subtotal).toFixed(2)} + VAT: {Number(deal.vat_amount).toFixed(2)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={deal.status?.replace('_', ' ')} 
+                          size="small" 
+                          color={getStatusColor(deal.status)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={deal.payment_status?.replace('_', ' ')} 
+                          size="small" 
+                          color={getPaymentStatusColor(deal.payment_status)}
+                        />
+                        {deal.payment_status === 'partial' && (
+                          <Typography variant="caption" display="block" color="text.secondary">
+                            Paid: {Number(deal.paid_amount).toFixed(2)} / {Number(deal.total).toFixed(2)}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          size="small"
+                          color="info"
+                          onClick={() => navigate(`/erp/deals/view/${deal.id}`)}
+                          title="View"
+                        >
+                          <IconEye size={18} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => navigate(`/erp/deals/edit/${deal.id}`)}
+                          title="Edit"
+                        >
+                          <IconEdit size={18} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => openDeleteDialog(deal)}
+                          title="Delete"
+                        >
+                          <IconTrash size={18} />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {totalPages > 1 && (
+            <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(e, value) => setPage(value)}
+                color="primary"
+              />
+            </Box>
           )}
-          <MenuItem onClick={() => { handleMenuClose(); }}>
-            <IconTrash size={18} style={{ marginRight: 8 }} />
-            Delete
-          </MenuItem>
-        </Menu>
+        </Card>
       </Box>
+
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete Deal</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete deal "{dealToDelete?.title}"? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 };

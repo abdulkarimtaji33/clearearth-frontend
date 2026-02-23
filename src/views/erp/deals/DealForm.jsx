@@ -373,6 +373,9 @@ const DealForm = () => {
                   
                   <Grid container spacing={3}>
                     <Grid item xs={12}>
+                      <Typography variant="subtitle2" fontWeight={600} mb={1.5} color="text.primary">
+                        Source Lead
+                      </Typography>
                       <Autocomplete
                         fullWidth
                         options={leads}
@@ -382,7 +385,6 @@ const DealForm = () => {
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Source Lead"
                             placeholder="Select lead..."
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           />
@@ -391,7 +393,11 @@ const DealForm = () => {
                         sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" fontWeight={600} mb={1.5} color="text.primary">
+                        Company (Client)
+                      </Typography>
                       <Autocomplete
                         fullWidth
                         options={companies}
@@ -401,7 +407,6 @@ const DealForm = () => {
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Company (Client)"
                             placeholder="Select company..."
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           />
@@ -410,7 +415,11 @@ const DealForm = () => {
                         sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" fontWeight={600} mb={1.5} color="text.primary">
+                        Contact Person
+                      </Typography>
                       <Autocomplete
                         fullWidth
                         options={contacts}
@@ -420,7 +429,6 @@ const DealForm = () => {
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Contact Person"
                             placeholder="Select contact..."
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           />
@@ -429,7 +437,11 @@ const DealForm = () => {
                         sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" fontWeight={600} mb={1.5} color="text.primary">
+                        Supplier (Optional)
+                      </Typography>
                       <Autocomplete
                         fullWidth
                         options={suppliers}
@@ -439,7 +451,6 @@ const DealForm = () => {
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Supplier (Optional)"
                             placeholder="Select supplier..."
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           />
@@ -448,7 +459,11 @@ const DealForm = () => {
                         sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" fontWeight={600} mb={1.5} color="text.primary">
+                        Assigned To
+                      </Typography>
                       <Autocomplete
                         fullWidth
                         options={users}
@@ -458,7 +473,6 @@ const DealForm = () => {
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Assigned To"
                             placeholder="Select user..."
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           />

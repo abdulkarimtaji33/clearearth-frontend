@@ -23,8 +23,15 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Collapse,
+  Autocomplete,
 } from '@mui/material';
-import { IconPlus, IconEdit, IconTrash, IconSearch, IconCurrencyDollar, IconEye } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconSearch, IconCurrencyDollar, IconEye, IconFilterOff, IconFilter, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -57,22 +64,74 @@ const DealList = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
+  const [companyFilter, setCompanyFilter] = useState(null);
+  const [contactFilter, setContactFilter] = useState(null);
+  const [assignedToFilter, setAssignedToFilter] = useState(null);
+  const [productFilter, setProductFilter] = useState(null);
+  const [minAmountFilter, setMinAmountFilter] = useState('');
+  const [maxAmountFilter, setMaxAmountFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dealToDelete, setDealToDelete] = useState(null);
+  const [companies, setCompanies] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   const pageSize = 10;
 
   useEffect(() => {
     fetchDeals();
-  }, [page, search]);
+  }, [page, search, statusFilter, paymentStatusFilter, companyFilter, contactFilter, assignedToFilter, productFilter, minAmountFilter, maxAmountFilter]);
+
+  useEffect(() => {
+    fetchRelatedData();
+  }, []);
+
+  const fetchRelatedData = async () => {
+    try {
+      const [companiesRes, contactsRes, usersRes, productsRes] = await Promise.all([
+        apiService.getCompanies({ pageSize: 500 }),
+        apiService.getContacts({ pageSize: 500 }),
+        apiService.getUsers({ pageSize: 500 }),
+        apiService.getProducts({ pageSize: 500 }),
+      ]);
+      if (companiesRes.success) {
+        setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
+      }
+      if (contactsRes.success) {
+        setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : []);
+      }
+      if (usersRes.success) {
+        setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+      }
+      if (productsRes.success) {
+        setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch related data:', err);
+    }
+  };
 
   const fetchDeals = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await apiService.getDeals({ page, pageSize, search });
+      const params = { page, pageSize, search };
+      if (statusFilter) params.status = statusFilter;
+      if (paymentStatusFilter) params.paymentStatus = paymentStatusFilter;
+      if (companyFilter) params.companyId = companyFilter.id;
+      if (contactFilter) params.contactId = contactFilter.id;
+      if (assignedToFilter) params.assignedTo = assignedToFilter.id;
+      if (productFilter) params.productServiceId = productFilter.id;
+      if (minAmountFilter) params.minAmount = minAmountFilter;
+      if (maxAmountFilter) params.maxAmount = maxAmountFilter;
+      
+      const response = await apiService.getDeals(params);
       if (response.success) {
         setDeals(response.data || []);
         setTotalPages(Math.ceil((response.pagination?.totalItems || 0) / pageSize));
@@ -86,6 +145,19 @@ const DealList = () => {
 
   const handleSearch = (value) => {
     setSearch(value);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setPaymentStatusFilter('');
+    setCompanyFilter(null);
+    setContactFilter(null);
+    setAssignedToFilter(null);
+    setProductFilter(null);
+    setMinAmountFilter('');
+    setMaxAmountFilter('');
     setPage(1);
   };
 
@@ -132,20 +204,197 @@ const DealList = () => {
 
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <TextField
-              fullWidth
-              placeholder="Search deals by title, number, or description..."
-              value={search}
-              onChange={(e) => handleSearch(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <IconSearch size={20} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-            />
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+              <Box sx={{ flex: 1 }}>
+                <TextField
+                  fullWidth
+                  placeholder="Search deals by title, description or company..."
+                  value={search}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <IconSearch size={20} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Box>
+              <Box sx={{ minWidth: '200px' }}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={filtersExpanded ? <IconChevronUp /> : <IconChevronDown />}
+                  endIcon={<IconFilter size={18} />}
+                  onClick={() => setFiltersExpanded(!filtersExpanded)}
+                  sx={{ borderRadius: 2, height: '56px' }}
+                >
+                  {filtersExpanded ? 'Hide Filters' : 'Show Filters'}
+                </Button>
+              </Box>
+            </Box>
+
+            <Collapse in={filtersExpanded}>
+              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Deal Status</InputLabel>
+                      <Select
+                        value={statusFilter}
+                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                        label="Deal Status"
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="">All</MenuItem>
+                        <MenuItem value="draft">Draft</MenuItem>
+                        <MenuItem value="pending">Pending</MenuItem>
+                        <MenuItem value="approved">Approved</MenuItem>
+                        <MenuItem value="in_progress">In Progress</MenuItem>
+                        <MenuItem value="completed">Completed</MenuItem>
+                        <MenuItem value="cancelled">Cancelled</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Payment Status</InputLabel>
+                      <Select
+                        value={paymentStatusFilter}
+                        onChange={(e) => { setPaymentStatusFilter(e.target.value); setPage(1); }}
+                        label="Payment Status"
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="">All</MenuItem>
+                        <MenuItem value="unpaid">Unpaid</MenuItem>
+                        <MenuItem value="partial">Partial</MenuItem>
+                        <MenuItem value="paid">Paid</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                    <Box>
+                      <Autocomplete
+                        fullWidth
+                        options={companies}
+                        getOptionLabel={(option) => option.company_name || ''}
+                        value={companyFilter}
+                        onChange={(_, newValue) => { setCompanyFilter(newValue); setPage(1); }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Company"
+                            placeholder="Select company..."
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                        )}
+                        isOptionEqualToValue={(option, value) => option.id === value?.id}
+                        ListboxProps={{ style: { maxHeight: '300px' } }}
+                      />
+                    </Box>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                    <Box>
+                      <Autocomplete
+                        fullWidth
+                        options={contacts}
+                        getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                        value={contactFilter}
+                        onChange={(_, newValue) => { setContactFilter(newValue); setPage(1); }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Contact Person"
+                            placeholder="Select contact..."
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                        )}
+                        isOptionEqualToValue={(option, value) => option.id === value?.id}
+                        ListboxProps={{ style: { maxHeight: '300px' } }}
+                      />
+                    </Box>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                    <Box>
+                      <Autocomplete
+                        fullWidth
+                        options={users}
+                        getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                        value={assignedToFilter}
+                        onChange={(_, newValue) => { setAssignedToFilter(newValue); setPage(1); }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Assigned To"
+                            placeholder="Select user..."
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                        )}
+                        isOptionEqualToValue={(option, value) => option.id === value?.id}
+                        ListboxProps={{ style: { maxHeight: '300px' } }}
+                      />
+                    </Box>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                    <Box>
+                      <Autocomplete
+                        fullWidth
+                        options={products}
+                        getOptionLabel={(option) => `${option.name} (${option.category})`}
+                        value={productFilter}
+                        onChange={(_, newValue) => { setProductFilter(newValue); setPage(1); }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Product/Service"
+                            placeholder="Select product..."
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                        )}
+                        isOptionEqualToValue={(option, value) => option.id === value?.id}
+                        ListboxProps={{ style: { maxHeight: '300px' } }}
+                      />
+                    </Box>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                    <TextField
+                      fullWidth
+                      label="Min Amount"
+                      type="number"
+                      value={minAmountFilter}
+                      onChange={(e) => { setMinAmountFilter(e.target.value); setPage(1); }}
+                      inputProps={{ min: 0, step: 0.01 }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                    <TextField
+                      fullWidth
+                      label="Max Amount"
+                      type="number"
+                      value={maxAmountFilter}
+                      onChange={(e) => { setMaxAmountFilter(e.target.value); setPage(1); }}
+                      inputProps={{ min: 0, step: 0.01 }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      color="error"
+                      startIcon={<IconFilterOff />}
+                      onClick={handleClearFilters}
+                      disabled={!search && !statusFilter && !paymentStatusFilter && !companyFilter && !contactFilter && !assignedToFilter && !productFilter && !minAmountFilter && !maxAmountFilter}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      Clear All Filters
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Collapse>
           </Box>
 
           <TableContainer component={Paper} elevation={0}>

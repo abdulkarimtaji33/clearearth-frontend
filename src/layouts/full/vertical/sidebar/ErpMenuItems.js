@@ -7,6 +7,7 @@ import {
   IconBuilding,
   IconPackage,
   IconBriefcase,
+  IconFileText,
 } from '@tabler/icons-react';
 
 const ErpMenuItems = [
@@ -49,6 +50,12 @@ const ErpMenuItems = [
     title: 'Deals',
     icon: IconBriefcase,
     href: '/erp/deals',
+  },
+  {
+    id: uniqueId(),
+    title: 'Terms & Conditions',
+    icon: IconFileText,
+    href: '/erp/terms',
   },
 ];
 

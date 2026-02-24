@@ -47,6 +47,7 @@ const DealForm = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
+  const [termsAndConditions, setTermsAndConditions] = useState([]);
   
   const [dropdowns, setDropdowns] = useState({
     dealStatus: [],
@@ -72,6 +73,7 @@ const DealForm = () => {
     paymentStatus: 'unpaid',
     paidAmount: 0,
     assignedTo: null,
+    termsAndConditionsId: null,
     notes: '',
   });
 
@@ -79,13 +81,14 @@ const DealForm = () => {
 
   const fetchAllData = useCallback(async () => {
     try {
-      const [leadsRes, companiesRes, contactsRes, suppliersRes, productsRes, usersRes] = await Promise.all([
+      const [leadsRes, companiesRes, contactsRes, suppliersRes, productsRes, usersRes, termsRes] = await Promise.all([
         apiService.getLeads({ pageSize: 500 }),
         apiService.getCompanies({ pageSize: 500 }),
         apiService.getContacts({ pageSize: 500 }),
         apiService.getSuppliers({ pageSize: 500 }),
         apiService.getProducts({ pageSize: 500, status: 'active' }),
         apiService.getUsers({ pageSize: 500 }),
+        apiService.getTermsAndConditions({ pageSize: 500, status: 'active' }),
       ]);
       
       if (leadsRes.success) setLeads(Array.isArray(leadsRes.data) ? leadsRes.data : []);
@@ -94,6 +97,7 @@ const DealForm = () => {
       if (suppliersRes.success) setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : []);
       if (productsRes.success) setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
       if (usersRes.success) setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+      if (termsRes.success) setTermsAndConditions(Array.isArray(termsRes.data) ? termsRes.data : []);
     } catch (err) {
       console.error('Failed to fetch data:', err);
     }
@@ -133,6 +137,7 @@ const DealForm = () => {
           paymentStatus: d.payment_status || 'unpaid',
           paidAmount: d.paid_amount || 0,
           assignedTo: d.assigned_to || null,
+          termsAndConditionsId: d.terms_and_conditions_id || null,
           notes: d.notes || '',
         });
         
@@ -155,13 +160,50 @@ const DealForm = () => {
     }
   }, [id]);
 
+  const fetchLeadData = useCallback(async (leadId) => {
+    try {
+      const response = await apiService.getLead(leadId);
+      if (response.success) {
+        const lead = response.data;
+        setInitialValues(prev => ({
+          ...prev,
+          leadId: lead.id,
+          companyId: lead.company_id || null,
+          contactId: lead.contact_id || null,
+          assignedTo: lead.assigned_to || null,
+          title: `Deal from Lead ${lead.lead_number}`,
+          description: lead.notes || '',
+        }));
+        
+        if (lead.product_service_id) {
+          setLineItems([{
+            productServiceId: lead.product_service_id,
+            productName: lead.productService?.name || '',
+            quantity: 1,
+            unitPrice: lead.estimated_value || 0,
+            lineTotal: lead.estimated_value || 0,
+            notes: '',
+          }]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load lead:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchAllData();
     fetchDropdowns();
     if (isEdit) {
       fetchDeal();
+    } else {
+      const urlParams = new URLSearchParams(window.location.search);
+      const leadId = urlParams.get('leadId');
+      if (leadId) {
+        fetchLeadData(leadId);
+      }
     }
-  }, [isEdit, fetchAllData, fetchDropdowns, fetchDeal]);
+  }, [isEdit, fetchAllData, fetchDropdowns, fetchDeal, fetchLeadData]);
 
   // Recalculate totals when line items or VAT changes
   useEffect(() => {
@@ -240,6 +282,14 @@ const DealForm = () => {
       } else {
         await apiService.createDeal(payload);
         setSuccess('Deal created successfully!');
+        
+        if (values.leadId) {
+          try {
+            await apiService.convertLead(values.leadId, {});
+          } catch (err) {
+            console.error('Failed to mark lead as converted:', err);
+          }
+        }
       }
       setTimeout(() => navigate('/erp/deals'), 1000);
     } catch (err) {
@@ -311,8 +361,8 @@ const DealForm = () => {
                   </Typography>
                   <Divider sx={{ mb: 4 }} />
                   
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} md={8}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
                       <TextField
                         fullWidth
                         label="Deal Title"
@@ -325,8 +375,6 @@ const DealForm = () => {
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
                         label="Deal Date"
@@ -341,22 +389,20 @@ const DealForm = () => {
                         InputLabelProps={{ shrink: true }}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        label="Description"
-                        name="description"
-                        placeholder="Describe the deal..."
-                        value={values.description}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      />
-                    </Grid>
-                  </Grid>
+                    </Box>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={6}
+                      label="Description"
+                      name="description"
+                      placeholder="Describe the deal in detail..."
+                      value={values.description}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  </Box>
                 </CardContent>
               </Card>
 
@@ -469,6 +515,25 @@ const DealForm = () => {
                               {...params}
                               label="Assigned To"
                               placeholder="Select user..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Box>
+                      <Box>
+                        <Autocomplete
+                          fullWidth
+                          options={termsAndConditions}
+                          getOptionLabel={(opt) => opt.title || ''}
+                          value={termsAndConditions.find((t) => t.id === values.termsAndConditionsId) || null}
+                          onChange={(_, val) => setFieldValue('termsAndConditionsId', val?.id || null)}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Terms & Conditions"
+                              placeholder="Select terms..."
                               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
                           )}
@@ -664,7 +729,7 @@ const DealForm = () => {
                   <Divider sx={{ mb: 4 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={3}>
                       <TextField
                         fullWidth
                         select
@@ -680,7 +745,7 @@ const DealForm = () => {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={3}>
                       <TextField
                         fullWidth
                         select
@@ -696,7 +761,7 @@ const DealForm = () => {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={3}>
                       <TextField
                         fullWidth
                         label="Paid Amount"
@@ -710,7 +775,7 @@ const DealForm = () => {
                         helperText={`Total: ${values.currency} ${total.toFixed(2)}`}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} md={3}>
                       <TextField
                         fullWidth
                         select
@@ -725,21 +790,33 @@ const DealForm = () => {
                         <MenuItem value="EUR">EUR</MenuItem>
                       </TextField>
                     </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        label="Notes"
-                        name="notes"
-                        placeholder="Add any additional notes..."
-                        value={values.notes}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      />
-                    </Grid>
                   </Grid>
+                </CardContent>
+              </Card>
+
+              {/* Notes */}
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: 5 }}>
+                  <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
+                    Additional Notes
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={4}>
+                    Terms, conditions, and other important information
+                  </Typography>
+                  <Divider sx={{ mb: 4 }} />
+                  
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={6}
+                    label="Notes"
+                    name="notes"
+                    placeholder="Add any additional notes, terms, conditions, or special instructions..."
+                    value={values.notes}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
                 </CardContent>
               </Card>
 

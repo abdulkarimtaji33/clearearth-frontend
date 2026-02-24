@@ -265,6 +265,27 @@ class ApiService {
     return this.post(`/deals/${id}/payment`, { paidAmount });
   }
 
+  // Terms and Conditions
+  async getTermsAndConditions(params) {
+    return this.get('/terms', params);
+  }
+
+  async getTermsAndConditionsById(id) {
+    return this.get(`/terms/${id}`);
+  }
+
+  async createTermsAndConditions(data) {
+    return this.post('/terms', data);
+  }
+
+  async updateTermsAndConditions(id, data) {
+    return this.put(`/terms/${id}`, data);
+  }
+
+  async deleteTermsAndConditions(id) {
+    return this.delete(`/terms/${id}`);
+  }
+
   // Dropdowns
   async getAllDropdowns() {
     return this.get('/dropdowns/all');

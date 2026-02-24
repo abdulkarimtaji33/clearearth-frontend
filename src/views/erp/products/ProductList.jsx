@@ -23,8 +23,14 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Collapse,
 } from '@mui/material';
-import { IconPlus, IconEdit, IconTrash, IconSearch } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconSearch, IconFilterOff, IconFilter, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -36,22 +42,56 @@ const ProductList = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [unitFilter, setUnitFilter] = useState('');
+  const [minPriceFilter, setMinPriceFilter] = useState('');
+  const [maxPriceFilter, setMaxPriceFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [dropdowns, setDropdowns] = useState({ categories: [], unitsOfMeasure: [] });
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   const pageSize = 10;
 
   useEffect(() => {
+    fetchDropdowns();
+  }, []);
+
+  useEffect(() => {
     fetchProducts();
-  }, [page, search]);
+  }, [page, search, statusFilter, typeFilter, categoryFilter, unitFilter, minPriceFilter, maxPriceFilter]);
+
+  const fetchDropdowns = async () => {
+    try {
+      const response = await apiService.getAllDropdowns();
+      if (response.success) {
+        setDropdowns({ 
+          categories: response.data.product_categories || [],
+          unitsOfMeasure: response.data.units_of_measure || [],
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch dropdowns:', err);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await apiService.getProducts({ page, pageSize, search });
+      const params = { page, pageSize, search };
+      if (statusFilter) params.status = statusFilter;
+      if (typeFilter) params.type = typeFilter;
+      if (categoryFilter) params.category = categoryFilter;
+      if (unitFilter) params.unitOfMeasure = unitFilter;
+      if (minPriceFilter) params.minPrice = minPriceFilter;
+      if (maxPriceFilter) params.maxPrice = maxPriceFilter;
+      
+      const response = await apiService.getProducts(params);
       if (response.success) {
         setProducts(response.data || []);
         setTotalPages(Math.ceil((response.pagination?.totalItems || 0) / pageSize));
@@ -65,6 +105,17 @@ const ProductList = () => {
 
   const handleSearch = (value) => {
     setSearch(value);
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setTypeFilter('');
+    setCategoryFilter('');
+    setUnitFilter('');
+    setMinPriceFilter('');
+    setMaxPriceFilter('');
     setPage(1);
   };
 
@@ -111,20 +162,140 @@ const ProductList = () => {
 
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <TextField
-              fullWidth
-              placeholder="Search products/services..."
-              value={search}
-              onChange={(e) => handleSearch(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <IconSearch size={20} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-            />
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+              <Box sx={{ flex: 1 }}>
+                <TextField
+                  fullWidth
+                  placeholder="Search products/services by name or description..."
+                  value={search}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <IconSearch size={20} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Box>
+              <Box sx={{ minWidth: '200px' }}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={filtersExpanded ? <IconChevronUp /> : <IconChevronDown />}
+                  endIcon={<IconFilter size={18} />}
+                  onClick={() => setFiltersExpanded(!filtersExpanded)}
+                  sx={{ borderRadius: 2, height: '56px' }}
+                >
+                  {filtersExpanded ? 'Hide Filters' : 'Show Filters'}
+                </Button>
+              </Box>
+            </Box>
+
+            <Collapse in={filtersExpanded}>
+              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Type</InputLabel>
+                      <Select
+                        value={typeFilter}
+                        onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+                        label="Type"
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="">All</MenuItem>
+                        <MenuItem value="product">Product</MenuItem>
+                        <MenuItem value="service">Service</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        value={statusFilter}
+                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                        label="Status"
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="">All</MenuItem>
+                        <MenuItem value="active">Active</MenuItem>
+                        <MenuItem value="inactive">Inactive</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Category</InputLabel>
+                      <Select
+                        value={categoryFilter}
+                        onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+                        label="Category"
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="">All</MenuItem>
+                        {dropdowns.categories.map((cat) => (
+                          <MenuItem key={cat.id} value={cat.value}>{cat.display_name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Unit</InputLabel>
+                      <Select
+                        value={unitFilter}
+                        onChange={(e) => { setUnitFilter(e.target.value); setPage(1); }}
+                        label="Unit"
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="">All</MenuItem>
+                        {dropdowns.unitsOfMeasure.map((unit) => (
+                          <MenuItem key={unit.id} value={unit.value}>{unit.display_name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                    <TextField
+                      fullWidth
+                      label="Min Price"
+                      type="number"
+                      value={minPriceFilter}
+                      onChange={(e) => { setMinPriceFilter(e.target.value); setPage(1); }}
+                      inputProps={{ min: 0, step: 0.01 }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                    <TextField
+                      fullWidth
+                      label="Max Price"
+                      type="number"
+                      value={maxPriceFilter}
+                      onChange={(e) => { setMaxPriceFilter(e.target.value); setPage(1); }}
+                      inputProps={{ min: 0, step: 0.01 }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      color="error"
+                      startIcon={<IconFilterOff />}
+                      onClick={handleClearFilters}
+                      disabled={!search && !statusFilter && !typeFilter && !categoryFilter && !unitFilter && !minPriceFilter && !maxPriceFilter}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      Clear All Filters
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Collapse>
           </Box>
 
           <TableContainer component={Paper} elevation={0}>

@@ -20,6 +20,12 @@ import {
   MenuItem,
   CircularProgress,
   Alert,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  Collapse,
+  Autocomplete,
 } from '@mui/material';
 import {
   IconSearch,
@@ -30,6 +36,10 @@ import {
   IconCheck,
   IconX,
   IconRefresh,
+  IconFilterOff,
+  IconFilter,
+  IconChevronDown,
+  IconChevronUp,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
@@ -44,18 +54,67 @@ const LeadList = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [assignedToFilter, setAssignedToFilter] = useState(null);
+  const [companyFilter, setCompanyFilter] = useState(null);
+  const [contactFilter, setContactFilter] = useState(null);
+  const [productFilter, setProductFilter] = useState(null);
   const [totalCount, setTotalCount] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedLead, setSelectedLead] = useState(null);
+  const [dropdowns, setDropdowns] = useState({ leadSources: [] });
+  const [users, setUsers] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+
+  const fetchDropdowns = useCallback(async () => {
+    try {
+      const [dropdownRes, usersRes, companiesRes, contactsRes, productsRes] = await Promise.all([
+        apiService.getAllDropdowns(),
+        apiService.getUsers({ pageSize: 500 }),
+        apiService.getCompanies({ pageSize: 500 }),
+        apiService.getContacts({ pageSize: 500 }),
+        apiService.getProducts({ pageSize: 500 }),
+      ]);
+      if (dropdownRes.success) {
+        setDropdowns({ leadSources: dropdownRes.data.lead_sources || [] });
+      }
+      if (usersRes.success) {
+        setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+      }
+      if (companiesRes.success) {
+        setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
+      }
+      if (contactsRes.success) {
+        setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : []);
+      }
+      if (productsRes.success) {
+        setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch dropdowns:', err);
+    }
+  }, []);
 
   const fetchLeads = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await apiService.getLeads({
+      const params = {
         page: page + 1,
         pageSize: rowsPerPage,
         search,
-      });
+      };
+      if (statusFilter) params.status = statusFilter;
+      if (sourceFilter) params.source = sourceFilter;
+      if (assignedToFilter) params.assignedTo = assignedToFilter.id;
+      if (companyFilter) params.companyId = companyFilter.id;
+      if (contactFilter) params.contactId = contactFilter.id;
+      if (productFilter) params.productServiceId = productFilter.id;
+      
+      const response = await apiService.getLeads(params);
       if (response.success) {
         setLeads(Array.isArray(response.data) ? response.data : []);
         setTotalCount(response.pagination?.totalItems || 0);
@@ -65,7 +124,11 @@ const LeadList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search]);
+  }, [page, rowsPerPage, search, statusFilter, sourceFilter, assignedToFilter, companyFilter, contactFilter, productFilter]);
+
+  useEffect(() => {
+    fetchDropdowns();
+  }, [fetchDropdowns]);
 
   useEffect(() => {
     fetchLeads();
@@ -73,6 +136,17 @@ const LeadList = () => {
 
   const handleSearch = (event) => {
     setSearch(event.target.value);
+    setPage(0);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setSourceFilter('');
+    setAssignedToFilter(null);
+    setCompanyFilter(null);
+    setContactFilter(null);
+    setProductFilter(null);
     setPage(0);
   };
 
@@ -104,14 +178,8 @@ const LeadList = () => {
     }
   };
 
-  const handleConvert = async (id) => {
-    try {
-      await apiService.convertLead(id, {});
-      setSuccess('Lead marked as converted successfully');
-      fetchLeads();
-    } catch (err) {
-      setError(err.message || 'Failed to convert lead');
-    }
+  const handleConvert = (leadId) => {
+    navigate(`/erp/deals/create?leadId=${leadId}`);
   };
 
   const handleDelete = async (id) => {
@@ -182,20 +250,174 @@ const LeadList = () => {
         <Card>
           <CardContent>
             <Box mb={2}>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Search leads..."
-                value={search}
-                onChange={handleSearch}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <IconSearch size={20} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
+              <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+                <Box sx={{ flex: 1 }}>
+                  <TextField
+                    fullWidth
+                    placeholder="Search leads by email, phone, company..."
+                    value={search}
+                    onChange={handleSearch}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <IconSearch size={20} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                </Box>
+                <Box sx={{ minWidth: '200px' }}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={filtersExpanded ? <IconChevronUp /> : <IconChevronDown />}
+                    endIcon={<IconFilter size={18} />}
+                    onClick={() => setFiltersExpanded(!filtersExpanded)}
+                    sx={{ borderRadius: 2, height: '56px' }}
+                  >
+                    {filtersExpanded ? 'Hide Filters' : 'Show Filters'}
+                  </Button>
+                </Box>
+              </Box>
+
+              <Collapse in={filtersExpanded}>
+                <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                  <Grid container spacing={2} alignItems="center">
+                    <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Status</InputLabel>
+                        <Select
+                          value={statusFilter}
+                          onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+                          label="Status"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="">All</MenuItem>
+                          <MenuItem value="new">New</MenuItem>
+                          <MenuItem value="contacted">Contacted</MenuItem>
+                          <MenuItem value="qualified">Qualified</MenuItem>
+                          <MenuItem value="disqualified">Disqualified</MenuItem>
+                          <MenuItem value="converted">Converted</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Source</InputLabel>
+                        <Select
+                          value={sourceFilter}
+                          onChange={(e) => { setSourceFilter(e.target.value); setPage(0); }}
+                          label="Source"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="">All</MenuItem>
+                          {dropdowns.leadSources.map((source) => (
+                            <MenuItem key={source.id} value={source.value}>{source.display_name}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 4, md: 3 }}>
+                      <Box>
+                        <Autocomplete
+                          fullWidth
+                          options={users}
+                          getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                          value={assignedToFilter}
+                          onChange={(_, newValue) => { setAssignedToFilter(newValue); setPage(0); }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Assigned To"
+                              placeholder="Select user..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(option, value) => option.id === value?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 4, md: 3 }}>
+                      <Box>
+                        <Autocomplete
+                          fullWidth
+                          options={companies}
+                          getOptionLabel={(option) => option.company_name || ''}
+                          value={companyFilter}
+                          onChange={(_, newValue) => { setCompanyFilter(newValue); setPage(0); }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Company"
+                              placeholder="Select company..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(option, value) => option.id === value?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <Box>
+                        <Autocomplete
+                          fullWidth
+                          options={contacts}
+                          getOptionLabel={(option) => `${option.first_name} ${option.last_name} ${option.email ? `(${option.email})` : ''}`}
+                          value={contactFilter}
+                          onChange={(_, newValue) => { setContactFilter(newValue); setPage(0); }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Contact Person"
+                              placeholder="Select contact..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(option, value) => option.id === value?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <Box>
+                        <Autocomplete
+                          fullWidth
+                          options={products}
+                          getOptionLabel={(option) => `${option.name} (${option.category})`}
+                          value={productFilter}
+                          onChange={(_, newValue) => { setProductFilter(newValue); setPage(0); }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Product/Service"
+                              placeholder="Select product..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(option, value) => option.id === value?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        color="error"
+                        startIcon={<IconFilterOff />}
+                        onClick={handleClearFilters}
+                        disabled={!search && !statusFilter && !sourceFilter && !assignedToFilter && !companyFilter && !contactFilter && !productFilter}
+                        sx={{ borderRadius: 2 }}
+                      >
+                        Clear All Filters
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Collapse>
             </Box>
 
             <TableContainer>

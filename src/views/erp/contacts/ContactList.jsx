@@ -26,6 +26,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Collapse,
+  Autocomplete,
 } from '@mui/material';
 import {
   IconSearch,
@@ -34,6 +36,9 @@ import {
   IconTrash,
   IconDotsVertical,
   IconFilterOff,
+  IconFilter,
+  IconChevronDown,
+  IconChevronUp,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
@@ -49,21 +54,53 @@ const ContactList = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [designationFilter, setDesignationFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [companyFilter, setCompanyFilter] = useState(null);
   const [totalCount, setTotalCount] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedContact, setSelectedContact] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState(null);
+  const [dropdowns, setDropdowns] = useState({ designations: [] });
+  const [companies, setCompanies] = useState([]);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+
+  useEffect(() => {
+    fetchDropdowns();
+  }, []);
 
   useEffect(() => {
     fetchContacts();
-  }, [page, rowsPerPage, search, statusFilter]);
+  }, [page, rowsPerPage, search, statusFilter, designationFilter, departmentFilter, companyFilter]);
+
+  const fetchDropdowns = async () => {
+    try {
+      const [dropdownRes, companiesRes] = await Promise.all([
+        apiService.getAllDropdowns(),
+        apiService.getCompanies({ pageSize: 500 }),
+      ]);
+      if (dropdownRes.success) {
+        setDropdowns({
+          designations: dropdownRes.data.designations || [],
+        });
+      }
+      if (companiesRes.success) {
+        setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch dropdowns:', err);
+    }
+  };
 
   const fetchContacts = async () => {
     try {
       setLoading(true);
       const params = { page: page + 1, pageSize: rowsPerPage, search };
       if (statusFilter) params.status = statusFilter;
+      if (designationFilter) params.designation = designationFilter;
+      if (departmentFilter) params.department = departmentFilter;
+      if (companyFilter) params.companyId = companyFilter.id;
 
       const response = await apiService.getContacts(params);
       if (response.success) {
@@ -162,11 +199,10 @@ const ContactList = () => {
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
           <CardContent>
             <Box mb={3}>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={7}>
+              <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+                <Box sx={{ flex: 1 }}>
                   <TextField
                     fullWidth
-                    size="medium"
                     placeholder="Search by name, email or phone..."
                     value={search}
                     onChange={(e) => { setSearch(e.target.value); setPage(0); }}
@@ -177,35 +213,111 @@ const ContactList = () => {
                         </InputAdornment>
                       ),
                     }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <FormControl fullWidth size="medium">
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      value={statusFilter}
-                      onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-                      label="Status"
-                    >
-                      <MenuItem value="">All Statuses</MenuItem>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="inactive">Inactive</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={2}>
+                </Box>
+                <Box sx={{ minWidth: '200px' }}>
                   <Button
                     fullWidth
                     variant="outlined"
-                    startIcon={<IconFilterOff />}
-                    onClick={() => { setSearch(''); setStatusFilter(''); setPage(0); }}
-                    disabled={!search && !statusFilter}
-                    size="large"
+                    startIcon={filtersExpanded ? <IconChevronUp /> : <IconChevronDown />}
+                    endIcon={<IconFilter size={18} />}
+                    onClick={() => setFiltersExpanded(!filtersExpanded)}
+                    sx={{ borderRadius: 2, height: '56px' }}
                   >
-                    Clear
+                    {filtersExpanded ? 'Hide Filters' : 'Show Filters'}
                   </Button>
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
+
+              <Collapse in={filtersExpanded}>
+                <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                  <Grid container spacing={2} alignItems="center">
+                    <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Status</InputLabel>
+                        <Select
+                          value={statusFilter}
+                          onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+                          label="Status"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="">All</MenuItem>
+                          <MenuItem value="active">Active</MenuItem>
+                          <MenuItem value="inactive">Inactive</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Designation</InputLabel>
+                        <Select
+                          value={designationFilter}
+                          onChange={(e) => { setDesignationFilter(e.target.value); setPage(0); }}
+                          label="Designation"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="">All</MenuItem>
+                          {dropdowns.designations.map((d) => (
+                            <MenuItem key={d.id} value={d.value}>{d.display_name}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                      <TextField
+                        fullWidth
+                        label="Department"
+                        placeholder="e.g. Sales"
+                        value={departmentFilter}
+                        onChange={(e) => { setDepartmentFilter(e.target.value); setPage(0); }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                      <Box>
+                        <Autocomplete
+                          fullWidth
+                          options={companies}
+                          getOptionLabel={(option) => option.company_name || ''}
+                          value={companyFilter}
+                          onChange={(_, newValue) => { setCompanyFilter(newValue); setPage(0); }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Company"
+                              placeholder="Select company..."
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(option, value) => option.id === value?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        color="error"
+                        startIcon={<IconFilterOff />}
+                        onClick={() => { 
+                          setSearch(''); 
+                          setStatusFilter(''); 
+                          setDesignationFilter(''); 
+                          setDepartmentFilter(''); 
+                          setCompanyFilter(null);
+                          setPage(0); 
+                        }}
+                        disabled={!search && !statusFilter && !designationFilter && !departmentFilter && !companyFilter}
+                        sx={{ borderRadius: 2 }}
+                      >
+                        Clear All Filters
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Collapse>
             </Box>
 
             <TableContainer>

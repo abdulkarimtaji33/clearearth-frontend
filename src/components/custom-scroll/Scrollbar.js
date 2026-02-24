@@ -3,9 +3,31 @@ import SimpleBar from 'simplebar-react';
 import 'simplebar/dist/simplebar.min.css';
 import { Box, styled } from '@mui/material';
 
-const SimpleBarStyle = styled(SimpleBar)(() => ({
+const SimpleBarStyle = styled(SimpleBar)(({ theme }) => ({
   maxHeight: '100%',
-  '.simplebar-scrollbar:before': { backgroundColor: '#2e2d348f' },
+  '.simplebar-scrollbar': {
+    '&:before': {
+      backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+      borderRadius: '8px',
+      width: '6px',
+      left: '2px',
+    },
+    '&.simplebar-visible:before': {
+      opacity: 1,
+    },
+  },
+  '.simplebar-track': {
+    backgroundColor: 'transparent',
+    borderRadius: '8px',
+    width: '10px',
+    right: '2px',
+    '&.simplebar-vertical': {
+      width: '10px',
+    },
+    '&:hover .simplebar-scrollbar:before': {
+      backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)',
+    },
+  },
 }));
 
 const Scrollbar = (props) => {

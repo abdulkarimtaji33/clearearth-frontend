@@ -22,6 +22,8 @@ const ProductForm = Loadable(lazy(() => import('../views/erp/products/ProductFor
 const DealList = Loadable(lazy(() => import('../views/erp/deals/DealList')));
 const DealForm = Loadable(lazy(() => import('../views/erp/deals/DealForm')));
 const DealView = Loadable(lazy(() => import('../views/erp/deals/DealView')));
+const TermsList = Loadable(lazy(() => import('../views/erp/terms/TermsList')));
+const TermsForm = Loadable(lazy(() => import('../views/erp/terms/TermsForm')));
 
 // authentication
 const Login = Loadable(lazy(() => import('../views/authentication/auth1/Login')));
@@ -62,6 +64,9 @@ const Router = createBrowserRouter([
       { path: '/erp/deals/create', element: <DealForm /> },
       { path: '/erp/deals/edit/:id', element: <DealForm /> },
       { path: '/erp/deals/view/:id', element: <DealView /> },
+      { path: '/erp/terms', element: <TermsList /> },
+      { path: '/erp/terms/create', element: <TermsForm /> },
+      { path: '/erp/terms/edit/:id', element: <TermsForm /> },
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],
   },

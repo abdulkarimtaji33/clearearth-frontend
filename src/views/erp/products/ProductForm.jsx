@@ -225,42 +225,31 @@ const ProductForm = () => {
                       </TextField>
                     </Grid>
                     <Grid item xs={12} md={6}>
-                      <Autocomplete
+                      <TextField
                         fullWidth
-                        freeSolo
-                        options={dropdowns.categories}
-                        getOptionLabel={(option) => 
-                          typeof option === 'string' ? option : option.display_name || option.value || ''
-                        }
-                        value={
-                          dropdowns.categories.find(cat => cat.value === values.category) || 
-                          values.category || 
-                          null
-                        }
-                        onChange={(_, newValue) => {
-                          const value = typeof newValue === 'string' ? newValue : newValue?.value || '';
-                          setFieldValue('category', value);
+                        select
+                        label="Category"
+                        name="category"
+                        value={values.category}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        error={touched.category && Boolean(errors.category)}
+                        helperText={touched.category && errors.category}
+                        required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: {
+                            PaperProps: {
+                              style: { maxHeight: 300 }
+                            }
+                          }
                         }}
-                        onInputChange={(_, newInputValue) => {
-                          setFieldValue('category', newInputValue);
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Category"
-                            name="category"
-                            error={touched.category && Boolean(errors.category)}
-                            helperText={touched.category && errors.category}
-                            required
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          />
-                        )}
-                        isOptionEqualToValue={(option, value) => 
-                          (typeof option === 'string' ? option : option.value) === 
-                          (typeof value === 'string' ? value : value?.value)
-                        }
-                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
-                      />
+                      >
+                        <MenuItem value="">Select Category</MenuItem>
+                        {dropdowns.categories.map((cat) => (
+                          <MenuItem key={cat.id} value={cat.value}>{cat.display_name}</MenuItem>
+                        ))}
+                      </TextField>
                     </Grid>
                     <Grid item xs={12}>
                       <TextField
@@ -292,42 +281,31 @@ const ProductForm = () => {
                   
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={4}>
-                      <Autocomplete
+                      <TextField
                         fullWidth
-                        freeSolo
-                        options={dropdowns.unitsOfMeasure}
-                        getOptionLabel={(option) => 
-                          typeof option === 'string' ? option : option.display_name || option.value || ''
-                        }
-                        value={
-                          dropdowns.unitsOfMeasure.find(unit => unit.value === values.unitOfMeasure) || 
-                          values.unitOfMeasure || 
-                          null
-                        }
-                        onChange={(_, newValue) => {
-                          const value = typeof newValue === 'string' ? newValue : newValue?.value || '';
-                          setFieldValue('unitOfMeasure', value);
+                        select
+                        label="Unit of Measure"
+                        name="unitOfMeasure"
+                        value={values.unitOfMeasure}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        error={touched.unitOfMeasure && Boolean(errors.unitOfMeasure)}
+                        helperText={touched.unitOfMeasure && errors.unitOfMeasure}
+                        required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: {
+                            PaperProps: {
+                              style: { maxHeight: 300 }
+                            }
+                          }
                         }}
-                        onInputChange={(_, newInputValue) => {
-                          setFieldValue('unitOfMeasure', newInputValue);
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Unit of Measure"
-                            name="unitOfMeasure"
-                            error={touched.unitOfMeasure && Boolean(errors.unitOfMeasure)}
-                            helperText={touched.unitOfMeasure && errors.unitOfMeasure}
-                            required
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          />
-                        )}
-                        isOptionEqualToValue={(option, value) => 
-                          (typeof option === 'string' ? option : option.value) === 
-                          (typeof value === 'string' ? value : value?.value)
-                        }
-                        sx={{ '& .MuiAutocomplete-inputRoot': { borderRadius: 2 } }}
-                      />
+                      >
+                        <MenuItem value="">Select Unit</MenuItem>
+                        {dropdowns.unitsOfMeasure.map((unit) => (
+                          <MenuItem key={unit.id} value={unit.value}>{unit.display_name}</MenuItem>
+                        ))}
+                      </TextField>
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <TextField

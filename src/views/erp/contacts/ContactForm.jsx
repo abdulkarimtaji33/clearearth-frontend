@@ -45,6 +45,8 @@ const ContactForm = () => {
     companyName: '', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '',
   });
   const [newCompanyErrors, setNewCompanyErrors] = useState({});
+  const [formikSetFieldValue, setFormikSetFieldValue] = useState(null);
+  const [createdCompanyId, setCreatedCompanyId] = useState(null);
   
   const [dropdowns, setDropdowns] = useState({
     designations: [],
@@ -138,12 +140,15 @@ const ContactForm = () => {
         await apiService.updateContact(id, values);
         setSuccess('Contact updated successfully!');
       } else {
-        await apiService.createContact(values);
+        const payload = { ...values };
+        if (createdCompanyId) {
+          payload.setAsPrimaryContact = true;
+        }
+        await apiService.createContact(payload);
         setSuccess('Contact created successfully!');
       }
       setTimeout(() => navigate('/erp/contacts'), 1000);
     } catch (err) {
-      // Display detailed validation errors
       let errorMessage = err.message || 'Failed to save contact';
       if (err.errors) {
         if (typeof err.errors === 'string') {
@@ -176,6 +181,10 @@ const ContactForm = () => {
       if (response.success || response.data) {
         const newCompany = response.data;
         setCompanies((prev) => [...prev, newCompany]);
+        setCreatedCompanyId(newCompany.id);
+        if (formikSetFieldValue) {
+          formikSetFieldValue('companyId', newCompany.id);
+        }
         setNewCompanyValues({ companyName: '', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '' });
         setAddCompanyDialogOpen(false);
         return newCompany.id;
@@ -239,7 +248,9 @@ const ContactForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => (
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => {
+            if (!formikSetFieldValue) setFormikSetFieldValue(() => setFieldValue);
+            return (
             <form onSubmit={formikSubmit}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent sx={{ p: 5 }}>
@@ -490,7 +501,8 @@ const ContactForm = () => {
                 </Button>
               </Stack>
             </form>
-          )}
+            );
+          }}
         </Formik>
       </Box>
 

@@ -43,8 +43,8 @@ const Router = createBrowserRouter([
     path: '/',
     element: <FullLayout />,
     children: [
-      { path: '/', element: <Navigate to="/erp/dashboard" /> },
-      { path: '/erp', element: <Navigate to="/erp/dashboard" /> },
+      { path: '/', element: <Navigate to="/erp/contacts" /> },
+      { path: '/erp', element: <Navigate to="/erp/contacts" /> },
       { path: '/erp/dashboard', element: <Dashboard /> },
       { path: '/erp/contacts', element: <ContactList /> },
       { path: '/erp/contacts/create', element: <ContactForm /> },

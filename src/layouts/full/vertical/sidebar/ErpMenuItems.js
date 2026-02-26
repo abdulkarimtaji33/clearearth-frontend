@@ -8,20 +8,9 @@ import {
   IconPackage,
   IconBriefcase,
   IconFileText,
-  IconHome,
 } from '@tabler/icons-react';
 
 const ErpMenuItems = [
-  {
-    navlabel: true,
-    subheader: 'Overview',
-  },
-  {
-    id: uniqueId(),
-    title: 'Dashboard',
-    icon: IconHome,
-    href: '/erp/dashboard',
-  },
   {
     navlabel: true,
     subheader: 'CRM',

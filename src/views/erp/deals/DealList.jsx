@@ -437,7 +437,7 @@ const DealList = () => {
                         <Typography variant="body2" fontWeight={600}>{deal.title}</Typography>
                         {deal.description && (
                           <Typography variant="caption" color="text.secondary" display="block">
-                            {deal.description.substring(0, 50)}{deal.description.length > 50 ? '...' : ''}
+                            {(deal.description || '').substring(0, 50)}{(deal.description || '').length > 50 ? '...' : ''}
                           </Typography>
                         )}
                       </TableCell>

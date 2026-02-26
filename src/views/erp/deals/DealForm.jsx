@@ -169,7 +169,7 @@ const DealForm = () => {
           paidAmount: d.paid_amount || 0,
           assignedTo: d.assigned_to || null,
           termsAndConditionsId: d.terms_and_conditions_id || null,
-          dealType: d.deal_type || 'offer_to_charge',
+          dealType: d.deal_type || 'offer_to_purchase',
           containerType: d.container_type || null,
           locationType: d.location_type || null,
           wdsRequired: d.wds_required || false,
@@ -180,22 +180,41 @@ const DealForm = () => {
           notes: d.notes || '',
         });
         
+        const defaultWds = {
+          refNo: '',
+          date: new Date().toISOString().split('T')[0],
+          companyName: '',
+          licenseNo: '',
+          wasteDescription: '',
+          sourceProcess: '',
+          packageType: '',
+          quantityPerPackage: '',
+          totalWeight: '',
+          containerNo: '',
+          purpose: '',
+          blNo: '',
+          borNo: '',
+        };
         if (d.wdsDetails) {
+          const w = d.wdsDetails;
           setWdsDetails({
-            refNo: d.wdsDetails.ref_no || '',
-            date: d.wdsDetails.date ? new Date(d.wdsDetails.date).toISOString().split('T')[0] : '',
-            companyName: d.wdsDetails.company_name || '',
-            licenseNo: d.wdsDetails.license_no || '',
-            wasteDescription: d.wdsDetails.waste_description || '',
-            sourceProcess: d.wdsDetails.source_process || '',
-            packageType: d.wdsDetails.package_type || '',
-            quantityPerPackage: d.wdsDetails.quantity_per_package || '',
-            totalWeight: d.wdsDetails.total_weight || '',
-            containerNo: d.wdsDetails.container_no || '',
-            purpose: d.wdsDetails.purpose || '',
-            blNo: d.wdsDetails.bl_no || '',
-            borNo: d.wdsDetails.bor_no || '',
+            ...defaultWds,
+            refNo: w.ref_no || '',
+            date: w.date ? new Date(w.date).toISOString().split('T')[0] : defaultWds.date,
+            companyName: w.company_name || '',
+            licenseNo: w.license_no || '',
+            wasteDescription: w.waste_description || '',
+            sourceProcess: w.source_process || '',
+            packageType: w.package_type || '',
+            quantityPerPackage: w.quantity_per_package || '',
+            totalWeight: w.total_weight || '',
+            containerNo: w.container_no || '',
+            purpose: w.purpose || '',
+            blNo: w.bl_no || '',
+            borNo: w.bor_no || '',
           });
+        } else {
+          setWdsDetails(defaultWds);
         }
         
         // Load line items
@@ -323,6 +342,23 @@ const DealForm = () => {
         return;
       }
 
+      const invalidItems = lineItems.filter((item) => !item.productServiceId);
+      if (invalidItems.length > 0) {
+        setError('Please select a product/service for all line items');
+        setSubmitting(false);
+        return;
+      }
+
+      if (values.wdsRequired) {
+        const required = ['refNo', 'date', 'companyName', 'licenseNo', 'wasteDescription', 'containerNo'];
+        const missing = required.filter((f) => !wdsDetails[f]?.toString().trim());
+        if (missing.length > 0) {
+          setError('Please fill all required WDS details (Ref No, Date, Company Name, License No, Waste Description, Container No)');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const payload = {
         ...values,
         items: lineItems.map(item => ({
@@ -340,14 +376,6 @@ const DealForm = () => {
       } else {
         await apiService.createDeal(payload);
         setSuccess('Deal created successfully!');
-        
-        if (values.leadId) {
-          try {
-            await apiService.convertLead(values.leadId, {});
-          } catch (err) {
-            console.error('Failed to mark lead as converted:', err);
-          }
-        }
       }
       setTimeout(() => navigate('/erp/deals'), 1000);
     } catch (err) {
@@ -1075,13 +1103,22 @@ const DealForm = () => {
                 />
               </Box>
 
-              <TextField
+              <Autocomplete
                 fullWidth
-                label="Company Name"
-                value={wdsDetails.companyName}
-                onChange={(e) => setWdsDetails({ ...wdsDetails, companyName: e.target.value })}
-                required
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                options={companies}
+                getOptionLabel={(opt) => opt.company_name || ''}
+                value={companies.find((c) => c.company_name === wdsDetails.companyName) || null}
+                onChange={(_, val) => setWdsDetails({ ...wdsDetails, companyName: val?.company_name || '' })}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Company Name"
+                    required
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                )}
+                isOptionEqualToValue={(opt, val) => opt.company_name === val?.company_name}
+                ListboxProps={{ style: { maxHeight: '300px' } }}
               />
 
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>

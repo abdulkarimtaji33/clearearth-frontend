@@ -8,6 +8,7 @@ const FullLayout = Loadable(lazy(() => import('../layouts/full/FullLayout')));
 const BlankLayout = Loadable(lazy(() => import('../layouts/blank/BlankLayout')));
 
 /* ****ERP Pages***** */
+const Dashboard = Loadable(lazy(() => import('../views/erp/Dashboard')));
 const ContactList = Loadable(lazy(() => import('../views/erp/contacts/ContactList')));
 const ContactForm = Loadable(lazy(() => import('../views/erp/contacts/ContactForm')));
 const CompanyList = Loadable(lazy(() => import('../views/erp/companies/CompanyList')));
@@ -42,8 +43,9 @@ const Router = createBrowserRouter([
     path: '/',
     element: <FullLayout />,
     children: [
-      { path: '/', element: <Navigate to="/erp/leads" /> },
-      { path: '/erp', element: <Navigate to="/erp/leads" /> },
+      { path: '/', element: <Navigate to="/erp/dashboard" /> },
+      { path: '/erp', element: <Navigate to="/erp/dashboard" /> },
+      { path: '/erp/dashboard', element: <Dashboard /> },
       { path: '/erp/contacts', element: <ContactList /> },
       { path: '/erp/contacts/create', element: <ContactForm /> },
       { path: '/erp/contacts/edit/:id', element: <ContactForm /> },

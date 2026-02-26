@@ -65,11 +65,8 @@ const DealView = () => {
   const [error, setError] = useState('');
   const [deal, setDeal] = useState(null);
 
-  useEffect(() => {
-    fetchDeal();
-  }, [id, fetchDeal]);
-
   const fetchDeal = useCallback(async () => {
+    if (!id) return;
     try {
       setLoading(true);
       const response = await apiService.getDeal(id);
@@ -82,6 +79,22 @@ const DealView = () => {
       setLoading(false);
     }
   }, [id]);
+
+  useEffect(() => {
+    if (id) fetchDeal();
+    else setLoading(false);
+  }, [id, fetchDeal]);
+
+  if (!id) {
+    return (
+      <PageContainer title="Invalid Deal">
+        <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>Invalid deal ID</Alert>
+          <Button variant="outlined" onClick={() => navigate('/erp/deals')}>Back to Deals</Button>
+        </Box>
+      </PageContainer>
+    );
+  }
 
   if (loading) {
     return (
@@ -202,6 +215,56 @@ const DealView = () => {
           </CardContent>
         </Card>
 
+        {/* Deal Type & Logistics */}
+        {(deal.deal_type || deal.container_type || deal.location_type || deal.wds_required || deal.inspection_required) && (
+          <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+            <CardContent sx={{ p: 5 }}>
+              <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
+                Deal Type & Logistics
+              </Typography>
+              <Divider sx={{ my: 3 }} />
+              <Grid container spacing={4}>
+                <Grid item xs={12} md={6}>
+                  <InfoRow label="Deal Type" value={deal.deal_type?.replace(/_/g, ' ')} />
+                  <InfoRow label="Container Type" value={deal.container_type} />
+                  <InfoRow label="Location Type" value={deal.location_type} />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <InfoRow label="WDS Required" value={deal.wds_required ? 'Yes' : 'No'} />
+                  <InfoRow label="Inspection Required" value={deal.inspection_required ? 'Yes' : 'No'} />
+                  {deal.inspection_required && (
+                    <>
+                      <InfoRow label="Custom Inspection" value={deal.custom_inspection ? 'Yes' : 'No'} />
+                      <InfoRow label="Trakhees Inspection" value={deal.trakhees_inspection ? 'Yes' : 'No'} />
+                      <InfoRow label="Dubai Municipality Inspection" value={deal.dubai_municipality_inspection ? 'Yes' : 'No'} />
+                    </>
+                  )}
+                </Grid>
+              </Grid>
+              {deal.wds_required && deal.wdsDetails && (
+                <Box sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+                  <Typography variant="h6" fontWeight={600} mb={2}>WDS Details</Typography>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}><InfoRow label="Ref No" value={deal.wdsDetails.ref_no} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Date" value={deal.wdsDetails.date ? new Date(deal.wdsDetails.date).toLocaleDateString() : '-'} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Company Name" value={deal.wdsDetails.company_name} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="License No" value={deal.wdsDetails.license_no} /></Grid>
+                    <Grid item xs={12}><InfoRow label="Waste Description" value={deal.wdsDetails.waste_description} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Container No" value={deal.wdsDetails.container_no} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Source/Process" value={deal.wdsDetails.source_process} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Package Type" value={deal.wdsDetails.package_type} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Quantity per Package" value={deal.wdsDetails.quantity_per_package} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Total Weight" value={deal.wdsDetails.total_weight} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="BL No" value={deal.wdsDetails.bl_no} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="BOR No" value={deal.wdsDetails.bor_no} /></Grid>
+                    <Grid item xs={12}><InfoRow label="Purpose" value={deal.wdsDetails.purpose} /></Grid>
+                  </Grid>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Related Entities */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
           <CardContent sx={{ p: 5 }}>
@@ -219,6 +282,7 @@ const DealView = () => {
               <Grid item xs={12} md={6}>
                 <InfoRow label="Supplier" value={deal.supplier?.company_name || '-'} />
                 <InfoRow label="Assigned To" value={deal.assignedUser ? `${deal.assignedUser.first_name} ${deal.assignedUser.last_name}` : '-'} />
+                <InfoRow label="Terms & Conditions" value={deal.termsAndConditions?.title || '-'} />
               </Grid>
             </Grid>
           </CardContent>

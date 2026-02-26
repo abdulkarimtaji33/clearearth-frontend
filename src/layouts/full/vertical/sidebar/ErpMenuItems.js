@@ -23,13 +23,13 @@ const ErpMenuItems = [
   },
   {
     id: uniqueId(),
-    title: 'Companies',
+    title: 'Clients',
     icon: IconBuilding,
     href: '/erp/companies',
   },
   {
     id: uniqueId(),
-    title: 'Suppliers',
+    title: 'Vendors',
     icon: IconTruckDelivery,
     href: '/erp/suppliers',
   },

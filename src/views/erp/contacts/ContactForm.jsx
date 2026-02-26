@@ -66,6 +66,7 @@ const ContactForm = () => {
     mobile: '',
     jobTitle: '',
     status: 'active',
+    contactType: '',
     notes: '',
   });
 
@@ -123,6 +124,7 @@ const ContactForm = () => {
           mobile: c.mobile || '',
           jobTitle: c.job_title || '',
           status: c.status || 'active',
+          contactType: c.contact_type || '',
           notes: c.notes || '',
         });
       }
@@ -290,6 +292,21 @@ const ContactForm = () => {
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Contact Type"
+                        name="contactType"
+                        value={values.contactType || ''}
+                        onChange={handleChange}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      >
+                        <MenuItem value="">None</MenuItem>
+                        <MenuItem value="clients">Clients</MenuItem>
+                        <MenuItem value="vendors">Vendors</MenuItem>
+                      </TextField>
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <TextField

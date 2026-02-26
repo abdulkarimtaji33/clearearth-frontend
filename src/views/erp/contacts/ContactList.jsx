@@ -54,6 +54,7 @@ const ContactList = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [contactTypeFilter, setContactTypeFilter] = useState('');
   const [designationFilter, setDesignationFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [companyFilter, setCompanyFilter] = useState(null);
@@ -72,7 +73,7 @@ const ContactList = () => {
 
   useEffect(() => {
     fetchContacts();
-  }, [page, rowsPerPage, search, statusFilter, designationFilter, departmentFilter, companyFilter]);
+  }, [page, rowsPerPage, search, statusFilter, contactTypeFilter, designationFilter, departmentFilter, companyFilter]);
 
   const fetchDropdowns = async () => {
     try {
@@ -98,6 +99,7 @@ const ContactList = () => {
       setLoading(true);
       const params = { page: page + 1, pageSize: rowsPerPage, search };
       if (statusFilter) params.status = statusFilter;
+      if (contactTypeFilter) params.contactType = contactTypeFilter;
       if (designationFilter) params.designation = designationFilter;
       if (departmentFilter) params.department = departmentFilter;
       if (companyFilter) params.companyId = companyFilter.id;
@@ -250,6 +252,21 @@ const ContactList = () => {
                     </Grid>
                     <Grid size={{ xs: 6, sm: 4, md: 2 }}>
                       <FormControl fullWidth>
+                        <InputLabel>Contact Type</InputLabel>
+                        <Select
+                          value={contactTypeFilter}
+                          onChange={(e) => { setContactTypeFilter(e.target.value); setPage(0); }}
+                          label="Contact Type"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value="">All</MenuItem>
+                          <MenuItem value="clients">Clients</MenuItem>
+                          <MenuItem value="vendors">Vendors</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                      <FormControl fullWidth>
                         <InputLabel>Designation</InputLabel>
                         <Select
                           value={designationFilter}
@@ -304,12 +321,13 @@ const ContactList = () => {
                         onClick={() => { 
                           setSearch(''); 
                           setStatusFilter(''); 
+                          setContactTypeFilter(''); 
                           setDesignationFilter(''); 
                           setDepartmentFilter(''); 
                           setCompanyFilter(null);
                           setPage(0); 
                         }}
-                        disabled={!search && !statusFilter && !designationFilter && !departmentFilter && !companyFilter}
+                        disabled={!search && !statusFilter && !contactTypeFilter && !designationFilter && !departmentFilter && !companyFilter}
                         sx={{ borderRadius: 2 }}
                       >
                         Clear All Filters
@@ -326,6 +344,7 @@ const ContactList = () => {
                   <TableRow sx={{ backgroundColor: 'grey.50' }}>
                     <TableCell sx={{ fontWeight: 600 }}>Code</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Contact Type</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Designation</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Company</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
@@ -338,9 +357,9 @@ const ContactList = () => {
                 <TableBody>
                   {contacts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
                         <Typography color="textSecondary">
-                          {search || statusFilter
+                          {search || statusFilter || contactTypeFilter
                             ? 'No contacts found matching your filters'
                             : 'No contacts yet. Click "Add Contact" to create one.'}
                         </Typography>
@@ -357,6 +376,11 @@ const ContactList = () => {
                         <TableCell>
                           <Typography variant="body2" fontWeight={500}>
                             {contact.first_name} {contact.last_name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="textSecondary">
+                            {contact.contact_type ? contact.contact_type.charAt(0).toUpperCase() + contact.contact_type.slice(1) : '-'}
                           </Typography>
                         </TableCell>
                         <TableCell>

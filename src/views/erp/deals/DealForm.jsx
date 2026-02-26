@@ -21,6 +21,12 @@ import {
   TableRow,
   Paper,
   IconButton,
+  Checkbox,
+  FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -74,7 +80,32 @@ const DealForm = () => {
     paidAmount: 0,
     assignedTo: null,
     termsAndConditionsId: null,
+    dealType: 'offer_to_purchase',
+    containerType: null,
+    locationType: null,
+    wdsRequired: false,
+    inspectionRequired: false,
+    customInspection: false,
+    trakheesInspection: false,
+    dubaiMunicipalityInspection: false,
     notes: '',
+  });
+
+  const [wdsDialogOpen, setWdsDialogOpen] = useState(false);
+  const [wdsDetails, setWdsDetails] = useState({
+    refNo: '',
+    date: new Date().toISOString().split('T')[0],
+    companyName: '',
+    licenseNo: '',
+    wasteDescription: '',
+    sourceProcess: '',
+    packageType: '',
+    quantityPerPackage: '',
+    totalWeight: '',
+    containerNo: '',
+    purpose: '',
+    blNo: '',
+    borNo: '',
   });
 
   const isEdit = Boolean(id);
@@ -138,8 +169,34 @@ const DealForm = () => {
           paidAmount: d.paid_amount || 0,
           assignedTo: d.assigned_to || null,
           termsAndConditionsId: d.terms_and_conditions_id || null,
+          dealType: d.deal_type || 'offer_to_charge',
+          containerType: d.container_type || null,
+          locationType: d.location_type || null,
+          wdsRequired: d.wds_required || false,
+          inspectionRequired: d.inspection_required || false,
+          customInspection: d.custom_inspection || false,
+          trakheesInspection: d.trakhees_inspection || false,
+          dubaiMunicipalityInspection: d.dubai_municipality_inspection || false,
           notes: d.notes || '',
         });
+        
+        if (d.wdsDetails) {
+          setWdsDetails({
+            refNo: d.wdsDetails.ref_no || '',
+            date: d.wdsDetails.date ? new Date(d.wdsDetails.date).toISOString().split('T')[0] : '',
+            companyName: d.wdsDetails.company_name || '',
+            licenseNo: d.wdsDetails.license_no || '',
+            wasteDescription: d.wdsDetails.waste_description || '',
+            sourceProcess: d.wdsDetails.source_process || '',
+            packageType: d.wdsDetails.package_type || '',
+            quantityPerPackage: d.wdsDetails.quantity_per_package || '',
+            totalWeight: d.wdsDetails.total_weight || '',
+            containerNo: d.wdsDetails.container_no || '',
+            purpose: d.wdsDetails.purpose || '',
+            blNo: d.wdsDetails.bl_no || '',
+            borNo: d.wdsDetails.bor_no || '',
+          });
+        }
         
         // Load line items
         const items = (d.items || []).map(item => ({
@@ -274,6 +331,7 @@ const DealForm = () => {
           unitPrice: parseFloat(item.unitPrice),
           notes: item.notes,
         })),
+        wdsDetails: values.wdsRequired ? wdsDetails : null,
       };
 
       if (isEdit) {
@@ -542,6 +600,145 @@ const DealForm = () => {
                         />
                       </Box>
                     </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+
+              {/* Deal Type & Logistics */}
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: 5 }}>
+                  <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
+                    Deal Type & Logistics
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={4}>
+                    Specify deal type and logistics requirements
+                  </Typography>
+                  <Divider sx={{ mb: 4 }} />
+                  
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <TextField
+                      fullWidth
+                      select
+                      label="Deal Type"
+                      name="dealType"
+                      value={values.dealType}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      required
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    >
+                      <MenuItem value="offer_to_charge">Offer to Charge</MenuItem>
+                      <MenuItem value="offer_to_purchase">Offer to Purchase</MenuItem>
+                      <MenuItem value="free_of_charge">Free of Charge</MenuItem>
+                    </TextField>
+
+                    {values.dealType === 'offer_to_charge' && (
+                      <>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                          <TextField
+                            fullWidth
+                            select
+                            label="Container Type"
+                            name="containerType"
+                            value={values.containerType || ''}
+                            onChange={handleChange}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          >
+                            <MenuItem value="LCL">LCL</MenuItem>
+                            <MenuItem value="FCL">FCL</MenuItem>
+                          </TextField>
+
+                          <TextField
+                            fullWidth
+                            select
+                            label="Location Type"
+                            name="locationType"
+                            value={values.locationType || ''}
+                            onChange={handleChange}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          >
+                            <MenuItem value="Main Land">Main Land</MenuItem>
+                            <MenuItem value="Free Zone">Free Zone</MenuItem>
+                          </TextField>
+                        </Box>
+
+                        <Box>
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={values.wdsRequired}
+                                onChange={(e) => {
+                                  setFieldValue('wdsRequired', e.target.checked);
+                                  if (e.target.checked) {
+                                    setWdsDialogOpen(true);
+                                  }
+                                }}
+                                name="wdsRequired"
+                              />
+                            }
+                            label="WDS Required?"
+                          />
+                          {values.wdsRequired && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => setWdsDialogOpen(true)}
+                              sx={{ ml: 2, borderRadius: 2 }}
+                            >
+                              Edit WDS Details
+                            </Button>
+                          )}
+                        </Box>
+
+                        <Box>
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={values.inspectionRequired}
+                                onChange={(e) => setFieldValue('inspectionRequired', e.target.checked)}
+                                name="inspectionRequired"
+                              />
+                            }
+                            label="Inspection Required?"
+                          />
+                          
+                          {values.inspectionRequired && (
+                            <Box sx={{ ml: 4, mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    checked={values.customInspection}
+                                    onChange={(e) => setFieldValue('customInspection', e.target.checked)}
+                                    name="customInspection"
+                                  />
+                                }
+                                label="Custom Inspection"
+                              />
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    checked={values.trakheesInspection}
+                                    onChange={(e) => setFieldValue('trakheesInspection', e.target.checked)}
+                                    name="trakheesInspection"
+                                  />
+                                }
+                                label="Trakhees Inspection"
+                              />
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    checked={values.dubaiMunicipalityInspection}
+                                    onChange={(e) => setFieldValue('dubaiMunicipalityInspection', e.target.checked)}
+                                    name="dubaiMunicipalityInspection"
+                                  />
+                                }
+                                label="Dubai Municipality Inspection"
+                              />
+                            </Box>
+                          )}
+                        </Box>
+                      </>
+                    )}
                   </Box>
                 </CardContent>
               </Card>
@@ -842,6 +1039,160 @@ const DealForm = () => {
             </form>
           )}
         </Formik>
+
+        {/* WDS Details Dialog */}
+        <Dialog
+          open={wdsDialogOpen}
+          onClose={() => setWdsDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            <Typography variant="h4" fontWeight={700}>
+              WDS Details
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                <TextField
+                  fullWidth
+                  label="Ref No"
+                  value={wdsDetails.refNo}
+                  onChange={(e) => setWdsDetails({ ...wdsDetails, refNo: e.target.value })}
+                  required
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+                <TextField
+                  fullWidth
+                  label="Date"
+                  type="date"
+                  value={wdsDetails.date}
+                  onChange={(e) => setWdsDetails({ ...wdsDetails, date: e.target.value })}
+                  required
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Box>
+
+              <TextField
+                fullWidth
+                label="Company Name"
+                value={wdsDetails.companyName}
+                onChange={(e) => setWdsDetails({ ...wdsDetails, companyName: e.target.value })}
+                required
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                <TextField
+                  fullWidth
+                  label="License No"
+                  value={wdsDetails.licenseNo}
+                  onChange={(e) => setWdsDetails({ ...wdsDetails, licenseNo: e.target.value })}
+                  required
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+                <TextField
+                  fullWidth
+                  label="Container No"
+                  value={wdsDetails.containerNo}
+                  onChange={(e) => setWdsDetails({ ...wdsDetails, containerNo: e.target.value })}
+                  required
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Box>
+
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Waste Description"
+                value={wdsDetails.wasteDescription}
+                onChange={(e) => setWdsDetails({ ...wdsDetails, wasteDescription: e.target.value })}
+                required
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                label="Source/Process"
+                value={wdsDetails.sourceProcess}
+                onChange={(e) => setWdsDetails({ ...wdsDetails, sourceProcess: e.target.value })}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
+                <TextField
+                  fullWidth
+                  label="Package Type"
+                  value={wdsDetails.packageType}
+                  onChange={(e) => setWdsDetails({ ...wdsDetails, packageType: e.target.value })}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+                <TextField
+                  fullWidth
+                  label="Quantity per Package"
+                  value={wdsDetails.quantityPerPackage}
+                  onChange={(e) => setWdsDetails({ ...wdsDetails, quantityPerPackage: e.target.value })}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+                <TextField
+                  fullWidth
+                  label="Total Weight"
+                  value={wdsDetails.totalWeight}
+                  onChange={(e) => setWdsDetails({ ...wdsDetails, totalWeight: e.target.value })}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Box>
+
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                label="Purpose"
+                value={wdsDetails.purpose}
+                onChange={(e) => setWdsDetails({ ...wdsDetails, purpose: e.target.value })}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                <TextField
+                  fullWidth
+                  label="BL No"
+                  value={wdsDetails.blNo}
+                  onChange={(e) => setWdsDetails({ ...wdsDetails, blNo: e.target.value })}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+                <TextField
+                  fullWidth
+                  label="BOR No"
+                  value={wdsDetails.borNo}
+                  onChange={(e) => setWdsDetails({ ...wdsDetails, borNo: e.target.value })}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Box>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button
+              onClick={() => setWdsDialogOpen(false)}
+              variant="outlined"
+              sx={{ borderRadius: 2 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => setWdsDialogOpen(false)}
+              variant="contained"
+              sx={{ borderRadius: 2 }}
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </PageContainer>
   );

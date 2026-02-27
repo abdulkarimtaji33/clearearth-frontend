@@ -127,6 +127,7 @@ const DealForm = () => {
   const [inspectionDetails, setInspectionDetails] = useState({
     materialTypeId: null,
     location: '',
+    locationType: '',
     gatePassRequirement: '',
     serviceType: '',
     quantity: '',
@@ -267,6 +268,7 @@ const DealForm = () => {
           setInspectionDetails({
             materialTypeId: i.material_type_id || null,
             location: i.location || '',
+            locationType: i.location_type || '',
             gatePassRequirement: i.gate_pass_requirement || '',
             serviceType: i.service_type || '',
             quantity: i.quantity || '',
@@ -279,6 +281,7 @@ const DealForm = () => {
           setInspectionDetails({
             materialTypeId: null,
             location: '',
+            locationType: '',
             gatePassRequirement: '',
             serviceType: '',
             quantity: '',
@@ -1385,6 +1388,18 @@ const DealForm = () => {
                 onChange={(e) => setInspectionDetails({ ...inspectionDetails, location: e.target.value })}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
+              <TextField
+                fullWidth
+                select
+                label="Location Type"
+                value={inspectionDetails.locationType || ''}
+                onChange={(e) => setInspectionDetails({ ...inspectionDetails, locationType: e.target.value })}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              >
+                <MenuItem value="">—</MenuItem>
+                <MenuItem value="mainland">Mainland</MenuItem>
+                <MenuItem value="freezone">Freezone</MenuItem>
+              </TextField>
               <TextField
                 fullWidth
                 select

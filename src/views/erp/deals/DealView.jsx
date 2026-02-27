@@ -436,6 +436,7 @@ const DealView = () => {
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={6}><InfoRow label="Material Type" value={deal.inspectionRequest.materialType?.display_name || '-'} /></Grid>
                     <Grid item xs={12} md={6}><InfoRow label="Location" value={deal.inspectionRequest.location || '-'} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Location Type" value={deal.inspectionRequest.location_type ? (deal.inspectionRequest.location_type === 'mainland' ? 'Mainland' : 'Freezone') : '-'} /></Grid>
                     <Grid item xs={12} md={6}><InfoRow label="Gate Pass Requirement" value={deal.inspectionRequest.gate_pass_requirement ? deal.inspectionRequest.gate_pass_requirement.charAt(0).toUpperCase() + deal.inspectionRequest.gate_pass_requirement.slice(1) : '-'} /></Grid>
                     <Grid item xs={12} md={6}><InfoRow label="Service Type" value={deal.inspectionRequest.service_type || '-'} /></Grid>
                     <Grid item xs={12} md={6}><InfoRow label="Quantity" value={deal.inspectionRequest.quantity || '-'} /></Grid>

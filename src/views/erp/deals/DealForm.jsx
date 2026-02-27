@@ -31,7 +31,8 @@ import {
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
-import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
+import { useDropzone } from 'react-dropzone';
+import { IconArrowLeft, IconPlus, IconTrash, IconPhoto } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -39,6 +40,34 @@ const validationSchema = Yup.object({
   title: Yup.string().required('Title is required'),
   dealDate: Yup.date().required('Deal date is required'),
 });
+
+const DealImageDropzone = ({ onDrop }) => {
+  const { getRootProps, getInputProps } = useDropzone({
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'] },
+    multiple: true,
+    onDrop: (acceptedFiles) => { if (acceptedFiles.length) onDrop(acceptedFiles); },
+  });
+  return (
+    <Box
+      {...getRootProps()}
+      sx={{
+        border: '2px dashed',
+        borderColor: 'divider',
+        borderRadius: 2,
+        p: 4,
+        textAlign: 'center',
+        cursor: 'pointer',
+        '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+      }}
+    >
+      <input {...getInputProps()} />
+      <IconPhoto size={40} style={{ opacity: 0.5, marginBottom: 8 }} />
+      <Typography variant="body2" color="text.secondary">
+        Drag and drop images here, or click to select
+      </Typography>
+    </Box>
+  );
+};
 
 const DealForm = () => {
   const { id } = useParams();
@@ -61,6 +90,7 @@ const DealForm = () => {
   });
 
   const [lineItems, setLineItems] = useState([]);
+  const [dealImages, setDealImages] = useState([]);
   const [subtotal, setSubtotal] = useState(0);
   const [vatAmount, setVatAmount] = useState(0);
   const [total, setTotal] = useState(0);
@@ -92,6 +122,16 @@ const DealForm = () => {
   });
 
   const [wdsDialogOpen, setWdsDialogOpen] = useState(false);
+  const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false);
+  const [materialTypes, setMaterialTypes] = useState([]);
+  const [inspectionDetails, setInspectionDetails] = useState({
+    materialTypeId: null,
+    quantity: '',
+    safetyToolsRequired: false,
+    supportingDocuments: '',
+    requestedBy: null,
+    notes: '',
+  });
   const [wdsDetails, setWdsDetails] = useState({
     refNo: '',
     date: new Date().toISOString().split('T')[0],
@@ -112,7 +152,7 @@ const DealForm = () => {
 
   const fetchAllData = useCallback(async () => {
     try {
-      const [leadsRes, companiesRes, contactsRes, suppliersRes, productsRes, usersRes, termsRes] = await Promise.all([
+      const [leadsRes, companiesRes, contactsRes, suppliersRes, productsRes, usersRes, termsRes, materialTypesRes] = await Promise.all([
         apiService.getLeads({ pageSize: 500 }),
         apiService.getCompanies({ pageSize: 500 }),
         apiService.getContacts({ pageSize: 500 }),
@@ -120,6 +160,7 @@ const DealForm = () => {
         apiService.getProducts({ pageSize: 500, status: 'active' }),
         apiService.getUsers({ pageSize: 500 }),
         apiService.getTermsAndConditions({ pageSize: 500, status: 'active' }),
+        apiService.getMaterialTypes(),
       ]);
       
       if (leadsRes.success) setLeads(Array.isArray(leadsRes.data) ? leadsRes.data : []);
@@ -129,6 +170,7 @@ const DealForm = () => {
       if (productsRes.success) setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
       if (usersRes.success) setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
       if (termsRes.success) setTermsAndConditions(Array.isArray(termsRes.data) ? termsRes.data : []);
+      if (materialTypesRes.success) setMaterialTypes(Array.isArray(materialTypesRes.data) ? materialTypesRes.data : []);
     } catch (err) {
       console.error('Failed to fetch data:', err);
     }
@@ -216,7 +258,30 @@ const DealForm = () => {
         } else {
           setWdsDetails(defaultWds);
         }
+
+        if (d.inspectionRequest) {
+          const i = d.inspectionRequest;
+          setInspectionDetails({
+            materialTypeId: i.material_type_id || null,
+            quantity: i.quantity || '',
+            safetyToolsRequired: i.safety_tools_required || false,
+            supportingDocuments: i.supporting_documents || '',
+            requestedBy: i.requested_by || null,
+            notes: i.notes || '',
+          });
+        } else {
+          setInspectionDetails({
+            materialTypeId: null,
+            quantity: '',
+            safetyToolsRequired: false,
+            supportingDocuments: '',
+            requestedBy: null,
+            notes: '',
+          });
+        }
         
+        setDealImages((d.images || []).map(img => ({ path: img.file_path, url: apiService.getUploadUrl(img.file_path) })));
+
         // Load line items
         const items = (d.items || []).map(item => ({
           id: item.id,
@@ -368,6 +433,8 @@ const DealForm = () => {
           notes: item.notes,
         })),
         wdsDetails: values.wdsRequired ? wdsDetails : null,
+        inspectionDetails: values.inspectionRequired ? inspectionDetails : null,
+        images: dealImages.map(img => ({ path: img.path })),
       };
 
       if (isEdit) {
@@ -488,6 +555,47 @@ const DealForm = () => {
                       onBlur={handleBlur}
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
+
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
+                        Images
+                      </Typography>
+                      <DealImageDropzone
+                        onDrop={async (acceptedFiles) => {
+                          for (const file of acceptedFiles) {
+                            try {
+                              const res = await apiService.uploadDealImage(file);
+                              if (res.success && res.data?.path) {
+                                setDealImages(prev => [...prev, { path: res.data.path, url: apiService.getUploadUrl(res.data.path) }]);
+                              }
+                            } catch (err) {
+                              setError(err.message || 'Image upload failed');
+                            }
+                          }
+                        }}
+                      />
+                      {dealImages.length > 0 && (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2 }}>
+                          {dealImages.map((img, idx) => (
+                            <Box key={idx} sx={{ position: 'relative' }}>
+                              <Box
+                                component="img"
+                                src={img.url}
+                                alt=""
+                                sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
+                              />
+                              <IconButton
+                                size="small"
+                                onClick={() => setDealImages(prev => prev.filter((_, i) => i !== idx))}
+                                sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}
+                              >
+                                <IconTrash size={14} />
+                              </IconButton>
+                            </Box>
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
                   </Box>
                 </CardContent>
               </Card>
@@ -723,12 +831,27 @@ const DealForm = () => {
                             control={
                               <Checkbox
                                 checked={values.inspectionRequired}
-                                onChange={(e) => setFieldValue('inspectionRequired', e.target.checked)}
+                                onChange={(e) => {
+                                  setFieldValue('inspectionRequired', e.target.checked);
+                                  if (e.target.checked) {
+                                    setInspectionDialogOpen(true);
+                                  }
+                                }}
                                 name="inspectionRequired"
                               />
                             }
                             label="Inspection Required?"
                           />
+                          {values.inspectionRequired && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => setInspectionDialogOpen(true)}
+                              sx={{ ml: 2, borderRadius: 2 }}
+                            >
+                              Edit Inspection Details
+                            </Button>
+                          )}
                           
                           {values.inspectionRequired && (
                             <Box sx={{ ml: 4, mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1226,6 +1349,99 @@ const DealForm = () => {
               variant="contained"
               sx={{ borderRadius: 2 }}
             >
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog open={inspectionDialogOpen} onClose={() => setInspectionDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Inspection Request</DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+              <Autocomplete
+                fullWidth
+                options={materialTypes}
+                getOptionLabel={(opt) => opt.display_name || opt.value || ''}
+                value={materialTypes.find((m) => m.id === inspectionDetails.materialTypeId) || null}
+                onChange={(_, val) => setInspectionDetails({ ...inspectionDetails, materialTypeId: val?.id || null })}
+                renderInput={(params) => (
+                  <TextField {...params} label="Material Type" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                )}
+                isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+              />
+              <TextField
+                fullWidth
+                label="Quantity"
+                type="number"
+                value={inspectionDetails.quantity}
+                onChange={(e) => setInspectionDetails({ ...inspectionDetails, quantity: e.target.value })}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={inspectionDetails.safetyToolsRequired}
+                    onChange={(e) => setInspectionDetails({ ...inspectionDetails, safetyToolsRequired: e.target.checked })}
+                  />
+                }
+                label="Safety tools required"
+              />
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Supporting documents
+                </Typography>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      try {
+                        const res = await apiService.uploadInspectionDocument(file);
+                        if (res.success && res.data?.path) {
+                          setInspectionDetails({ ...inspectionDetails, supportingDocuments: res.data.path });
+                        }
+                      } catch (err) {
+                        setError(err.message || 'Upload failed');
+                      }
+                    }
+                    e.target.value = '';
+                  }}
+                  style={{ display: 'block' }}
+                />
+                {inspectionDetails.supportingDocuments && (
+                  <Typography variant="caption" color="success.main" sx={{ mt: 1, display: 'block' }}>
+                    File uploaded
+                  </Typography>
+                )}
+              </Box>
+              <Autocomplete
+                fullWidth
+                options={users}
+                getOptionLabel={(opt) => `${opt.first_name || ''} ${opt.last_name || ''}`.trim() || opt.email || ''}
+                value={users.find((u) => u.id === inspectionDetails.requestedBy) || null}
+                onChange={(_, val) => setInspectionDetails({ ...inspectionDetails, requestedBy: val?.id || null })}
+                renderInput={(params) => (
+                  <TextField {...params} label="Requested by" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                )}
+                isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+              />
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Notes"
+                value={inspectionDetails.notes}
+                onChange={(e) => setInspectionDetails({ ...inspectionDetails, notes: e.target.value })}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setInspectionDialogOpen(false)} variant="outlined" sx={{ borderRadius: 2 }}>
+              Cancel
+            </Button>
+            <Button onClick={() => setInspectionDialogOpen(false)} variant="contained" sx={{ borderRadius: 2 }}>
               Save
             </Button>
           </DialogActions>

@@ -5,6 +5,12 @@ class ApiService {
     this.baseURL = API_BASE_URL;
   }
 
+  getUploadUrl(path) {
+    if (!path) return null;
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    return `/uploads/${cleanPath}`;
+  }
+
   getAuthToken() {
     return localStorage.getItem('accessToken');
   }
@@ -265,6 +271,10 @@ class ApiService {
     return this.post(`/deals/${id}/payment`, { paidAmount });
   }
 
+  async saveInspectionReport(dealId, data) {
+    return this.put(`/deals/${dealId}/inspection-report`, data);
+  }
+
   // Terms and Conditions
   async getTermsAndConditions(params) {
     return this.get('/terms', params);
@@ -284,6 +294,37 @@ class ApiService {
 
   async deleteTermsAndConditions(id) {
     return this.delete(`/terms/${id}`);
+  }
+
+  // Material Types
+  async getMaterialTypes() {
+    return this.get('/material-types');
+  }
+
+  async uploadDealImage(file) {
+    const url = `${this.baseURL}/upload/deal-image`;
+    const token = this.getAuthToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(url, { method: 'POST', body: formData, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Upload failed');
+    return data;
+  }
+
+  async uploadInspectionDocument(file) {
+    const url = `${this.baseURL}/upload/inspection-document`;
+    const token = this.getAuthToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(url, { method: 'POST', body: formData, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Upload failed');
+    return data;
   }
 
   // Dropdowns

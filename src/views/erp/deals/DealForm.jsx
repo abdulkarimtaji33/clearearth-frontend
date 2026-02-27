@@ -126,6 +126,9 @@ const DealForm = () => {
   const [materialTypes, setMaterialTypes] = useState([]);
   const [inspectionDetails, setInspectionDetails] = useState({
     materialTypeId: null,
+    location: '',
+    gatePassRequirement: '',
+    serviceType: '',
     quantity: '',
     safetyToolsRequired: false,
     supportingDocuments: '',
@@ -263,6 +266,9 @@ const DealForm = () => {
           const i = d.inspectionRequest;
           setInspectionDetails({
             materialTypeId: i.material_type_id || null,
+            location: i.location || '',
+            gatePassRequirement: i.gate_pass_requirement || '',
+            serviceType: i.service_type || '',
             quantity: i.quantity || '',
             safetyToolsRequired: i.safety_tools_required || false,
             supportingDocuments: i.supporting_documents || '',
@@ -272,6 +278,9 @@ const DealForm = () => {
         } else {
           setInspectionDetails({
             materialTypeId: null,
+            location: '',
+            gatePassRequirement: '',
+            serviceType: '',
             quantity: '',
             safetyToolsRequired: false,
             supportingDocuments: '',
@@ -826,70 +835,70 @@ const DealForm = () => {
                           )}
                         </Box>
 
-                        <Box>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={values.inspectionRequired}
-                                onChange={(e) => {
-                                  setFieldValue('inspectionRequired', e.target.checked);
-                                  if (e.target.checked) {
-                                    setInspectionDialogOpen(true);
-                                  }
-                                }}
-                                name="inspectionRequired"
-                              />
-                            }
-                            label="Inspection Required?"
-                          />
-                          {values.inspectionRequired && (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              onClick={() => setInspectionDialogOpen(true)}
-                              sx={{ ml: 2, borderRadius: 2 }}
-                            >
-                              Edit Inspection Details
-                            </Button>
-                          )}
-                          
-                          {values.inspectionRequired && (
-                            <Box sx={{ ml: 4, mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                              <FormControlLabel
-                                control={
-                                  <Checkbox
-                                    checked={values.customInspection}
-                                    onChange={(e) => setFieldValue('customInspection', e.target.checked)}
-                                    name="customInspection"
-                                  />
-                                }
-                                label="Custom Inspection"
-                              />
-                              <FormControlLabel
-                                control={
-                                  <Checkbox
-                                    checked={values.trakheesInspection}
-                                    onChange={(e) => setFieldValue('trakheesInspection', e.target.checked)}
-                                    name="trakheesInspection"
-                                  />
-                                }
-                                label="Trakhees Inspection"
-                              />
-                              <FormControlLabel
-                                control={
-                                  <Checkbox
-                                    checked={values.dubaiMunicipalityInspection}
-                                    onChange={(e) => setFieldValue('dubaiMunicipalityInspection', e.target.checked)}
-                                    name="dubaiMunicipalityInspection"
-                                  />
-                                }
-                                label="Dubai Municipality Inspection"
-                              />
-                            </Box>
-                          )}
-                        </Box>
+                        {values.inspectionRequired && (
+                          <Box sx={{ ml: 0, mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={values.customInspection}
+                                  onChange={(e) => setFieldValue('customInspection', e.target.checked)}
+                                  name="customInspection"
+                                />
+                              }
+                              label="Custom Inspection"
+                            />
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={values.trakheesInspection}
+                                  onChange={(e) => setFieldValue('trakheesInspection', e.target.checked)}
+                                  name="trakheesInspection"
+                                />
+                              }
+                              label="Trakhees Inspection"
+                            />
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={values.dubaiMunicipalityInspection}
+                                  onChange={(e) => setFieldValue('dubaiMunicipalityInspection', e.target.checked)}
+                                  name="dubaiMunicipalityInspection"
+                                />
+                              }
+                              label="Dubai Municipality Inspection"
+                            />
+                          </Box>
+                        )}
                       </>
                     )}
+
+                    <Box>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={values.inspectionRequired}
+                            onChange={(e) => {
+                              setFieldValue('inspectionRequired', e.target.checked);
+                              if (e.target.checked) {
+                                setInspectionDialogOpen(true);
+                              }
+                            }}
+                            name="inspectionRequired"
+                          />
+                        }
+                        label="Inspection Required?"
+                      />
+                      {values.inspectionRequired && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => setInspectionDialogOpen(true)}
+                          sx={{ ml: 2, borderRadius: 2 }}
+                        >
+                          Edit Inspection Details
+                        </Button>
+                      )}
+                    </Box>
                   </Box>
                 </CardContent>
               </Card>
@@ -1369,6 +1378,39 @@ const DealForm = () => {
                 )}
                 isOptionEqualToValue={(opt, val) => opt.id === val?.id}
               />
+              <TextField
+                fullWidth
+                label="Location"
+                value={inspectionDetails.location}
+                onChange={(e) => setInspectionDetails({ ...inspectionDetails, location: e.target.value })}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+              <TextField
+                fullWidth
+                select
+                label="Gate Pass Requirement?"
+                value={inspectionDetails.gatePassRequirement || ''}
+                onChange={(e) => setInspectionDetails({ ...inspectionDetails, gatePassRequirement: e.target.value })}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              >
+                <MenuItem value="">—</MenuItem>
+                <MenuItem value="yes">Yes</MenuItem>
+                <MenuItem value="no">No</MenuItem>
+              </TextField>
+              <TextField
+                fullWidth
+                select
+                label="Service Type"
+                value={inspectionDetails.serviceType || ''}
+                onChange={(e) => setInspectionDetails({ ...inspectionDetails, serviceType: e.target.value })}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              >
+                <MenuItem value="">—</MenuItem>
+                <MenuItem value="service">Service</MenuItem>
+                <MenuItem value="purchase">Purchase</MenuItem>
+                <MenuItem value="free_of_charge">Free of Charge</MenuItem>
+                <MenuItem value="N/A">N/A</MenuItem>
+              </TextField>
               <TextField
                 fullWidth
                 label="Quantity"

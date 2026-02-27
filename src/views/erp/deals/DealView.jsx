@@ -435,6 +435,9 @@ const DealView = () => {
                   <Typography variant="h6" fontWeight={600} mb={2}>Inspection Request</Typography>
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={6}><InfoRow label="Material Type" value={deal.inspectionRequest.materialType?.display_name || '-'} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Location" value={deal.inspectionRequest.location || '-'} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Gate Pass Requirement" value={deal.inspectionRequest.gate_pass_requirement ? deal.inspectionRequest.gate_pass_requirement.charAt(0).toUpperCase() + deal.inspectionRequest.gate_pass_requirement.slice(1) : '-'} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Service Type" value={deal.inspectionRequest.service_type || '-'} /></Grid>
                     <Grid item xs={12} md={6}><InfoRow label="Quantity" value={deal.inspectionRequest.quantity || '-'} /></Grid>
                     <Grid item xs={12} md={6}><InfoRow label="Safety Tools Required" value={deal.inspectionRequest.safety_tools_required ? 'Yes' : 'No'} /></Grid>
                     <Grid item xs={12} md={6}><InfoRow label="Requested By" value={deal.inspectionRequest.requestedByUser ? `${deal.inspectionRequest.requestedByUser.first_name} ${deal.inspectionRequest.requestedByUser.last_name}` : '-'} /></Grid>

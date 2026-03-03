@@ -19,11 +19,12 @@
     position: absolute;
     left: -95px;
     bottom: -32px;
-    width: 388px;
-    height: 382px;
+    width: min(388px, 50vw);
+    height: min(382px, 50vw);
     z-index: -1;
     background-image: url(../../../assets/images/landingpage/shape/shape-2.svg);
     background-repeat: no-repeat;
+    background-size: contain;
 }
 
 .demo-slider::after {
@@ -31,18 +32,34 @@
     position: absolute;
     top: -40px;
     right: -96px;
-    width: 267px;
-    height: 252px;
+    width: min(267px, 35vw);
+    height: min(252px, 35vw);
     z-index: -1;
     background-image: url(../../../assets/images/landingpage/shape/shape-1.svg);
     background-repeat: no-repeat;
+    background-size: contain;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 900px) {
     .demo-slider::before {
-        left: unset
+        left: -20px;
+        width: min(200px, 40vw);
+        height: min(200px, 40vw);
     }
     .demo-slider::after {
-        right: unset
+        right: -20px;
+        width: min(150px, 30vw);
+        height: min(140px, 28vw);
+    }
+}
+
+@media (max-width: 600px) {
+    .demo-slider::before {
+        left: unset;
+        display: none;
+    }
+    .demo-slider::after {
+        right: unset;
+        display: none;
     }
 }

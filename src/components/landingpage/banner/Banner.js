@@ -50,8 +50,9 @@ const Banner = () => {
                 p={3.2}
                 sx={{
                   backgroundColor: (theme) => theme.palette.primary.light,
-                  minWidth: '2000px',
-                  height: 'calc(100vh - 100px)',
+                  width: '100%',
+                  minWidth: 0,
+                  height: { xs: '300px', md: 'calc(100vh - 100px)' },
                   maxHeight: '790px',
                 }}
               >

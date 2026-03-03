@@ -65,36 +65,39 @@ const Sidebar = () => {
                 }),
                 width: toggleWidth,
                 boxSizing: 'border-box',
+                height: '100vh',
+                overflow: 'hidden',
+                top: 0,
               },
             }
           }}
         >
           {/* ------------------------------------------- */}
-          {/* Sidebar Box */}
+          {/* Sidebar Box - flex column to avoid outer scroll */}
           {/* ------------------------------------------- */}
           <Box
             sx={{
-              // backgroundColor:
-              //   activeSidebarBg === '#ffffff' && activeMode === 'dark'
-              //     ? darkBackground900
-              //     : activeSidebarBg,
-              // color: activeSidebarBg === '#ffffff' ? '' : 'white',
-              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100vh',
+              overflow: 'hidden',
             }}
           >
             {/* ------------------------------------------- */}
             {/* Logo */}
             {/* ------------------------------------------- */}
-            <Box px={3}>
+            <Box px={3} sx={{ flexShrink: 0, pt: 1 }}>
               <Logo />
             </Box>
-            <Scrollbar sx={{ height: 'calc(100% - 190px)' }}>
+            <Scrollbar sx={{ flex: 1, minHeight: 0 }}>
               {/* ------------------------------------------- */}
               {/* Sidebar Items */}
               {/* ------------------------------------------- */}
               <SidebarItems />
             </Scrollbar>
-            <Profile />
+            <Box sx={{ flexShrink: 0 }}>
+              <Profile />
+            </Box>
           </Box>
         </Drawer>
       </Box>)

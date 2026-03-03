@@ -109,7 +109,7 @@ const DealForm = () => {
     paymentStatus: 'unpaid',
     paidAmount: 0,
     assignedTo: null,
-    termsAndConditionsId: null,
+    termsAndConditionsIds: [],
     dealType: 'offer_to_purchase',
     containerType: null,
     locationType: null,
@@ -214,7 +214,9 @@ const DealForm = () => {
           paymentStatus: d.payment_status || 'unpaid',
           paidAmount: d.paid_amount || 0,
           assignedTo: d.assigned_to || null,
-          termsAndConditionsId: d.terms_and_conditions_id || null,
+          termsAndConditionsIds: (d.termsList && d.termsList.length > 0)
+            ? d.termsList.map((t) => t.id)
+            : (d.terms_and_conditions_id ? [d.terms_and_conditions_id] : []),
           dealType: d.deal_type || 'offer_to_purchase',
           containerType: d.container_type || null,
           locationType: d.location_type || null,
@@ -484,7 +486,7 @@ const DealForm = () => {
 
   return (
     <PageContainer title={isEdit ? 'Edit Deal' : 'Create Deal'} description="Manage deal details">
-      <Box sx={{ maxWidth: 1600, mx: 'auto', px: 2 }}>
+      <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
         <Stack direction="row" alignItems="center" spacing={2} mb={4}>
           <Button
             variant="outlined"
@@ -517,7 +519,7 @@ const DealForm = () => {
             <form onSubmit={formikSubmit}>
               {/* Basic Information */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Deal Information
                   </Typography>
@@ -614,7 +616,7 @@ const DealForm = () => {
 
               {/* Relationships */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Related Entities
                   </Typography>
@@ -730,11 +732,12 @@ const DealForm = () => {
                       </Box>
                       <Box>
                         <Autocomplete
+                          multiple
                           fullWidth
                           options={termsAndConditions}
                           getOptionLabel={(opt) => opt.title || ''}
-                          value={termsAndConditions.find((t) => t.id === values.termsAndConditionsId) || null}
-                          onChange={(_, val) => setFieldValue('termsAndConditionsId', val?.id || null)}
+                          value={termsAndConditions.filter((t) => (values.termsAndConditionsIds || []).includes(t.id))}
+                          onChange={(_, val) => setFieldValue('termsAndConditionsIds', val ? val.map((t) => t.id) : [])}
                           renderInput={(params) => (
                             <TextField
                               {...params}
@@ -754,7 +757,7 @@ const DealForm = () => {
 
               {/* Deal Type & Logistics */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Deal Type & Logistics
                   </Typography>
@@ -908,7 +911,7 @@ const DealForm = () => {
 
               {/* Products/Services Line Items */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="primary.main">
@@ -1079,7 +1082,7 @@ const DealForm = () => {
 
               {/* Status & Payment */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Status & Payment
                   </Typography>
@@ -1156,7 +1159,7 @@ const DealForm = () => {
 
               {/* Notes */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Additional Notes
                   </Typography>

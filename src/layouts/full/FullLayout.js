@@ -65,9 +65,12 @@ const FullLayout = () => {
           {/* ------------------------------------------- */}
           {activeLayout === 'horizontal' ? <Navigation /> : ''}
           <Container
+            maxWidth={false}
             sx={{
-              pt: '30px',
-              maxWidth: isLayout === 'boxed' ? 'lg' : '100%!important',
+              pt: { xs: '20px', sm: '24px', md: '30px' },
+              px: { xs: 1.5, sm: 2, md: 3 },
+              width: '100%',
+              maxWidth: isLayout === 'boxed' ? 'min(4000px, 90vw)' : 'min(5000px, 96vw)',
             }}
           >
             {/* ------------------------------------------- */}

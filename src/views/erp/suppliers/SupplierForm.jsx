@@ -282,7 +282,7 @@ const SupplierForm = () => {
 
   return (
     <PageContainer title={isEdit ? 'Edit Supplier' : 'Add Supplier'} description="Manage supplier details">
-      <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+      <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
         <Stack direction="row" alignItems="center" spacing={2} mb={4}>
           <Button
             variant="outlined"
@@ -315,7 +315,7 @@ const SupplierForm = () => {
             <form onSubmit={formikSubmit}>
               {/* Supplier Information */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Supplier Information
                   </Typography>
@@ -492,7 +492,7 @@ const SupplierForm = () => {
 
               {/* Location Details */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Location Details
                   </Typography>
@@ -580,7 +580,7 @@ const SupplierForm = () => {
 
               {/* Additional Contacts */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap" gap={2}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="primary.main">

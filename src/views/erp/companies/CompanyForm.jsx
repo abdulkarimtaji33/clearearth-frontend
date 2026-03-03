@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Box,
   Card,
@@ -63,6 +63,7 @@ const CompanyForm = () => {
     firstName: '', lastName: '', email: '', phone: '', designation: '', department: '',
   });
   const [newContactErrors, setNewContactErrors] = useState({});
+  const setFieldValueRef = useRef(null);
   
   // Dropdown states
   const [dropdowns, setDropdowns] = useState({
@@ -242,18 +243,17 @@ const CompanyForm = () => {
       if (response.success || response.data) {
         const newContact = response.data;
         setContacts((prev) => [...prev, newContact]);
-        setLinkedContacts((prev) => [
-          ...prev,
-          {
-            contactId: newContact.id,
-            firstName: newContact.first_name,
-            lastName: newContact.last_name,
-            email: newContact.email,
-            phone: newContact.phone,
-            role: contactRole,
-            isPrimary: false,
-          },
-        ]);
+        const newLinked = {
+          contactId: newContact.id,
+          firstName: newContact.first_name,
+          lastName: newContact.last_name,
+          email: newContact.email,
+          phone: newContact.phone,
+          role: contactRole,
+          isPrimary: true,
+        };
+        setLinkedContacts((prev) => [...prev.map((c) => ({ ...c, isPrimary: false })), newLinked]);
+        setFieldValueRef.current?.('primaryContactId', newContact.id);
         setNewContactValues({ firstName: '', lastName: '', email: '', phone: '', designation: '', department: '' });
         setContactRole('');
         setNewContactDialogOpen(false);
@@ -288,7 +288,7 @@ const CompanyForm = () => {
 
   return (
     <PageContainer title={isEdit ? 'Edit Company' : 'Add Company'} description="Manage company details">
-      <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+      <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
         <Stack direction="row" alignItems="center" spacing={2} mb={4}>
           <Button
             variant="outlined"
@@ -317,11 +317,13 @@ const CompanyForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => (
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => {
+            setFieldValueRef.current = setFieldValue;
+            return (
             <form onSubmit={formikSubmit}>
               {/* Company Information */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Company Information
                   </Typography>
@@ -498,7 +500,7 @@ const CompanyForm = () => {
 
               {/* Location Details */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Location Details
                   </Typography>
@@ -587,7 +589,7 @@ const CompanyForm = () => {
 
               {/* Additional Contacts */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap" gap={2}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="primary.main">
@@ -717,7 +719,7 @@ const CompanyForm = () => {
                 </Button>
               </Stack>
             </form>
-          )}
+          );}}
         </Formik>
       </Box>
 

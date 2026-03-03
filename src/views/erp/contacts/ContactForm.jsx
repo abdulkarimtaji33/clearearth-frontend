@@ -213,7 +213,7 @@ const ContactForm = () => {
       title={isEdit ? 'Edit Contact' : 'Add Contact'}
       description="Manage contact details"
     >
-      <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+      <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
         <Stack direction="row" alignItems="center" spacing={2} mb={4}>
           <Button
             variant="outlined"
@@ -255,7 +255,7 @@ const ContactForm = () => {
             return (
             <form onSubmit={formikSubmit}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Personal Information
                   </Typography>
@@ -423,7 +423,7 @@ const ContactForm = () => {
               </Card>
 
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Contact Information
                   </Typography>

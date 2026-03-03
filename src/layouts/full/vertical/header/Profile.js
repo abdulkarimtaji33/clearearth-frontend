@@ -58,6 +58,7 @@ const Profile = () => {
         sx={{
           '& .MuiMenu-paper': {
             width: '360px',
+            maxWidth: 'calc(100vw - 32px)',
           },
         }}
       >

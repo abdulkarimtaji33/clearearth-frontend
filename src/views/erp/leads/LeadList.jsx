@@ -26,6 +26,10 @@ import {
   Select,
   Collapse,
   Autocomplete,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   IconSearch,
@@ -40,6 +44,7 @@ import {
   IconFilter,
   IconChevronDown,
   IconChevronUp,
+  IconXCircle,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
@@ -69,6 +74,10 @@ const LeadList = () => {
   const [contacts, setContacts] = useState([]);
   const [products, setProducts] = useState([]);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [disqualifyDialogOpen, setDisqualifyDialogOpen] = useState(false);
+  const [leadToDisqualify, setLeadToDisqualify] = useState(null);
+  const [disqualifyReason, setDisqualifyReason] = useState('');
+  const [disqualifying, setDisqualifying] = useState(false);
 
   const fetchDropdowns = useCallback(async () => {
     try {
@@ -190,6 +199,29 @@ const LeadList = () => {
       } catch (err) {
         setError(err.message || 'Failed to delete lead');
       }
+    }
+  };
+
+  const handleDisqualifyClick = () => {
+    setLeadToDisqualify(selectedLead);
+    setDisqualifyReason('');
+    setDisqualifyDialogOpen(true);
+    handleMenuClose();
+  };
+
+  const handleDisqualifyConfirm = async () => {
+    if (!leadToDisqualify) return;
+    try {
+      setDisqualifying(true);
+      await apiService.disqualifyLead(leadToDisqualify.id, { reason: disqualifyReason });
+      setDisqualifyDialogOpen(false);
+      setLeadToDisqualify(null);
+      setDisqualifyReason('');
+      fetchLeads();
+    } catch (err) {
+      setError(err.message || 'Failed to disqualify lead');
+    } finally {
+      setDisqualifying(false);
     }
   };
 
@@ -495,6 +527,12 @@ const LeadList = () => {
               Qualify
             </MenuItem>
           )}
+          {selectedLead?.status !== 'converted' && selectedLead?.status !== 'disqualified' && (
+            <MenuItem onClick={handleDisqualifyClick}>
+              <IconXCircle size={18} style={{ marginRight: 8 }} />
+              Disqualify
+            </MenuItem>
+          )}
           {selectedLead?.status === 'qualified' && (
             <MenuItem
               onClick={() => {
@@ -517,6 +555,31 @@ const LeadList = () => {
             Delete
           </MenuItem>
         </Menu>
+
+        <Dialog open={disqualifyDialogOpen} onClose={() => setDisqualifyDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+          <DialogTitle>Disqualify Lead</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Please provide a reason for disqualifying this lead (optional but recommended).
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Disqualification Reason"
+              value={disqualifyReason}
+              onChange={(e) => setDisqualifyReason(e.target.value)}
+              placeholder="e.g. Budget constraints, Not a fit, No response..."
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setDisqualifyDialogOpen(false)}>Cancel</Button>
+            <Button variant="contained" color="error" onClick={handleDisqualifyConfirm} disabled={disqualifying}>
+              {disqualifying ? 'Disqualifying...' : 'Disqualify'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </PageContainer>
   );

@@ -4,6 +4,8 @@ export default function components(theme) {
       styleOverrides: {
         '*': {
           boxSizing: 'border-box',
+          scrollbarWidth: 'thin',
+          scrollbarColor: `${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'} transparent`,
         },
         html: {
           height: '100%',
@@ -16,6 +18,25 @@ export default function components(theme) {
           height: '100%',
           margin: 0,
           padding: 0,
+        },
+        '*::-webkit-scrollbar': {
+          width: '8px',
+          height: '8px',
+        },
+        '*::-webkit-scrollbar-track': {
+          background: 'transparent',
+        },
+        '*::-webkit-scrollbar-thumb': {
+          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.2)',
+          borderRadius: '8px',
+          border: '2px solid transparent',
+          backgroundClip: 'padding-box',
+        },
+        '*::-webkit-scrollbar-thumb:hover': {
+          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)',
+        },
+        '*::-webkit-scrollbar-corner': {
+          background: 'transparent',
         },
         '.ql-container.ql-snow, .ql-toolbar.ql-snow': {
           border: '0 !important', borderRadius: '7px'
@@ -99,9 +120,6 @@ export default function components(theme) {
         },
         '.MuiTimelineConnector-root': {
           width: '1px !important',
-        },
-        ' .simplebar-scrollbar:before': {
-          background: `${theme.palette.grey[300]} !important`,
         },
         '@keyframes gradient': {
           '0%': {
@@ -324,6 +342,9 @@ export default function components(theme) {
       styleOverrides: {
         root: {
           padding: '24px',
+          [theme.breakpoints.down('sm')]: {
+            padding: '16px',
+          },
         },
       },
     },
@@ -446,11 +467,11 @@ export default function components(theme) {
         },
         input: {
           padding: '14px 16px',
-          fontSize: '0.9375rem',
+          fontSize: 'clamp(0.875rem, 1vw, 0.9375rem)',
         },
         inputSizeSmall: {
           padding: '10px 14px',
-          fontSize: '0.875rem',
+          fontSize: 'clamp(0.8125rem, 0.95vw, 0.875rem)',
         },
       },
     },

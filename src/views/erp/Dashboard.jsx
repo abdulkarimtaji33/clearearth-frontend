@@ -200,7 +200,7 @@ const Dashboard = () => {
 
   return (
     <PageContainer title="Dashboard" description="ClearEarth ERP overview">
-      <Box sx={{ maxWidth: 1600, mx: 'auto', px: 2 }}>
+      <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={4}>
           <Box>
             <Typography variant="h3" fontWeight={700}>

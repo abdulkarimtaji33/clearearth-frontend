@@ -7,10 +7,11 @@ const SimpleBarStyle = styled(SimpleBar)(({ theme }) => ({
   maxHeight: '100%',
   '.simplebar-scrollbar': {
     '&:before': {
-      backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+      backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.2)',
       borderRadius: '8px',
       width: '6px',
       left: '2px',
+      transition: 'background-color 0.2s ease',
     },
     '&.simplebar-visible:before': {
       opacity: 1,
@@ -25,7 +26,7 @@ const SimpleBarStyle = styled(SimpleBar)(({ theme }) => ({
       width: '10px',
     },
     '&:hover .simplebar-scrollbar:before': {
-      backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)',
+      backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.35)',
     },
   },
 }));

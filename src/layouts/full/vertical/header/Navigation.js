@@ -50,6 +50,7 @@ const AppDD = () => {
           sx={{
             '& .MuiMenu-paper': {
               width: '850px',
+              maxWidth: 'calc(100vw - 32px)',
             },
             '& .MuiMenu-paper ul': {
               p: 0,

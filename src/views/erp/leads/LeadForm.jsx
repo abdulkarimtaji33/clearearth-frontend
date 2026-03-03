@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Box,
   Card,
@@ -13,6 +13,10 @@ import {
   Autocomplete,
   Divider,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -38,9 +42,28 @@ const LeadForm = () => {
   const [contacts, setContacts] = useState([]);
   const [products, setProducts] = useState([]);
   
+  const [addCompanyDialogOpen, setAddCompanyDialogOpen] = useState(false);
+  const [addContactDialogOpen, setAddContactDialogOpen] = useState(false);
+  const [savingCompany, setSavingCompany] = useState(false);
+  const [savingContact, setSavingContact] = useState(false);
+  const [newCompanyValues, setNewCompanyValues] = useState({
+    companyName: '', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '',
+  });
+  const [newContactValues, setNewContactValues] = useState({
+    firstName: '', lastName: '', email: '', phone: '', designation: '', companyId: null,
+  });
+  const [newCompanyErrors, setNewCompanyErrors] = useState({});
+  const [newContactErrors, setNewContactErrors] = useState({});
+  const setFieldValueRef = useRef(null);
+  const valuesRef = useRef({});
+  
   // Dropdown states
   const [dropdowns, setDropdowns] = useState({
     leadSources: [],
+    industryTypes: [],
+    cities: [],
+    countries: [],
+    designations: [],
   });
   
   const [initialValues, setInitialValues] = useState({
@@ -81,9 +104,14 @@ const LeadForm = () => {
     try {
       const response = await apiService.getAllDropdowns();
       if (response.success) {
-        setDropdowns({
+        setDropdowns((prev) => ({
+          ...prev,
           leadSources: response.data.lead_sources || [],
-        });
+          industryTypes: response.data.industry_types || [],
+          cities: response.data.uae_cities || [],
+          countries: response.data.countries || [],
+          designations: response.data.designations || [],
+        }));
       }
     } catch (err) {
       console.error('Failed to fetch dropdowns:', err);
@@ -121,6 +149,71 @@ const LeadForm = () => {
       fetchLead();
     }
   }, [isEdit, fetchCompaniesAndContacts, fetchDropdowns, fetchLead]);
+
+  const handleCreateCompany = async () => {
+    const setFieldValue = setFieldValueRef.current;
+    const errors = {};
+    if (!newCompanyValues.companyName) errors.companyName = 'Required';
+    if (!newCompanyValues.phone) errors.phone = 'Required';
+    if (newCompanyValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCompanyValues.email)) errors.email = 'Invalid email';
+    setNewCompanyErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    try {
+      setSavingCompany(true);
+      const res = await apiService.createCompany({
+        companyName: newCompanyValues.companyName,
+        email: newCompanyValues.email || undefined,
+        phone: newCompanyValues.phone,
+        country: newCompanyValues.country,
+        city: newCompanyValues.city,
+        address: newCompanyValues.address,
+        industryType: newCompanyValues.industryType,
+      });
+      const newCompany = res.data;
+      setCompanies((prev) => [...prev, newCompany]);
+      setFieldValue?.('companyId', newCompany.id);
+      setNewCompanyValues({ companyName: '', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '' });
+      setAddCompanyDialogOpen(false);
+      setNewCompanyErrors({});
+    } catch (err) {
+      setNewCompanyErrors({ submit: err.message || 'Failed to create company' });
+    } finally {
+      setSavingCompany(false);
+    }
+  };
+
+  const handleCreateContact = async () => {
+    const setFieldValue = setFieldValueRef.current;
+    const companyId = valuesRef.current.companyId;
+    const errors = {};
+    if (!newContactValues.firstName) errors.firstName = 'Required';
+    if (!newContactValues.lastName) errors.lastName = 'Required';
+    if (!newContactValues.phone) errors.phone = 'Required';
+    if (newContactValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newContactValues.email)) errors.email = 'Invalid email';
+    setNewContactErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    try {
+      setSavingContact(true);
+      const res = await apiService.createContact({
+        firstName: newContactValues.firstName,
+        lastName: newContactValues.lastName,
+        email: newContactValues.email || undefined,
+        phone: newContactValues.phone,
+        designation: newContactValues.designation,
+        companyId: companyId || null,
+      });
+      const newContact = res.data;
+      setContacts((prev) => [...prev, newContact]);
+      setFieldValue?.('contactId', newContact.id);
+      setNewContactValues({ firstName: '', lastName: '', email: '', phone: '', designation: '', companyId: null });
+      setAddContactDialogOpen(false);
+      setNewContactErrors({});
+    } catch (err) {
+      setNewContactErrors({ submit: err.message || 'Failed to create contact' });
+    } finally {
+      setSavingContact(false);
+    }
+  };
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
@@ -184,7 +277,7 @@ const LeadForm = () => {
 
   return (
     <PageContainer title={isEdit ? 'Edit Lead' : 'Add Lead'} description="Manage lead details">
-      <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+      <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
         <Stack direction="row" alignItems="center" spacing={2} mb={4}>
           <Button
             variant="outlined"
@@ -218,11 +311,14 @@ const LeadForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => (
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => {
+            setFieldValueRef.current = setFieldValue;
+            valuesRef.current = values;
+            return (
             <form onSubmit={formikSubmit}>
               {/* Lead Information */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Lead Information
                   </Typography>
@@ -272,7 +368,7 @@ const LeadForm = () => {
                         >
                           <Button
                             size="small"
-                            onClick={() => navigate('/erp/companies/create')}
+                            onClick={() => setAddCompanyDialogOpen(true)}
                             sx={{ 
                               textTransform: 'none',
                               fontSize: '0.75rem',
@@ -334,7 +430,7 @@ const LeadForm = () => {
                         >
                           <Button
                             size="small"
-                            onClick={() => navigate('/erp/contacts/create')}
+                            onClick={() => setAddContactDialogOpen(true)}
                             sx={{ 
                               textTransform: 'none',
                               fontSize: '0.75rem',
@@ -389,7 +485,7 @@ const LeadForm = () => {
 
               {/* Lead Details */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: 5 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                     Lead Details
                   </Typography>
@@ -502,8 +598,105 @@ const LeadForm = () => {
                 </Button>
               </Stack>
             </form>
-          )}
+          );}}
         </Formik>
+
+        {/* Add Company Dialog */}
+        <Dialog open={addCompanyDialogOpen} onClose={() => setAddCompanyDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+          <DialogTitle sx={{ pb: 2, pt: 4, px: 4 }}>
+            <Typography variant="h4" fontWeight={700}>Add New Company</Typography>
+            <Typography variant="body2" color="text.secondary" mt={1}>Create a company and select it for this lead</Typography>
+          </DialogTitle>
+          <DialogContent sx={{ pt: 3, px: 4 }}>
+            {newCompanyErrors.submit && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{newCompanyErrors.submit}</Alert>}
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField fullWidth label="Company Name" value={newCompanyValues.companyName} onChange={(e) => setNewCompanyValues((v) => ({ ...v, companyName: e.target.value }))}
+                  error={Boolean(newCompanyErrors.companyName)} helperText={newCompanyErrors.companyName} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth label="Phone" value={newCompanyValues.phone} onChange={(e) => setNewCompanyValues((v) => ({ ...v, phone: e.target.value }))}
+                  error={Boolean(newCompanyErrors.phone)} helperText={newCompanyErrors.phone} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth label="Email" type="email" value={newCompanyValues.email} onChange={(e) => setNewCompanyValues((v) => ({ ...v, email: e.target.value }))}
+                  error={Boolean(newCompanyErrors.email)} helperText={newCompanyErrors.email} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth select label="Country" value={newCompanyValues.country} onChange={(e) => setNewCompanyValues((v) => ({ ...v, country: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
+                  {dropdowns.countries?.map((c) => <MenuItem key={c.id} value={c.value}>{c.display_name}</MenuItem>)}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth select label="City" value={newCompanyValues.city} onChange={(e) => setNewCompanyValues((v) => ({ ...v, city: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
+                  <MenuItem value="">None</MenuItem>
+                  {dropdowns.cities?.map((city) => <MenuItem key={city.id} value={city.value}>{city.display_name}</MenuItem>)}
+                </TextField>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth label="Address" value={newCompanyValues.address} onChange={(e) => setNewCompanyValues((v) => ({ ...v, address: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth select label="Industry Type" value={newCompanyValues.industryType} onChange={(e) => setNewCompanyValues((v) => ({ ...v, industryType: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
+                  <MenuItem value="">None</MenuItem>
+                  {dropdowns.industryTypes?.map((t) => <MenuItem key={t.id} value={t.value}>{t.display_name}</MenuItem>)}
+                </TextField>
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ px: 4, pb: 4, pt: 3 }}>
+            <Button onClick={() => { setAddCompanyDialogOpen(false); setNewCompanyErrors({}); }} sx={{ minWidth: 120, borderRadius: 2 }}>Cancel</Button>
+            <Button variant="contained" disabled={savingCompany} onClick={handleCreateCompany} sx={{ minWidth: 150, borderRadius: 2 }}>
+              {savingCompany ? 'Creating...' : 'Create & Select'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Add Contact Dialog */}
+        <Dialog open={addContactDialogOpen} onClose={() => setAddContactDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+          <DialogTitle sx={{ pb: 2, pt: 4, px: 4 }}>
+            <Typography variant="h4" fontWeight={700}>Add New Contact</Typography>
+            <Typography variant="body2" color="text.secondary" mt={1}>Create a contact and select it for this lead</Typography>
+          </DialogTitle>
+          <DialogContent sx={{ pt: 3, px: 4 }}>
+            {newContactErrors.submit && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{newContactErrors.submit}</Alert>}
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth label="First Name" value={newContactValues.firstName} onChange={(e) => setNewContactValues((v) => ({ ...v, firstName: e.target.value }))}
+                  error={Boolean(newContactErrors.firstName)} helperText={newContactErrors.firstName} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth label="Last Name" value={newContactValues.lastName} onChange={(e) => setNewContactValues((v) => ({ ...v, lastName: e.target.value }))}
+                  error={Boolean(newContactErrors.lastName)} helperText={newContactErrors.lastName} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth label="Phone" value={newContactValues.phone} onChange={(e) => setNewContactValues((v) => ({ ...v, phone: e.target.value }))}
+                  error={Boolean(newContactErrors.phone)} helperText={newContactErrors.phone} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth label="Email" type="email" value={newContactValues.email} onChange={(e) => setNewContactValues((v) => ({ ...v, email: e.target.value }))}
+                  error={Boolean(newContactErrors.email)} helperText={newContactErrors.email} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth select label="Designation" value={newContactValues.designation} onChange={(e) => setNewContactValues((v) => ({ ...v, designation: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
+                  <MenuItem value="">None</MenuItem>
+                  {dropdowns.designations?.map((d) => <MenuItem key={d.id} value={d.value}>{d.display_name}</MenuItem>)}
+                </TextField>
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ px: 4, pb: 4, pt: 3 }}>
+            <Button onClick={() => { setAddContactDialogOpen(false); setNewContactErrors({}); }} sx={{ minWidth: 120, borderRadius: 2 }}>Cancel</Button>
+            <Button variant="contained" disabled={savingContact} onClick={handleCreateContact} sx={{ minWidth: 150, borderRadius: 2 }}>
+              {savingContact ? 'Creating...' : 'Create & Select'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </PageContainer>
   );

@@ -218,7 +218,7 @@ const DealView = () => {
   if (!id) {
     return (
       <PageContainer title="Invalid Deal">
-        <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
           <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>Invalid deal ID</Alert>
           <Button variant="outlined" onClick={() => navigate('/erp/deals')}>Back to Deals</Button>
         </Box>
@@ -239,7 +239,7 @@ const DealView = () => {
   if (error || !deal) {
     return (
       <PageContainer title="Deal Not Found">
-        <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
           <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
             {error || 'Deal not found'}
           </Alert>
@@ -253,7 +253,7 @@ const DealView = () => {
 
   return (
     <PageContainer title={`Deal: ${deal.deal_number}`} description="View deal details">
-      <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+      <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
           <Stack direction="row" alignItems="center" spacing={2}>
             <Button
@@ -332,7 +332,7 @@ const DealView = () => {
 
         {/* Basic Information */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-          <CardContent sx={{ p: 5 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
             <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
               Deal Information
             </Typography>
@@ -387,7 +387,7 @@ const DealView = () => {
         {/* Deal Type & Logistics */}
         {(deal.deal_type || deal.container_type || deal.location_type || deal.wds_required || deal.inspection_required) && (
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-            <CardContent sx={{ p: 5 }}>
+            <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
               <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                 Deal Type & Logistics
               </Typography>
@@ -478,7 +478,7 @@ const DealView = () => {
 
         {/* Inspection Report */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-          <CardContent sx={{ p: 5 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="h4" fontWeight={700} color="primary.main">
                 Inspection Report
@@ -535,7 +535,7 @@ const DealView = () => {
 
         {/* Related Entities */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-          <CardContent sx={{ p: 5 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
             <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
               Related Entities
             </Typography>
@@ -550,7 +550,11 @@ const DealView = () => {
               <Grid item xs={12} md={6}>
                 <InfoRow label="Supplier" value={deal.supplier?.company_name || '-'} />
                 <InfoRow label="Assigned To" value={deal.assignedUser ? `${deal.assignedUser.first_name} ${deal.assignedUser.last_name}` : '-'} />
-                <InfoRow label="Terms & Conditions" value={deal.termsAndConditions?.title || '-'} />
+                <InfoRow label="Terms & Conditions" value={
+                  (deal.termsList && deal.termsList.length > 0)
+                    ? deal.termsList.map((t) => t.title).join(', ')
+                    : (deal.termsAndConditions?.title || '-')
+                } />
               </Grid>
             </Grid>
           </CardContent>
@@ -558,7 +562,7 @@ const DealView = () => {
 
         {/* Line Items */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-          <CardContent sx={{ p: 5 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
             <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
               Products & Services
             </Typography>
@@ -672,7 +676,7 @@ const DealView = () => {
         {/* Additional Information */}
         {deal.notes && (
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-            <CardContent sx={{ p: 5 }}>
+            <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
               <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                 Notes
               </Typography>
@@ -686,7 +690,7 @@ const DealView = () => {
 
         {/* Timestamps */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-          <CardContent sx={{ p: 5 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
             <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
               Audit Information
             </Typography>

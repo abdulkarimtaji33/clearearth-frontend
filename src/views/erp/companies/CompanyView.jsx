@@ -78,7 +78,7 @@ const CompanyView = () => {
   if (error || !company) {
     return (
       <PageContainer title="Company Not Found">
-        <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
           <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
             {error || 'Company not found'}
           </Alert>
@@ -92,7 +92,7 @@ const CompanyView = () => {
 
   return (
     <PageContainer title={company.company_name} description="View company details">
-      <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+      <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
           <Stack direction="row" alignItems="center" spacing={2}>
             <Button
@@ -135,7 +135,7 @@ const CompanyView = () => {
 
         {/* Company Details */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-          <CardContent sx={{ p: 5 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
             <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
               Company Details
             </Typography>
@@ -194,7 +194,7 @@ const CompanyView = () => {
         {/* Related Contacts */}
         {company.contacts && company.contacts.length > 0 && (
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-            <CardContent sx={{ p: 5 }}>
+            <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
               <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                 Related Contacts ({company.contacts.length})
               </Typography>
@@ -251,7 +251,7 @@ const CompanyView = () => {
         {/* Related Deals */}
         {company.deals && company.deals.length > 0 && (
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-            <CardContent sx={{ p: 5 }}>
+            <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
               <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
                 Related Deals ({company.deals.length})
               </Typography>

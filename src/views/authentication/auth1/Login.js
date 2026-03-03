@@ -35,8 +35,8 @@ const LoginContainer = styled(Box)(({ theme }) => ({
   '&::before': {
     content: '""',
     position: 'absolute',
-    width: '600px',
-    height: '600px',
+    width: 'min(600px, 100vmin)',
+    height: 'min(600px, 100vmin)',
     background: `radial-gradient(circle, ${alpha('#10b981', 0.12)} 0%, transparent 70%)`,
     top: '-100px',
     left: '-100px',
@@ -45,8 +45,8 @@ const LoginContainer = styled(Box)(({ theme }) => ({
   '&::after': {
     content: '""',
     position: 'absolute',
-    width: '600px',
-    height: '600px',
+    width: 'min(600px, 100vmin)',
+    height: 'min(600px, 100vmin)',
     background: `radial-gradient(circle, ${alpha('#06b6d4', 0.12)} 0%, transparent 70%)`,
     bottom: '-100px',
     right: '-100px',

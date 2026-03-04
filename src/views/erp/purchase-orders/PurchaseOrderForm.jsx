@@ -44,11 +44,13 @@ const PurchaseOrderForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [deals, setDeals] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [termsAndConditions, setTermsAndConditions] = useState([]);
   const [items, setItems] = useState([initialItem()]);
   const [initialValues, setInitialValues] = useState({
+    dealId: dealIdFromUrl || null,
     supplierId: supplierIdFromUrl || null,
     poDate: new Date().toISOString().split('T')[0],
     expectedDelivery: '',
@@ -59,11 +61,13 @@ const PurchaseOrderForm = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [suppliersRes, productsRes, termsRes] = await Promise.all([
+      const [dealsRes, suppliersRes, productsRes, termsRes] = await Promise.all([
+        apiService.getDeals({ pageSize: 500 }),
         apiService.getSuppliers({ pageSize: 500 }),
         apiService.getProducts({ pageSize: 500, status: 'active' }),
         apiService.getTermsAndConditions({ pageSize: 500, status: 'active' }),
       ]);
+      if (dealsRes.success) setDeals(Array.isArray(dealsRes.data) ? dealsRes.data : []);
       if (suppliersRes.success) setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : []);
       if (productsRes.success) setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
       if (termsRes.success) setTermsAndConditions(Array.isArray(termsRes.data) ? termsRes.data : []);
@@ -79,6 +83,7 @@ const PurchaseOrderForm = () => {
       if (res.success) {
         const po = res.data;
         setInitialValues({
+          dealId: po.deal_id || null,
           supplierId: po.supplier_id || null,
           poDate: po.po_date || new Date().toISOString().split('T')[0],
           expectedDelivery: po.expected_delivery || '',
@@ -109,8 +114,12 @@ const PurchaseOrderForm = () => {
     if (!dealIdFromUrl) return;
     try {
       const res = await apiService.getDeal(dealIdFromUrl);
-      if (res.success && res.data?.supplier_id) {
-        setInitialValues((prev) => ({ ...prev, supplierId: res.data.supplier_id }));
+      if (res.success) {
+        setInitialValues((prev) => ({
+          ...prev,
+          dealId: dealIdFromUrl,
+          supplierId: res.data?.supplier_id || prev.supplierId,
+        }));
       }
     } catch (err) {
       console.error(err);
@@ -156,6 +165,7 @@ const PurchaseOrderForm = () => {
     try {
       setError('');
       const payload = {
+        dealId: values.dealId || null,
         supplierId: values.supplierId,
         poDate: values.poDate,
         expectedDelivery: values.expectedDelivery || null,
@@ -228,6 +238,21 @@ const PurchaseOrderForm = () => {
                   <Divider sx={{ mb: 3 }} />
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <Autocomplete
+                      fullWidth
+                      options={deals}
+                      getOptionLabel={(opt) => opt.title || opt.deal_number || ''}
+                      value={deals.find((d) => d.id === values.dealId) || null}
+                      onChange={(_, v) => {
+                        setFieldValue('dealId', v?.id || null);
+                        if (v?.supplier_id) setFieldValue('supplierId', v.supplier_id);
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Link to Deal (Optional)" placeholder="Select deal..." sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                      )}
+                      isOptionEqualToValue={(a, b) => a?.id === b?.id}
+                    />
+
                     <Autocomplete
                       fullWidth
                       options={suppliers}

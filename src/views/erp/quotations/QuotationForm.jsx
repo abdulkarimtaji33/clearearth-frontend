@@ -6,6 +6,7 @@ import {
   Typography,
   Button,
   TextField,
+  MenuItem,
   Alert,
   CircularProgress,
   Autocomplete,
@@ -216,16 +217,22 @@ const QuotationForm = () => {
                       select
                       label="Status (Required)"
                       name="status"
-                      value={values.status}
+                      value={values.status || 'draft'}
                       onChange={handleChange}
                       onBlur={handleBlur}
                       error={touched.status && Boolean(errors.status)}
                       helperText={touched.status && errors.status}
                       required
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
                     >
-                      {dropdowns.quotationStatus.map((s) => (
-                        <option key={s.id} value={s.value}>{s.display_name}</option>
+                      {(dropdowns.quotationStatus?.length ? dropdowns.quotationStatus : [
+                        { id: 1, value: 'draft', display_name: 'Draft' },
+                        { id: 2, value: 'sent', display_name: 'Sent' },
+                        { id: 3, value: 'approved', display_name: 'Approved' },
+                        { id: 4, value: 'rejected', display_name: 'Rejected' },
+                      ]).map((s) => (
+                        <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
                       ))}
                     </TextField>
 

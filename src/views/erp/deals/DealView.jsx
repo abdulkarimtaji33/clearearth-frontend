@@ -300,7 +300,7 @@ const DealView = () => {
             <Button
               variant="outlined"
               startIcon={<IconShoppingCart size={20} />}
-              onClick={() => navigate(deal.supplier_id ? `/erp/purchase-orders/create?supplierId=${deal.supplier_id}` : `/erp/purchase-orders/create?dealId=${id}`)}
+              onClick={() => navigate(`/erp/purchase-orders/create?dealId=${id}`)}
               sx={{ borderRadius: 2 }}
             >
               Create Purchase Order

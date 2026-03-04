@@ -130,6 +130,7 @@ const PurchaseOrderList = () => {
               <Table>
                 <TableHead>
                   <TableRow>
+                    <TableCell><strong>Deal</strong></TableCell>
                     <TableCell><strong>Vendor / Supplier</strong></TableCell>
                     <TableCell><strong>Date</strong></TableCell>
                     <TableCell><strong>Expected Delivery</strong></TableCell>
@@ -140,19 +141,20 @@ const PurchaseOrderList = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                         <CircularProgress size={32} />
                       </TableCell>
                     </TableRow>
                   ) : orders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4 }} color="text.secondary">
+                      <TableCell colSpan={6} align="center" sx={{ py: 4 }} color="text.secondary">
                         No purchase orders found
                       </TableCell>
                     </TableRow>
                   ) : (
                     orders.map((o) => (
                       <TableRow key={o.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/purchase-orders/edit/${o.id}`)}>
+                        <TableCell>{o.deal ? (o.deal.title || o.deal.deal_number) : '-'}</TableCell>
                         <TableCell>{o.supplier?.company_name || '-'}</TableCell>
                         <TableCell>{o.po_date || '-'}</TableCell>
                         <TableCell>{o.expected_delivery || '-'}</TableCell>

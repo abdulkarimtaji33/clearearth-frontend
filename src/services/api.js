@@ -275,6 +275,48 @@ class ApiService {
     return this.put(`/deals/${dealId}/inspection-report`, data);
   }
 
+  // Quotations
+  async getQuotations(params) {
+    return this.get('/quotations', params);
+  }
+
+  async getQuotation(id) {
+    return this.get(`/quotations/${id}`);
+  }
+
+  async createQuotation(data) {
+    return this.post('/quotations', data);
+  }
+
+  async updateQuotation(id, data) {
+    return this.put(`/quotations/${id}`, data);
+  }
+
+  async deleteQuotation(id) {
+    return this.delete(`/quotations/${id}`);
+  }
+
+  // Purchase Orders
+  async getPurchaseOrders(params) {
+    return this.get('/purchase-orders', params);
+  }
+
+  async getPurchaseOrder(id) {
+    return this.get(`/purchase-orders/${id}`);
+  }
+
+  async createPurchaseOrder(data) {
+    return this.post('/purchase-orders', data);
+  }
+
+  async updatePurchaseOrder(id, data) {
+    return this.put(`/purchase-orders/${id}`, data);
+  }
+
+  async deletePurchaseOrder(id) {
+    return this.delete(`/purchase-orders/${id}`);
+  }
+
   // Terms and Conditions
   async getTermsAndConditions(params) {
     return this.get('/terms', params);

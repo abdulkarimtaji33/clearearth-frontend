@@ -181,7 +181,7 @@ const DealForm = () => {
       if (contactsRes.success) setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : []);
       if (suppliersRes.success) setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : []);
       if (productsRes.success) setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
-      if (usersRes.success) setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+      if (usersRes.success) setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.items || []);
       if (termsRes.success) setTermsAndConditions(Array.isArray(termsRes.data) ? termsRes.data : []);
       if (materialTypesRes.success) setMaterialTypes(Array.isArray(materialTypesRes.data) ? materialTypesRes.data : []);
     } catch (err) {
@@ -1514,8 +1514,7 @@ const DealForm = () => {
                     onChange={(e) => setInspectionDetails({ ...inspectionDetails, safetyToolsRequired: e.target.checked })}
                   />
                 }
-                label="Safety tools required (Required)"
-                required
+                label="Safety tools required"
               />
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -1553,9 +1552,11 @@ const DealForm = () => {
                 value={users.find((u) => u.id === inspectionDetails.requestedBy) || null}
                 onChange={(_, val) => setInspectionDetails({ ...inspectionDetails, requestedBy: val?.id || null })}
                 renderInput={(params) => (
-                  <TextField {...params} label="Requested by (Required)" required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                  <TextField {...params} label="Requested by (Required)" placeholder="Select user..." required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                 )}
                 isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                noOptionsText="No users found"
+                ListboxProps={{ style: { maxHeight: '300px' } }}
               />
               <TextField
                 fullWidth

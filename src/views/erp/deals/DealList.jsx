@@ -187,16 +187,16 @@ const DealList = () => {
             <Typography variant="h3" fontWeight={700}>Deals</Typography>
             <Typography variant="body2" color="text.secondary" mt={0.5}>
               Manage all business deals and transactions
-            </Typography>
+          </Typography>
           </Box>
-          <Button
-            variant="contained"
+            <Button
+              variant="contained"
             startIcon={<IconPlus size={20} />}
-            onClick={() => navigate('/erp/deals/create')}
+              onClick={() => navigate('/erp/deals/create')}
             sx={{ borderRadius: 2, fontWeight: 600 }}
-          >
+            >
             Create Deal
-          </Button>
+            </Button>
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -395,11 +395,11 @@ const DealList = () => {
                 </Grid>
               </Box>
             </Collapse>
-          </Box>
+              </Box>
 
           <TableContainer component={Paper} elevation={0}>
-            <Table>
-              <TableHead>
+                <Table>
+                  <TableHead>
                 <TableRow sx={{ backgroundColor: 'primary.lighter' }}>
                   <TableCell sx={{ fontWeight: 700 }}>Deal #</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
@@ -408,9 +408,9 @@ const DealList = () => {
                   <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Payment</TableCell>
                   <TableCell align="center" sx={{ fontWeight: 700 }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
@@ -427,7 +427,7 @@ const DealList = () => {
                   </TableRow>
                 ) : (
                   deals.map((deal) => (
-                    <TableRow key={deal.id} hover>
+                      <TableRow key={deal.id} hover>
                       <TableCell>
                         <Typography variant="body2" fontWeight={600}>
                           {deal.deal_number}
@@ -444,22 +444,22 @@ const DealList = () => {
                       <TableCell>
                         <Typography variant="body2">{deal.company?.company_name || '-'}</Typography>
                       </TableCell>
-                      <TableCell>
+                        <TableCell>
                         <Typography variant="body2" fontWeight={600}>
                           {deal.currency} {Number(deal.total).toFixed(2)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" display="block">
                           Subtotal: {Number(deal.subtotal).toFixed(2)} + VAT: {Number(deal.vat_amount).toFixed(2)}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
+                        </TableCell>
+                        <TableCell>
+                          <Chip
                           label={deal.status?.replace('_', ' ')} 
-                          size="small" 
+                            size="small"
                           color={getStatusColor(deal.status)}
-                        />
-                      </TableCell>
-                      <TableCell>
+                          />
+                        </TableCell>
+                        <TableCell>
                         <Chip 
                           label={deal.payment_status?.replace('_', ' ')} 
                           size="small" 
@@ -468,9 +468,9 @@ const DealList = () => {
                         {deal.payment_status === 'partial' && (
                           <Typography variant="caption" display="block" color="text.secondary">
                             Paid: {Number(deal.paid_amount).toFixed(2)} / {Number(deal.total).toFixed(2)}
-                          </Typography>
+                            </Typography>
                         )}
-                      </TableCell>
+                        </TableCell>
                       <TableCell align="center">
                         <IconButton
                           size="small"
@@ -495,14 +495,14 @@ const DealList = () => {
                           title="Delete"
                         >
                           <IconTrash size={18} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
                   ))
                 )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  </TableBody>
+                </Table>
+              </TableContainer>
 
           {totalPages > 1 && (
             <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
@@ -512,7 +512,7 @@ const DealList = () => {
                 onChange={(e, value) => setPage(value)}
                 color="primary"
               />
-            </Box>
+          </Box>
           )}
         </Card>
       </Box>

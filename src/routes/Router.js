@@ -25,6 +25,10 @@ const DealForm = Loadable(lazy(() => import('../views/erp/deals/DealForm')));
 const DealView = Loadable(lazy(() => import('../views/erp/deals/DealView')));
 const TermsList = Loadable(lazy(() => import('../views/erp/terms/TermsList')));
 const TermsForm = Loadable(lazy(() => import('../views/erp/terms/TermsForm')));
+const QuotationList = Loadable(lazy(() => import('../views/erp/quotations/QuotationList')));
+const QuotationForm = Loadable(lazy(() => import('../views/erp/quotations/QuotationForm')));
+const PurchaseOrderList = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderList')));
+const PurchaseOrderForm = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderForm')));
 
 // authentication
 const Login = Loadable(lazy(() => import('../views/authentication/auth1/Login')));
@@ -69,6 +73,12 @@ const Router = createBrowserRouter([
       { path: '/erp/terms', element: <TermsList /> },
       { path: '/erp/terms/create', element: <TermsForm /> },
       { path: '/erp/terms/edit/:id', element: <TermsForm /> },
+      { path: '/erp/quotations', element: <QuotationList /> },
+      { path: '/erp/quotations/create', element: <QuotationForm /> },
+      { path: '/erp/quotations/edit/:id', element: <QuotationForm /> },
+      { path: '/erp/purchase-orders', element: <PurchaseOrderList /> },
+      { path: '/erp/purchase-orders/create', element: <PurchaseOrderForm /> },
+      { path: '/erp/purchase-orders/edit/:id', element: <PurchaseOrderForm /> },
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],
   },

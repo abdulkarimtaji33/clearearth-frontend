@@ -26,10 +26,14 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
 const validationSchema = Yup.object({
-  phone: Yup.string().required('Phone is required'),
-  email: Yup.string().email('Invalid email').required('Email is required'),
-  leadSource: Yup.string().required('Lead source is required'),
-  productServiceId: Yup.number().nullable().required('Product/Service is required'),
+  companyId: Yup.number().nullable().required('Company is required'),
+  contactId: Yup.number().nullable().required('Contact is required'),
+  leadSource: Yup.string().trim().required('Source is required'),
+  status: Yup.string().trim().required('Status is required'),
+  productServiceId: Yup.number().nullable().required('Item is required'),
+  email: Yup.string().email('Invalid email').nullable().transform((v) => v || null),
+  phone: Yup.string().nullable().transform((v) => v || null),
+  notes: Yup.string().trim().nullable(),
 });
 
 const LeadForm = () => {
@@ -72,8 +76,8 @@ const LeadForm = () => {
     email: '',
     phone: '',
     leadSource: '',
+    status: 'new',
     productServiceId: null,
-    estimatedValue: '',
     notes: '',
   });
 
@@ -130,8 +134,8 @@ const LeadForm = () => {
           email: lead.email || '',
           phone: lead.phone || '',
           leadSource: lead.source || '',
+          status: lead.status || 'new',
           productServiceId: lead.product_service_id || null,
-          estimatedValue: lead.estimated_value || '',
           notes: lead.notes || '',
         });
       }
@@ -223,12 +227,12 @@ const LeadForm = () => {
       const payload = {
         companyId: values.companyId,
         contactId: values.contactId,
-        email: values.email,
-        phone: values.phone,
+        email: values.email || undefined,
+        phone: values.phone || undefined,
         source: values.leadSource,
+        status: values.status,
         productServiceId: values.productServiceId,
-        estimatedValue: values.estimatedValue,
-        notes: values.notes,
+        notes: values.notes || undefined,
       };
       
       if (isEdit) {
@@ -311,7 +315,7 @@ const LeadForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => {
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue, setFieldTouched }) => {
             setFieldValueRef.current = setFieldValue;
             valuesRef.current = values;
             return (
@@ -338,11 +342,15 @@ const LeadForm = () => {
                           }
                           value={companies.find((c) => c.id === values.companyId) || null}
                           onChange={(_, val) => setFieldValue('companyId', val?.id || null)}
+                          onBlur={() => setFieldTouched('companyId', true)}
                           renderInput={(params) => (
                             <TextField
                               {...params}
                               label="Company"
-                              placeholder="Select or search company..."
+                              placeholder="Required - Select or search company..."
+                              error={touched.companyId && Boolean(errors.companyId)}
+                              helperText={touched.companyId ? errors.companyId : ' '}
+                              required
                               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
                           )}
@@ -400,11 +408,15 @@ const LeadForm = () => {
                           }
                           value={contacts.find((c) => c.id === values.contactId) || null}
                           onChange={(_, val) => setFieldValue('contactId', val?.id || null)}
+                          onBlur={() => setFieldTouched('contactId', true)}
                           renderInput={(params) => (
                             <TextField
                               {...params}
-                              label="Contact Person"
-                              placeholder="Select or search contact..."
+                              label="Contact"
+                              placeholder="Required - Select or search contact..."
+                              error={touched.contactId && Boolean(errors.contactId)}
+                              helperText={touched.contactId ? errors.contactId : ' '}
+                              required
                               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
                           )}
@@ -456,12 +468,12 @@ const LeadForm = () => {
                         label="Email"
                         name="email"
                         type="email"
-                        value={values.email}
+                        placeholder="Optional"
+                        value={values.email || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.email && Boolean(errors.email)}
-                        helperText={touched.email && errors.email}
-                        required
+                        helperText={touched.email ? errors.email : ' '}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
@@ -470,12 +482,12 @@ const LeadForm = () => {
                         fullWidth
                         label="Phone"
                         name="phone"
-                        value={values.phone}
+                        placeholder="Optional"
+                        value={values.phone || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.phone && Boolean(errors.phone)}
-                        helperText={touched.phone && errors.phone}
-                        required
+                        helperText={touched.phone ? errors.phone : ' '}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
@@ -499,13 +511,13 @@ const LeadForm = () => {
                       <TextField
                         fullWidth
                         select
-                        label="Lead Source"
+                        label="Source"
                         name="leadSource"
-                        value={values.leadSource}
+                        value={values.leadSource || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.leadSource && Boolean(errors.leadSource)}
-                        helperText={touched.leadSource && errors.leadSource}
+                        helperText={touched.leadSource ? errors.leadSource : ' '}
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         SelectProps={{
@@ -523,21 +535,50 @@ const LeadForm = () => {
                       </TextField>
                     </Grid>
                     <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Status"
+                        name="status"
+                        value={values.status || 'new'}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        error={touched.status && Boolean(errors.status)}
+                        helperText={touched.status ? errors.status : ' '}
+                        required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: {
+                            PaperProps: {
+                              style: { maxHeight: 250 }
+                            }
+                          }
+                        }}
+                      >
+                        <MenuItem value="new">New</MenuItem>
+                        <MenuItem value="contacted">Contacted</MenuItem>
+                        <MenuItem value="qualified">Qualified</MenuItem>
+                        <MenuItem value="disqualified">Disqualified</MenuItem>
+                        <MenuItem value="converted">Converted</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
                       <Autocomplete
                         fullWidth
                         options={products}
                         getOptionLabel={(opt) =>
-                          typeof opt === 'object' ? `${opt.name} - ${opt.category}` : ''
+                          typeof opt === 'object' ? `${opt.name}${opt.category ? ` - ${opt.category}` : ''}` : ''
                         }
                         value={products.find((p) => p.id === values.productServiceId) || null}
                         onChange={(_, val) => setFieldValue('productServiceId', val?.id || null)}
+                        onBlur={() => setFieldTouched('productServiceId', true)}
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Product/Service"
-                            placeholder="Select product or service..."
+                            label="Item"
+                            placeholder="Required - Select product or service..."
                             error={touched.productServiceId && Boolean(errors.productServiceId)}
-                            helperText={touched.productServiceId && errors.productServiceId}
+                            helperText={touched.productServiceId ? errors.productServiceId : ' '}
                             required
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           />
@@ -548,27 +589,15 @@ const LeadForm = () => {
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Estimated Value (AED)"
-                        name="estimatedValue"
-                        type="number"
-                        value={values.estimatedValue}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      />
-                    </Grid>
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
                         multiline
-                        rows={4}
+                        rows={3}
                         label="Notes"
                         name="notes"
-                        placeholder="Add any additional notes or comments..."
-                        value={values.notes}
+                        placeholder="Optional - Add any additional notes or comments..."
+                        value={values.notes || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}

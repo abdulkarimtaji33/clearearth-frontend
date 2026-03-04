@@ -21,10 +21,12 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
 const validationSchema = Yup.object({
-  name: Yup.string().required('Name is required'),
-  category: Yup.string().required('Category is required'),
-  unitOfMeasure: Yup.string().required('Unit of measure is required'),
+  name: Yup.string().trim().required('Product/Service name is required'),
+  category: Yup.string().trim().required('Category is required'),
+  description: Yup.string().trim().nullable(),
+  unitOfMeasure: Yup.string().trim().required('Unit of measure is required'),
   price: Yup.number().min(0, 'Price must be positive').required('Price is required'),
+  status: Yup.string().oneOf(['active', 'inactive']).required('Active status is required'),
 });
 
 const ProductForm = () => {
@@ -41,12 +43,10 @@ const ProductForm = () => {
 
   const [initialValues, setInitialValues] = useState({
     name: '',
-    type: 'product',
     category: '',
     description: '',
     unitOfMeasure: '',
     price: '',
-    currency: 'AED',
     status: 'active',
   });
 
@@ -78,12 +78,10 @@ const ProductForm = () => {
         const p = response.data;
         setInitialValues({
           name: p.name || '',
-          type: p.type || 'product',
           category: p.category || '',
           description: p.description || '',
           unitOfMeasure: p.unit_of_measure || '',
           price: p.price || '',
-          currency: p.currency || 'AED',
           status: p.status || 'active',
         });
       }
@@ -194,35 +192,20 @@ const ProductForm = () => {
                   <Divider sx={{ mb: 4 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={8}>
+                    <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
                         label="Product/Service Name"
                         name="name"
+                        placeholder="Required"
                         value={values.name}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.name && Boolean(errors.name)}
-                        helperText={touched.name && errors.name}
+                        helperText={touched.name ? errors.name : ' '}
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField
-                        fullWidth
-                        select
-                        label="Type"
-                        name="type"
-                        value={values.type}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        required
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      >
-                        <MenuItem value="product">Product</MenuItem>
-                        <MenuItem value="service">Service</MenuItem>
-                      </TextField>
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField
@@ -234,7 +217,7 @@ const ProductForm = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.category && Boolean(errors.category)}
-                        helperText={touched.category && errors.category}
+                        helperText={touched.category ? errors.category : ' '}
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         SelectProps={{
@@ -255,11 +238,11 @@ const ProductForm = () => {
                       <TextField
                         fullWidth
                         multiline
-                        rows={4}
+                        rows={3}
                         label="Description"
                         name="description"
-                        placeholder="Describe the product or service..."
-                        value={values.description}
+                        placeholder="Optional - describe the product or service..."
+                        value={values.description || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -290,7 +273,7 @@ const ProductForm = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.unitOfMeasure && Boolean(errors.unitOfMeasure)}
-                        helperText={touched.unitOfMeasure && errors.unitOfMeasure}
+                        helperText={touched.unitOfMeasure ? errors.unitOfMeasure : ' '}
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         SelectProps={{
@@ -317,7 +300,7 @@ const ProductForm = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.price && Boolean(errors.price)}
-                        helperText={touched.price && errors.price}
+                        helperText={touched.price ? errors.price : ' '}
                         required
                         inputProps={{ min: 0, step: 0.01 }}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -327,27 +310,14 @@ const ProductForm = () => {
                       <TextField
                         fullWidth
                         select
-                        label="Currency"
-                        name="currency"
-                        value={values.currency}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      >
-                        <MenuItem value="AED">AED</MenuItem>
-                        <MenuItem value="USD">USD</MenuItem>
-                        <MenuItem value="EUR">EUR</MenuItem>
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        select
-                        label="Status"
+                        label="Active"
                         name="status"
-                        value={values.status}
+                        value={values.status || 'active'}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        error={touched.status && Boolean(errors.status)}
+                        helperText={touched.status ? errors.status : ' '}
+                        required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       >
                         <MenuItem value="active">Active</MenuItem>

@@ -37,8 +37,15 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
 const validationSchema = Yup.object({
-  title: Yup.string().required('Title is required'),
-  dealDate: Yup.date().required('Deal date is required'),
+  leadId: Yup.number().nullable(),
+  dealType: Yup.string().trim().required('Deal type is required'),
+  currency: Yup.string().trim().required('Currency is required'),
+  status: Yup.string().trim().required('Status is required'),
+  dealDate: Yup.date().nullable().required('Date is required'),
+  supplierId: Yup.number().nullable(),
+  title: Yup.string().trim().required('Title is required'),
+  inspectionRequired: Yup.boolean().required('Inspection required is required'),
+  termsAndConditionsIds: Yup.array(),
 });
 
 const DealImageDropzone = ({ onDrop }) => {
@@ -428,6 +435,44 @@ const DealForm = () => {
         return;
       }
 
+      if (values.inspectionRequired) {
+        if (!values.companyId) {
+          setError('Company is required when inspection is required');
+          setSubmitting(false);
+          return;
+        }
+        if (!values.contactId) {
+          setError('Contact is required when inspection is required');
+          setSubmitting(false);
+          return;
+        }
+        if (!inspectionDetails.location?.trim()) {
+          setError('Location is required in inspection request details');
+          setSubmitting(false);
+          return;
+        }
+        if (!inspectionDetails.serviceType?.trim()) {
+          setError('Service Type is required in inspection request details');
+          setSubmitting(false);
+          return;
+        }
+        if (!inspectionDetails.materialTypeId) {
+          setError('Material Type is required in inspection request details');
+          setSubmitting(false);
+          return;
+        }
+        if (!inspectionDetails.quantity?.toString().trim()) {
+          setError('Quantity is required in inspection request details');
+          setSubmitting(false);
+          return;
+        }
+        if (!inspectionDetails.requestedBy) {
+          setError('Requested By is required in inspection request details');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       if (values.wdsRequired) {
         const required = ['refNo', 'date', 'companyName', 'licenseNo', 'wasteDescription', 'containerNo'];
         const missing = required.filter((f) => !wdsDetails[f]?.toString().trim());
@@ -515,7 +560,7 @@ const DealForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => (
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue, setFieldTouched }) => (
             <form onSubmit={formikSubmit}>
               {/* Basic Information */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
@@ -538,7 +583,7 @@ const DealForm = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.title && Boolean(errors.title)}
-                        helperText={touched.title && errors.title}
+                        helperText={touched.title ? errors.title : ' '}
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
@@ -551,7 +596,7 @@ const DealForm = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.dealDate && Boolean(errors.dealDate)}
-                        helperText={touched.dealDate && errors.dealDate}
+                        helperText={touched.dealDate ? errors.dealDate : ' '}
                         required
                         InputLabelProps={{ shrink: true }}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -634,11 +679,12 @@ const DealForm = () => {
                           getOptionLabel={(opt) => `${opt.lead_number || ''} - ${opt.email || ''}`}
                           value={leads.find((l) => l.id === values.leadId) || null}
                           onChange={(_, val) => setFieldValue('leadId', val?.id || null)}
+                          onBlur={() => setFieldTouched('leadId', true)}
                           renderInput={(params) => (
                             <TextField
                               {...params}
-                              label="Source Lead"
-                              placeholder="Select lead..."
+                              label="Lead"
+                              placeholder="Optional - Convert from lead..."
                               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
                           )}
@@ -772,9 +818,11 @@ const DealForm = () => {
                       select
                       label="Deal Type"
                       name="dealType"
-                      value={values.dealType}
+                      value={values.dealType || ''}
                       onChange={handleChange}
                       onBlur={handleBlur}
+                      error={touched.dealType && Boolean(errors.dealType)}
+                      helperText={touched.dealType ? errors.dealType : ' '}
                       required
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     >
@@ -1096,11 +1144,14 @@ const DealForm = () => {
                       <TextField
                         fullWidth
                         select
-                        label="Deal Status"
+                        label="Status"
                         name="status"
-                        value={values.status}
+                        value={values.status || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        error={touched.status && Boolean(errors.status)}
+                        helperText={touched.status ? errors.status : ' '}
+                        required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       >
                         {dropdowns.dealStatus.map((s) => (
@@ -1144,8 +1195,12 @@ const DealForm = () => {
                         select
                         label="Currency"
                         name="currency"
-                        value={values.currency}
+                        value={values.currency || 'AED'}
                         onChange={handleChange}
+                        onBlur={handleBlur}
+                        error={touched.currency && Boolean(errors.currency)}
+                        helperText={touched.currency ? errors.currency : ' '}
+                        required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       >
                         <MenuItem value="AED">AED</MenuItem>

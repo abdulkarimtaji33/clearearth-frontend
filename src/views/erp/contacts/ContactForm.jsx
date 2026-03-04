@@ -25,11 +25,13 @@ import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
+// Contacts: Name (Required), Company (Optional), Designation (Optional), Country/City/Address not in model
+// Phone (Required), Email (Optional)
 const validationSchema = Yup.object({
-  firstName: Yup.string().required('First name is required'),
-  lastName: Yup.string().required('Last name is required'),
-  email: Yup.string().email('Invalid email').nullable(),
-  phone: Yup.string().required('Phone is required'),
+  firstName: Yup.string().trim().required('First name is required'),
+  lastName: Yup.string().trim().required('Last name is required'),
+  phone: Yup.string().trim().required('Phone is required'),
+  email: Yup.string().email('Invalid email').nullable().transform((v) => v || null),
 });
 
 const ContactForm = () => {
@@ -270,11 +272,12 @@ const ContactForm = () => {
                         fullWidth
                         label="First Name"
                         name="firstName"
+                        placeholder="Required"
                         value={values.firstName}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.firstName && Boolean(errors.firstName)}
-                        helperText={touched.firstName && errors.firstName}
+                        helperText={touched.firstName ? errors.firstName : ' '}
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
@@ -284,11 +287,12 @@ const ContactForm = () => {
                         fullWidth
                         label="Last Name"
                         name="lastName"
+                        placeholder="Required"
                         value={values.lastName}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.lastName && Boolean(errors.lastName)}
-                        helperText={touched.lastName && errors.lastName}
+                        helperText={touched.lastName ? errors.lastName : ' '}
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
@@ -296,28 +300,14 @@ const ContactForm = () => {
                     <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
-                        select
-                        label="Contact Type"
-                        name="contactType"
-                        value={values.contactType || ''}
-                        onChange={handleChange}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      >
-                        <MenuItem value="">None</MenuItem>
-                        <MenuItem value="clients">Clients</MenuItem>
-                        <MenuItem value="vendors">Vendors</MenuItem>
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField
-                        fullWidth
                         label="Phone"
                         name="phone"
+                        placeholder="Required"
                         value={values.phone}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.phone && Boolean(errors.phone)}
-                        helperText={touched.phone && errors.phone}
+                        helperText={touched.phone ? errors.phone : ' '}
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
@@ -328,7 +318,7 @@ const ContactForm = () => {
                         select
                         label="Designation"
                         name="designation"
-                        value={values.designation}
+                        value={values.designation || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -347,18 +337,6 @@ const ContactForm = () => {
                       </TextField>
                     </Grid>
                     <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Department"
-                        name="department"
-                        placeholder="e.g. Sales, Finance, HR"
-                        value={values.department}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
                       <Box position="relative">
                         <Autocomplete
                           fullWidth
@@ -418,79 +396,18 @@ const ContactForm = () => {
                         </Box>
                       </Box>
                     </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-
-              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-                  <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
-                    Contact Information
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" mb={4}>
-                    Phone numbers and email addresses
-                  </Typography>
-                  <Divider sx={{ mb: 4 }} />
-                  
-                  <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Email Address"
+                        label="Email"
                         name="email"
                         type="email"
-                        value={values.email}
+                        placeholder="Optional"
+                        value={values.email || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.email && Boolean(errors.email)}
-                        helperText={touched.email && errors.email}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Mobile"
-                        name="mobile"
-                        value={values.mobile}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        select
-                        label="Status"
-                        name="status"
-                        value={values.status}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        SelectProps={{
-                          MenuProps: {
-                            PaperProps: {
-                              style: { maxHeight: 250 }
-                            }
-                          }
-                        }}
-                      >
-                        <MenuItem value="active">Active</MenuItem>
-                        <MenuItem value="inactive">Inactive</MenuItem>
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={4}
-                        label="Notes"
-                        name="notes"
-                        placeholder="Add any additional notes or comments..."
-                        value={values.notes}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
+                        helperText={touched.email ? errors.email : ' '}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>

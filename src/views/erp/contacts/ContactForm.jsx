@@ -267,7 +267,7 @@ const ContactForm = () => {
                   <Divider sx={{ mb: 4 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={3}>
                       <TextField
                         fullWidth
                         label="First Name"
@@ -282,22 +282,40 @@ const ContactForm = () => {
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={3}>
                       <TextField
                         fullWidth
                         label="Last Name"
                         name="lastName"
-                        placeholder="Required"
-                        value={values.lastName}
+                        placeholder="Optional"
+                        value={values.lastName || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.lastName && Boolean(errors.lastName)}
                         helperText={touched.lastName ? errors.lastName : ' '}
-                        required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Contact Type"
+                        name="contactType"
+                        value={values.contactType || ''}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: { PaperProps: { style: { maxHeight: 350 } } },
+                        }}
+                      >
+                        <MenuItem value="">None</MenuItem>
+                        <MenuItem value="clients">Client</MenuItem>
+                        <MenuItem value="vendors">Vendor</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={3}>
                       <TextField
                         fullWidth
                         label="Phone"

@@ -1448,7 +1448,7 @@ const DealForm = () => {
                 value={materialTypes.find((m) => m.id === inspectionDetails.materialTypeId) || null}
                 onChange={(_, val) => setInspectionDetails({ ...inspectionDetails, materialTypeId: val?.id || null })}
                 renderInput={(params) => (
-                  <TextField {...params} label="Material Type" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                  <TextField {...params} label="Material Type (Required)" required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                 )}
                 isOptionEqualToValue={(opt, val) => opt.id === val?.id}
               />
@@ -1486,9 +1486,10 @@ const DealForm = () => {
               <TextField
                 fullWidth
                 select
-                label="Service Type"
+                label="Service Type (Required)"
                 value={inspectionDetails.serviceType || ''}
                 onChange={(e) => setInspectionDetails({ ...inspectionDetails, serviceType: e.target.value })}
+                required
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               >
                 <MenuItem value="">—</MenuItem>
@@ -1499,10 +1500,11 @@ const DealForm = () => {
               </TextField>
               <TextField
                 fullWidth
-                label="Quantity"
+                label="Quantity (Required)"
                 type="number"
                 value={inspectionDetails.quantity}
                 onChange={(e) => setInspectionDetails({ ...inspectionDetails, quantity: e.target.value })}
+                required
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
               <FormControlLabel
@@ -1512,7 +1514,8 @@ const DealForm = () => {
                     onChange={(e) => setInspectionDetails({ ...inspectionDetails, safetyToolsRequired: e.target.checked })}
                   />
                 }
-                label="Safety tools required"
+                label="Safety tools required (Required)"
+                required
               />
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -1550,7 +1553,7 @@ const DealForm = () => {
                 value={users.find((u) => u.id === inspectionDetails.requestedBy) || null}
                 onChange={(_, val) => setInspectionDetails({ ...inspectionDetails, requestedBy: val?.id || null })}
                 renderInput={(params) => (
-                  <TextField {...params} label="Requested by" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                  <TextField {...params} label="Requested by (Required)" required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                 )}
                 isOptionEqualToValue={(opt, val) => opt.id === val?.id}
               />

@@ -81,6 +81,7 @@ const CompanyForm = () => {
 
   const [initialValues, setInitialValues] = useState({
     companyName: '',
+    type: 'organization',
     primaryContactId: null,
     industryType: '',
     website: '',
@@ -138,6 +139,7 @@ const CompanyForm = () => {
         setInitialValues({
           companyName: c.company_name || '',
           primaryContactId: c.primary_contact_id || null,
+          type: c.type || 'organization',
           industryType: c.industry_type || '',
           website: c.website || '',
           email: c.email || '',
@@ -352,6 +354,24 @@ const CompanyForm = () => {
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Type"
+                        name="type"
+                        value={values.type || 'organization'}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: { PaperProps: { style: { maxHeight: 350 } } },
+                        }}
+                      >
+                        <MenuItem value="individual">Individual</MenuItem>
+                        <MenuItem value="organization">Organization</MenuItem>
+                      </TextField>
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <TextField

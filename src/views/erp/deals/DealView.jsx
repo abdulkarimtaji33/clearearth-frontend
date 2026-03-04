@@ -110,6 +110,7 @@ const DealView = () => {
   const [reportLightboxOpen, setReportLightboxOpen] = useState(false);
   const [reportLightboxIndex, setReportLightboxIndex] = useState(0);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportFormErrors, setReportFormErrors] = useState({});
   const [reportSaving, setReportSaving] = useState(false);
   const [users, setUsers] = useState([]);
   const [reportForm, setReportForm] = useState({
@@ -158,6 +159,8 @@ const DealView = () => {
   }, []);
 
   const openReportDialog = () => {
+    setReportFormErrors({});
+    setError('');
     if (deal?.inspectionReport) {
       const r = deal.inspectionReport;
       const images = Array.isArray(r.images) ? r.images : (typeof r.images === 'string' ? JSON.parse(r.images || '[]') : []);
@@ -192,7 +195,19 @@ const DealView = () => {
   };
 
   const saveReport = async () => {
+    const errs = {};
+    if (!reportForm.inspectionDatetime) errs.inspectionDatetime = 'Inspection date and time is required';
+    if (reportForm.approximateWeight === '' || reportForm.approximateWeight == null) errs.approximateWeight = 'Approximate weight is required';
+    if (!reportForm.cargoType?.trim()) errs.cargoType = 'Cargo type is required';
+    if (!reportForm.transportationArrangement?.trim()) errs.transportationArrangement = 'Transportation arrangement is required';
+    if (reportForm.approximateValue === '' || reportForm.approximateValue == null) errs.approximateValue = 'Approximate value is required';
+    if (!reportForm.inspectorId) errs.inspectorId = "Inspector's name is required";
+    if (!reportForm.approvedById) errs.approvedById = 'Approved by is required';
+    if (!reportForm.images?.length) errs.images = 'At least one image is required';
+    setReportFormErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     try {
+      setReportFormErrors({});
       setReportSaving(true);
       await apiService.saveInspectionReport(id, {
         inspectionDatetime: reportForm.inspectionDatetime?.toISOString?.() || null,
@@ -705,20 +720,36 @@ const DealView = () => {
         <Dialog open={reportDialogOpen} onClose={() => setReportDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Inspection Report</DialogTitle>
           <DialogContent>
+            {Object.keys(reportFormErrors).length > 0 && (
+              <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                {Object.values(reportFormErrors)[0]}
+              </Alert>
+            )}
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
                 <DateTimePicker
-                  label="Inspection Date & Time"
+                  label="Inspection Date & Time (Required)"
                   value={reportForm.inspectionDatetime}
                   onChange={(v) => setReportForm((f) => ({ ...f, inspectionDatetime: v }))}
-                  slotProps={{ textField: { fullWidth: true, sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      required: true,
+                      error: Boolean(reportFormErrors.inspectionDatetime),
+                      helperText: reportFormErrors.inspectionDatetime,
+                      sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                    },
+                  }}
                 />
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
                   <TextField
-                    label="Approximate Weight"
+                    label="Approximate Weight (Required)"
                     type="number"
                     value={reportForm.approximateWeight}
                     onChange={(e) => setReportForm((f) => ({ ...f, approximateWeight: e.target.value }))}
+                    required
+                    error={Boolean(reportFormErrors.approximateWeight)}
+                    helperText={reportFormErrors.approximateWeight}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
                   <TextField
@@ -736,9 +767,12 @@ const DealView = () => {
                 <TextField
                   select
                   fullWidth
-                  label="Cargo Type"
+                  label="Cargo Type (Required)"
                   value={reportForm.cargoType}
                   onChange={(e) => setReportForm((f) => ({ ...f, cargoType: e.target.value }))}
+                  required
+                  error={Boolean(reportFormErrors.cargoType)}
+                  helperText={reportFormErrors.cargoType}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 >
                   <MenuItem value="">—</MenuItem>
@@ -749,9 +783,12 @@ const DealView = () => {
                 <TextField
                   select
                   fullWidth
-                  label="Transportation Arrangement"
+                  label="Transportation Arrangement (Required)"
                   value={reportForm.transportationArrangement}
                   onChange={(e) => setReportForm((f) => ({ ...f, transportationArrangement: e.target.value }))}
+                  required
+                  error={Boolean(reportFormErrors.transportationArrangement)}
+                  helperText={reportFormErrors.transportationArrangement}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 >
                   <MenuItem value="">—</MenuItem>
@@ -764,14 +801,20 @@ const DealView = () => {
                 </TextField>
                 <TextField
                   fullWidth
-                  label="Approximate Value"
+                  label="Approximate Value (Required)"
                   type="number"
                   value={reportForm.approximateValue}
                   onChange={(e) => setReportForm((f) => ({ ...f, approximateValue: e.target.value }))}
+                  required
+                  error={Boolean(reportFormErrors.approximateValue)}
+                  helperText={reportFormErrors.approximateValue}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
                 <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Images</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Images (Required) - at least one</Typography>
+                  {reportFormErrors.images && (
+                    <Typography variant="caption" color="error" sx={{ display: 'block', mb: 1 }}>{reportFormErrors.images}</Typography>
+                  )}
                   <ReportImageDropzone
                     onDrop={async (files) => {
                       for (const file of files) {
@@ -811,14 +854,32 @@ const DealView = () => {
                   getOptionLabel={(o) => `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email || ''}
                   value={users.find((u) => u.id === reportForm.inspectorId) || null}
                   onChange={(_, v) => setReportForm((f) => ({ ...f, inspectorId: v?.id || null }))}
-                  renderInput={(params) => <TextField {...params} label="Inspector Name" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Inspector's Name (Required)"
+                      required
+                      error={Boolean(reportFormErrors.inspectorId)}
+                      helperText={reportFormErrors.inspectorId}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  )}
                 />
                 <Autocomplete
                   options={users}
                   getOptionLabel={(o) => `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email || ''}
                   value={users.find((u) => u.id === reportForm.approvedById) || null}
                   onChange={(_, v) => setReportForm((f) => ({ ...f, approvedById: v?.id || null }))}
-                  renderInput={(params) => <TextField {...params} label="Approved By" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Approved By (Required)"
+                      required
+                      error={Boolean(reportFormErrors.approvedById)}
+                      helperText={reportFormErrors.approvedById}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  )}
                 />
                 <TextField
                   fullWidth

@@ -88,11 +88,28 @@ const QuotationForm = () => {
     }
   }, [id]);
 
+  const fetchDealForPreFill = useCallback(async (dealId, onAmount) => {
+    if (!dealId) return;
+    try {
+      const res = await apiService.getDeal(dealId);
+      if (res.success && res.data) {
+        const total = res.data.total != null ? Number(res.data.total).toFixed(2) : '';
+        setInitialValues((prev) => ({ ...prev, dealId, quotationAmount: total || prev.quotationAmount }));
+        if (onAmount && total) onAmount(total);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
     if (isEdit) fetchQuotation();
-    else if (dealIdFromUrl) setInitialValues((prev) => ({ ...prev, dealId: dealIdFromUrl }));
-  }, [fetchData, isEdit, fetchQuotation, dealIdFromUrl]);
+    else if (dealIdFromUrl) {
+      setInitialValues((prev) => ({ ...prev, dealId: dealIdFromUrl }));
+      fetchDealForPreFill(dealIdFromUrl);
+    }
+  }, [fetchData, isEdit, fetchQuotation, dealIdFromUrl, fetchDealForPreFill]);
 
   const handleSubmit = async (values) => {
     try {
@@ -162,7 +179,10 @@ const QuotationForm = () => {
                       options={deals}
                       getOptionLabel={(opt) => opt.title || opt.deal_number || ''}
                       value={deals.find((d) => d.id === values.dealId) || null}
-                      onChange={(_, v) => setFieldValue('dealId', v?.id || null)}
+                      onChange={(_, v) => {
+                        setFieldValue('dealId', v?.id || null);
+                        if (v?.id) fetchDealForPreFill(v.id, (amount) => setFieldValue('quotationAmount', amount));
+                      }}
                       renderInput={(params) => (
                         <TextField {...params} label="Deal Name (Required)" required error={touched.dealId && Boolean(errors.dealId)} helperText={touched.dealId && errors.dealId} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                       )}

@@ -3,6 +3,7 @@ import Menuitems from './MenuItems';
 import { useLocation } from 'react-router';
 import { Box, List, useMediaQuery } from '@mui/material';
 import { CustomizerContext } from 'src/context/CustomizerContext';
+import { useAuth } from 'src/context/AuthContext';
 
 import NavItem from './NavItem';
 import NavCollapse from './NavCollapse';
@@ -13,16 +14,27 @@ const SidebarItems = () => {
   const pathDirect = pathname;
   const pathWithoutLastPart = pathname.slice(0, pathname.lastIndexOf('/'));
   const { isSidebarHover, isCollapse, isMobileSidebar, setIsMobileSidebar } = useContext(CustomizerContext);
+  const { hasPermission } = useAuth();
 
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up('lg'));
   const hideMenu = lgUp ? isCollapse == "mini-sidebar" && !isSidebarHover : '';
 
-
+  const filteredItems = Menuitems.filter((item, index) => {
+    if (item.permission) return hasPermission(item.permission);
+    if (item.subheader) {
+      const hasVisibleSibling = Menuitems.slice(index + 1).some((next) => {
+        if (next.subheader) return false;
+        return !next.permission || hasPermission(next.permission);
+      });
+      return hasVisibleSibling;
+    }
+    return true;
+  });
 
   return (
     <Box sx={{ px: 3 }}>
       <List sx={{ pt: 0 }} className="sidebarNav">
-        {Menuitems.map((item, index) => {
+        {filteredItems.map((item, index) => {
           // {/********SubHeader**********/}
           if (item.subheader) {
             return <NavGroup item={item} hideMenu={hideMenu} key={item.subheader} />;

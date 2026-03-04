@@ -29,6 +29,12 @@ const QuotationList = Loadable(lazy(() => import('../views/erp/quotations/Quotat
 const QuotationForm = Loadable(lazy(() => import('../views/erp/quotations/QuotationForm')));
 const PurchaseOrderList = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderList')));
 const PurchaseOrderForm = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderForm')));
+const RoleList = Loadable(lazy(() => import('../views/erp/roles/RoleList')));
+const RoleForm = Loadable(lazy(() => import('../views/erp/roles/RoleForm')));
+const UserList = Loadable(lazy(() => import('../views/erp/users/UserList')));
+const UserForm = Loadable(lazy(() => import('../views/erp/users/UserForm')));
+const InspectionRequestList = Loadable(lazy(() => import('../views/erp/inspection-requests/InspectionRequestList')));
+const InspectionRequestView = Loadable(lazy(() => import('../views/erp/inspection-requests/InspectionRequestView')));
 
 // authentication
 const Login = Loadable(lazy(() => import('../views/authentication/auth1/Login')));
@@ -79,6 +85,14 @@ const Router = createBrowserRouter([
       { path: '/erp/purchase-orders', element: <PurchaseOrderList /> },
       { path: '/erp/purchase-orders/create', element: <PurchaseOrderForm /> },
       { path: '/erp/purchase-orders/edit/:id', element: <PurchaseOrderForm /> },
+      { path: '/erp/roles', element: <RoleList /> },
+      { path: '/erp/roles/create', element: <RoleForm /> },
+      { path: '/erp/roles/edit/:id', element: <RoleForm /> },
+      { path: '/erp/users', element: <UserList /> },
+      { path: '/erp/users/create', element: <UserForm /> },
+      { path: '/erp/users/edit/:id', element: <UserForm /> },
+      { path: '/erp/inspection-requests', element: <InspectionRequestList /> },
+      { path: '/erp/inspection-requests/:id', element: <InspectionRequestView /> },
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],
   },

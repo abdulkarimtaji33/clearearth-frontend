@@ -275,6 +275,15 @@ class ApiService {
     return this.put(`/deals/${dealId}/inspection-report`, data);
   }
 
+  // Inspection Requests
+  async getInspectionRequests(params) {
+    return this.get('/inspection-requests', params);
+  }
+
+  async getInspectionRequest(id) {
+    return this.get(`/inspection-requests/${id}`);
+  }
+
   // Quotations
   async getQuotations(params) {
     return this.get('/quotations', params);
@@ -426,6 +435,14 @@ class ApiService {
 
   async updateRole(id, data) {
     return this.put(`/roles/${id}`, data);
+  }
+
+  async assignRolePermissions(roleId, permissionIds) {
+    return this.post(`/roles/${roleId}/permissions`, { permissions: permissionIds });
+  }
+
+  async getAllPermissions() {
+    return this.get('/roles/permissions/all');
   }
 
   async deleteRole(id) {

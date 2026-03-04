@@ -110,28 +110,45 @@ const PurchaseOrderForm = () => {
     }
   }, [id]);
 
-  const fetchDealForSupplier = useCallback(async () => {
-    if (!dealIdFromUrl) return;
+  const applyDealPreFill = useCallback((deal) => {
+    if (!deal) return;
+    setInitialValues((prev) => ({
+      ...prev,
+      dealId: deal.id,
+      supplierId: deal.supplier_id || prev.supplierId,
+      termsAndConditionsIds: (deal.termsList && deal.termsList.length > 0)
+        ? deal.termsList.map((t) => t.id)
+        : (deal.termsAndConditions?.id ? [deal.termsAndConditions.id] : []),
+    }));
+    if (deal.items && deal.items.length > 0) {
+      setItems(
+        deal.items.map((it) => ({
+          productServiceId: it.product_service_id || null,
+          itemDescription: it.notes || '',
+          quantity: String(it.quantity ?? ''),
+          price: String(it.unit_price ?? ''),
+          total: String(it.line_total ?? ''),
+        }))
+      );
+    }
+  }, []);
+
+  const fetchDealForPreFill = useCallback(async (dealId) => {
+    if (!dealId) return;
     try {
-      const res = await apiService.getDeal(dealIdFromUrl);
-      if (res.success) {
-        setInitialValues((prev) => ({
-          ...prev,
-          dealId: dealIdFromUrl,
-          supplierId: res.data?.supplier_id || prev.supplierId,
-        }));
-      }
+      const res = await apiService.getDeal(dealId);
+      if (res.success && res.data) applyDealPreFill(res.data);
     } catch (err) {
       console.error(err);
     }
-  }, [dealIdFromUrl]);
+  }, [applyDealPreFill]);
 
   useEffect(() => {
     fetchData();
     if (isEdit) fetchPO();
     else if (supplierIdFromUrl) setInitialValues((prev) => ({ ...prev, supplierId: supplierIdFromUrl }));
-    else if (dealIdFromUrl) fetchDealForSupplier();
-  }, [fetchData, isEdit, fetchPO, supplierIdFromUrl, dealIdFromUrl, fetchDealForSupplier]);
+    else if (dealIdFromUrl) fetchDealForPreFill(dealIdFromUrl);
+  }, [fetchData, isEdit, fetchPO, supplierIdFromUrl, dealIdFromUrl, fetchDealForPreFill]);
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
@@ -245,10 +262,10 @@ const PurchaseOrderForm = () => {
                       value={deals.find((d) => d.id === values.dealId) || null}
                       onChange={(_, v) => {
                         setFieldValue('dealId', v?.id || null);
-                        if (v?.supplier_id) setFieldValue('supplierId', v.supplier_id);
+                        if (v?.id) fetchDealForPreFill(v.id);
                       }}
                       renderInput={(params) => (
-                        <TextField {...params} label="Link to Deal (Optional)" placeholder="Select deal..." sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                        <TextField {...params} label="Link to Deal (Optional)" placeholder="Select deal to copy items & terms..." sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                       )}
                       isOptionEqualToValue={(a, b) => a?.id === b?.id}
                     />

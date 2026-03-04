@@ -126,6 +126,9 @@ const DealView = () => {
     notes: '',
   });
 
+  const [relatedQuotations, setRelatedQuotations] = useState([]);
+  const [relatedPOs, setRelatedPOs] = useState([]);
+
   const fetchDeal = useCallback(async () => {
     if (!id) return;
     try {
@@ -141,10 +144,28 @@ const DealView = () => {
     }
   }, [id]);
 
+  const fetchRelatedDocs = useCallback(async () => {
+    if (!id) return;
+    try {
+      const [quotRes, poRes] = await Promise.all([
+        apiService.getQuotations({ dealId: id, pageSize: 50 }),
+        apiService.getPurchaseOrders({ dealId: id, pageSize: 50 }),
+      ]);
+      if (quotRes.success) setRelatedQuotations(Array.isArray(quotRes.data) ? quotRes.data : []);
+      if (poRes.success) setRelatedPOs(Array.isArray(poRes.data) ? poRes.data : []);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [id]);
+
   useEffect(() => {
     if (id) fetchDeal();
     else setLoading(false);
   }, [id, fetchDeal]);
+
+  useEffect(() => {
+    if (id && deal) fetchRelatedDocs();
+  }, [id, deal, fetchRelatedDocs]);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -590,6 +611,85 @@ const DealView = () => {
                 } />
               </Grid>
             </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Related Quotations & Purchase Orders */}
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+            <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
+              Related Quotations & Purchase Orders
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mb={3}>
+              Quotations and purchase orders linked to this deal
+            </Typography>
+            <Divider sx={{ mb: 3 }} />
+
+            {relatedQuotations.length > 0 ? (
+                <Box sx={{ mb: 4 }}>
+                  <Typography variant="subtitle1" fontWeight={600} mb={2}>Quotations</Typography>
+                  <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                          <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Amount</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Prepared By</TableCell>
+                          <TableCell align="right">Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {relatedQuotations.map((q) => (
+                          <TableRow key={q.id} hover>
+                            <TableCell>{q.quotation_date ? new Date(q.quotation_date).toLocaleDateString() : '-'}</TableCell>
+                            <TableCell>{q.currency || 'AED'} {Number(q.quotation_amount || 0).toFixed(2)}</TableCell>
+                            <TableCell><Chip label={q.status || '-'} size="small" variant="outlined" /></TableCell>
+                            <TableCell>{q.preparedByUser ? `${q.preparedByUser.first_name} ${q.preparedByUser.last_name}` : '-'}</TableCell>
+                            <TableCell align="right">
+                              <Button size="small" onClick={() => navigate(`/erp/quotations/edit/${q.id}`)}>Edit</Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>No quotations linked to this deal. Use &quot;Create Quotation&quot; above.</Typography>
+            )}
+
+            {relatedPOs.length > 0 ? (
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={600} mb={2}>Purchase Orders</Typography>
+                  <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                          <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Vendor</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Expected Delivery</TableCell>
+                          <TableCell align="right">Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {relatedPOs.map((po) => (
+                          <TableRow key={po.id} hover>
+                            <TableCell>{po.po_date ? new Date(po.po_date).toLocaleDateString() : '-'}</TableCell>
+                            <TableCell>{po.supplier?.company_name || '-'}</TableCell>
+                            <TableCell>{po.expected_delivery ? new Date(po.expected_delivery).toLocaleDateString() : '-'}</TableCell>
+                            <TableCell align="right">
+                              <Button size="small" onClick={() => navigate(`/erp/purchase-orders/edit/${po.id}`)}>Edit</Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>No purchase orders linked to this deal. Use &quot;Create Purchase Order&quot; above.</Typography>
+            )}
           </CardContent>
         </Card>
 

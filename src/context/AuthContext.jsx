@@ -86,19 +86,22 @@ export const AuthProvider = ({ children }) => {
 
   const hasPermission = (permission) => {
     if (!user) return false;
-    if (user.role === 'super_admin') return true;
+    const roleName = user.role?.name ?? user.role;
+    if (roleName === 'super_admin') return true;
     return permissions.includes(permission);
   };
 
   const hasAnyPermission = (permissionList) => {
     if (!user) return false;
-    if (user.role === 'super_admin') return true;
+    const roleName = user.role?.name ?? user.role;
+    if (roleName === 'super_admin') return true;
     return permissionList.some((permission) => permissions.includes(permission));
   };
 
   const hasRole = (role) => {
     if (!user) return false;
-    return user.role === role;
+    const roleName = user.role?.name ?? user.role;
+    return roleName === role;
   };
 
   const value = {

@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -30,7 +30,9 @@ const validationSchema = Yup.object({
 
 const QuotationForm = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const dealIdFromUrl = searchParams.get('dealId') ? parseInt(searchParams.get('dealId'), 10) : null;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -38,7 +40,7 @@ const QuotationForm = () => {
   const [users, setUsers] = useState([]);
   const [dropdowns, setDropdowns] = useState({ quotationStatus: [] });
   const [initialValues, setInitialValues] = useState({
-    dealId: null,
+    dealId: dealIdFromUrl || null,
     preparedBy: null,
     quotationDate: new Date().toISOString().split('T')[0],
     quotationAmount: '',
@@ -88,7 +90,8 @@ const QuotationForm = () => {
   useEffect(() => {
     fetchData();
     if (isEdit) fetchQuotation();
-  }, [fetchData, isEdit, fetchQuotation]);
+    else if (dealIdFromUrl) setInitialValues((prev) => ({ ...prev, dealId: dealIdFromUrl }));
+  }, [fetchData, isEdit, fetchQuotation, dealIdFromUrl]);
 
   const handleSubmit = async (values) => {
     try {

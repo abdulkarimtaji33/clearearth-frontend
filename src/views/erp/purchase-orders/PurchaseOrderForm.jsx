@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -37,7 +37,10 @@ const initialItem = () => ({
 
 const PurchaseOrderForm = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const supplierIdFromUrl = searchParams.get('supplierId') ? parseInt(searchParams.get('supplierId'), 10) : null;
+  const dealIdFromUrl = searchParams.get('dealId') ? parseInt(searchParams.get('dealId'), 10) : null;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -46,7 +49,7 @@ const PurchaseOrderForm = () => {
   const [termsAndConditions, setTermsAndConditions] = useState([]);
   const [items, setItems] = useState([initialItem()]);
   const [initialValues, setInitialValues] = useState({
-    supplierId: null,
+    supplierId: supplierIdFromUrl || null,
     poDate: new Date().toISOString().split('T')[0],
     expectedDelivery: '',
     termsAndConditionsIds: [],
@@ -102,10 +105,24 @@ const PurchaseOrderForm = () => {
     }
   }, [id]);
 
+  const fetchDealForSupplier = useCallback(async () => {
+    if (!dealIdFromUrl) return;
+    try {
+      const res = await apiService.getDeal(dealIdFromUrl);
+      if (res.success && res.data?.supplier_id) {
+        setInitialValues((prev) => ({ ...prev, supplierId: res.data.supplier_id }));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [dealIdFromUrl]);
+
   useEffect(() => {
     fetchData();
     if (isEdit) fetchPO();
-  }, [fetchData, isEdit, fetchPO]);
+    else if (supplierIdFromUrl) setInitialValues((prev) => ({ ...prev, supplierId: supplierIdFromUrl }));
+    else if (dealIdFromUrl) fetchDealForSupplier();
+  }, [fetchData, isEdit, fetchPO, supplierIdFromUrl, dealIdFromUrl, fetchDealForSupplier]);
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
@@ -203,7 +220,7 @@ const PurchaseOrderForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, handleChange, handleBlur, handleSubmit, setFieldValue }) => (
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit, setFieldValue }) => (
             <form onSubmit={handleSubmit}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>

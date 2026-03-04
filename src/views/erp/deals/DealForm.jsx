@@ -32,7 +32,7 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
 import { useDropzone } from 'react-dropzone';
-import { IconArrowLeft, IconPlus, IconTrash, IconPhoto } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconTrash, IconPhoto, IconReceipt, IconShoppingCart } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -534,7 +534,7 @@ const DealForm = () => {
   return (
     <PageContainer title={isEdit ? 'Edit Deal' : 'Create Deal'} description="Manage deal details">
       <Box sx={{ maxWidth: 'min(5000px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
-        <Stack direction="row" alignItems="center" spacing={2} mb={4}>
+        <Stack direction="row" alignItems="center" spacing={2} mb={4} flexWrap="wrap">
           <Button
             variant="outlined"
             startIcon={<IconArrowLeft size={20} />}
@@ -543,7 +543,7 @@ const DealForm = () => {
           >
             Back
           </Button>
-          <Box>
+          <Box sx={{ flex: 1 }}>
             <Typography variant="h3" fontWeight={700}>
               {isEdit ? 'Edit Deal' : 'Create New Deal'}
             </Typography>
@@ -551,6 +551,28 @@ const DealForm = () => {
               {isEdit ? 'Update deal information' : 'Create a new business deal'}
             </Typography>
           </Box>
+          {isEdit && (
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<IconReceipt size={18} />}
+                onClick={() => navigate(`/erp/quotations/create?dealId=${id}`)}
+                sx={{ borderRadius: 2 }}
+              >
+                Create Quotation
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<IconShoppingCart size={18} />}
+                onClick={() => navigate(`/erp/purchase-orders/create?dealId=${id}`)}
+                sx={{ borderRadius: 2 }}
+              >
+                Create PO
+              </Button>
+            </Stack>
+          )}
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}

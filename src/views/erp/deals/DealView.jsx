@@ -33,7 +33,7 @@ import dayjs from 'dayjs';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate, useParams } from 'react-router';
 import FsLightbox from 'fslightbox-react';
-import { IconArrowLeft, IconEdit, IconDownload, IconPlus, IconPhoto } from '@tabler/icons-react';
+import { IconArrowLeft, IconEdit, IconDownload, IconPlus, IconPhoto, IconReceipt, IconShoppingCart } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -288,14 +288,32 @@ const DealView = () => {
               </Typography>
             </Box>
           </Stack>
-          <Button
-            variant="contained"
-            startIcon={<IconEdit size={20} />}
-            onClick={() => navigate(`/erp/deals/edit/${id}`)}
-            sx={{ borderRadius: 2, fontWeight: 600 }}
-          >
-            Edit Deal
-          </Button>
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="outlined"
+              startIcon={<IconReceipt size={20} />}
+              onClick={() => navigate(`/erp/quotations/create?dealId=${id}`)}
+              sx={{ borderRadius: 2 }}
+            >
+              Create Quotation
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<IconShoppingCart size={20} />}
+              onClick={() => navigate(deal.supplier_id ? `/erp/purchase-orders/create?supplierId=${deal.supplier_id}` : `/erp/purchase-orders/create?dealId=${id}`)}
+              sx={{ borderRadius: 2 }}
+            >
+              Create Purchase Order
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<IconEdit size={20} />}
+              onClick={() => navigate(`/erp/deals/edit/${id}`)}
+              sx={{ borderRadius: 2, fontWeight: 600 }}
+            >
+              Edit Deal
+            </Button>
+          </Stack>
         </Stack>
 
         {/* Status Overview */}

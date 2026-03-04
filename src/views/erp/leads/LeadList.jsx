@@ -44,7 +44,7 @@ import {
   IconFilter,
   IconChevronDown,
   IconChevronUp,
-  IconXCircle,
+  IconCircleOff,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
@@ -529,7 +529,7 @@ const LeadList = () => {
           )}
           {selectedLead?.status !== 'converted' && selectedLead?.status !== 'disqualified' && (
             <MenuItem onClick={handleDisqualifyClick}>
-              <IconXCircle size={18} style={{ marginRight: 8 }} />
+              <IconCircleOff size={18} style={{ marginRight: 8 }} />
               Disqualify
             </MenuItem>
           )}

@@ -37,7 +37,9 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
 const validationSchema = Yup.object({
-  leadId: Yup.number().nullable(),
+  leadId: Yup.number().nullable().required('Lead is required'),
+  companyId: Yup.number().nullable().required('Company is required'),
+  contactId: Yup.number().nullable().required('Contact person is required'),
   dealType: Yup.string().trim().required('Deal type is required'),
   currency: Yup.string().trim().required('Currency is required'),
   status: Yup.string().trim().required('Status is required'),
@@ -423,7 +425,7 @@ const DealForm = () => {
       setError('');
       
       if (lineItems.length === 0) {
-        setError('Please add at least one product/service');
+        setError('At least one product/service is required');
         setSubmitting(false);
         return;
       }
@@ -684,7 +686,10 @@ const DealForm = () => {
                             <TextField
                               {...params}
                               label="Lead"
-                              placeholder="Optional - Convert from lead..."
+                              placeholder="Required - Select lead..."
+                              error={touched.leadId && Boolean(errors.leadId)}
+                              helperText={touched.leadId ? errors.leadId : ' '}
+                              required
                               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
                           )}
@@ -700,11 +705,15 @@ const DealForm = () => {
                           getOptionLabel={(opt) => opt.company_name || ''}
                           value={companies.find((c) => c.id === values.companyId) || null}
                           onChange={(_, val) => setFieldValue('companyId', val?.id || null)}
+                          onBlur={() => setFieldTouched('companyId', true)}
                           renderInput={(params) => (
                             <TextField
                               {...params}
-                              label="Company (Client)"
-                              placeholder="Select company..."
+                              label="Company"
+                              placeholder="Required - Select company..."
+                              error={touched.companyId && Boolean(errors.companyId)}
+                              helperText={touched.companyId ? errors.companyId : ' '}
+                              required
                               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
                           )}
@@ -722,11 +731,15 @@ const DealForm = () => {
                           getOptionLabel={(opt) => `${opt.first_name} ${opt.last_name} ${opt.email ? `(${opt.email})` : ''}`}
                           value={contacts.find((c) => c.id === values.contactId) || null}
                           onChange={(_, val) => setFieldValue('contactId', val?.id || null)}
+                          onBlur={() => setFieldTouched('contactId', true)}
                           renderInput={(params) => (
                             <TextField
                               {...params}
                               label="Contact Person"
-                              placeholder="Select contact..."
+                              placeholder="Required - Select contact..."
+                              error={touched.contactId && Boolean(errors.contactId)}
+                              helperText={touched.contactId ? errors.contactId : ' '}
+                              required
                               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
                           )}
@@ -966,7 +979,7 @@ const DealForm = () => {
                         Products & Services
                       </Typography>
                       <Typography variant="body2" color="text.secondary" mt={1}>
-                        Add line items to this deal
+                        At least one product/service is required
                       </Typography>
                     </Box>
                     <Button
@@ -994,7 +1007,7 @@ const DealForm = () => {
                         No items added yet
                       </Typography>
                       <Typography variant="body2" color="text.secondary" mt={1}>
-                        Click "Add Item" to add products or services
+                        Click &quot;Add Item&quot; to add at least one product or service (required)
                       </Typography>
                     </Box>
                   ) : (

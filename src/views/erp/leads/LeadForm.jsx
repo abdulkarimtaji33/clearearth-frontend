@@ -158,6 +158,10 @@ const LeadForm = () => {
     const setFieldValue = setFieldValueRef.current;
     const errors = {};
     if (!newCompanyValues.companyName) errors.companyName = 'Required';
+    if (!newCompanyValues.phone) errors.phone = 'Required';
+    if (!newCompanyValues.country) errors.country = 'Required';
+    if (!newCompanyValues.city) errors.city = 'Required';
+    if (!newCompanyValues.address) errors.address = 'Required';
     if (newCompanyValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCompanyValues.email)) errors.email = 'Invalid email';
     setNewCompanyErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -206,6 +210,8 @@ const LeadForm = () => {
       const newContact = res.data;
       setContacts((prev) => [...prev, newContact]);
       setFieldValue?.('contactId', newContact.id);
+      setFieldValue?.('email', newContact.email || '');
+      setFieldValue?.('phone', newContact.phone || newContact.mobile || '');
       setNewContactValues({ firstName: '', lastName: '', email: '', phone: '', designation: '', companyId: null });
       setAddContactDialogOpen(false);
       setNewContactErrors({});
@@ -408,7 +414,7 @@ const LeadForm = () => {
                             setFieldValue('contactId', val?.id || null);
                             if (val) {
                               setFieldValue('email', val.email || '');
-                              setFieldValue('phone', val.phone || '');
+                              setFieldValue('phone', val.phone || val.mobile || '');
                             }
                           }}
                           onBlur={() => setFieldTouched('contactId', true)}
@@ -647,29 +653,29 @@ const LeadForm = () => {
                   error={Boolean(newCompanyErrors.companyName)} helperText={newCompanyErrors.companyName} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth label="Phone" value={newCompanyValues.phone} onChange={(e) => setNewCompanyValues((v) => ({ ...v, phone: e.target.value }))}
-                  error={Boolean(newCompanyErrors.phone)} helperText={newCompanyErrors.phone} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                <TextField fullWidth label="Phone" required value={newCompanyValues.phone} onChange={(e) => setNewCompanyValues((v) => ({ ...v, phone: e.target.value }))}
+                  error={Boolean(newCompanyErrors.phone)} helperText={newCompanyErrors.phone} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField fullWidth label="Email" type="email" value={newCompanyValues.email} onChange={(e) => setNewCompanyValues((v) => ({ ...v, email: e.target.value }))}
                   error={Boolean(newCompanyErrors.email)} helperText={newCompanyErrors.email} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth select label="Country" value={newCompanyValues.country} onChange={(e) => setNewCompanyValues((v) => ({ ...v, country: e.target.value }))}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
+                <TextField fullWidth select label="Country" required value={newCompanyValues.country} onChange={(e) => setNewCompanyValues((v) => ({ ...v, country: e.target.value }))}
+                  error={Boolean(newCompanyErrors.country)} helperText={newCompanyErrors.country} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
                   {dropdowns.countries?.map((c) => <MenuItem key={c.id} value={c.value}>{c.display_name}</MenuItem>)}
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth select label="City" value={newCompanyValues.city} onChange={(e) => setNewCompanyValues((v) => ({ ...v, city: e.target.value }))}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
+                <TextField fullWidth select label="City" required value={newCompanyValues.city} onChange={(e) => setNewCompanyValues((v) => ({ ...v, city: e.target.value }))}
+                  error={Boolean(newCompanyErrors.city)} helperText={newCompanyErrors.city} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
                   <MenuItem value="">None</MenuItem>
                   {dropdowns.cities?.map((city) => <MenuItem key={city.id} value={city.value}>{city.display_name}</MenuItem>)}
                 </TextField>
               </Grid>
               <Grid item xs={12}>
-                <TextField fullWidth label="Address" value={newCompanyValues.address} onChange={(e) => setNewCompanyValues((v) => ({ ...v, address: e.target.value }))}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                <TextField fullWidth label="Address" required value={newCompanyValues.address} onChange={(e) => setNewCompanyValues((v) => ({ ...v, address: e.target.value }))}
+                  error={Boolean(newCompanyErrors.address)} helperText={newCompanyErrors.address} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
               <Grid item xs={12}>
                 <TextField fullWidth select label="Industry Type" value={newCompanyValues.industryType} onChange={(e) => setNewCompanyValues((v) => ({ ...v, industryType: e.target.value }))}

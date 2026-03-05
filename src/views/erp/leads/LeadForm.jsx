@@ -158,7 +158,6 @@ const LeadForm = () => {
     const setFieldValue = setFieldValueRef.current;
     const errors = {};
     if (!newCompanyValues.companyName) errors.companyName = 'Required';
-    if (!newCompanyValues.phone) errors.phone = 'Required';
     if (newCompanyValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCompanyValues.email)) errors.email = 'Invalid email';
     setNewCompanyErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -167,7 +166,7 @@ const LeadForm = () => {
       const res = await apiService.createCompany({
         companyName: newCompanyValues.companyName,
         email: newCompanyValues.email || undefined,
-        phone: newCompanyValues.phone,
+        phone: newCompanyValues.phone || undefined,
         country: newCompanyValues.country,
         city: newCompanyValues.city,
         address: newCompanyValues.address,
@@ -191,8 +190,6 @@ const LeadForm = () => {
     const companyId = valuesRef.current.companyId;
     const errors = {};
     if (!newContactValues.firstName) errors.firstName = 'Required';
-    if (!newContactValues.lastName) errors.lastName = 'Required';
-    if (!newContactValues.phone) errors.phone = 'Required';
     if (newContactValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newContactValues.email)) errors.email = 'Invalid email';
     setNewContactErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -200,9 +197,9 @@ const LeadForm = () => {
       setSavingContact(true);
       const res = await apiService.createContact({
         firstName: newContactValues.firstName,
-        lastName: newContactValues.lastName,
+        lastName: newContactValues.lastName || undefined,
         email: newContactValues.email || undefined,
-        phone: newContactValues.phone,
+        phone: newContactValues.phone || undefined,
         designation: newContactValues.designation,
         companyId: companyId || null,
       });
@@ -407,7 +404,13 @@ const LeadForm = () => {
                               : ''
                           }
                           value={contacts.find((c) => c.id === values.contactId) || null}
-                          onChange={(_, val) => setFieldValue('contactId', val?.id || null)}
+                          onChange={(_, val) => {
+                            setFieldValue('contactId', val?.id || null);
+                            if (val) {
+                              setFieldValue('email', val.email || '');
+                              setFieldValue('phone', val.phone || '');
+                            }
+                          }}
                           onBlur={() => setFieldTouched('contactId', true)}
                           renderInput={(params) => (
                             <TextField

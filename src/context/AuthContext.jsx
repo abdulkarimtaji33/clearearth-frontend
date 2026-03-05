@@ -43,10 +43,13 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await apiService.login(credentials);
       if (response.success && response.data) {
-        setUser(response.data.user);
-        setTenant(response.data.tenant);
-        setPermissions(response.data.permissions || []);
+        const data = response.data;
+        const userData = data.user || data;
+        setUser(userData);
+        setTenant(data.tenant);
+        setPermissions(userData.permissions ?? data.permissions ?? []);
         setIsAuthenticated(true);
+        await loadUser();
         return response;
       }
       throw new Error(response.message || 'Login failed');
@@ -59,10 +62,13 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await apiService.register(data);
       if (response.success && response.data) {
-        setUser(response.data.user);
-        setTenant(response.data.tenant);
-        setPermissions(response.data.permissions || []);
+        const data = response.data;
+        const userData = data.user || data;
+        setUser(userData);
+        setTenant(data.tenant);
+        setPermissions(userData.permissions ?? data.permissions ?? []);
         setIsAuthenticated(true);
+        await loadUser();
         return response;
       }
       throw new Error(response.message || 'Registration failed');

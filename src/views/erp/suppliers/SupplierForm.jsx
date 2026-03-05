@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Box,
   Card,
@@ -62,6 +62,7 @@ const SupplierForm = () => {
     firstName: '', lastName: '', email: '', phone: '', designation: '', department: '',
   });
   const [newContactErrors, setNewContactErrors] = useState({});
+  const setFieldValueRef = useRef(null);
   
   // Dropdown states
   const [dropdowns, setDropdowns] = useState({
@@ -223,7 +224,6 @@ const SupplierForm = () => {
     try {
       const errors = {};
       if (!newContactValues.firstName) errors.firstName = 'Required';
-      if (!newContactValues.lastName) errors.lastName = 'Required';
       if (newContactValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newContactValues.email)) {
         errors.email = 'Invalid email';
       }
@@ -231,12 +231,19 @@ const SupplierForm = () => {
       if (Object.keys(errors).length > 0) return;
 
       setSavingContact(true);
-      const response = await apiService.createContact(newContactValues);
+      const response = await apiService.createContact({
+        firstName: newContactValues.firstName,
+        lastName: newContactValues.lastName || undefined,
+        email: newContactValues.email || undefined,
+        phone: newContactValues.phone || undefined,
+        designation: newContactValues.designation,
+        department: newContactValues.department,
+      });
       if (response.success || response.data) {
         const newContact = response.data;
         setContacts((prev) => [...prev, newContact]);
         setLinkedContacts((prev) => [
-          ...prev,
+          ...prev.map((c) => ({ ...c, isPrimary: false })),
           {
             contactId: newContact.id,
             firstName: newContact.first_name,
@@ -244,9 +251,10 @@ const SupplierForm = () => {
             email: newContact.email,
             phone: newContact.phone,
             role: contactRole,
-            isPrimary: false,
+            isPrimary: true,
           },
         ]);
+        setFieldValueRef.current?.('primaryContactId', newContact.id);
         setNewContactValues({ firstName: '', lastName: '', email: '', phone: '', designation: '', department: '' });
         setContactRole('');
         setNewContactDialogOpen(false);
@@ -310,7 +318,9 @@ const SupplierForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue, setFieldTouched }) => (
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue, setFieldTouched }) => {
+            setFieldValueRef.current = setFieldValue;
+            return (
             <form onSubmit={formikSubmit}>
               {/* Supplier Information */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
@@ -658,7 +668,7 @@ const SupplierForm = () => {
                 </Button>
               </Stack>
             </form>
-          )}
+          );}}
         </Formik>
       </Box>
 

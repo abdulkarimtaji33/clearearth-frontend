@@ -25,12 +25,11 @@ import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
-// Contacts: Name (Required), Company (Optional), Designation (Optional), Country/City/Address not in model
-// Phone (Required), Email (Optional)
+// Contacts: Name (Required), Last name (Optional), Company (Optional), Phone (Optional), Email (Optional)
 const validationSchema = Yup.object({
   firstName: Yup.string().trim().required('First name is required'),
-  lastName: Yup.string().trim().required('Last name is required'),
-  phone: Yup.string().trim().required('Phone is required'),
+  lastName: Yup.string().trim().nullable().transform((v) => v || ''),
+  phone: Yup.string().trim().nullable().transform((v) => v || null),
   email: Yup.string().email('Invalid email').nullable().transform((v) => v || null),
 });
 

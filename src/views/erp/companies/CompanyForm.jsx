@@ -238,7 +238,6 @@ const CompanyForm = () => {
     try {
       const errors = {};
       if (!newContactValues.firstName) errors.firstName = 'Required';
-      if (!newContactValues.lastName) errors.lastName = 'Required';
       if (newContactValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newContactValues.email)) {
         errors.email = 'Invalid email';
       }
@@ -246,7 +245,14 @@ const CompanyForm = () => {
       if (Object.keys(errors).length > 0) return;
 
       setSavingContact(true);
-      const response = await apiService.createContact(newContactValues);
+      const response = await apiService.createContact({
+        firstName: newContactValues.firstName,
+        lastName: newContactValues.lastName || undefined,
+        email: newContactValues.email || undefined,
+        phone: newContactValues.phone || undefined,
+        designation: newContactValues.designation,
+        department: newContactValues.department,
+      });
       if (response.success || response.data) {
         const newContact = response.data;
         setContacts((prev) => [...prev, newContact]);
@@ -386,6 +392,20 @@ const CompanyForm = () => {
                         error={touched.email && Boolean(errors.email)}
                         helperText={touched.email ? errors.email : ' '}
                         required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Phone"
+                        name="phone"
+                        placeholder="Optional"
+                        value={values.phone || ''}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        error={touched.phone && Boolean(errors.phone)}
+                        helperText={touched.phone ? errors.phone : ' '}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>

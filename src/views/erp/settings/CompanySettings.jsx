@@ -295,8 +295,6 @@ const CompanySettings = () => {
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           />
                         </Grid>
-                      </Grid>
-                    </Grid>
                   </Grid>
 
                   <Stack direction="row" justifyContent="flex-end" mt={4}>

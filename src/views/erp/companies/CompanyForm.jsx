@@ -155,10 +155,10 @@ const CompanyForm = () => {
         setLinkedContacts(
           (c.contacts || []).map((ct) => ({
             contactId: ct.id,
-            firstName: ct.first_name,
-            lastName: ct.last_name,
-            email: ct.email,
-            phone: ct.phone,
+            firstName: ct.first_name || '',
+            lastName: ct.last_name || '',
+            email: ct.email || '',
+            phone: ct.phone || '',
             role: ct.CompanyContact?.role || '',
             isPrimary: ct.CompanyContact?.is_primary || false,
           }))
@@ -223,10 +223,10 @@ const CompanyForm = () => {
       ...prev,
       {
         contactId: selectedContactToAdd.id,
-        firstName: selectedContactToAdd.first_name,
-        lastName: selectedContactToAdd.last_name,
-        email: selectedContactToAdd.email,
-        phone: selectedContactToAdd.phone,
+        firstName: selectedContactToAdd.first_name || '',
+        lastName: selectedContactToAdd.last_name || '',
+        email: selectedContactToAdd.email || '',
+        phone: selectedContactToAdd.phone || '',
         role: contactRole,
         isPrimary: false,
       },
@@ -260,10 +260,10 @@ const CompanyForm = () => {
         setContacts((prev) => [...prev, newContact]);
         const newLinked = {
           contactId: newContact.id,
-          firstName: newContact.first_name,
-          lastName: newContact.last_name,
-          email: newContact.email,
-          phone: newContact.phone,
+          firstName: newContact.first_name || '',
+          lastName: newContact.last_name || '',
+          email: newContact.email || '',
+          phone: newContact.phone || '',
           role: contactRole,
           isPrimary: true,
         };
@@ -418,7 +418,7 @@ const CompanyForm = () => {
                           options={contacts}
                           getOptionLabel={(opt) =>
                             typeof opt === 'object'
-                              ? `${opt.first_name} ${opt.last_name}${opt.email ? ` (${opt.email})` : ''}`
+                              ? `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` (${opt.email})` : '')
                               : ''
                           }
                           value={contacts.find((c) => c.id === values.primaryContactId) || null}
@@ -633,7 +633,7 @@ const CompanyForm = () => {
                             <TableRow key={c.contactId} hover>
                               <TableCell sx={{ py: 2 }}>
                                 <Typography variant="body2" fontWeight={600}>
-                                  {c.firstName} {c.lastName}
+                                  {[c.firstName, c.lastName].filter(Boolean).join(' ') || '-'}
                                 </Typography>
                               </TableCell>
                               <TableCell sx={{ py: 2 }}>
@@ -734,7 +734,7 @@ const CompanyForm = () => {
                 options={contacts}
                 getOptionLabel={(opt) =>
                   typeof opt === 'object'
-                    ? `${opt.first_name} ${opt.last_name}${opt.email ? ` – ${opt.email}` : ''}`
+                    ? `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` – ${opt.email}` : '')
                     : ''
                 }
                 value={selectedContactToAdd}
@@ -854,11 +854,11 @@ const CompanyForm = () => {
               <TextField
                 fullWidth
                 label="Last Name"
+                placeholder="Optional"
                 value={newContactValues.lastName}
                 onChange={(e) => setNewContactValues((v) => ({ ...v, lastName: e.target.value }))}
                 error={Boolean(newContactErrors.lastName)}
                 helperText={newContactErrors.lastName}
-                required
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>

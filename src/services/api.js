@@ -431,6 +431,15 @@ class ApiService {
     return data;
   }
 
+  // Tenants (Company Settings)
+  async getTenant() {
+    return this.get('/tenants/me');
+  }
+
+  async updateTenant(data) {
+    return this.put('/tenants/me', data);
+  }
+
   // Dropdowns
   async getAllDropdowns() {
     return this.get('/dropdowns/all');

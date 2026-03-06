@@ -35,6 +35,7 @@ const UserList = Loadable(lazy(() => import('../views/erp/users/UserList')));
 const UserForm = Loadable(lazy(() => import('../views/erp/users/UserForm')));
 const InspectionRequestList = Loadable(lazy(() => import('../views/erp/inspection-requests/InspectionRequestList')));
 const InspectionRequestView = Loadable(lazy(() => import('../views/erp/inspection-requests/InspectionRequestView')));
+const CompanySettings = Loadable(lazy(() => import('../views/erp/settings/CompanySettings')));
 
 // authentication
 const Login = Loadable(lazy(() => import('../views/authentication/auth1/Login')));
@@ -93,6 +94,7 @@ const Router = createBrowserRouter([
       { path: '/erp/users/edit/:id', element: <UserForm /> },
       { path: '/erp/inspection-requests', element: <InspectionRequestList /> },
       { path: '/erp/inspection-requests/:id', element: <InspectionRequestView /> },
+      { path: '/erp/settings/company', element: <CompanySettings /> },
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],
   },

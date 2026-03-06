@@ -13,6 +13,7 @@ import {
   IconShield,
   IconUsers,
   IconClipboardCheck,
+  IconSettings,
 } from '@tabler/icons-react';
 
 const ErpMenuItems = [
@@ -110,6 +111,13 @@ const ErpMenuItems = [
     title: 'Users',
     icon: IconUsers,
     href: '/erp/users',
+    permission: 'users.read',
+  },
+  {
+    id: uniqueId(),
+    title: 'Company Settings',
+    icon: IconSettings,
+    href: '/erp/settings/company',
     permission: 'users.read',
   },
 ];

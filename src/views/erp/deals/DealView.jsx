@@ -33,7 +33,7 @@ import dayjs from 'dayjs';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate, useParams } from 'react-router';
 import FsLightbox from 'fslightbox-react';
-import { IconArrowLeft, IconEdit, IconDownload, IconPlus, IconPhoto, IconReceipt, IconShoppingCart } from '@tabler/icons-react';
+import { IconArrowLeft, IconEdit, IconDownload, IconPlus, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -455,7 +455,7 @@ const DealView = () => {
                 <Grid item xs={12} md={6}>
                   <InfoRow label="WDS Required" value={deal.wds_required ? 'Yes' : 'No'} />
                   <InfoRow label="Inspection Required" value={deal.inspection_required ? 'Yes' : 'No'} />
-                  {deal.inspection_required && (
+                  {deal.deal_type === 'offer_to_charge' && (
                     <>
                       <InfoRow label="Custom Inspection" value={deal.custom_inspection ? 'Yes' : 'No'} />
                       <InfoRow label="Trakhees Inspection" value={deal.trakhees_inspection ? 'Yes' : 'No'} />
@@ -481,6 +481,26 @@ const DealView = () => {
                     <Grid item xs={12} md={6}><InfoRow label="BL No" value={deal.wdsDetails.bl_no} /></Grid>
                     <Grid item xs={12} md={6}><InfoRow label="BOR No" value={deal.wdsDetails.bor_no} /></Grid>
                     <Grid item xs={12}><InfoRow label="Purpose" value={deal.wdsDetails.purpose} /></Grid>
+                    {deal.wdsDetails.attachments && deal.wdsDetails.attachments.length > 0 && (
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Attachments</Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                          {deal.wdsDetails.attachments.map((a, idx) => (
+                            <Button
+                              key={idx}
+                              size="small"
+                              variant="outlined"
+                              href={apiService.getUploadUrl(a.file_path)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              startIcon={<IconFileDescription size={16} />}
+                            >
+                              {a.file_name || a.file_path?.split('/').pop() || 'Attachment'}
+                            </Button>
+                          ))}
+                        </Box>
+                      </Grid>
+                    )}
                   </Grid>
                 </Box>
               )}

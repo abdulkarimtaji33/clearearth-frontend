@@ -405,6 +405,19 @@ class ApiService {
     return data;
   }
 
+  async uploadWdsAttachment(file) {
+    const url = `${this.baseURL}/upload/wds-attachment`;
+    const token = this.getAuthToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(url, { method: 'POST', body: formData, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Upload failed');
+    return data;
+  }
+
   async uploadInspectionDocument(file) {
     const url = `${this.baseURL}/upload/inspection-document`;
     const token = this.getAuthToken();

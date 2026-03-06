@@ -32,7 +32,7 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
 import { useDropzone } from 'react-dropzone';
-import { IconArrowLeft, IconPlus, IconTrash, IconPhoto, IconReceipt, IconShoppingCart } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconTrash, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -73,6 +73,34 @@ const DealImageDropzone = ({ onDrop }) => {
       <IconPhoto size={40} style={{ opacity: 0.5, marginBottom: 8 }} />
       <Typography variant="body2" color="text.secondary">
         Drag and drop images here, or click to select
+      </Typography>
+    </Box>
+  );
+};
+
+const WdsAttachmentDropzone = ({ onDrop }) => {
+  const { getRootProps, getInputProps } = useDropzone({
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'], 'application/pdf': ['.pdf'] },
+    multiple: true,
+    onDrop: (acceptedFiles) => { if (acceptedFiles.length) onDrop(acceptedFiles); },
+  });
+  return (
+    <Box
+      {...getRootProps()}
+      sx={{
+        border: '2px dashed',
+        borderColor: 'divider',
+        borderRadius: 2,
+        p: 3,
+        textAlign: 'center',
+        cursor: 'pointer',
+        '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+      }}
+    >
+      <input {...getInputProps()} />
+      <IconFileDescription size={32} style={{ opacity: 0.5, marginBottom: 6 }} />
+      <Typography variant="body2" color="text.secondary">
+        Drag and drop files (PDF, images) or click to select
       </Typography>
     </Box>
   );
@@ -160,6 +188,7 @@ const DealForm = () => {
     blNo: '',
     borNo: '',
   });
+  const [wdsAttachments, setWdsAttachments] = useState([]);
 
   const isEdit = Boolean(id);
 
@@ -270,8 +299,14 @@ const DealForm = () => {
             blNo: w.bl_no || '',
             borNo: w.bor_no || '',
           });
+          setWdsAttachments((w.attachments || []).map(a => ({
+            path: a.file_path,
+            fileName: a.file_name,
+            url: apiService.getUploadUrl(a.file_path),
+          })));
         } else {
           setWdsDetails(defaultWds);
+          setWdsAttachments([]);
         }
 
         if (d.inspectionRequest) {
@@ -493,7 +528,7 @@ const DealForm = () => {
           unitPrice: parseFloat(item.unitPrice),
           notes: item.notes,
         })),
-        wdsDetails: values.wdsRequired ? wdsDetails : null,
+        wdsDetails: values.wdsRequired ? { ...wdsDetails, attachments: wdsAttachments.map(a => ({ path: a.path, fileName: a.fileName })) } : null,
         inspectionDetails: values.inspectionRequired ? inspectionDetails : null,
         images: dealImages.map(img => ({ path: img.path })),
       };
@@ -924,40 +959,38 @@ const DealForm = () => {
                           )}
                         </Box>
 
-                        {values.inspectionRequired && (
-                          <Box sx={{ ml: 0, mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  checked={values.customInspection}
-                                  onChange={(e) => setFieldValue('customInspection', e.target.checked)}
-                                  name="customInspection"
-                                />
-                              }
-                              label="Custom Inspection"
-                            />
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  checked={values.trakheesInspection}
-                                  onChange={(e) => setFieldValue('trakheesInspection', e.target.checked)}
-                                  name="trakheesInspection"
-                                />
-                              }
-                              label="Trakhees Inspection"
-                            />
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  checked={values.dubaiMunicipalityInspection}
-                                  onChange={(e) => setFieldValue('dubaiMunicipalityInspection', e.target.checked)}
-                                  name="dubaiMunicipalityInspection"
-                                />
-                              }
-                              label="Dubai Municipality Inspection"
-                            />
-                          </Box>
-                        )}
+                        <Box sx={{ ml: 0, mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={values.customInspection}
+                                onChange={(e) => setFieldValue('customInspection', e.target.checked)}
+                                name="customInspection"
+                              />
+                            }
+                            label="Custom Inspection"
+                          />
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={values.trakheesInspection}
+                                onChange={(e) => setFieldValue('trakheesInspection', e.target.checked)}
+                                name="trakheesInspection"
+                              />
+                            }
+                            label="Trakhees Inspection"
+                          />
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={values.dubaiMunicipalityInspection}
+                                onChange={(e) => setFieldValue('dubaiMunicipalityInspection', e.target.checked)}
+                                name="dubaiMunicipalityInspection"
+                              />
+                            }
+                            label="Dubai Municipality Inspection"
+                          />
+                        </Box>
                       </>
                     )}
 
@@ -1422,6 +1455,55 @@ const DealForm = () => {
                 onChange={(e) => setWdsDetails({ ...wdsDetails, purpose: e.target.value })}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Attachments</Typography>
+                <WdsAttachmentDropzone
+                  onDrop={async (files) => {
+                    for (const file of files) {
+                      try {
+                        const res = await apiService.uploadWdsAttachment(file);
+                        setWdsAttachments(prev => [...prev, { path: res.data.path, fileName: res.data.fileName || file.name, url: res.data.url }]);
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }
+                  }}
+                />
+                {wdsAttachments.length > 0 && (
+                  <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 2 }}>
+                    {wdsAttachments.map((a, idx) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.5,
+                          px: 1.5,
+                          py: 0.5,
+                          borderRadius: 1,
+                          bgcolor: 'action.selected',
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        <IconFileDescription size={16} />
+                        <Typography
+                          component="a"
+                          href={a.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{ textDecoration: 'none', color: 'primary.main' }}
+                        >
+                          {a.fileName || a.path?.split('/').pop() || 'File'}
+                        </Typography>
+                        <IconButton size="small" onClick={() => setWdsAttachments(prev => prev.filter((_, i) => i !== idx))} sx={{ p: 0.25 }}>
+                          <IconTrash size={14} />
+                        </IconButton>
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
+              </Box>
 
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
                 <TextField

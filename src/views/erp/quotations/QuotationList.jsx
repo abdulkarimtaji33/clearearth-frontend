@@ -25,7 +25,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical } from '@tabler/icons-react';
+import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -45,6 +45,7 @@ const QuotationList = () => {
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dropdowns, setDropdowns] = useState({ quotationStatus: [] });
+  const [pdfLoading, setPdfLoading] = useState(null);
 
   const fetchDropdowns = useCallback(async () => {
     try {
@@ -88,6 +89,19 @@ const QuotationList = () => {
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedQuotation(null);
+  };
+
+  const handleDownloadPdf = async (q) => {
+    if (!q?.id) return;
+    try {
+      setPdfLoading(q.id);
+      await apiService.downloadQuotationPdf(q.id);
+      setSuccess('PDF downloaded');
+    } catch (err) {
+      setError(err.message || 'PDF download failed');
+    } finally {
+      setPdfLoading(null);
+    }
   };
 
   const handleDelete = async () => {
@@ -232,6 +246,10 @@ const QuotationList = () => {
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
           <MenuItem onClick={() => { navigate(`/erp/quotations/edit/${selectedQuotation?.id}`); handleMenuClose(); }}>
             <IconEdit size={18} style={{ marginRight: 8 }} /> Edit
+          </MenuItem>
+          <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation); handleMenuClose(); }} disabled={pdfLoading === selectedQuotation?.id}>
+            {pdfLoading === selectedQuotation?.id ? <CircularProgress size={18} sx={{ mr: 1 }} /> : <IconFileDownload size={18} style={{ marginRight: 8 }} />}
+            Download PDF
           </MenuItem>
           <MenuItem onClick={() => { setDeleteDialogOpen(true); handleMenuClose(); }} sx={{ color: 'error.main' }}>
             <IconTrash size={18} style={{ marginRight: 8 }} /> Delete

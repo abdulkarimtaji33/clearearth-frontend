@@ -77,11 +77,14 @@ const SupplierForm = () => {
     companyName: '',
     type: 'organization',
     primaryContactId: null,
+    industryType: '',
+    website: '',
+    email: '',
+    phone: '',
+    vatNumber: '',
     country: 'UAE',
     city: '',
     address: '',
-    email: '',
-    website: '',
   });
 
   const isEdit = Boolean(id);
@@ -130,11 +133,14 @@ const SupplierForm = () => {
           companyName: s.company_name || '',
           primaryContactId: s.primary_contact_id || null,
           type: s.type || 'organization',
+          industryType: s.industry_type || '',
+          website: s.website || '',
+          email: s.email || '',
+          phone: s.phone || '',
+          vatNumber: s.vat_number || '',
           country: s.country || 'UAE',
           city: s.city || '',
           address: s.address || '',
-          email: s.email || '',
-          website: s.website || '',
         });
         setLinkedContacts(
           (s.contacts || []).map((ct) => ({
@@ -370,6 +376,26 @@ const SupplierForm = () => {
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
+                        select
+                        label="Industry"
+                        name="industryType"
+                        value={values.industryType || ''}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{
+                          MenuProps: { PaperProps: { style: { maxHeight: 350 } } },
+                        }}
+                      >
+                        <MenuItem value="">Select Industry</MenuItem>
+                        {dropdowns.industryTypes.map((i) => (
+                          <MenuItem key={i.id} value={i.value}>{i.display_name}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
                         label="Email"
                         name="email"
                         type="email"
@@ -380,6 +406,18 @@ const SupplierForm = () => {
                         error={touched.email && Boolean(errors.email)}
                         helperText={touched.email ? errors.email : ' '}
                         required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Phone"
+                        name="phone"
+                        placeholder="Optional"
+                        value={values.phone || ''}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
@@ -529,6 +567,18 @@ const SupplierForm = () => {
                         onBlur={handleBlur}
                         error={touched.website && Boolean(errors.website)}
                         helperText={touched.website ? errors.website : ' '}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="VAT/TRN Number"
+                        name="vatNumber"
+                        placeholder="Optional"
+                        value={values.vatNumber || ''}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
@@ -815,11 +865,11 @@ const SupplierForm = () => {
               <TextField
                 fullWidth
                 label="Last Name"
+                placeholder="Optional"
                 value={newContactValues.lastName}
                 onChange={(e) => setNewContactValues((v) => ({ ...v, lastName: e.target.value }))}
                 error={Boolean(newContactErrors.lastName)}
                 helperText={newContactErrors.lastName}
-                required
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>

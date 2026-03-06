@@ -158,6 +158,10 @@ const CompanyView = () => {
                   value={company.website} 
                   icon={<IconWorld size={18} />}
                 />
+                <InfoRow 
+                  label="VAT/TRN Number" 
+                  value={company.vat_number} 
+                />
               </Grid>
               
               <Grid item xs={12} md={6}>

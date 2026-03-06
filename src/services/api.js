@@ -305,6 +305,26 @@ class ApiService {
     return this.delete(`/quotations/${id}`);
   }
 
+  async downloadQuotationPdf(id) {
+    const url = `${this.baseURL}/quotations/${id}/pdf`;
+    const token = this.getAuthToken();
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Failed to download PDF');
+    const blob = await res.blob();
+    if (blob.type !== 'application/pdf' || blob.size < 100) {
+      const text = await blob.text();
+      const err = text?.match(/"message":"([^"]+)"/)?.[1] || 'Invalid PDF response';
+      throw new Error(err);
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `quotation-${id}.pdf`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   // Purchase Orders
   async getPurchaseOrders(params) {
     return this.get('/purchase-orders', params);
@@ -324,6 +344,26 @@ class ApiService {
 
   async deletePurchaseOrder(id) {
     return this.delete(`/purchase-orders/${id}`);
+  }
+
+  async downloadPurchaseOrderPdf(id) {
+    const url = `${this.baseURL}/purchase-orders/${id}/pdf`;
+    const token = this.getAuthToken();
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Failed to download PDF');
+    const blob = await res.blob();
+    if (blob.type !== 'application/pdf' || blob.size < 100) {
+      const text = await blob.text();
+      const err = text?.match(/"message":"([^"]+)"/)?.[1] || 'Invalid PDF response';
+      throw new Error(err);
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `purchase-order-${id}.pdf`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   }
 
   // Terms and Conditions

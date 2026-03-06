@@ -25,7 +25,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical } from '@tabler/icons-react';
+import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -43,6 +43,7 @@ const PurchaseOrderList = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(null);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -72,6 +73,19 @@ const PurchaseOrderList = () => {
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedOrder(null);
+  };
+
+  const handleDownloadPdf = async (o) => {
+    if (!o?.id) return;
+    try {
+      setPdfLoading(o.id);
+      await apiService.downloadPurchaseOrderPdf(o.id);
+      setSuccess('PDF downloaded');
+    } catch (err) {
+      setError(err.message || 'PDF download failed');
+    } finally {
+      setPdfLoading(null);
+    }
   };
 
   const handleDelete = async () => {
@@ -197,6 +211,10 @@ const PurchaseOrderList = () => {
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
           <MenuItem onClick={() => { navigate(`/erp/purchase-orders/edit/${selectedOrder?.id}`); handleMenuClose(); }}>
             <IconEdit size={18} style={{ marginRight: 8 }} /> Edit
+          </MenuItem>
+          <MenuItem onClick={() => { handleDownloadPdf(selectedOrder); handleMenuClose(); }} disabled={pdfLoading === selectedOrder?.id}>
+            {pdfLoading === selectedOrder?.id ? <CircularProgress size={18} sx={{ mr: 1 }} /> : <IconFileDownload size={18} style={{ marginRight: 8 }} />}
+            Download PDF
           </MenuItem>
           <MenuItem onClick={() => { setDeleteDialogOpen(true); handleMenuClose(); }} sx={{ color: 'error.main' }}>
             <IconTrash size={18} style={{ marginRight: 8 }} /> Delete

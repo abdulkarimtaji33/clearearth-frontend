@@ -87,6 +87,7 @@ const CompanyForm = () => {
     website: '',
     email: '',
     phone: '',
+    vatNumber: '',
     country: 'UAE',
     city: '',
     address: '',
@@ -144,6 +145,7 @@ const CompanyForm = () => {
           website: c.website || '',
           email: c.email || '',
           phone: c.phone || '',
+          vatNumber: c.vat_number || '',
           country: c.country || 'UAE',
           city: c.city || '',
           address: c.address || '',
@@ -554,6 +556,18 @@ const CompanyForm = () => {
                         onBlur={handleBlur}
                         error={touched.website && Boolean(errors.website)}
                         helperText={touched.website ? errors.website : ' '}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="VAT/TRN Number"
+                        name="vatNumber"
+                        placeholder="Optional"
+                        value={values.vatNumber || ''}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>

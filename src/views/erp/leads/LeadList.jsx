@@ -355,7 +355,7 @@ const LeadList = () => {
                         <Autocomplete
                           fullWidth
                           options={users}
-                          getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                          getOptionLabel={(option) => `${option.first_name || ''} ${option.last_name || ''}`.trim() || '-'}
                           value={assignedToFilter}
                           onChange={(_, newValue) => { setAssignedToFilter(newValue); setPage(0); }}
                           renderInput={(params) => (
@@ -397,7 +397,7 @@ const LeadList = () => {
                         <Autocomplete
                           fullWidth
                           options={contacts}
-                          getOptionLabel={(option) => `${option.first_name} ${option.last_name} ${option.email ? `(${option.email})` : ''}`}
+                          getOptionLabel={(option) => `${option.first_name || ''} ${option.last_name || ''}`.trim() + (option.email ? ` (${option.email})` : '')}
                           value={contactFilter}
                           onChange={(_, newValue) => { setContactFilter(newValue); setPage(0); }}
                           renderInput={(params) => (
@@ -474,7 +474,7 @@ const LeadList = () => {
                       <TableCell>{lead.company?.company_name || '-'}</TableCell>
                       <TableCell>
                         {lead.contact
-                          ? `${lead.contact.first_name} ${lead.contact.last_name}`
+                          ? [lead.contact.first_name, lead.contact.last_name].filter(Boolean).join(' ') || '-'
                           : '-'}
                       </TableCell>
                       <TableCell>{lead.email}</TableCell>
@@ -485,7 +485,7 @@ const LeadList = () => {
                       </TableCell>
                       <TableCell>
                         {lead.assignedUser
-                          ? `${lead.assignedUser.first_name} ${lead.assignedUser.last_name}`
+                          ? [lead.assignedUser.first_name, lead.assignedUser.last_name].filter(Boolean).join(' ') || '-'
                           : '-'}
                       </TableCell>
                       <TableCell align="right">

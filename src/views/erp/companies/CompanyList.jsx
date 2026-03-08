@@ -313,7 +313,7 @@ const CompanyList = () => {
                         <Autocomplete
                           fullWidth
                           options={contacts}
-                          getOptionLabel={(option) => `${option.first_name} ${option.last_name} ${option.email ? `(${option.email})` : ''}`}
+                          getOptionLabel={(option) => `${option.first_name || ''} ${option.last_name || ''}`.trim() + (option.email ? ` (${option.email})` : '')}
                           value={contactFilter}
                           onChange={(_, newValue) => { setContactFilter(newValue); setPage(0); }}
                           renderInput={(params) => (
@@ -400,7 +400,7 @@ const CompanyList = () => {
                         </TableCell>
                         <TableCell>
                           {company.primaryContact
-                            ? `${company.primaryContact.first_name} ${company.primaryContact.last_name}`
+                            ? [company.primaryContact.first_name, company.primaryContact.last_name].filter(Boolean).join(' ') || '-'
                             : '-'}
                         </TableCell>
                         <TableCell>{company.email || '-'}</TableCell>

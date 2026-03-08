@@ -375,7 +375,7 @@ const ContactList = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" fontWeight={500}>
-                            {contact.first_name} {contact.last_name}
+                            {[contact.first_name, contact.last_name].filter(Boolean).join(' ') || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -459,7 +459,7 @@ const ContactList = () => {
             {contactToDelete && (
               <Box p={2} mb={3} sx={{ backgroundColor: 'error.lighter', borderRadius: 2, border: '1px solid', borderColor: 'error.light' }}>
                 <Typography variant="body2" fontWeight={600} color="error.main">
-                  {contactToDelete.first_name} {contactToDelete.last_name}
+                  {[contactToDelete.first_name, contactToDelete.last_name].filter(Boolean).join(' ') || '-'}
                 </Typography>
                 <Typography variant="caption" color="textSecondary">
                   {contactToDelete.email}

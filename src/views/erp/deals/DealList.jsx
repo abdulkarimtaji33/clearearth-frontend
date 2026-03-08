@@ -299,7 +299,7 @@ const DealList = () => {
                       <Autocomplete
                         fullWidth
                         options={contacts}
-                        getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                        getOptionLabel={(option) => `${option.first_name || ''} ${option.last_name || ''}`.trim() || '-'}
                         value={contactFilter}
                         onChange={(_, newValue) => { setContactFilter(newValue); setPage(1); }}
                         renderInput={(params) => (
@@ -320,7 +320,7 @@ const DealList = () => {
                       <Autocomplete
                         fullWidth
                         options={users}
-                        getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+                        getOptionLabel={(option) => `${option.first_name || ''} ${option.last_name || ''}`.trim() || '-'}
                         value={assignedToFilter}
                         onChange={(_, newValue) => { setAssignedToFilter(newValue); setPage(1); }}
                         renderInput={(params) => (

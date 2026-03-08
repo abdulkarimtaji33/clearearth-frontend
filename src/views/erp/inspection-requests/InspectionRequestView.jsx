@@ -110,9 +110,9 @@ const InspectionRequestView = () => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await apiService.getUsers({ pageSize: 500 });
+      const res = await apiService.getInspectors();
       if (res.success) {
-        const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
+        const list = Array.isArray(res.data) ? res.data : [];
         setUsers(list);
       }
     } catch (err) {
@@ -168,7 +168,6 @@ const InspectionRequestView = () => {
     if (!reportForm.transportationArrangement?.trim()) errs.transportationArrangement = 'Transportation arrangement is required';
     if (reportForm.approximateValue === '' || reportForm.approximateValue == null) errs.approximateValue = 'Approximate value is required';
     if (!reportForm.inspectorId) errs.inspectorId = "Inspector's name is required";
-    if (!reportForm.approvedById) errs.approvedById = 'Approved by is required';
     if (!reportForm.images?.length) errs.images = 'At least one image is required';
     setReportFormErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -255,10 +254,10 @@ const InspectionRequestView = () => {
               <Grid item xs={12} md={6}><InfoRow label="Deal" value={deal?.title} /></Grid>
               <Grid item xs={12} md={6}><InfoRow label="Client" value={deal?.company?.company_name || deal?.supplier?.company_name} /></Grid>
               <Grid item xs={12} md={6}><InfoRow label="Material Type" value={request.materialType?.display_name} /></Grid>
-              <Grid item xs={12} md={6}><InfoRow label="Quantity" value={request.quantity} /></Grid>
+              <Grid item xs={12} md={6}><InfoRow label="Quantity" value={request.quantity_uom ? `${request.quantity} ${request.quantity_uom}` : request.quantity} /></Grid>
               <Grid item xs={12} md={6}><InfoRow label="Location" value={request.location} /></Grid>
               <Grid item xs={12} md={6}><InfoRow label="Service Type" value={request.service_type} /></Grid>
-              <Grid item xs={12} md={6}><InfoRow label="Requested By" value={request.requestedByUser ? `${request.requestedByUser.first_name} ${request.requestedByUser.last_name}` : '-'} /></Grid>
+              <Grid item xs={12} md={6}><InfoRow label="Requested By" value={request.requestedByUser ? [request.requestedByUser.first_name, request.requestedByUser.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
               <Grid item xs={12}><InfoRow label="Notes" value={request.notes} /></Grid>
             </Grid>
           </CardContent>
@@ -279,8 +278,8 @@ const InspectionRequestView = () => {
                 <Grid item xs={12} md={6}><InfoRow label="Approx. Weight" value={report.approximate_weight != null ? `${report.approximate_weight} ${report.weight_uom || ''}` : '-'} /></Grid>
                 <Grid item xs={12} md={6}><InfoRow label="Cargo Type" value={report.cargo_type} /></Grid>
                 <Grid item xs={12} md={6}><InfoRow label="Transportation" value={report.transportation_arrangement} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Inspector" value={report.inspector ? `${report.inspector.first_name} ${report.inspector.last_name}` : '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Approved By" value={report.approvedBy ? `${report.approvedBy.first_name} ${report.approvedBy.last_name}` : '-'} /></Grid>
+                <Grid item xs={12} md={6}><InfoRow label="Inspector" value={report.inspector ? [report.inspector.first_name, report.inspector.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
+                <Grid item xs={12} md={6}><InfoRow label="Approved By" value={report.approvedBy ? [report.approvedBy.first_name, report.approvedBy.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
                 {report.images && report.images.length > 0 && (
                   <Grid item xs={12}>
                     <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Images</Typography>
@@ -380,7 +379,7 @@ const InspectionRequestView = () => {
                   getOptionLabel={(o) => `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email || ''}
                   value={users.find((u) => u.id === reportForm.approvedById) || null}
                   onChange={(_, v) => setReportForm((f) => ({ ...f, approvedById: v?.id || null }))}
-                  renderInput={(params) => <TextField {...params} label="Approved By (Required)" required error={Boolean(reportFormErrors.approvedById)} helperText={reportFormErrors.approvedById} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
+                  renderInput={(params) => <TextField {...params} label="Approved By (Optional)" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
                 />
                 <TextField fullWidth multiline rows={3} label="Notes" value={reportForm.notes} onChange={(e) => setReportForm((f) => ({ ...f, notes: e.target.value }))} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Box>

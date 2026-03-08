@@ -277,7 +277,7 @@ const UserList = () => {
           <DialogTitle>Delete User</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to delete {selectedUser?.first_name} {selectedUser?.last_name}? This cannot be undone.
+              Are you sure you want to delete {[selectedUser?.first_name, selectedUser?.last_name].filter(Boolean).join(' ') || 'this user'}? This cannot be undone.
             </DialogContentText>
           </DialogContent>
           <DialogActions>

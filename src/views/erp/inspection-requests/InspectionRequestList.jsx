@@ -128,7 +128,7 @@ const InspectionRequestList = () => {
                         <TableCell>{req.materialType?.display_name || '-'}</TableCell>
                         <TableCell>
                           {req.requestedByUser
-                            ? `${req.requestedByUser.first_name} ${req.requestedByUser.last_name}`
+                            ? [req.requestedByUser.first_name, req.requestedByUser.last_name].filter(Boolean).join(' ') || '-'
                             : '-'}
                         </TableCell>
                         <TableCell>

@@ -41,6 +41,14 @@ const validationSchema = Yup.object({
   companyId: Yup.number().nullable().required('Company is required'),
   contactId: Yup.number().nullable().required('Contact person is required'),
   dealType: Yup.string().trim().required('Deal type is required'),
+  containerType: Yup.string().nullable().when('dealType', {
+    is: 'offer_to_charge',
+    then: (s) => s.required('Container type is required when Offer to Charge is selected'),
+  }),
+  locationType: Yup.string().nullable().when('dealType', {
+    is: 'offer_to_charge',
+    then: (s) => s.required('Location type is required when Offer to Charge is selected'),
+  }),
   currency: Yup.string().trim().required('Currency is required'),
   status: Yup.string().trim().required('Status is required'),
   dealDate: Yup.date().nullable().required('Date is required'),
@@ -124,6 +132,7 @@ const DealForm = () => {
   const [dropdowns, setDropdowns] = useState({
     dealStatus: [],
     paymentStatus: [],
+    unitsOfMeasure: [],
   });
 
   const [lineItems, setLineItems] = useState([]);
@@ -168,6 +177,7 @@ const DealForm = () => {
     gatePassRequirement: '',
     serviceType: '',
     quantity: '',
+    quantityUom: '',
     safetyToolsRequired: false,
     supportingDocuments: '',
     requestedBy: null,
@@ -225,6 +235,7 @@ const DealForm = () => {
         setDropdowns({
           dealStatus: response.data.deal_status || [],
           paymentStatus: response.data.payment_status || [],
+          unitsOfMeasure: response.data.units_of_measure || [],
         });
       }
     } catch (err) {
@@ -318,6 +329,7 @@ const DealForm = () => {
             gatePassRequirement: i.gate_pass_requirement || '',
             serviceType: i.service_type || '',
             quantity: i.quantity || '',
+            quantityUom: i.quantity_uom || '',
             safetyToolsRequired: i.safety_tools_required || false,
             supportingDocuments: i.supporting_documents || '',
             requestedBy: i.requested_by || null,
@@ -331,6 +343,7 @@ const DealForm = () => {
             gatePassRequirement: '',
             serviceType: '',
             quantity: '',
+            quantityUom: '',
             safetyToolsRequired: false,
             supportingDocuments: '',
             requestedBy: null,
@@ -785,7 +798,7 @@ const DealForm = () => {
                         <Autocomplete
                           fullWidth
                           options={contacts}
-                          getOptionLabel={(opt) => `${opt.first_name} ${opt.last_name} ${opt.email ? `(${opt.email})` : ''}`}
+                          getOptionLabel={(opt) => `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` (${opt.email})` : '')}
                           value={contacts.find((c) => c.id === values.contactId) || null}
                           onChange={(_, val) => setFieldValue('contactId', val?.id || null)}
                           onBlur={() => setFieldTouched('contactId', true)}
@@ -831,7 +844,7 @@ const DealForm = () => {
                         <Autocomplete
                           fullWidth
                           options={users}
-                          getOptionLabel={(opt) => `${opt.first_name} ${opt.last_name}`}
+                          getOptionLabel={(opt) => `${opt.first_name || ''} ${opt.last_name || ''}`.trim() || '-'}
                           value={users.find((u) => u.id === values.assignedTo) || null}
                           onChange={(_, val) => setFieldValue('assignedTo', val?.id || null)}
                           renderInput={(params) => (
@@ -911,6 +924,10 @@ const DealForm = () => {
                             name="containerType"
                             value={values.containerType || ''}
                             onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={touched.containerType && Boolean(errors.containerType)}
+                            helperText={touched.containerType ? errors.containerType : ' '}
+                            required
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           >
                             <MenuItem value="LCL">LCL</MenuItem>
@@ -924,6 +941,10 @@ const DealForm = () => {
                             name="locationType"
                             value={values.locationType || ''}
                             onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={touched.locationType && Boolean(errors.locationType)}
+                            helperText={touched.locationType ? errors.locationType : ' '}
+                            required
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           >
                             <MenuItem value="Main Land">Main Land</MenuItem>
@@ -1602,15 +1623,31 @@ const DealForm = () => {
                 <MenuItem value="free_of_charge">Free of Charge</MenuItem>
                 <MenuItem value="N/A">N/A</MenuItem>
               </TextField>
-              <TextField
-                fullWidth
-                label="Quantity (Required)"
-                type="number"
-                value={inspectionDetails.quantity}
-                onChange={(e) => setInspectionDetails({ ...inspectionDetails, quantity: e.target.value })}
-                required
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Quantity (Required)"
+                  type="number"
+                  value={inspectionDetails.quantity}
+                  onChange={(e) => setInspectionDetails({ ...inspectionDetails, quantity: e.target.value })}
+                  required
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+                <TextField
+                  fullWidth
+                  select
+                  label="UOM"
+                  value={inspectionDetails.quantityUom || ''}
+                  onChange={(e) => setInspectionDetails({ ...inspectionDetails, quantityUom: e.target.value })}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 250 } } } }}
+                >
+                  <MenuItem value="">—</MenuItem>
+                  {dropdowns.unitsOfMeasure?.map((u) => (
+                    <MenuItem key={u.id} value={u.value}>{u.display_name}</MenuItem>
+                  ))}
+                </TextField>
+              </Box>
               <FormControlLabel
                 control={
                   <Checkbox

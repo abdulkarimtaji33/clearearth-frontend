@@ -220,7 +220,7 @@ const CompanyView = () => {
                       <TableRow key={contact.id} hover>
                         <TableCell>
                           <Typography variant="body2" fontWeight={600}>
-                            {contact.first_name} {contact.last_name}
+                            {[contact.first_name, contact.last_name].filter(Boolean).join(' ') || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell>

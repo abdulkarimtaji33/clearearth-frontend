@@ -172,7 +172,11 @@ const ContactForm = () => {
   const handleCreateCompany = async () => {
     try {
       const errors = {};
-      if (!newCompanyValues.companyName) errors.companyName = 'Required';
+      if (!newCompanyValues.companyName?.trim()) errors.companyName = 'Required';
+      if (!newCompanyValues.phone?.trim()) errors.phone = 'Required';
+      if (!newCompanyValues.country?.trim()) errors.country = 'Required';
+      if (!newCompanyValues.city?.trim()) errors.city = 'Required';
+      if (!newCompanyValues.address?.trim()) errors.address = 'Required';
       if (newCompanyValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCompanyValues.email)) {
         errors.email = 'Invalid email';
       }
@@ -487,6 +491,7 @@ const ContactForm = () => {
                 error={Boolean(newCompanyErrors.companyName)}
                 helperText={newCompanyErrors.companyName}
                 required
+                placeholder="Required"
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
@@ -495,6 +500,7 @@ const ContactForm = () => {
                 fullWidth
                 label="Email"
                 type="email"
+                placeholder="Optional"
                 value={newCompanyValues.email}
                 onChange={(e) => setNewCompanyValues((v) => ({ ...v, email: e.target.value }))}
                 error={Boolean(newCompanyErrors.email)}
@@ -506,8 +512,12 @@ const ContactForm = () => {
               <TextField
                 fullWidth
                 label="Phone"
+                placeholder="Required"
                 value={newCompanyValues.phone}
                 onChange={(e) => setNewCompanyValues((v) => ({ ...v, phone: e.target.value }))}
+                error={Boolean(newCompanyErrors.phone)}
+                helperText={newCompanyErrors.phone}
+                required
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
@@ -580,8 +590,12 @@ const ContactForm = () => {
               <TextField
                 fullWidth
                 label="Address Details"
+                placeholder="Required"
                 value={newCompanyValues.address}
                 onChange={(e) => setNewCompanyValues((v) => ({ ...v, address: e.target.value }))}
+                error={Boolean(newCompanyErrors.address)}
+                helperText={newCompanyErrors.address}
+                required
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>

@@ -515,7 +515,7 @@ const DealView = () => {
                     <Grid item xs={12} md={6}><InfoRow label="Service Type" value={deal.inspectionRequest.service_type || '-'} /></Grid>
                     <Grid item xs={12} md={6}><InfoRow label="Quantity" value={deal.inspectionRequest.quantity || '-'} /></Grid>
                     <Grid item xs={12} md={6}><InfoRow label="Safety Tools Required" value={deal.inspectionRequest.safety_tools_required ? 'Yes' : 'No'} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Requested By" value={deal.inspectionRequest.requestedByUser ? `${deal.inspectionRequest.requestedByUser.first_name} ${deal.inspectionRequest.requestedByUser.last_name}` : '-'} /></Grid>
+                    <Grid item xs={12} md={6}><InfoRow label="Requested By" value={deal.inspectionRequest.requestedByUser ? [deal.inspectionRequest.requestedByUser.first_name, deal.inspectionRequest.requestedByUser.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
                     <Grid item xs={12}>
                       <Grid container spacing={2} sx={{ mb: 2 }}>
                         <Grid item xs={4} md={3}>
@@ -575,8 +575,8 @@ const DealView = () => {
                 <Grid item xs={12} md={6}><InfoRow label="Cargo Type" value={deal.inspectionReport.cargo_type || '-'} /></Grid>
                 <Grid item xs={12} md={6}><InfoRow label="Transportation" value={deal.inspectionReport.transportation_arrangement || '-'} /></Grid>
                 <Grid item xs={12} md={6}><InfoRow label="Approx. Value" value={deal.inspectionReport.approximate_value != null ? deal.inspectionReport.approximate_value : '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Inspector" value={deal.inspectionReport.inspector ? `${deal.inspectionReport.inspector.first_name} ${deal.inspectionReport.inspector.last_name}` : '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Approved By" value={deal.inspectionReport.approvedBy ? `${deal.inspectionReport.approvedBy.first_name} ${deal.inspectionReport.approvedBy.last_name}` : '-'} /></Grid>
+                <Grid item xs={12} md={6}><InfoRow label="Inspector" value={deal.inspectionReport.inspector ? [deal.inspectionReport.inspector.first_name, deal.inspectionReport.inspector.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
+                <Grid item xs={12} md={6}><InfoRow label="Approved By" value={deal.inspectionReport.approvedBy ? [deal.inspectionReport.approvedBy.first_name, deal.inspectionReport.approvedBy.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
                 <Grid item xs={12}><InfoRow label="Notes" value={deal.inspectionReport.notes || '-'} /></Grid>
                 {deal.inspectionReport.images && deal.inspectionReport.images.length > 0 && (
                   <Grid item xs={12}>
@@ -619,11 +619,11 @@ const DealView = () => {
               <Grid item xs={12} md={6}>
                 <InfoRow label="Source Lead" value={deal.lead?.lead_number || '-'} />
                 <InfoRow label="Company (Client)" value={deal.company?.company_name || '-'} />
-                <InfoRow label="Contact Person" value={deal.contact ? `${deal.contact.first_name} ${deal.contact.last_name}` : '-'} />
+                <InfoRow label="Contact Person" value={deal.contact ? [deal.contact.first_name, deal.contact.last_name].filter(Boolean).join(' ') || '-' : '-'} />
               </Grid>
               <Grid item xs={12} md={6}>
                 <InfoRow label="Supplier" value={deal.supplier?.company_name || '-'} />
-                <InfoRow label="Assigned To" value={deal.assignedUser ? `${deal.assignedUser.first_name} ${deal.assignedUser.last_name}` : '-'} />
+                <InfoRow label="Assigned To" value={deal.assignedUser ? [deal.assignedUser.first_name, deal.assignedUser.last_name].filter(Boolean).join(' ') || '-' : '-'} />
                 <InfoRow label="Terms & Conditions" value={
                   (deal.termsList && deal.termsList.length > 0)
                     ? deal.termsList.map((t) => t.title).join(', ')
@@ -665,7 +665,7 @@ const DealView = () => {
                             <TableCell>{q.quotation_date ? new Date(q.quotation_date).toLocaleDateString() : '-'}</TableCell>
                             <TableCell>{q.currency || 'AED'} {Number(q.quotation_amount || 0).toFixed(2)}</TableCell>
                             <TableCell><Chip label={q.status || '-'} size="small" variant="outlined" /></TableCell>
-                            <TableCell>{q.preparedByUser ? `${q.preparedByUser.first_name} ${q.preparedByUser.last_name}` : '-'}</TableCell>
+                            <TableCell>{q.preparedByUser ? [q.preparedByUser.first_name, q.preparedByUser.last_name].filter(Boolean).join(' ') || '-' : '-'}</TableCell>
                             <TableCell align="right">
                               <Button size="small" onClick={() => navigate(`/erp/quotations/edit/${q.id}`)}>Edit</Button>
                             </TableCell>

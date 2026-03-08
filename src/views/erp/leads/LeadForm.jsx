@@ -406,7 +406,7 @@ const LeadForm = () => {
                           options={contacts}
                           getOptionLabel={(opt) =>
                             typeof opt === 'object'
-                              ? `${opt.first_name} ${opt.last_name}${opt.email ? ` (${opt.email})` : ''}`
+                              ? `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` (${opt.email})` : '')
                               : ''
                           }
                           value={contacts.find((c) => c.id === values.contactId) || null}

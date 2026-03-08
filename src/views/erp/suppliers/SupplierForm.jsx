@@ -38,6 +38,7 @@ import apiService from '../../../services/api';
 const validationSchema = Yup.object({
   companyName: Yup.string().trim().required('Supplier name is required'),
   primaryContactId: Yup.number().nullable().required('Contact is required'),
+  phone: Yup.string().trim().required('Phone is required'),
   country: Yup.string().trim().required('Country is required'),
   city: Yup.string().trim().required('City is required'),
   address: Yup.string().trim().required('Address is required'),
@@ -145,10 +146,10 @@ const SupplierForm = () => {
         setLinkedContacts(
           (s.contacts || []).map((ct) => ({
             contactId: ct.id,
-            firstName: ct.first_name,
-            lastName: ct.last_name,
-            email: ct.email,
-            phone: ct.phone,
+            firstName: ct.first_name || '',
+            lastName: ct.last_name || '',
+            email: ct.email || '',
+            phone: ct.phone || '',
             role: ct.SupplierContact?.role || '',
             isPrimary: ct.SupplierContact?.is_primary || false,
           }))
@@ -213,9 +214,9 @@ const SupplierForm = () => {
       ...prev,
       {
         contactId: selectedContactToAdd.id,
-        firstName: selectedContactToAdd.first_name,
-        lastName: selectedContactToAdd.last_name,
-        email: selectedContactToAdd.email,
+        firstName: selectedContactToAdd.first_name || '',
+        lastName: selectedContactToAdd.last_name || '',
+        email: selectedContactToAdd.email || '',
         phone: selectedContactToAdd.phone,
         role: contactRole,
         isPrimary: false,
@@ -252,8 +253,8 @@ const SupplierForm = () => {
           ...prev.map((c) => ({ ...c, isPrimary: false })),
           {
             contactId: newContact.id,
-            firstName: newContact.first_name,
-            lastName: newContact.last_name,
+            firstName: newContact.first_name || '',
+            lastName: newContact.last_name || '',
             email: newContact.email,
             phone: newContact.phone,
             role: contactRole,
@@ -414,10 +415,13 @@ const SupplierForm = () => {
                         fullWidth
                         label="Phone"
                         name="phone"
-                        placeholder="Optional"
+                        placeholder="Required"
                         value={values.phone || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        error={touched.phone && Boolean(errors.phone)}
+                        helperText={touched.phone ? errors.phone : ' '}
+                        required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
@@ -428,7 +432,7 @@ const SupplierForm = () => {
                           options={contacts}
                           getOptionLabel={(opt) =>
                             typeof opt === 'object'
-                              ? `${opt.first_name} ${opt.last_name}${opt.email ? ` (${opt.email})` : ''}`
+                              ? `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` (${opt.email})` : '')
                               : ''
                           }
                           value={contacts.find((c) => c.id === values.primaryContactId) || null}
@@ -644,7 +648,7 @@ const SupplierForm = () => {
                             <TableRow key={c.contactId} hover>
                               <TableCell sx={{ py: 2 }}>
                                 <Typography variant="body2" fontWeight={600}>
-                                  {c.firstName} {c.lastName}
+                                  {[c.firstName, c.lastName].filter(Boolean).join(' ') || '-'}
                                 </Typography>
                               </TableCell>
                               <TableCell sx={{ py: 2 }}>
@@ -745,7 +749,7 @@ const SupplierForm = () => {
                 options={contacts}
                 getOptionLabel={(opt) =>
                   typeof opt === 'object'
-                    ? `${opt.first_name} ${opt.last_name}${opt.email ? ` – ${opt.email}` : ''}`
+                    ? `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` – ${opt.email}` : '')
                     : ''
                 }
                 value={selectedContactToAdd}

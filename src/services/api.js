@@ -284,6 +284,10 @@ class ApiService {
     return this.get(`/inspection-requests/${id}`);
   }
 
+  async getInspectors() {
+    return this.get('/users/inspectors');
+  }
+
   // Quotations
   async getQuotations(params) {
     return this.get('/quotations', params);

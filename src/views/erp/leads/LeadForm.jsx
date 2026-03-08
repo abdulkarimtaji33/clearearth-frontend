@@ -24,6 +24,7 @@ import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const validationSchema = Yup.object({
   companyId: Yup.number().nullable().required('Company is required'),
@@ -36,9 +37,15 @@ const validationSchema = Yup.object({
   notes: Yup.string().trim().nullable(),
 });
 
+const canAssignLeads = (roleName) =>
+  ['sales_manager', 'admin', 'tenant_admin', 'super_admin'].includes(roleName);
+
 const LeadForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const roleName = user?.role?.name ?? user?.role;
+  const showAssignedTo = canAssignLeads(roleName);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -70,6 +77,7 @@ const LeadForm = () => {
     designations: [],
   });
   
+  const [users, setUsers] = useState([]);
   const [initialValues, setInitialValues] = useState({
     companyId: null,
     contactId: null,
@@ -79,16 +87,18 @@ const LeadForm = () => {
     status: 'new',
     productServiceId: null,
     notes: '',
+    assignedTo: null,
   });
 
   const isEdit = Boolean(id);
 
   const fetchCompaniesAndContacts = useCallback(async () => {
     try {
-      const [companiesRes, contactsRes, productsRes] = await Promise.all([
+      const [companiesRes, contactsRes, productsRes, usersRes] = await Promise.all([
         apiService.getCompanies({ pageSize: 500 }),
         apiService.getContacts({ pageSize: 500 }),
         apiService.getProducts({ pageSize: 500, status: 'active' }),
+        apiService.getUsers({ pageSize: 500 }),
       ]);
       if (companiesRes.success) {
         setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
@@ -98,6 +108,9 @@ const LeadForm = () => {
       }
       if (productsRes.success) {
         setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+      }
+      if (usersRes.success) {
+        setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.items || []);
       }
     } catch {
       // silently fail
@@ -137,6 +150,7 @@ const LeadForm = () => {
           status: lead.status || 'new',
           productServiceId: lead.product_service_id || null,
           notes: lead.notes || '',
+          assignedTo: lead.assigned_to || null,
         });
       }
     } catch (err) {
@@ -236,6 +250,7 @@ const LeadForm = () => {
         status: values.status,
         productServiceId: values.productServiceId,
         notes: values.notes || undefined,
+        assignedTo: values.assignedTo || undefined,
       };
       
       if (isEdit) {
@@ -571,6 +586,32 @@ const LeadForm = () => {
                         <MenuItem value="converted">Converted</MenuItem>
                       </TextField>
                     </Grid>
+                    {showAssignedTo && (
+                      <Grid item xs={12} md={6}>
+                        <Autocomplete
+                          fullWidth
+                          options={users}
+                          getOptionLabel={(opt) =>
+                            typeof opt === 'object'
+                              ? `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` (${opt.email})` : '')
+                              : ''
+                          }
+                          value={users.find((u) => u.id === values.assignedTo) || null}
+                          onChange={(_, val) => setFieldValue('assignedTo', val?.id || null)}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Assigned To"
+                              placeholder="Select sales rep..."
+                              helperText="Assign lead to a sales representative"
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                          )}
+                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                        />
+                      </Grid>
+                    )}
                     <Grid item xs={12} md={6}>
                       <Autocomplete
                         fullWidth

@@ -35,6 +35,7 @@ import { useDropzone } from 'react-dropzone';
 import { IconArrowLeft, IconPlus, IconTrash, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const validationSchema = Yup.object({
   leadId: Yup.number().nullable().required('Lead is required'),
@@ -114,9 +115,15 @@ const WdsAttachmentDropzone = ({ onDrop }) => {
   );
 };
 
+const canAssignDeals = (roleName) =>
+  ['sales_manager', 'admin', 'tenant_admin', 'super_admin'].includes(roleName);
+
 const DealForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const roleName = user?.role?.name ?? user?.role;
+  const showAssignedTo = canAssignDeals(roleName);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -839,26 +846,28 @@ const DealForm = () => {
                       </Box>
                     </Box>
                     
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-                      <Box>
-                        <Autocomplete
-                          fullWidth
-                          options={users}
-                          getOptionLabel={(opt) => `${opt.first_name || ''} ${opt.last_name || ''}`.trim() || '-'}
-                          value={users.find((u) => u.id === values.assignedTo) || null}
-                          onChange={(_, val) => setFieldValue('assignedTo', val?.id || null)}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Assigned To"
-                              placeholder="Select user..."
-                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                            />
-                          )}
-                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                          ListboxProps={{ style: { maxHeight: '300px' } }}
-                        />
-                      </Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: showAssignedTo ? '1fr 1fr' : '1fr' }, gap: 3 }}>
+                      {showAssignedTo && (
+                        <Box>
+                          <Autocomplete
+                            fullWidth
+                            options={users}
+                            getOptionLabel={(opt) => `${opt.first_name || ''} ${opt.last_name || ''}`.trim() || '-'}
+                            value={users.find((u) => u.id === values.assignedTo) || null}
+                            onChange={(_, val) => setFieldValue('assignedTo', val?.id || null)}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Assigned To"
+                                placeholder="Select user..."
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                              />
+                            )}
+                            isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                            ListboxProps={{ style: { maxHeight: '300px' } }}
+                          />
+                        </Box>
+                      )}
                       <Box>
                         <Autocomplete
                           multiple

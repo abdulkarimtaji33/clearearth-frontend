@@ -93,27 +93,26 @@ const LeadForm = () => {
   const isEdit = Boolean(id);
 
   const fetchCompaniesAndContacts = useCallback(async () => {
-    try {
-      const [companiesRes, contactsRes, productsRes, usersRes] = await Promise.all([
-        apiService.getCompanies({ pageSize: 500 }),
-        apiService.getContacts({ pageSize: 500 }),
-        apiService.getProducts({ pageSize: 500, status: 'active' }),
-        apiService.getUsers({ pageSize: 500 }),
-      ]);
-      if (companiesRes.success) {
-        setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
-      }
-      if (contactsRes.success) {
-        setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : []);
-      }
-      if (productsRes.success) {
-        setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
-      }
-      if (usersRes.success) {
-        setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.items || []);
-      }
-    } catch {
-      // silently fail
+    const results = await Promise.allSettled([
+      apiService.getCompanies({ pageSize: 500 }),
+      apiService.getContacts({ pageSize: 500 }),
+      apiService.getProducts({ pageSize: 500, status: 'active' }),
+      apiService.getUsers({ pageSize: 500 }),
+    ]);
+    const [companiesRes, contactsRes, productsRes, usersRes] = results.map((r) =>
+      r.status === 'fulfilled' ? r.value : null
+    );
+    if (companiesRes?.success) {
+      setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : companiesRes.data?.items || []);
+    }
+    if (contactsRes?.success) {
+      setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : contactsRes.data?.items || []);
+    }
+    if (productsRes?.success) {
+      setProducts(Array.isArray(productsRes.data) ? productsRes.data : productsRes.data?.items || []);
+    }
+    if (usersRes?.success) {
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.items || []);
     }
   }, []);
 

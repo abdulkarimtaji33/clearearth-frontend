@@ -80,31 +80,30 @@ const LeadList = () => {
   const [disqualifying, setDisqualifying] = useState(false);
 
   const fetchDropdowns = useCallback(async () => {
-    try {
-      const [dropdownRes, usersRes, companiesRes, contactsRes, productsRes] = await Promise.all([
-        apiService.getAllDropdowns(),
-        apiService.getUsers({ pageSize: 500 }),
-        apiService.getCompanies({ pageSize: 500 }),
-        apiService.getContacts({ pageSize: 500 }),
-        apiService.getProducts({ pageSize: 500 }),
-      ]);
-      if (dropdownRes.success) {
-        setDropdowns({ leadSources: dropdownRes.data.lead_sources || [] });
-      }
-      if (usersRes.success) {
-        setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
-      }
-      if (companiesRes.success) {
-        setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
-      }
-      if (contactsRes.success) {
-        setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : []);
-      }
-      if (productsRes.success) {
-        setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch dropdowns:', err);
+    const results = await Promise.allSettled([
+      apiService.getAllDropdowns(),
+      apiService.getUsers({ pageSize: 500 }),
+      apiService.getCompanies({ pageSize: 500 }),
+      apiService.getContacts({ pageSize: 500 }),
+      apiService.getProducts({ pageSize: 500 }),
+    ]);
+    const [dropdownRes, usersRes, companiesRes, contactsRes, productsRes] = results.map((r) =>
+      r.status === 'fulfilled' ? r.value : null
+    );
+    if (dropdownRes?.success) {
+      setDropdowns({ leadSources: dropdownRes.data.lead_sources || [] });
+    }
+    if (usersRes?.success) {
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.items || []);
+    }
+    if (companiesRes?.success) {
+      setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : companiesRes.data?.items || []);
+    }
+    if (contactsRes?.success) {
+      setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : contactsRes.data?.items || []);
+    }
+    if (productsRes?.success) {
+      setProducts(Array.isArray(productsRes.data) ? productsRes.data : productsRes.data?.items || []);
     }
   }, []);
 

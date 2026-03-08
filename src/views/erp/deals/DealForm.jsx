@@ -210,29 +210,27 @@ const DealForm = () => {
   const isEdit = Boolean(id);
 
   const fetchAllData = useCallback(async () => {
-    try {
-      const [leadsRes, companiesRes, contactsRes, suppliersRes, productsRes, usersRes, termsRes, materialTypesRes] = await Promise.all([
-        apiService.getLeads({ pageSize: 500 }),
-        apiService.getCompanies({ pageSize: 500 }),
-        apiService.getContacts({ pageSize: 500 }),
-        apiService.getSuppliers({ pageSize: 500 }),
-        apiService.getProducts({ pageSize: 500, status: 'active' }),
-        apiService.getUsers({ pageSize: 500 }),
-        apiService.getTermsAndConditions({ pageSize: 500, status: 'active' }),
-        apiService.getMaterialTypes(),
-      ]);
-      
-      if (leadsRes.success) setLeads(Array.isArray(leadsRes.data) ? leadsRes.data : []);
-      if (companiesRes.success) setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
-      if (contactsRes.success) setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : []);
-      if (suppliersRes.success) setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : []);
-      if (productsRes.success) setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
-      if (usersRes.success) setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.items || []);
-      if (termsRes.success) setTermsAndConditions(Array.isArray(termsRes.data) ? termsRes.data : []);
-      if (materialTypesRes.success) setMaterialTypes(Array.isArray(materialTypesRes.data) ? materialTypesRes.data : []);
-    } catch (err) {
-      console.error('Failed to fetch data:', err);
-    }
+    const results = await Promise.allSettled([
+      apiService.getLeads({ pageSize: 500 }),
+      apiService.getCompanies({ pageSize: 500 }),
+      apiService.getContacts({ pageSize: 500 }),
+      apiService.getSuppliers({ pageSize: 500 }),
+      apiService.getProducts({ pageSize: 500, status: 'active' }),
+      apiService.getUsers({ pageSize: 500 }),
+      apiService.getTermsAndConditions({ pageSize: 500, status: 'active' }),
+      apiService.getMaterialTypes(),
+    ]);
+    const [leadsRes, companiesRes, contactsRes, suppliersRes, productsRes, usersRes, termsRes, materialTypesRes] = results.map((r) =>
+      r.status === 'fulfilled' ? r.value : null
+    );
+    if (leadsRes?.success) setLeads(Array.isArray(leadsRes.data) ? leadsRes.data : []);
+    if (companiesRes?.success) setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : companiesRes.data?.items || []);
+    if (contactsRes?.success) setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : contactsRes.data?.items || []);
+    if (suppliersRes?.success) setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : suppliersRes.data?.items || []);
+    if (productsRes?.success) setProducts(Array.isArray(productsRes.data) ? productsRes.data : productsRes.data?.items || []);
+    if (usersRes?.success) setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.items || []);
+    if (termsRes?.success) setTermsAndConditions(Array.isArray(termsRes.data) ? termsRes.data : termsRes.data?.items || []);
+    if (materialTypesRes?.success) setMaterialTypes(Array.isArray(materialTypesRes.data) ? materialTypesRes.data : materialTypesRes.data?.items || []);
   }, []);
 
   const fetchDropdowns = useCallback(async () => {

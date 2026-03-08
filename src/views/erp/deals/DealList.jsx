@@ -93,27 +93,26 @@ const DealList = () => {
   }, []);
 
   const fetchRelatedData = async () => {
-    try {
-      const [companiesRes, contactsRes, usersRes, productsRes] = await Promise.all([
-        apiService.getCompanies({ pageSize: 500 }),
-        apiService.getContacts({ pageSize: 500 }),
-        apiService.getUsers({ pageSize: 500 }),
-        apiService.getProducts({ pageSize: 500 }),
-      ]);
-      if (companiesRes.success) {
-        setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
-      }
-      if (contactsRes.success) {
-        setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : []);
-      }
-      if (usersRes.success) {
-        setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
-      }
-      if (productsRes.success) {
-        setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch related data:', err);
+    const results = await Promise.allSettled([
+      apiService.getCompanies({ pageSize: 500 }),
+      apiService.getContacts({ pageSize: 500 }),
+      apiService.getUsers({ pageSize: 500 }),
+      apiService.getProducts({ pageSize: 500 }),
+    ]);
+    const [companiesRes, contactsRes, usersRes, productsRes] = results.map((r) =>
+      r.status === 'fulfilled' ? r.value : null
+    );
+    if (companiesRes?.success) {
+      setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : companiesRes.data?.items || []);
+    }
+    if (contactsRes?.success) {
+      setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : contactsRes.data?.items || []);
+    }
+    if (usersRes?.success) {
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.items || []);
+    }
+    if (productsRes?.success) {
+      setProducts(Array.isArray(productsRes.data) ? productsRes.data : productsRes.data?.items || []);
     }
   };
 

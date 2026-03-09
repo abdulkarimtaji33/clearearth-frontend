@@ -41,9 +41,11 @@ const ContactForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [companies, setCompanies] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [addCompanyDialogOpen, setAddCompanyDialogOpen] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
   const [newCompanyValues, setNewCompanyValues] = useState({
+    addAs: 'client',
     companyName: '', type: 'organization', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '', vatNumber: '',
   });
   const [newCompanyErrors, setNewCompanyErrors] = useState({});
@@ -85,6 +87,17 @@ const ContactForm = () => {
     }
   }, []);
 
+  const fetchAllSuppliers = useCallback(async () => {
+    try {
+      const response = await apiService.getSuppliers({ pageSize: 500 });
+      if (response.success) {
+        setSuppliers(Array.isArray(response.data) ? response.data : []);
+      }
+    } catch {
+      // silently fail
+    }
+  }, []);
+
   const fetchDropdowns = useCallback(async () => {
     try {
       const response = await apiService.getAllDropdowns();
@@ -103,6 +116,7 @@ const ContactForm = () => {
 
   useEffect(() => {
     fetchAllCompanies();
+    fetchAllSuppliers();
     fetchDropdowns();
     if (isEdit) {
       fetchContact();
@@ -185,20 +199,36 @@ const ContactForm = () => {
       if (Object.keys(errors).length > 0) return;
 
       setSavingCompany(true);
-      const response = await apiService.createCompany(newCompanyValues);
-      if (response.success || response.data) {
-        const newCompany = response.data;
-        setCompanies((prev) => [...prev, newCompany]);
-        setCreatedCompanyId(newCompany.id);
-        if (formikSetFieldValue) {
-          formikSetFieldValue('companyId', newCompany.id);
+      const isVendor = newCompanyValues.addAs === 'vendor';
+      if (isVendor) {
+        const response = await apiService.createSupplier(newCompanyValues);
+        if (response.success || response.data) {
+          const created = response.data;
+          setSuppliers((prev) => [...prev, created]);
+          const companyId = created.created_company_id || created.id;
+          if (companyId && formikSetFieldValue) {
+            setCompanies((prev) => [...prev, { id: companyId, company_name: newCompanyValues.companyName }]);
+            formikSetFieldValue('companyId', companyId);
+          }
+          setNewCompanyValues({ addAs: 'client', companyName: '', type: 'organization', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '', vatNumber: '' });
+          setAddCompanyDialogOpen(false);
         }
-        setNewCompanyValues({ companyName: '', type: 'organization', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '', vatNumber: '' });
-        setAddCompanyDialogOpen(false);
-        return newCompany.id;
+      } else {
+        const response = await apiService.createCompany(newCompanyValues);
+        if (response.success || response.data) {
+          const newCompany = response.data;
+          setCompanies((prev) => [...prev, newCompany]);
+          setCreatedCompanyId(newCompany.id);
+          if (formikSetFieldValue) {
+            formikSetFieldValue('companyId', newCompany.id);
+          }
+          setNewCompanyValues({ addAs: 'client', companyName: '', type: 'organization', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '', vatNumber: '' });
+          setAddCompanyDialogOpen(false);
+          return newCompany.id;
+        }
       }
     } catch (err) {
-      setNewCompanyErrors({ submit: err.message || 'Failed to create company' });
+      setNewCompanyErrors({ submit: err.message || 'Failed to create' });
     } finally {
       setSavingCompany(false);
     }
@@ -486,6 +516,26 @@ const ContactForm = () => {
             <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{newCompanyErrors.submit}</Alert>
           )}
           <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                select
+                label="Add as"
+                value={newCompanyValues.addAs || 'client'}
+                onChange={(e) => setNewCompanyValues((v) => ({ ...v, addAs: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      style: { maxHeight: 300 }
+                    }
+                  }
+                }}
+              >
+                <MenuItem value="client">Client</MenuItem>
+                <MenuItem value="vendor">Vendor</MenuItem>
+              </TextField>
+            </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth

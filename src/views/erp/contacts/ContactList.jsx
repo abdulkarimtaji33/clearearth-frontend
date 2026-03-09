@@ -342,14 +342,13 @@ const ContactList = () => {
               <Table sx={{ minWidth: 700 }}>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                    <TableCell sx={{ fontWeight: 600 }}>Code</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Contact Type</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Designation</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Company</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Department</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
@@ -357,7 +356,7 @@ const ContactList = () => {
                 <TableBody>
                   {contacts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                         <Typography color="textSecondary">
                           {search || statusFilter || contactTypeFilter
                             ? 'No contacts found matching your filters'
@@ -370,7 +369,7 @@ const ContactList = () => {
                       <TableRow key={contact.id} hover>
                         <TableCell>
                           <Typography variant="body2" fontWeight={600} color="primary">
-                            {contact.contact_code}
+                            {contact.id}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -401,11 +400,6 @@ const ContactList = () => {
                         <TableCell>
                           <Typography variant="body2" color="textSecondary">
                             {contact.phone || contact.mobile || '-'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="textSecondary">
-                            {contact.department || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell>

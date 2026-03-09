@@ -25,6 +25,7 @@ const NavItem = ({ item, level, pathDirect, onClick, hideMenu }) => {
   const itemIcon =
     level > 1 ? <Icon stroke={1.5} size="1rem" /> : <Icon stroke={1.5} size="1.3rem" />;
 
+  const isActive = pathDirect === item.href;
   const ListItemStyled = styled(ListItem)(() => ({
     whiteSpace: 'nowrap',
     marginBottom: '2px',
@@ -32,18 +33,24 @@ const NavItem = ({ item, level, pathDirect, onClick, hideMenu }) => {
     borderRadius: `${isBorderRadius}px`,
     backgroundColor: level > 1 ? 'transparent !important' : 'inherit',
     color:
-      level > 1 && pathDirect === item.href ? `${theme.palette.primary.main}!important` : theme.palette.text.secondary,
+      level > 1 && isActive ? `${theme.palette.primary.main}!important` : theme.palette.text.secondary,
     paddingLeft: hideMenu ? '10px' : level > 2 ? `${level * 15}px` : '10px',
     '&:hover': {
       backgroundColor: theme.palette.primary.light,
       color: theme.palette.primary.main,
     },
-    '&.active': {
-      color: 'white',
-      backgroundColor: theme.palette.primary.main,
+    '&.active, &.Mui-selected': {
+      color: `${theme.palette.primary.contrastText || '#fff'} !important`,
+      backgroundColor: `${theme.palette.primary.main} !important`,
+      '& .MuiListItemIcon-root': {
+        color: `${theme.palette.primary.contrastText || '#fff'} !important`,
+      },
+      '& .MuiListItemText-root': {
+        color: `${theme.palette.primary.contrastText || '#fff'} !important`,
+      },
       '&:hover': {
-        backgroundColor: theme.palette.primary.main,
-        color: 'white',
+        backgroundColor: `${theme.palette.primary.main} !important`,
+        color: `${theme.palette.primary.contrastText || '#fff'} !important`,
       },
     },
   }));
@@ -65,7 +72,7 @@ const NavItem = ({ item, level, pathDirect, onClick, hideMenu }) => {
             minWidth: '36px',
             p: '3px 0',
             color:
-              level > 1 && pathDirect === item.href
+              level > 1 && isActive
                 ? `${theme.palette.primary.main}!important`
                 : 'inherit',
           }}

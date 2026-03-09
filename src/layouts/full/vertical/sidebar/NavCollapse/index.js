@@ -40,6 +40,8 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hi
       }
     });
   }, [pathname, menu.children]);
+  const isActiveOrOpen = pathname.includes(menu.href) || open;
+  const activeColor = theme.palette.primary.contrastText || '#fff';
   const ListItemStyled = styled(ListItem)(() => ({
     marginBottom: '2px',
     cursor: 'pointer',
@@ -47,19 +49,24 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hi
     paddingLeft: hideMenu ? '10px' : level > 2 ? `${level * 15}px` : '10px',
     backgroundColor: open && level < 2 ? theme.palette.primary.main : '',
     whiteSpace: 'nowrap',
-    '&:hover': {
-      backgroundColor:
-        pathname.includes(menu.href) || open
-          ? theme.palette.primary.main
-          : theme.palette.primary.light,
-      color: pathname.includes(menu.href) || open ? 'white' : theme.palette.primary.main,
-    },
     color:
       open && level < 2
-        ? 'white'
-        : `inherit` && level > 1 && open
+        ? activeColor
+        : level > 1 && open
           ? theme.palette.primary.main
           : theme.palette.text.secondary,
+    '&:hover': {
+      backgroundColor:
+        isActiveOrOpen
+          ? theme.palette.primary.main
+          : theme.palette.primary.light,
+      color: isActiveOrOpen ? activeColor : theme.palette.primary.main,
+    },
+    ...(open && level < 2 && {
+      '& .MuiListItemIcon-root, & .MuiListItemText-root': {
+        color: `${activeColor} !important`,
+      },
+    }),
     borderRadius: `${isBorderRadius}px`,
   }));
   // If Menu has Children - filter by permission

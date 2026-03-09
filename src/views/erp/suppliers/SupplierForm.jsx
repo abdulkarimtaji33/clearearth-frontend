@@ -44,6 +44,7 @@ const validationSchema = Yup.object({
   address: Yup.string().trim().required('Address is required'),
   email: Yup.string().email('Invalid email').required('Email is required'),
   website: Yup.string().url('Invalid URL').nullable().transform((v) => v || null),
+  vatNumber: Yup.string().trim().nullable().transform((v) => v || null),
 });
 
 const SupplierForm = () => {
@@ -60,7 +61,7 @@ const SupplierForm = () => {
   const [contactRole, setContactRole] = useState('');
   const [savingContact, setSavingContact] = useState(false);
   const [newContactValues, setNewContactValues] = useState({
-    firstName: '', lastName: '', email: '', phone: '', designation: '', department: '',
+    firstName: '', lastName: '', email: '', phone: '', designation: '',
   });
   const [newContactErrors, setNewContactErrors] = useState({});
   const setFieldValueRef = useRef(null);
@@ -92,7 +93,7 @@ const SupplierForm = () => {
 
   const fetchAllContacts = useCallback(async () => {
     try {
-      const response = await apiService.getContacts({ pageSize: 500 });
+      const response = await apiService.getContacts({ pageSize: 500, contactType: 'vendors' });
       if (response.success) {
         setContacts(Array.isArray(response.data) ? response.data : []);
       }
@@ -231,6 +232,7 @@ const SupplierForm = () => {
     try {
       const errors = {};
       if (!newContactValues.firstName) errors.firstName = 'Required';
+      if (!newContactValues.phone?.trim()) errors.phone = 'Required';
       if (newContactValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newContactValues.email)) {
         errors.email = 'Invalid email';
       }
@@ -244,7 +246,7 @@ const SupplierForm = () => {
         email: newContactValues.email || undefined,
         phone: newContactValues.phone || undefined,
         designation: newContactValues.designation,
-        department: newContactValues.department,
+        contactType: 'vendors',
       });
       if (response.success || response.data) {
         const newContact = response.data;
@@ -262,7 +264,7 @@ const SupplierForm = () => {
           },
         ]);
         setFieldValueRef.current?.('primaryContactId', newContact.id);
-        setNewContactValues({ firstName: '', lastName: '', email: '', phone: '', designation: '', department: '' });
+        setNewContactValues({ firstName: '', lastName: '', email: '', phone: '', designation: '' });
         setContactRole('');
         setNewContactDialogOpen(false);
         setAddContactDialogOpen(false);
@@ -895,6 +897,9 @@ const SupplierForm = () => {
                 label="Phone"
                 value={newContactValues.phone}
                 onChange={(e) => setNewContactValues((v) => ({ ...v, phone: e.target.value }))}
+                error={Boolean(newContactErrors.phone)}
+                helperText={newContactErrors.phone}
+                required
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
@@ -917,38 +922,6 @@ const SupplierForm = () => {
                 <MenuItem value="">None</MenuItem>
                 {dropdowns.designations.map((d) => (
                   <MenuItem key={d.id} value={d.value}>{d.display_name}</MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Department"
-                placeholder="e.g. Sales, Finance"
-                value={newContactValues.department}
-                onChange={(e) => setNewContactValues((v) => ({ ...v, department: e.target.value }))}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                select
-                label="Role / Department for this Supplier"
-                value={contactRole}
-                onChange={(e) => setContactRole(e.target.value)}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                SelectProps={{
-                  MenuProps: {
-                    PaperProps: {
-                      style: { maxHeight: 300 }
-                    }
-                  }
-                }}
-              >
-                <MenuItem value="">No role</MenuItem>
-                {dropdowns.contactRoles.map((r) => (
-                  <MenuItem key={r.id} value={r.value}>{r.display_name}</MenuItem>
                 ))}
               </TextField>
             </Grid>

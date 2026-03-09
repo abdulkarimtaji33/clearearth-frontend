@@ -30,8 +30,10 @@ import {
   MenuItem,
   Collapse,
   Autocomplete,
+  Menu,
+  MenuItem as MenuItemMui,
 } from '@mui/material';
-import { IconPlus, IconEdit, IconTrash, IconSearch, IconCurrencyDollar, IconEye, IconFilterOff, IconFilter, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconSearch, IconCurrencyDollar, IconEye, IconFilterOff, IconFilter, IconChevronDown, IconChevronUp, IconDotsVertical } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -76,6 +78,8 @@ const DealList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dealToDelete, setDealToDelete] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedDeal, setSelectedDeal] = useState(null);
   const [companies, setCompanies] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [users, setUsers] = useState([]);
@@ -176,6 +180,32 @@ const DealList = () => {
   const openDeleteDialog = (deal) => {
     setDealToDelete(deal);
     setDeleteDialogOpen(true);
+  };
+
+  const handleMenuOpen = (event, deal) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedDeal(deal);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedDeal(null);
+  };
+
+  const handleView = () => {
+    navigate(`/erp/deals/view/${selectedDeal.id}`);
+    handleMenuClose();
+  };
+
+  const handleEdit = () => {
+    navigate(`/erp/deals/edit/${selectedDeal.id}`);
+    handleMenuClose();
+  };
+
+  const handleOpenDeleteDialog = () => {
+    setDealToDelete(selectedDeal);
+    setDeleteDialogOpen(true);
+    handleMenuClose();
   };
 
   return (
@@ -471,30 +501,9 @@ const DealList = () => {
                         )}
                         </TableCell>
                       <TableCell align="center">
-                        <IconButton
-                          size="small"
-                          color="info"
-                          onClick={() => navigate(`/erp/deals/view/${deal.id}`)}
-                          title="View"
-                        >
-                          <IconEye size={18} />
+                        <IconButton size="small" onClick={(e) => handleMenuOpen(e, deal)}>
+                          <IconDotsVertical size={18} />
                         </IconButton>
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => navigate(`/erp/deals/edit/${deal.id}`)}
-                          title="Edit"
-                        >
-                          <IconEdit size={18} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => openDeleteDialog(deal)}
-                          title="Delete"
-                        >
-                          <IconTrash size={18} />
-                          </IconButton>
                         </TableCell>
                       </TableRow>
                   ))
@@ -515,6 +524,21 @@ const DealList = () => {
           )}
         </Card>
       </Box>
+
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+        <MenuItemMui onClick={handleView}>
+          <IconEye size={18} style={{ marginRight: 8 }} />
+          View
+        </MenuItemMui>
+        <MenuItemMui onClick={handleEdit}>
+          <IconEdit size={18} style={{ marginRight: 8 }} />
+          Edit
+        </MenuItemMui>
+        <MenuItemMui onClick={handleOpenDeleteDialog} sx={{ color: 'error.main' }}>
+          <IconTrash size={18} style={{ marginRight: 8 }} />
+          Delete
+        </MenuItemMui>
+      </Menu>
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Delete Deal</DialogTitle>

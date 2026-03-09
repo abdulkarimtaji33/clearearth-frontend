@@ -25,11 +25,12 @@ import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
-// Contacts: Name (Required), Last name (Optional), Company (Optional), Phone (Optional), Email (Optional)
+// Contacts: Name (Required), Contact Type (Required), Last name (Optional), Company (Optional), Phone (Optional), Email (Optional)
 const validationSchema = Yup.object({
   firstName: Yup.string().trim().required('First name is required'),
+  contactType: Yup.string().oneOf(['clients', 'vendors']).required('Contact type is required'),
   lastName: Yup.string().trim().nullable().transform((v) => v || ''),
-  phone: Yup.string().trim().nullable().transform((v) => v || null),
+  phone: Yup.string().trim().required('Phone is required'),
   email: Yup.string().email('Invalid email').nullable().transform((v) => v || null),
 });
 
@@ -43,7 +44,7 @@ const ContactForm = () => {
   const [addCompanyDialogOpen, setAddCompanyDialogOpen] = useState(false);
   const [savingCompany, setSavingCompany] = useState(false);
   const [newCompanyValues, setNewCompanyValues] = useState({
-    companyName: '', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '',
+    companyName: '', type: 'organization', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '', vatNumber: '',
   });
   const [newCompanyErrors, setNewCompanyErrors] = useState({});
   const [formikSetFieldValue, setFormikSetFieldValue] = useState(null);
@@ -192,7 +193,7 @@ const ContactForm = () => {
         if (formikSetFieldValue) {
           formikSetFieldValue('companyId', newCompany.id);
         }
-        setNewCompanyValues({ companyName: '', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '' });
+        setNewCompanyValues({ companyName: '', type: 'organization', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '', vatNumber: '' });
         setAddCompanyDialogOpen(false);
         return newCompany.id;
       }
@@ -308,12 +309,15 @@ const ContactForm = () => {
                         value={values.contactType || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        error={touched.contactType && Boolean(errors.contactType)}
+                        helperText={touched.contactType ? errors.contactType : ' '}
+                        required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         SelectProps={{
                           MenuProps: { PaperProps: { style: { maxHeight: 350 } } },
                         }}
                       >
-                        <MenuItem value="">None</MenuItem>
+                        <MenuItem value="">Select Type</MenuItem>
                         <MenuItem value="clients">Client</MenuItem>
                         <MenuItem value="vendors">Vendor</MenuItem>
                       </TextField>
@@ -324,12 +328,12 @@ const ContactForm = () => {
                         label="Phone"
                         name="phone"
                         placeholder="Required"
+                        required
                         value={values.phone}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.phone && Boolean(errors.phone)}
                         helperText={touched.phone ? errors.phone : ' '}
-                        required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
@@ -498,6 +502,26 @@ const ContactForm = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
+                select
+                label="Type"
+                value={newCompanyValues.type || 'organization'}
+                onChange={(e) => setNewCompanyValues((v) => ({ ...v, type: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      style: { maxHeight: 300 }
+                    }
+                  }
+                }}
+              >
+                <MenuItem value="individual">Individual</MenuItem>
+                <MenuItem value="organization">Organization</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
                 label="Email"
                 type="email"
                 placeholder="Optional"
@@ -599,13 +623,23 @@ const ContactForm = () => {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Website"
                 placeholder="https://example.com"
                 value={newCompanyValues.website}
                 onChange={(e) => setNewCompanyValues((v) => ({ ...v, website: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="VAT/TRN Number"
+                placeholder="Optional"
+                value={newCompanyValues.vatNumber}
+                onChange={(e) => setNewCompanyValues((v) => ({ ...v, vatNumber: e.target.value }))}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>

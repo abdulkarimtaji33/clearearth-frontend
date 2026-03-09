@@ -29,8 +29,10 @@ import {
   Select,
   MenuItem,
   Collapse,
+  Menu,
+  MenuItem as MenuItemMui,
 } from '@mui/material';
-import { IconPlus, IconEdit, IconTrash, IconSearch, IconFilterOff, IconFilter, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconSearch, IconFilterOff, IconFilter, IconChevronDown, IconChevronUp, IconDotsVertical } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -52,6 +54,8 @@ const ProductList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [dropdowns, setDropdowns] = useState({ categories: [], unitsOfMeasure: [] });
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
@@ -135,6 +139,27 @@ const ProductList = () => {
   const openDeleteDialog = (product) => {
     setProductToDelete(product);
     setDeleteDialogOpen(true);
+  };
+
+  const handleMenuOpen = (event, product) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedProduct(product);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedProduct(null);
+  };
+
+  const handleEdit = () => {
+    navigate(`/erp/products/edit/${selectedProduct.id}`);
+    handleMenuClose();
+  };
+
+  const handleOpenDeleteDialog = () => {
+    setProductToDelete(selectedProduct);
+    setDeleteDialogOpen(true);
+    handleMenuClose();
   };
 
   return (
@@ -351,19 +376,8 @@ const ProductList = () => {
                         />
                       </TableCell>
                       <TableCell align="center">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => navigate(`/erp/products/edit/${product.id}`)}
-                        >
-                          <IconEdit size={18} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => openDeleteDialog(product)}
-                        >
-                          <IconTrash size={18} />
+                        <IconButton size="small" onClick={(e) => handleMenuOpen(e, product)}>
+                          <IconDotsVertical size={18} />
                         </IconButton>
                       </TableCell>
                     </TableRow>
@@ -385,6 +399,17 @@ const ProductList = () => {
           )}
         </Card>
       </Box>
+
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+        <MenuItemMui onClick={handleEdit}>
+          <IconEdit size={18} style={{ marginRight: 8 }} />
+          Edit
+        </MenuItemMui>
+        <MenuItemMui onClick={handleOpenDeleteDialog} sx={{ color: 'error.main' }}>
+          <IconTrash size={18} style={{ marginRight: 8 }} />
+          Delete
+        </MenuItemMui>
+      </Menu>
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Delete Product/Service</DialogTitle>

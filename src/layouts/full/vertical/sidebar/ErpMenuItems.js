@@ -14,6 +14,7 @@ import {
   IconUsers,
   IconClipboardCheck,
   IconSettings,
+  IconPoint,
 } from '@tabler/icons-react';
 
 const ErpMenuItems = [
@@ -23,31 +24,41 @@ const ErpMenuItems = [
   },
   {
     id: uniqueId(),
-    title: 'Contacts',
+    title: 'Clients & Vendors',
     icon: IconAddressBook,
     href: '/erp/contacts',
     permission: 'contacts.read',
+    children: [
+      { id: uniqueId(), title: 'Contacts', icon: IconPoint, href: '/erp/contacts', permission: 'contacts.read' },
+      { id: uniqueId(), title: 'Clients', icon: IconPoint, href: '/erp/companies', permission: 'companies.read' },
+      { id: uniqueId(), title: 'Vendors', icon: IconPoint, href: '/erp/suppliers', permission: 'suppliers.read' },
+    ],
   },
   {
     id: uniqueId(),
-    title: 'Clients',
-    icon: IconBuilding,
-    href: '/erp/companies',
-    permission: 'companies.read',
-  },
-  {
-    id: uniqueId(),
-    title: 'Vendors',
-    icon: IconTruckDelivery,
-    href: '/erp/suppliers',
-    permission: 'suppliers.read',
-  },
-  {
-    id: uniqueId(),
-    title: 'Leads',
-    icon: IconPhone,
+    title: 'Leads & Deals',
+    icon: IconBriefcase,
     href: '/erp/leads',
     permission: 'leads.read',
+    children: [
+      { id: uniqueId(), title: 'Leads', icon: IconPoint, href: '/erp/leads', permission: 'leads.read' },
+      { id: uniqueId(), title: 'Deals', icon: IconPoint, href: '/erp/deals', permission: 'deals.read' },
+    ],
+  },
+  {
+    id: uniqueId(),
+    title: 'Quotations & POs',
+    icon: IconReceipt,
+    href: '/erp/quotations',
+    permission: 'deals.read',
+    children: [
+      { id: uniqueId(), title: 'Quotations', icon: IconPoint, href: '/erp/quotations', permission: 'deals.read' },
+      { id: uniqueId(), title: 'Purchase Orders', icon: IconPoint, href: '/erp/purchase-orders', permission: 'deals.read' },
+    ],
+  },
+  {
+    navlabel: true,
+    subheader: 'Others',
   },
   {
     id: uniqueId(),
@@ -56,27 +67,7 @@ const ErpMenuItems = [
     href: '/erp/products',
     permission: 'products.read',
   },
-  {
-    id: uniqueId(),
-    title: 'Deals',
-    icon: IconBriefcase,
-    href: '/erp/deals',
-    permission: 'deals.read',
-  },
-  {
-    id: uniqueId(),
-    title: 'Quotations',
-    icon: IconReceipt,
-    href: '/erp/quotations',
-    permission: 'deals.read',
-  },
-  {
-    id: uniqueId(),
-    title: 'Purchase Orders',
-    icon: IconShoppingCart,
-    href: '/erp/purchase-orders',
-    permission: 'deals.read',
-  },
+ 
   {
     id: uniqueId(),
     title: 'Terms & Conditions',

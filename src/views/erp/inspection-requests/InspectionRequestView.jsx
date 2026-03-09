@@ -255,6 +255,7 @@ const InspectionRequestView = () => {
               <Grid item xs={12} md={6}><InfoRow label="Client" value={deal?.company?.company_name || deal?.supplier?.company_name} /></Grid>
               <Grid item xs={12} md={6}><InfoRow label="Material Type" value={request.materialType?.display_name} /></Grid>
               <Grid item xs={12} md={6}><InfoRow label="Quantity" value={request.quantity_uom ? `${request.quantity} ${request.quantity_uom}` : request.quantity} /></Grid>
+              <Grid item xs={12} md={6}><InfoRow label="Safety Tools" value={(() => { const st = request.safety_tools; if (!st) return '-'; try { const arr = typeof st === 'string' ? JSON.parse(st) : (Array.isArray(st) ? st : []); const labels = { safety_jacket: 'Safety Jacket', safety_shoes: 'Safety Shoes', safety_coverall: 'Safety Coverall', safety_helmet: 'Safety Helmet', safety_tools_required: 'Safety Tools Required', safety_mask: 'Safety Mask', safety_goggles: 'Safety Goggles', safety_gloves: 'Safety Gloves' }; return arr.map((v) => labels[v] || v).join(', ') || '-'; } catch { return '-'; } })()} /></Grid>
               <Grid item xs={12} md={6}><InfoRow label="Location" value={request.location} /></Grid>
               <Grid item xs={12} md={6}><InfoRow label="Service Type" value={request.service_type} /></Grid>
               <Grid item xs={12} md={6}><InfoRow label="Requested By" value={request.requestedByUser ? [request.requestedByUser.first_name, request.requestedByUser.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>

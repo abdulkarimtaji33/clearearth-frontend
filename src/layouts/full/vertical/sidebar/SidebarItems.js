@@ -20,6 +20,11 @@ const SidebarItems = () => {
   const hideMenu = lgUp ? isCollapse == "mini-sidebar" && !isSidebarHover : '';
 
   const filteredItems = Menuitems.filter((item, index) => {
+    if (item.children) {
+      const childPerms = item.children.map((c) => c.permission).filter(Boolean);
+      if (childPerms.length) return childPerms.some((p) => hasPermission(p));
+      return true;
+    }
     if (item.permission) return hasPermission(item.permission);
     if (item.subheader) {
       const hasVisibleSibling = Menuitems.slice(index + 1).some((next) => {

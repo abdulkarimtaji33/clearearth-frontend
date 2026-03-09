@@ -8,6 +8,7 @@ import { CustomizerContext } from 'src/context/CustomizerContext';
 
 // custom imports
 import NavItem from '../NavItem';
+import { useAuth } from 'src/context/AuthContext';
 
 // plugins
 import { IconChevronDown, IconChevronUp } from '@tabler/icons';
@@ -16,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 // FC Component For Dropdown Menu
 const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hideMenu }) => {
   const { isBorderRadius } = useContext(CustomizerContext);
+  const { hasPermission } = useAuth();
 
   const Icon = menu.icon;
   const theme = useTheme();
@@ -60,8 +62,10 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hi
           : theme.palette.text.secondary,
     borderRadius: `${isBorderRadius}px`,
   }));
-  // If Menu has Children
-  const submenus = menu.children?.map((item) => {
+  // If Menu has Children - filter by permission
+  const visibleChildren = (menu.children || []).filter((item) => !item.permission || hasPermission(item.permission));
+  if (visibleChildren.length === 0) return null;
+  const submenus = visibleChildren.map((item) => {
     if (item.children) {
       return (
         <NavCollapse

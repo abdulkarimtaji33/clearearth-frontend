@@ -177,6 +177,16 @@ const DealForm = () => {
   const [wdsDialogOpen, setWdsDialogOpen] = useState(false);
   const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false);
   const [materialTypes, setMaterialTypes] = useState([]);
+  const SAFETY_TOOL_OPTIONS = [
+    { value: 'safety_jacket', label: 'Safety Jacket' },
+    { value: 'safety_shoes', label: 'Safety Shoes' },
+    { value: 'safety_coverall', label: 'Safety Coverall' },
+    { value: 'safety_helmet', label: 'Safety Helmet' },
+    { value: 'safety_tools_required', label: 'Safety Tools Required' },
+    { value: 'safety_mask', label: 'Safety Mask' },
+    { value: 'safety_goggles', label: 'Safety Goggles' },
+    { value: 'safety_gloves', label: 'Safety Gloves' },
+  ];
   const [inspectionDetails, setInspectionDetails] = useState({
     materialTypeId: null,
     location: '',
@@ -185,7 +195,7 @@ const DealForm = () => {
     serviceType: '',
     quantity: '',
     quantityUom: '',
-    safetyToolsRequired: false,
+    safetyTools: [],
     supportingDocuments: '',
     requestedBy: null,
     notes: '',
@@ -327,6 +337,12 @@ const DealForm = () => {
 
         if (d.inspectionRequest) {
           const i = d.inspectionRequest;
+          let safetyTools = [];
+          if (i.safety_tools) {
+            try {
+              safetyTools = typeof i.safety_tools === 'string' ? JSON.parse(i.safety_tools) : (Array.isArray(i.safety_tools) ? i.safety_tools : []);
+            } catch { safetyTools = []; }
+          }
           setInspectionDetails({
             materialTypeId: i.material_type_id || null,
             location: i.location || '',
@@ -335,7 +351,7 @@ const DealForm = () => {
             serviceType: i.service_type || '',
             quantity: i.quantity || '',
             quantityUom: i.quantity_uom || '',
-            safetyToolsRequired: i.safety_tools_required || false,
+            safetyTools: safetyTools || [],
             supportingDocuments: i.supporting_documents || '',
             requestedBy: i.requested_by || null,
             notes: i.notes || '',
@@ -349,7 +365,7 @@ const DealForm = () => {
             serviceType: '',
             quantity: '',
             quantityUom: '',
-            safetyToolsRequired: false,
+            safetyTools: [],
             supportingDocuments: '',
             requestedBy: null,
             notes: '',
@@ -1655,14 +1671,23 @@ const DealForm = () => {
                   ))}
                 </TextField>
               </Box>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={inspectionDetails.safetyToolsRequired}
-                    onChange={(e) => setInspectionDetails({ ...inspectionDetails, safetyToolsRequired: e.target.checked })}
+              <Autocomplete
+                multiple
+                fullWidth
+                options={SAFETY_TOOL_OPTIONS}
+                getOptionLabel={(opt) => opt.label || ''}
+                value={SAFETY_TOOL_OPTIONS.filter((o) => (inspectionDetails.safetyTools || []).includes(o.value))}
+                onChange={(_, val) => setInspectionDetails({ ...inspectionDetails, safetyTools: val ? val.map((o) => o.value) : [] })}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Safety Tools"
+                    placeholder="Select safety tools..."
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
-                }
-                label="Safety tools required"
+                )}
+                isOptionEqualToValue={(opt, val) => opt.value === val?.value}
+                ListboxProps={{ style: { maxHeight: '300px' } }}
               />
               <Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>

@@ -58,7 +58,7 @@ const LeadForm = () => {
   const [savingCompany, setSavingCompany] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
   const [newCompanyValues, setNewCompanyValues] = useState({
-    companyName: '', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '',
+    companyName: '', type: 'organization', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', vatNumber: '',
   });
   const [newContactValues, setNewContactValues] = useState({
     firstName: '', lastName: '', email: '', phone: '', designation: '', companyId: null,
@@ -182,17 +182,19 @@ const LeadForm = () => {
       setSavingCompany(true);
       const res = await apiService.createCompany({
         companyName: newCompanyValues.companyName,
+        type: newCompanyValues.type || 'organization',
         email: newCompanyValues.email || undefined,
         phone: newCompanyValues.phone || undefined,
         country: newCompanyValues.country,
         city: newCompanyValues.city,
         address: newCompanyValues.address,
         industryType: newCompanyValues.industryType,
+        vatNumber: newCompanyValues.vatNumber || undefined,
       });
       const newCompany = res.data;
       setCompanies((prev) => [...prev, newCompany]);
       setFieldValue?.('companyId', newCompany.id);
-      setNewCompanyValues({ companyName: '', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '' });
+      setNewCompanyValues({ companyName: '', type: 'organization', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', vatNumber: '' });
       setAddCompanyDialogOpen(false);
       setNewCompanyErrors({});
     } catch (err) {
@@ -207,6 +209,7 @@ const LeadForm = () => {
     const companyId = valuesRef.current.companyId;
     const errors = {};
     if (!newContactValues.firstName) errors.firstName = 'Required';
+    if (!newContactValues.phone?.trim()) errors.phone = 'Required';
     if (newContactValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newContactValues.email)) errors.email = 'Invalid email';
     setNewContactErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -688,9 +691,16 @@ const LeadForm = () => {
           <DialogContent sx={{ pt: 3, px: 4 }}>
             {newCompanyErrors.submit && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{newCompanyErrors.submit}</Alert>}
             <Grid container spacing={3}>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                 <TextField fullWidth label="Company Name" value={newCompanyValues.companyName} onChange={(e) => setNewCompanyValues((v) => ({ ...v, companyName: e.target.value }))}
                   error={Boolean(newCompanyErrors.companyName)} helperText={newCompanyErrors.companyName} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth select label="Type" value={newCompanyValues.type || 'organization'} onChange={(e) => setNewCompanyValues((v) => ({ ...v, type: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
+                  <MenuItem value="individual">Individual</MenuItem>
+                  <MenuItem value="organization">Organization</MenuItem>
+                </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField fullWidth label="Phone" required value={newCompanyValues.phone} onChange={(e) => setNewCompanyValues((v) => ({ ...v, phone: e.target.value }))}
@@ -723,6 +733,10 @@ const LeadForm = () => {
                   <MenuItem value="">None</MenuItem>
                   {dropdowns.industryTypes?.map((t) => <MenuItem key={t.id} value={t.value}>{t.display_name}</MenuItem>)}
                 </TextField>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth label="VAT/TRN Number" placeholder="Optional" value={newCompanyValues.vatNumber} onChange={(e) => setNewCompanyValues((v) => ({ ...v, vatNumber: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
             </Grid>
           </DialogContent>

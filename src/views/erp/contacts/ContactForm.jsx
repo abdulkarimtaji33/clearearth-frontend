@@ -51,6 +51,7 @@ const ContactForm = () => {
   const [newCompanyErrors, setNewCompanyErrors] = useState({});
   const [formikSetFieldValue, setFormikSetFieldValue] = useState(null);
   const [createdCompanyId, setCreatedCompanyId] = useState(null);
+  const [createdSupplierId, setCreatedSupplierId] = useState(null);
   
   const [dropdowns, setDropdowns] = useState({
     designations: [],
@@ -65,6 +66,7 @@ const ContactForm = () => {
     designation: '',
     department: '',
     companyId: null,
+    supplierId: null,
     phone: '',
     email: '',
     mobile: '',
@@ -135,6 +137,7 @@ const ContactForm = () => {
           designation: c.designation || '',
           department: c.department || '',
           companyId: c.company_id || null,
+          supplierId: c.supplier_id || null,
           phone: c.phone || '',
           email: c.email || '',
           mobile: c.mobile || '',
@@ -159,7 +162,7 @@ const ContactForm = () => {
         setSuccess('Contact updated successfully!');
       } else {
         const payload = { ...values };
-        if (createdCompanyId) {
+        if (createdCompanyId || createdSupplierId) {
           payload.setAsPrimaryContact = true;
         }
         await apiService.createContact(payload);
@@ -205,10 +208,10 @@ const ContactForm = () => {
         if (response.success || response.data) {
           const created = response.data;
           setSuppliers((prev) => [...prev, created]);
-          const companyId = created.created_company_id || created.id;
-          if (companyId && formikSetFieldValue) {
-            setCompanies((prev) => [...prev, { id: companyId, company_name: newCompanyValues.companyName }]);
-            formikSetFieldValue('companyId', companyId);
+          setCreatedSupplierId(created.id);
+          if (formikSetFieldValue) {
+            formikSetFieldValue('supplierId', created.id);
+            formikSetFieldValue('companyId', null);
           }
           setNewCompanyValues({ addAs: 'client', companyName: '', type: 'organization', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '', vatNumber: '' });
           setAddCompanyDialogOpen(false);
@@ -221,6 +224,7 @@ const ContactForm = () => {
           setCreatedCompanyId(newCompany.id);
           if (formikSetFieldValue) {
             formikSetFieldValue('companyId', newCompany.id);
+            formikSetFieldValue('supplierId', null);
           }
           setNewCompanyValues({ addAs: 'client', companyName: '', type: 'organization', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '', vatNumber: '' });
           setAddCompanyDialogOpen(false);
@@ -337,7 +341,12 @@ const ContactForm = () => {
                         label="Contact Type"
                         name="contactType"
                         value={values.contactType || ''}
-                        onChange={handleChange}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setFieldValue('contactType', v);
+                          if (v === 'clients') setFieldValue('supplierId', null);
+                          else if (v === 'vendors') setFieldValue('companyId', null);
+                        }}
                         onBlur={handleBlur}
                         error={touched.contactType && Boolean(errors.contactType)}
                         helperText={touched.contactType ? errors.contactType : ' '}
@@ -393,32 +402,45 @@ const ContactForm = () => {
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <Box position="relative">
-                        <Autocomplete
-                          fullWidth
-                          options={companies}
-                          getOptionLabel={(opt) =>
-                            typeof opt === 'object' ? opt.company_name || '' : ''
-                          }
-                          value={companies.find((c) => c.id === values.companyId) || null}
-                          onChange={(_, val) => setFieldValue('companyId', val?.id || null)}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Company (Optional)"
-                              placeholder="Select or search company..."
-                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        {(() => {
+                          const companyOpts = (companies || []).map((c) => ({ ...c, _type: 'company' }));
+                          const supplierOpts = (suppliers || []).map((s) => ({ ...s, _type: 'supplier' }));
+                          const combinedOptions = [...companyOpts, ...supplierOpts].sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
+                          const selectedValue = combinedOptions.find(
+                            (o) => (o._type === 'company' && o.id === values.companyId) || (o._type === 'supplier' && o.id === values.supplierId)
+                          ) || null;
+                          return (
+                            <Autocomplete
+                              fullWidth
+                              options={combinedOptions}
+                              getOptionLabel={(opt) => (typeof opt === 'object' ? opt.company_name || '' : '')}
+                              value={selectedValue}
+                              onChange={(_, val) => {
+                                if (!val) {
+                                  setFieldValue('companyId', null);
+                                  setFieldValue('supplierId', null);
+                                } else if (val._type === 'company') {
+                                  setFieldValue('companyId', val.id);
+                                  setFieldValue('supplierId', null);
+                                } else {
+                                  setFieldValue('supplierId', val.id);
+                                  setFieldValue('companyId', null);
+                                }
+                              }}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Company / Supplier (Optional)"
+                                  placeholder="Select or search..."
+                                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                />
+                              )}
+                              isOptionEqualToValue={(opt, val) => opt?.id === val?.id && opt?._type === val?._type}
+                              ListboxProps={{ style: { maxHeight: '300px' } }}
+                              sx={{ '& .MuiAutocomplete-inputRoot': { minWidth: '300px' } }}
                             />
-                          )}
-                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                          ListboxProps={{
-                            style: { maxHeight: '300px' }
-                          }}
-                          sx={{
-                            '& .MuiAutocomplete-inputRoot': {
-                              minWidth: '300px',
-                            }
-                          }}
-                        />
+                          );
+                        })()}
                         <Box
                           sx={{
                             position: 'absolute',
@@ -431,7 +453,12 @@ const ContactForm = () => {
                         >
                           <Button
                             size="small"
-                            onClick={() => setAddCompanyDialogOpen(true)}
+                            onClick={() => {
+                              if (values.contactType === 'vendors') {
+                                setNewCompanyValues((v) => ({ ...v, addAs: 'vendor' }));
+                              }
+                              setAddCompanyDialogOpen(true);
+                            }}
                             sx={{ 
                               textTransform: 'none',
                               fontSize: '0.75rem',

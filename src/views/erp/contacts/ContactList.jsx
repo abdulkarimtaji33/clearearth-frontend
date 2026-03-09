@@ -346,7 +346,7 @@ const ContactList = () => {
                     <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Contact Type</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Designation</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Company</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Company / Supplier</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
@@ -389,7 +389,7 @@ const ContactList = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="textSecondary">
-                            {contact.company?.company_name || '-'}
+                            {contact.company?.company_name || contact.supplier?.company_name || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell>

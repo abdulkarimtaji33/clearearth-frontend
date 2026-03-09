@@ -310,22 +310,26 @@ const DealView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={2}>
-            <Button
-              variant="outlined"
-              startIcon={<IconReceipt size={20} />}
-              onClick={() => navigate(`/erp/quotations/create?dealId=${id}`)}
-              sx={{ borderRadius: 2 }}
-            >
-              Create Quotation
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<IconShoppingCart size={20} />}
-              onClick={() => navigate(`/erp/purchase-orders/create?dealId=${id}`)}
-              sx={{ borderRadius: 2 }}
-            >
-              Create Purchase Order
-            </Button>
+            {deal.deal_type === 'offer_to_purchase' && (
+              <Button
+                variant="outlined"
+                startIcon={<IconShoppingCart size={20} />}
+                onClick={() => navigate(`/erp/purchase-orders/create?dealId=${id}`)}
+                sx={{ borderRadius: 2 }}
+              >
+                Create Purchase Order
+              </Button>
+            )}
+            {deal.deal_type !== 'offer_to_purchase' && (
+              <Button
+                variant="outlined"
+                startIcon={<IconReceipt size={20} />}
+                onClick={() => navigate(`/erp/quotations/create?dealId=${id}`)}
+                sx={{ borderRadius: 2 }}
+              >
+                Create Quotation
+              </Button>
+            )}
             <Button
               variant="contained"
               startIcon={<IconEdit size={20} />}
@@ -449,13 +453,17 @@ const DealView = () => {
               <Grid container spacing={4}>
                 <Grid item xs={12} md={6}>
                   <InfoRow label="Deal Type" value={deal.deal_type?.replace(/_/g, ' ')} />
-                  <InfoRow label="Container Type" value={deal.container_type} />
-                  <InfoRow label="Location Type" value={deal.location_type} />
+                  {(deal.container_type || deal.location_type) && (
+                    <>
+                      <InfoRow label="Container Type" value={deal.container_type || '-'} />
+                      <InfoRow label="Location Type" value={deal.location_type || '-'} />
+                    </>
+                  )}
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <InfoRow label="WDS Required" value={deal.wds_required ? 'Yes' : 'No'} />
                   <InfoRow label="Inspection Required" value={deal.inspection_required ? 'Yes' : 'No'} />
-                  {deal.deal_type === 'offer_to_charge' && (
+                  {deal.deal_type === 'offer_to_charge' && (deal.container_type || deal.location_type) && (
                     <>
                       <InfoRow label="Custom Inspection" value={deal.custom_inspection ? 'Yes' : 'No'} />
                       <InfoRow label="Trakhees Inspection" value={deal.trakhees_inspection ? 'Yes' : 'No'} />
@@ -676,7 +684,11 @@ const DealView = () => {
                   </TableContainer>
                 </Box>
             ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>No quotations linked to this deal. Use &quot;Create Quotation&quot; above.</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                {deal.deal_type === 'offer_to_purchase'
+                  ? 'Quotations are not applicable for Offer to Purchase deals.'
+                  : 'No quotations linked to this deal. Use &quot;Create Quotation&quot; above.'}
+              </Typography>
             )}
 
             {relatedPOs.length > 0 ? (
@@ -708,7 +720,11 @@ const DealView = () => {
                   </TableContainer>
                 </Box>
             ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>No purchase orders linked to this deal. Use &quot;Create Purchase Order&quot; above.</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                {deal.deal_type !== 'offer_to_purchase'
+                  ? 'Purchase orders are only available for Offer to Purchase deals.'
+                  : 'No purchase orders linked to this deal. Use &quot;Create Purchase Order&quot; above.'}
+              </Typography>
             )}
           </CardContent>
         </Card>

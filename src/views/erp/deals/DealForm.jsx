@@ -42,13 +42,16 @@ const validationSchema = Yup.object({
   companyId: Yup.number().nullable().required('Company is required'),
   contactId: Yup.number().nullable().required('Contact person is required'),
   dealType: Yup.string().trim().required('Deal type is required'),
-  containerType: Yup.string().nullable().when('dealType', {
-    is: 'offer_to_charge',
-    then: (s) => s.required('Container type is required when Offer to Charge is selected'),
+  isContainerType: Yup.boolean(),
+  containerType: Yup.string().nullable().when(['dealType', 'isContainerType'], {
+    is: (dealType, isContainerType) => dealType === 'offer_to_charge' && isContainerType,
+    then: (s) => s.required('Container type is required'),
+    otherwise: (s) => s.nullable(),
   }),
-  locationType: Yup.string().nullable().when('dealType', {
-    is: 'offer_to_charge',
-    then: (s) => s.required('Location type is required when Offer to Charge is selected'),
+  locationType: Yup.string().nullable().when(['dealType', 'isContainerType'], {
+    is: (dealType, isContainerType) => dealType === 'offer_to_charge' && isContainerType,
+    then: (s) => s.required('Location type is required'),
+    otherwise: (s) => s.nullable(),
   }),
   currency: Yup.string().trim().required('Currency is required'),
   status: Yup.string().trim().required('Status is required'),
@@ -164,6 +167,7 @@ const DealForm = () => {
     assignedTo: null,
     termsAndConditionsIds: [],
     dealType: 'offer_to_purchase',
+    isContainerType: false,
     containerType: null,
     locationType: null,
     wdsRequired: false,
@@ -282,6 +286,7 @@ const DealForm = () => {
             ? d.termsList.map((t) => t.id)
             : (d.terms_and_conditions_id ? [d.terms_and_conditions_id] : []),
           dealType: d.deal_type || 'offer_to_purchase',
+          isContainerType: d.deal_type === 'offer_to_charge' ? !!(d.container_type || d.location_type) : false,
           containerType: d.container_type || null,
           locationType: d.location_type || null,
           wdsRequired: d.wds_required || false,
@@ -554,8 +559,15 @@ const DealForm = () => {
         }
       }
 
+      const isOtcContainer = values.dealType === 'offer_to_charge' && values.isContainerType;
       const payload = {
         ...values,
+        containerType: isOtcContainer ? values.containerType : null,
+        locationType: isOtcContainer ? values.locationType : null,
+        wdsRequired: isOtcContainer ? values.wdsRequired : false,
+        customInspection: isOtcContainer ? values.customInspection : false,
+        trakheesInspection: isOtcContainer ? values.trakheesInspection : false,
+        dubaiMunicipalityInspection: isOtcContainer ? values.dubaiMunicipalityInspection : false,
         items: lineItems.map(item => ({
           productServiceId: item.productServiceId,
           quantity: parseFloat(item.quantity),
@@ -622,24 +634,28 @@ const DealForm = () => {
           </Box>
           {isEdit && (
             <Stack direction="row" spacing={1}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<IconReceipt size={18} />}
-                onClick={() => navigate(`/erp/quotations/create?dealId=${id}`)}
-                sx={{ borderRadius: 2 }}
-              >
-                Create Quotation
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<IconShoppingCart size={18} />}
-                onClick={() => navigate(`/erp/purchase-orders/create?dealId=${id}`)}
-                sx={{ borderRadius: 2 }}
-              >
-                Create PO
-              </Button>
+              {initialValues.dealType === 'offer_to_purchase' && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<IconShoppingCart size={18} />}
+                  onClick={() => navigate(`/erp/purchase-orders/create?dealId=${id}`)}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Create PO
+                </Button>
+              )}
+              {initialValues.dealType !== 'offer_to_purchase' && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<IconReceipt size={18} />}
+                  onClick={() => navigate(`/erp/quotations/create?dealId=${id}`)}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Create Quotation
+                </Button>
+              )}
             </Stack>
           )}
         </Stack>
@@ -939,6 +955,28 @@ const DealForm = () => {
 
                     {values.dealType === 'offer_to_charge' && (
                       <>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={values.isContainerType || false}
+                              onChange={(e) => {
+                                setFieldValue('isContainerType', e.target.checked);
+                                if (!e.target.checked) {
+                                  setFieldValue('containerType', null);
+                                  setFieldValue('locationType', null);
+                                  setFieldValue('wdsRequired', false);
+                                  setFieldValue('customInspection', false);
+                                  setFieldValue('trakheesInspection', false);
+                                  setFieldValue('dubaiMunicipalityInspection', false);
+                                }
+                              }}
+                              name="isContainerType"
+                            />
+                          }
+                          label="Is container type?"
+                        />
+                        {values.isContainerType && (
+                        <>
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
                           <TextField
                             fullWidth
@@ -1035,6 +1073,8 @@ const DealForm = () => {
                             label="Dubai Municipality Inspection"
                           />
                         </Box>
+                        </>
+                        )}
                       </>
                     )}
 

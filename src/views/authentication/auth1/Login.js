@@ -5,7 +5,9 @@ import { styled, alpha, keyframes } from '@mui/material/styles';
 
 import PageContainer from 'src/components/container/PageContainer';
 import AuthLogin from '../authForms/AuthLogin';
-import { IconLeaf, IconShieldCheck, IconBolt } from '@tabler/icons-react';
+import { IconShieldCheck, IconBolt } from '@tabler/icons-react';
+
+const LOGO_URL = 'https://i.ibb.co/rfFyXrmZ/IMG-6578.png';
 
 const shimmer = keyframes`
   0% { background-position: -1000px 0; }
@@ -121,30 +123,7 @@ const LogoBox = styled(Box)({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: '10px',
   marginBottom: '20px',
-});
-
-const LogoIcon = styled(Box)({
-  width: '44px',
-  height: '44px',
-  borderRadius: '12px',
-  background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  boxShadow: `0 6px 16px ${alpha('#10b981', 0.35)}`,
-  position: 'relative',
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    inset: -2,
-    borderRadius: '14px',
-    background: 'linear-gradient(135deg, #10b981, #06b6d4)',
-    filter: 'blur(6px)',
-    opacity: 0.4,
-    zIndex: -1,
-  },
 });
 
 const FeatureBadge = styled(Box)(({ theme }) => ({
@@ -167,37 +146,17 @@ const Login = () => (
       <GlassCard>
         {/* Logo */}
         <LogoBox>
-          <LogoIcon>
-            <IconLeaf size={24} color="white" strokeWidth={2.5} />
-          </LogoIcon>
-          <Box>
-            <Typography
-              sx={{
-                fontSize: '1.4rem',
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                lineHeight: 1,
-                letterSpacing: '-0.5px',
-              }}
-            >
-              Clear Earth
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.6rem',
-                fontWeight: 600,
-                color: alpha('#fff', 0.5),
-                letterSpacing: '1.5px',
-                textTransform: 'uppercase',
-                marginTop: '2px',
-              }}
-            >
-              ERP System
-            </Typography>
-          </Box>
+          <Box
+            component="img"
+            src={LOGO_URL}
+            alt="Clear Earth"
+            sx={{
+              height: 64,
+              width: 'auto',
+              maxWidth: '100%',
+              objectFit: 'contain',
+            }}
+          />
         </LogoBox>
 
         {/* Feature Badge */}

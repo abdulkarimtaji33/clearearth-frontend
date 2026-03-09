@@ -41,32 +41,26 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hi
     });
   }, [pathname, menu.children]);
   const isActiveOrOpen = pathname.includes(menu.href) || open;
-  const activeColor = theme.palette.primary.contrastText || '#fff';
   const ListItemStyled = styled(ListItem)(() => ({
     marginBottom: '2px',
     cursor: 'pointer',
     padding: '8px 10px',
     paddingLeft: hideMenu ? '10px' : level > 2 ? `${level * 15}px` : '10px',
-    backgroundColor: open && level < 2 ? theme.palette.primary.main : '',
+    backgroundColor: 'transparent',
     whiteSpace: 'nowrap',
     color:
-      open && level < 2
-        ? activeColor
-        : level > 1 && open
-          ? theme.palette.primary.main
-          : theme.palette.text.secondary,
-    '&:hover': {
-      backgroundColor:
-        isActiveOrOpen
-          ? theme.palette.primary.main
-          : theme.palette.primary.light,
-      color: isActiveOrOpen ? activeColor : theme.palette.primary.main,
-    },
+      level > 1 && open
+        ? theme.palette.primary.main
+        : theme.palette.text.secondary,
     ...(open && level < 2 && {
-      '& .MuiListItemIcon-root, & .MuiListItemText-root': {
-        color: `${activeColor} !important`,
+      '& .MuiListItemIcon-root': {
+        color: `${theme.palette.primary.main} !important`,
       },
     }),
+    '&:hover': {
+      backgroundColor: theme.palette.primary.light,
+      color: theme.palette.primary.main,
+    },
     borderRadius: `${isBorderRadius}px`,
   }));
   // If Menu has Children - filter by permission

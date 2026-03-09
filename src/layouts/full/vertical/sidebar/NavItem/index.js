@@ -40,17 +40,14 @@ const NavItem = ({ item, level, pathDirect, onClick, hideMenu }) => {
       color: theme.palette.primary.main,
     },
     '&.active, &.Mui-selected': {
-      color: `${theme.palette.primary.contrastText || '#fff'} !important`,
-      backgroundColor: `${theme.palette.primary.main} !important`,
+      backgroundColor: 'transparent !important',
+      color: theme.palette.text.secondary,
       '& .MuiListItemIcon-root': {
-        color: `${theme.palette.primary.contrastText || '#fff'} !important`,
-      },
-      '& .MuiListItemText-root': {
-        color: `${theme.palette.primary.contrastText || '#fff'} !important`,
+        color: `${theme.palette.primary.main} !important`,
       },
       '&:hover': {
-        backgroundColor: `${theme.palette.primary.main} !important`,
-        color: `${theme.palette.primary.contrastText || '#fff'} !important`,
+        backgroundColor: theme.palette.primary.light,
+        color: theme.palette.primary.main,
       },
     },
   }));

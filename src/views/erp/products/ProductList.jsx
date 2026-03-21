@@ -35,6 +35,7 @@ import {
 import { IconPlus, IconEdit, IconTrash, IconSearch, IconFilterOff, IconFilter, IconChevronDown, IconChevronUp, IconDotsVertical } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const ProductList = () => {
@@ -58,6 +59,8 @@ const ProductList = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [dropdowns, setDropdowns] = useState({ categories: [], unitsOfMeasure: [] });
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const pageSize = 10;
 
@@ -67,7 +70,7 @@ const ProductList = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, [page, search, statusFilter, typeFilter, categoryFilter, unitFilter, minPriceFilter, maxPriceFilter]);
+  }, [page, search, statusFilter, typeFilter, categoryFilter, unitFilter, minPriceFilter, maxPriceFilter, dateFrom, dateTo]);
 
   const fetchDropdowns = async () => {
     try {
@@ -94,7 +97,9 @@ const ProductList = () => {
       if (unitFilter) params.unitOfMeasure = unitFilter;
       if (minPriceFilter) params.minPrice = minPriceFilter;
       if (maxPriceFilter) params.maxPrice = maxPriceFilter;
-      
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+
       const response = await apiService.getProducts(params);
       if (response.success) {
         setProducts(response.data || []);
@@ -120,6 +125,8 @@ const ProductList = () => {
     setUnitFilter('');
     setMinPriceFilter('');
     setMaxPriceFilter('');
+    setDateFrom('');
+    setDateTo('');
     setPage(1);
   };
 
@@ -216,6 +223,18 @@ const ProductList = () => {
                   {filtersExpanded ? 'Hide Filters' : 'Show Filters'}
                 </Button>
               </Box>
+            </Box>
+
+            <Box sx={{ mb: 2 }}>
+              <ListDateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onFromChange={(v) => { setDateFrom(v); setPage(1); }}
+                onToChange={(v) => { setDateTo(v); setPage(1); }}
+                onClear={() => { setDateFrom(''); setDateTo(''); setPage(1); }}
+                helperText="Created date"
+                compact
+              />
             </Box>
 
             <Collapse in={filtersExpanded}>

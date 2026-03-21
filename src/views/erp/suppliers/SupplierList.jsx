@@ -44,6 +44,7 @@ import {
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const SupplierList = () => {
@@ -68,6 +69,8 @@ const SupplierList = () => {
   const [dropdowns, setDropdowns] = useState({ industryTypes: [], countries: [], cities: [] });
   const [contacts, setContacts] = useState([]);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     fetchDropdowns();
@@ -75,7 +78,7 @@ const SupplierList = () => {
 
   useEffect(() => {
     fetchSuppliers();
-  }, [page, rowsPerPage, search, statusFilter, industryFilter, countryFilter, cityFilter, contactFilter]);
+  }, [page, rowsPerPage, search, statusFilter, industryFilter, countryFilter, cityFilter, contactFilter, dateFrom, dateTo]);
 
   const fetchDropdowns = async () => {
     try {
@@ -107,6 +110,8 @@ const SupplierList = () => {
       if (countryFilter) params.country = countryFilter;
       if (cityFilter) params.city = cityFilter;
       if (contactFilter) params.contactId = contactFilter.id;
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
 
       const response = await apiService.getSuppliers(params);
       if (response.success) {
@@ -236,6 +241,18 @@ const SupplierList = () => {
                 </Box>
               </Box>
 
+              <Box sx={{ mb: 2 }}>
+                <ListDateRangeFilter
+                  dateFrom={dateFrom}
+                  dateTo={dateTo}
+                  onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+                  onToChange={(v) => { setDateTo(v); setPage(0); }}
+                  onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+                  helperText="Created date"
+                  compact
+                />
+              </Box>
+
               <Collapse in={filtersExpanded}>
                 <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                   <Grid container spacing={2} alignItems="center">
@@ -336,9 +353,11 @@ const SupplierList = () => {
                           setCountryFilter(''); 
                           setCityFilter(''); 
                           setContactFilter(null);
+                          setDateFrom('');
+                          setDateTo('');
                           setPage(0); 
                         }}
-                        disabled={!search && !statusFilter && !industryFilter && !countryFilter && !cityFilter && !contactFilter}
+                        disabled={!search && !statusFilter && !industryFilter && !countryFilter && !cityFilter && !contactFilter && !dateFrom && !dateTo}
                         sx={{ borderRadius: 2 }}
                       >
                         Clear All Filters

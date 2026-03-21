@@ -33,6 +33,7 @@ import {
 import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconUsers } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const UserList = () => {
@@ -51,6 +52,8 @@ const UserList = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -67,6 +70,8 @@ const UserList = () => {
       const params = { page: page + 1, pageSize: rowsPerPage, search };
       if (roleFilter) params.roleId = roleFilter;
       if (statusFilter) params.status = statusFilter;
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
       const response = await apiService.getUsers(params);
       if (response.success) {
         setUsers(Array.isArray(response.data) ? response.data : []);
@@ -77,7 +82,7 @@ const UserList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, roleFilter, statusFilter]);
+  }, [page, rowsPerPage, search, roleFilter, statusFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchRoles();
@@ -178,6 +183,18 @@ const UserList = () => {
                 </Select>
               </FormControl>
             </Stack>
+
+            <Box sx={{ mb: 2 }}>
+              <ListDateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+                onToChange={(v) => { setDateTo(v); setPage(0); }}
+                onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+                helperText="Created date"
+                compact
+              />
+            </Box>
 
             <TableContainer>
               <Table>

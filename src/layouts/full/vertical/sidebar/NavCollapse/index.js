@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 // FC Component For Dropdown Menu
 const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hideMenu }) => {
   const { isBorderRadius } = useContext(CustomizerContext);
-  const { hasPermission } = useAuth();
+  const { hasPermission, hasAdminDashboardAccess } = useAuth();
 
   const Icon = menu.icon;
   const theme = useTheme();
@@ -64,7 +64,10 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hi
     borderRadius: `${isBorderRadius}px`,
   }));
   // If Menu has Children - filter by permission
-  const visibleChildren = (menu.children || []).filter((item) => !item.permission || hasPermission(item.permission));
+  const visibleChildren = (menu.children || []).filter((item) => {
+    if (item.adminDashboardOnly && !hasAdminDashboardAccess()) return false;
+    return !item.permission || hasPermission(item.permission);
+  });
   if (visibleChildren.length === 0) return null;
   const submenus = visibleChildren.map((item) => {
     if (item.children) {

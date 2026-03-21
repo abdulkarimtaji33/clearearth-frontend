@@ -317,7 +317,7 @@ const DealView = () => {
                 onClick={() => navigate(`/erp/purchase-orders/create?dealId=${id}`)}
                 sx={{ borderRadius: 2 }}
               >
-                Create Purchase Order
+                Create Purchase Quotation
               </Button>
             )}
             {deal.deal_type !== 'offer_to_purchase' && (
@@ -327,7 +327,7 @@ const DealView = () => {
                 onClick={() => navigate(`/erp/quotations/create?dealId=${id}`)}
                 sx={{ borderRadius: 2 }}
               >
-                Create Quotation
+                Create Service Quotation
               </Button>
             )}
             <Button
@@ -642,20 +642,20 @@ const DealView = () => {
           </CardContent>
         </Card>
 
-        {/* Related Quotations & Purchase Orders */}
+        {/* Service & purchase quotations */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
           <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
             <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
-              Related Quotations & Purchase Orders
+              Service & Purchase Quotations
             </Typography>
             <Typography variant="body2" color="text.secondary" mb={3}>
-              Quotations and purchase orders linked to this deal
+              Service quotations (client) and purchase quotations (vendor). Approved PDFs are orders.
             </Typography>
             <Divider sx={{ mb: 3 }} />
 
             {relatedQuotations.length > 0 ? (
                 <Box sx={{ mb: 4 }}>
-                  <Typography variant="subtitle1" fontWeight={600} mb={2}>Quotations</Typography>
+                  <Typography variant="subtitle1" fontWeight={600} mb={2}>Service Quotations</Typography>
                   <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
                     <Table size="small">
                       <TableHead>
@@ -686,14 +686,14 @@ const DealView = () => {
             ) : (
               <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
                 {deal.deal_type === 'offer_to_purchase'
-                  ? 'Quotations are not applicable for Offer to Purchase deals.'
-                  : 'No quotations linked to this deal. Use &quot;Create Quotation&quot; above.'}
+                  ? 'Service quotations are not used for Offer to Purchase deals.'
+                  : 'No service quotations linked. Use &quot;Create Service Quotation&quot; above.'}
               </Typography>
             )}
 
             {relatedPOs.length > 0 ? (
                 <Box>
-                  <Typography variant="subtitle1" fontWeight={600} mb={2}>Purchase Orders</Typography>
+                  <Typography variant="subtitle1" fontWeight={600} mb={2}>Purchase Quotations</Typography>
                   <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
                     <Table size="small">
                       <TableHead>
@@ -701,6 +701,7 @@ const DealView = () => {
                           <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>Vendor</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>Expected Delivery</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                           <TableCell align="right">Actions</TableCell>
                         </TableRow>
                       </TableHead>
@@ -710,6 +711,7 @@ const DealView = () => {
                             <TableCell>{po.po_date ? new Date(po.po_date).toLocaleDateString() : '-'}</TableCell>
                             <TableCell>{po.supplier?.company_name || '-'}</TableCell>
                             <TableCell>{po.expected_delivery ? new Date(po.expected_delivery).toLocaleDateString() : '-'}</TableCell>
+                            <TableCell><Chip label={po.status || '-'} size="small" variant="outlined" /></TableCell>
                             <TableCell align="right">
                               <Button size="small" onClick={() => navigate(`/erp/purchase-orders/edit/${po.id}`)}>Edit</Button>
                             </TableCell>
@@ -722,8 +724,8 @@ const DealView = () => {
             ) : (
               <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
                 {deal.deal_type !== 'offer_to_purchase'
-                  ? 'Purchase orders are only available for Offer to Purchase deals.'
-                  : 'No purchase orders linked to this deal. Use &quot;Create Purchase Order&quot; above.'}
+                  ? 'Purchase quotations are only for Offer to Purchase deals.'
+                  : 'No purchase quotations linked. Use &quot;Create Purchase Quotation&quot; above.'}
               </Typography>
             )}
           </CardContent>

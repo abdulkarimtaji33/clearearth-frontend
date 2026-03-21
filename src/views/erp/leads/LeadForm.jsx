@@ -361,7 +361,14 @@ const LeadForm = () => {
                             typeof opt === 'object' ? opt.company_name || '' : ''
                           }
                           value={companies.find((c) => c.id === values.companyId) || null}
-                          onChange={(_, val) => setFieldValue('companyId', val?.id || null)}
+                          onChange={(_, val) => {
+                            const newCompanyId = val?.id || null;
+                            setFieldValue('companyId', newCompanyId);
+                            const pool = newCompanyId ? contacts.filter((c) => c.company_id === newCompanyId) : [];
+                            if (!pool.some((c) => c.id === values.contactId)) {
+                              setFieldValue('contactId', null);
+                            }
+                          }}
                           onBlur={() => setFieldTouched('companyId', true)}
                           renderInput={(params) => (
                             <TextField
@@ -420,13 +427,22 @@ const LeadForm = () => {
                       <Box position="relative">
                         <Autocomplete
                           fullWidth
-                          options={contacts}
+                          options={
+                            values.companyId
+                              ? contacts.filter((c) => c.company_id === values.companyId)
+                              : []
+                          }
                           getOptionLabel={(opt) =>
                             typeof opt === 'object'
                               ? `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` (${opt.email})` : '')
                               : ''
                           }
-                          value={contacts.find((c) => c.id === values.contactId) || null}
+                          value={
+                            values.companyId
+                              ? contacts.find((c) => c.id === values.contactId && c.company_id === values.companyId) || null
+                              : null
+                          }
+                          noOptionsText={values.companyId ? 'No contacts for this company' : 'Select a company first'}
                           onChange={(_, val) => {
                             setFieldValue('contactId', val?.id || null);
                             if (val) {
@@ -441,7 +457,13 @@ const LeadForm = () => {
                               label="Contact"
                               placeholder="Required - Select or search contact..."
                               error={touched.contactId && Boolean(errors.contactId)}
-                              helperText={touched.contactId ? errors.contactId : ' '}
+                              helperText={
+                                touched.contactId
+                                  ? errors.contactId
+                                  : values.companyId
+                                    ? 'Contacts linked to the selected company'
+                                    : 'Choose a company to list contacts'
+                              }
                               required
                               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
@@ -468,7 +490,15 @@ const LeadForm = () => {
                         >
                           <Button
                             size="small"
-                            onClick={() => setAddContactDialogOpen(true)}
+                            onClick={() => {
+                              if (!values.companyId) {
+                                setError('Select a company before adding a contact.');
+                                return;
+                              }
+                              setError('');
+                              setNewContactValues((prev) => ({ ...prev, companyId: values.companyId }));
+                              setAddContactDialogOpen(true);
+                            }}
                             sx={{ 
                               textTransform: 'none',
                               fontSize: '0.75rem',

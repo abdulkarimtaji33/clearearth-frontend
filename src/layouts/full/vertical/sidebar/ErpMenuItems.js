@@ -15,12 +15,21 @@ import {
   IconClipboardCheck,
   IconSettings,
   IconPoint,
+  IconLayoutDashboard,
 } from '@tabler/icons-react';
 
 const ErpMenuItems = [
   {
     navlabel: true,
     subheader: 'CRM',
+  },
+  {
+    id: uniqueId(),
+    title: 'Dashboard',
+    icon: IconLayoutDashboard,
+    href: '/erp/dashboard',
+    permission: 'leads.read',
+    adminDashboardOnly: true,
   },
   {
     id: uniqueId(),
@@ -47,13 +56,13 @@ const ErpMenuItems = [
   },
   {
     id: uniqueId(),
-    title: 'Quotations & POs',
+    title: 'Quotations',
     icon: IconReceipt,
     href: '/erp/quotations',
     permission: 'deals.read',
     children: [
-      { id: uniqueId(), title: 'Quotations', icon: IconPoint, href: '/erp/quotations', permission: 'deals.read' },
-      { id: uniqueId(), title: 'Purchase Orders', icon: IconPoint, href: '/erp/purchase-orders', permission: 'deals.read' },
+      { id: uniqueId(), title: 'Service Quotations', icon: IconPoint, href: '/erp/quotations', permission: 'deals.read' },
+      { id: uniqueId(), title: 'Purchase Quotations', icon: IconPoint, href: '/erp/purchase-orders', permission: 'deals.read' },
     ],
   },
   {

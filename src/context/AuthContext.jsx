@@ -110,6 +110,12 @@ export const AuthProvider = ({ children }) => {
     return roleName === role;
   };
 
+  const hasAdminDashboardAccess = useCallback(() => {
+    if (!user) return false;
+    const roleName = user.role?.name ?? user.role;
+    return ['admin', 'tenant_admin', 'super_admin'].includes(roleName);
+  }, [user]);
+
   const value = {
     user,
     tenant,
@@ -123,6 +129,7 @@ export const AuthProvider = ({ children }) => {
     hasPermission,
     hasAnyPermission,
     hasRole,
+    hasAdminDashboardAccess,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

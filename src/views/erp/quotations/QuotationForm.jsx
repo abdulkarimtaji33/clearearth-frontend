@@ -124,10 +124,10 @@ const QuotationForm = () => {
       };
       if (isEdit) {
         await apiService.updateQuotation(id, payload);
-        setSuccess('Quotation updated');
+        setSuccess('Service quotation updated');
       } else {
         await apiService.createQuotation(payload);
-        setSuccess('Quotation created');
+        setSuccess('Service quotation created');
       }
       setTimeout(() => navigate('/erp/quotations'), 1500);
     } catch (err) {
@@ -146,7 +146,7 @@ const QuotationForm = () => {
   }
 
   return (
-    <PageContainer title={isEdit ? 'Edit Quotation' : 'Create Quotation'} description={isEdit ? 'Update quotation' : 'Create new quotation'}>
+    <PageContainer title={isEdit ? 'Edit Service Quotation' : 'Create Service Quotation'} description={isEdit ? 'Set Approved for service order PDF' : 'After approval, download PDF is a service order'}>
       <Box>
         <Stack direction="row" alignItems="center" spacing={2} mb={3}>
           <Button startIcon={<IconArrowLeft />} onClick={() => navigate('/erp/quotations')} size="small">
@@ -154,10 +154,10 @@ const QuotationForm = () => {
           </Button>
           <Box>
             <Typography variant="h4" fontWeight={700}>
-              {isEdit ? 'Edit Quotation' : 'Create Quotation'}
+              {isEdit ? 'Edit Service Quotation' : 'Create Service Quotation'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {isEdit ? 'Update quotation details' : 'Add a new quotation'}
+              {isEdit ? 'Set status to Approved to download a service order PDF' : 'Create a quotation; approved records use service order PDF'}
             </Typography>
           </Box>
         </Stack>
@@ -170,7 +170,7 @@ const QuotationForm = () => {
             <form onSubmit={handleSubmit}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-                  <Typography variant="h5" fontWeight={600} mb={3}>Quotation Details</Typography>
+                  <Typography variant="h5" fontWeight={600} mb={3}>Service Quotation Details</Typography>
                   <Divider sx={{ mb: 3 }} />
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -271,7 +271,7 @@ const QuotationForm = () => {
 
                   <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
                     <Button type="submit" variant="contained" size="large" sx={{ borderRadius: 2 }}>
-                      {isEdit ? 'Update' : 'Create'} Quotation
+                      {isEdit ? 'Update' : 'Create'} Service Quotation
                     </Button>
                     <Button variant="outlined" size="large" onClick={() => navigate('/erp/quotations')} sx={{ borderRadius: 2 }}>
                       Cancel

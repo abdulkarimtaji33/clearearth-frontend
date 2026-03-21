@@ -14,12 +14,13 @@ const SidebarItems = () => {
   const pathDirect = pathname;
   const pathWithoutLastPart = pathname.slice(0, pathname.lastIndexOf('/'));
   const { isSidebarHover, isCollapse, isMobileSidebar, setIsMobileSidebar } = useContext(CustomizerContext);
-  const { hasPermission } = useAuth();
+  const { hasPermission, hasAdminDashboardAccess } = useAuth();
 
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up('lg'));
   const hideMenu = lgUp ? isCollapse == "mini-sidebar" && !isSidebarHover : '';
 
   const filteredItems = Menuitems.filter((item, index) => {
+    if (item.adminDashboardOnly && !hasAdminDashboardAccess()) return false;
     if (item.children) {
       const childPerms = item.children.map((c) => c.permission).filter(Boolean);
       if (childPerms.length) return childPerms.some((p) => hasPermission(p));

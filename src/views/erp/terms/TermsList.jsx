@@ -46,6 +46,7 @@ import {
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const TermsList = () => {
@@ -65,10 +66,12 @@ const TermsList = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [termToDelete, setTermToDelete] = useState(null);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     fetchTerms();
-  }, [page, rowsPerPage, search, statusFilter, categoryFilter]);
+  }, [page, rowsPerPage, search, statusFilter, categoryFilter, dateFrom, dateTo]);
 
   const fetchTerms = async () => {
     try {
@@ -76,6 +79,8 @@ const TermsList = () => {
       const params = { page: page + 1, pageSize: rowsPerPage, search };
       if (statusFilter) params.status = statusFilter;
       if (categoryFilter) params.category = categoryFilter;
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
 
       const response = await apiService.getTermsAndConditions(params);
       if (response.success) {
@@ -198,6 +203,18 @@ const TermsList = () => {
                 </Box>
               </Box>
 
+              <Box sx={{ mb: 2 }}>
+                <ListDateRangeFilter
+                  dateFrom={dateFrom}
+                  dateTo={dateTo}
+                  onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+                  onToChange={(v) => { setDateTo(v); setPage(0); }}
+                  onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+                  helperText="Created date"
+                  compact
+                />
+              </Box>
+
               <Collapse in={filtersExpanded}>
                 <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                   <Grid container spacing={2} alignItems="center">
@@ -236,9 +253,11 @@ const TermsList = () => {
                           setSearch(''); 
                           setStatusFilter(''); 
                           setCategoryFilter('');
+                          setDateFrom('');
+                          setDateTo('');
                           setPage(0); 
                         }}
-                        disabled={!search && !statusFilter && !categoryFilter}
+                        disabled={!search && !statusFilter && !categoryFilter && !dateFrom && !dateTo}
                         sx={{ borderRadius: 2 }}
                       >
                         Clear All Filters

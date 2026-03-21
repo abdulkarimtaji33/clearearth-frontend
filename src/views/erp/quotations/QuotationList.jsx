@@ -28,6 +28,7 @@ import {
 import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const QuotationList = () => {
@@ -46,6 +47,8 @@ const QuotationList = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dropdowns, setDropdowns] = useState({ quotationStatus: [] });
   const [pdfLoading, setPdfLoading] = useState(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const fetchDropdowns = useCallback(async () => {
     try {
@@ -61,6 +64,8 @@ const QuotationList = () => {
       setLoading(true);
       const params = { page: page + 1, pageSize: rowsPerPage, search };
       if (statusFilter) params.status = statusFilter;
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
       const response = await apiService.getQuotations(params);
       if (response.success) {
         setQuotations(Array.isArray(response.data) ? response.data : []);
@@ -71,7 +76,7 @@ const QuotationList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, statusFilter]);
+  }, [page, rowsPerPage, search, statusFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchDropdowns();
@@ -120,19 +125,19 @@ const QuotationList = () => {
   const statusLabel = (v) => dropdowns.quotationStatus.find((s) => s.value === v)?.display_name || v;
 
   return (
-    <PageContainer title="Quotations" description="Manage quotations">
+    <PageContainer title="Service Quotations" description="Client quotations; approved records export as service order PDF">
       <Box>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Box>
             <Typography variant="h4" fontWeight={600} mb={0.5}>
-              Quotations
+              Service Quotations
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Manage quotations linked to deals
+              Status Approved → download is a service order PDF
             </Typography>
           </Box>
           <Button variant="contained" startIcon={<IconPlus />} onClick={() => navigate('/erp/quotations/create')} size="large">
-            Add Quotation
+            Add Service Quotation
           </Button>
         </Box>
 
@@ -171,6 +176,18 @@ const QuotationList = () => {
                   <option key={s.id} value={s.value}>{s.display_name}</option>
                 ))}
               </TextField>
+            </Box>
+
+            <Box sx={{ mb: 2 }}>
+              <ListDateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+                onToChange={(v) => { setDateTo(v); setPage(0); }}
+                onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+                helperText="Quotation date"
+                compact
+              />
             </Box>
 
             <TableContainer>
@@ -249,7 +266,7 @@ const QuotationList = () => {
           </MenuItem>
           <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation); handleMenuClose(); }} disabled={pdfLoading === selectedQuotation?.id}>
             {pdfLoading === selectedQuotation?.id ? <CircularProgress size={18} sx={{ mr: 1 }} /> : <IconFileDownload size={18} style={{ marginRight: 8 }} />}
-            Download PDF
+            {String(selectedQuotation?.status || '').toLowerCase() === 'approved' ? 'Download service order PDF' : 'Download service quotation PDF'}
           </MenuItem>
           <MenuItem onClick={() => { setDeleteDialogOpen(true); handleMenuClose(); }} sx={{ color: 'error.main' }}>
             <IconTrash size={18} style={{ marginRight: 8 }} /> Delete

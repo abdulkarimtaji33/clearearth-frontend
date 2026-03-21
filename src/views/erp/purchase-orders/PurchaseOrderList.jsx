@@ -28,6 +28,7 @@ import {
 import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const PurchaseOrderList = () => {
@@ -44,11 +45,25 @@ const PurchaseOrderList = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(null);
+  const [dropdowns, setDropdowns] = useState({ purchaseOrderStatus: [] });
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const fetchDropdowns = useCallback(async () => {
+    try {
+      const res = await apiService.getAllDropdowns();
+      if (res.success) setDropdowns({ purchaseOrderStatus: res.data.purchase_order_status || [] });
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const params = { page: page + 1, pageSize: rowsPerPage, search };
+      if (statusFilter) params.status = statusFilter;
       const response = await apiService.getPurchaseOrders(params);
       if (response.success) {
         setOrders(Array.isArray(response.data) ? response.data : []);
@@ -59,7 +74,11 @@ const PurchaseOrderList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search]);
+  }, [page, rowsPerPage, search, statusFilter, dateFrom, dateTo]);
+
+  useEffect(() => {
+    fetchDropdowns();
+  }, [fetchDropdowns]);
 
   useEffect(() => {
     fetchOrders();
@@ -88,11 +107,13 @@ const PurchaseOrderList = () => {
     }
   };
 
+  const statusLabel = (v) => dropdowns.purchaseOrderStatus.find((s) => s.value === v)?.display_name || v;
+
   const handleDelete = async () => {
     if (!selectedOrder) return;
     try {
       await apiService.deletePurchaseOrder(selectedOrder.id);
-      setSuccess('Purchase order deleted');
+      setSuccess('Purchase quotation deleted');
       setDeleteDialogOpen(false);
       setSelectedOrder(null);
       fetchOrders();
@@ -102,19 +123,19 @@ const PurchaseOrderList = () => {
   };
 
   return (
-    <PageContainer title="Purchase Orders" description="Manage purchase orders">
+    <PageContainer title="Purchase Quotations" description="Quotations to vendors; approved records export as purchase order PDF">
       <Box>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Box>
             <Typography variant="h4" fontWeight={600} mb={0.5}>
-              Purchase Orders
+              Purchase Quotations
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Manage purchase orders from vendors
+              Status Approved → download is a purchase order PDF
             </Typography>
           </Box>
           <Button variant="contained" startIcon={<IconPlus />} onClick={() => navigate('/erp/purchase-orders/create')} size="large">
-            Add Purchase Order
+            Add Purchase Quotation
           </Button>
         </Box>
 
@@ -123,7 +144,7 @@ const PurchaseOrderList = () => {
 
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
           <CardContent>
-            <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
               <TextField
                 placeholder="Search by vendor..."
                 value={search}
@@ -138,6 +159,32 @@ const PurchaseOrderList = () => {
                 size="small"
                 sx={{ maxWidth: 320 }}
               />
+              <TextField
+                select
+                label="Status"
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+                size="small"
+                sx={{ minWidth: 160 }}
+                SelectProps={{ native: true }}
+              >
+                <option value="">All</option>
+                {dropdowns.purchaseOrderStatus.map((s) => (
+                  <option key={s.id} value={s.value}>{s.display_name}</option>
+                ))}
+              </TextField>
+            </Box>
+
+            <Box sx={{ mb: 2 }}>
+              <ListDateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+                onToChange={(v) => { setDateTo(v); setPage(0); }}
+                onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+                helperText="PO date"
+                compact
+              />
             </Box>
 
             <TableContainer>
@@ -148,6 +195,7 @@ const PurchaseOrderList = () => {
                     <TableCell><strong>Vendor / Supplier</strong></TableCell>
                     <TableCell><strong>Date</strong></TableCell>
                     <TableCell><strong>Expected Delivery</strong></TableCell>
+                    <TableCell><strong>Status</strong></TableCell>
                     <TableCell><strong>Items</strong></TableCell>
                     <TableCell align="right">Actions</TableCell>
                   </TableRow>
@@ -155,14 +203,14 @@ const PurchaseOrderList = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                         <CircularProgress size={32} />
                       </TableCell>
                     </TableRow>
                   ) : orders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4 }} color="text.secondary">
-                        No purchase orders found
+                      <TableCell colSpan={7} align="center" sx={{ py: 4 }} color="text.secondary">
+                        No purchase quotations found
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -172,6 +220,7 @@ const PurchaseOrderList = () => {
                         <TableCell>{o.supplier?.company_name || '-'}</TableCell>
                         <TableCell>{o.po_date || '-'}</TableCell>
                         <TableCell>{o.expected_delivery || '-'}</TableCell>
+                        <TableCell>{statusLabel(o.status)}</TableCell>
                         <TableCell>{o.items?.length || 0} item(s)</TableCell>
                         <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                           <IconButton size="small" onClick={(e) => handleMenuOpen(e, o)}>
@@ -198,9 +247,9 @@ const PurchaseOrderList = () => {
         </Card>
 
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-          <DialogTitle>Delete Purchase Order</DialogTitle>
+          <DialogTitle>Delete Purchase Quotation</DialogTitle>
           <DialogContent>
-            <DialogContentText>Are you sure you want to delete this purchase order?</DialogContentText>
+            <DialogContentText>Are you sure you want to delete this purchase quotation?</DialogContentText>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
@@ -214,7 +263,7 @@ const PurchaseOrderList = () => {
           </MenuItem>
           <MenuItem onClick={() => { handleDownloadPdf(selectedOrder); handleMenuClose(); }} disabled={pdfLoading === selectedOrder?.id}>
             {pdfLoading === selectedOrder?.id ? <CircularProgress size={18} sx={{ mr: 1 }} /> : <IconFileDownload size={18} style={{ marginRight: 8 }} />}
-            Download PDF
+            {String(selectedOrder?.status || '').toLowerCase() === 'approved' ? 'Download purchase order PDF' : 'Download purchase quotation PDF'}
           </MenuItem>
           <MenuItem onClick={() => { setDeleteDialogOpen(true); handleMenuClose(); }} sx={{ color: 'error.main' }}>
             <IconTrash size={18} style={{ marginRight: 8 }} /> Delete

@@ -642,7 +642,7 @@ const DealForm = () => {
                   onClick={() => navigate(`/erp/purchase-orders/create?dealId=${id}`)}
                   sx={{ borderRadius: 2 }}
                 >
-                  Create PO
+                  Create Purchase Quotation
                 </Button>
               )}
               {initialValues.dealType !== 'offer_to_purchase' && (
@@ -653,7 +653,7 @@ const DealForm = () => {
                   onClick={() => navigate(`/erp/quotations/create?dealId=${id}`)}
                   sx={{ borderRadius: 2 }}
                 >
-                  Create Quotation
+                  Create Service Quotation
                 </Button>
               )}
             </Stack>

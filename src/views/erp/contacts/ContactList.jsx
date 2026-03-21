@@ -42,6 +42,7 @@ import {
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const ContactList = () => {
@@ -66,6 +67,8 @@ const ContactList = () => {
   const [dropdowns, setDropdowns] = useState({ designations: [] });
   const [companies, setCompanies] = useState([]);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     fetchDropdowns();
@@ -73,7 +76,7 @@ const ContactList = () => {
 
   useEffect(() => {
     fetchContacts();
-  }, [page, rowsPerPage, search, statusFilter, contactTypeFilter, designationFilter, departmentFilter, companyFilter]);
+  }, [page, rowsPerPage, search, statusFilter, contactTypeFilter, designationFilter, departmentFilter, companyFilter, dateFrom, dateTo]);
 
   const fetchDropdowns = async () => {
     try {
@@ -103,6 +106,8 @@ const ContactList = () => {
       if (designationFilter) params.designation = designationFilter;
       if (departmentFilter) params.department = departmentFilter;
       if (companyFilter) params.companyId = companyFilter.id;
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
 
       const response = await apiService.getContacts(params);
       if (response.success) {
@@ -232,6 +237,18 @@ const ContactList = () => {
                 </Box>
               </Box>
 
+              <Box sx={{ mb: 2 }}>
+                <ListDateRangeFilter
+                  dateFrom={dateFrom}
+                  dateTo={dateTo}
+                  onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+                  onToChange={(v) => { setDateTo(v); setPage(0); }}
+                  onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+                  helperText="Created date"
+                  compact
+                />
+              </Box>
+
               <Collapse in={filtersExpanded}>
                 <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                   <Grid container spacing={2} alignItems="center">
@@ -325,9 +342,11 @@ const ContactList = () => {
                           setDesignationFilter(''); 
                           setDepartmentFilter(''); 
                           setCompanyFilter(null);
+                          setDateFrom('');
+                          setDateTo('');
                           setPage(0); 
                         }}
-                        disabled={!search && !statusFilter && !contactTypeFilter && !designationFilter && !departmentFilter && !companyFilter}
+                        disabled={!search && !statusFilter && !contactTypeFilter && !designationFilter && !departmentFilter && !companyFilter && !dateFrom && !dateTo}
                         sx={{ borderRadius: 2 }}
                       >
                         Clear All Filters

@@ -30,6 +30,7 @@ import {
 import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconShield } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const RoleList = () => {
@@ -45,11 +46,15 @@ const RoleList = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedRole, setSelectedRole] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const fetchRoles = useCallback(async () => {
     try {
       setLoading(true);
       const params = { page: page + 1, pageSize: rowsPerPage, search };
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
       const response = await apiService.getRoles(params);
       if (response.success) {
         setRoles(Array.isArray(response.data) ? response.data : []);
@@ -60,7 +65,7 @@ const RoleList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search]);
+  }, [page, rowsPerPage, search, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchRoles();
@@ -116,7 +121,7 @@ const RoleList = () => {
                 size="small"
                 placeholder="Search roles..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -128,6 +133,18 @@ const RoleList = () => {
                 sx={{ minWidth: 280 }}
               />
             </Stack>
+
+            <Box sx={{ mb: 2 }}>
+              <ListDateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+                onToChange={(v) => { setDateTo(v); setPage(0); }}
+                onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+                helperText="Created date"
+                compact
+              />
+            </Box>
 
             <TableContainer>
               <Table>

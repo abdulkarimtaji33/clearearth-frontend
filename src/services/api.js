@@ -309,6 +309,17 @@ class ApiService {
     return this.delete(`/quotations/${id}`);
   }
 
+  _filenameFromContentDisposition(disposition, fallback) {
+    if (!disposition || typeof disposition !== 'string') return fallback;
+    const m = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)/i) || disposition.match(/filename="([^"]+)"/i);
+    if (!m?.[1]) return fallback;
+    try {
+      return decodeURIComponent(m[1].replace(/"/g, '').trim());
+    } catch {
+      return m[1].replace(/"/g, '').trim() || fallback;
+    }
+  }
+
   async downloadQuotationPdf(id) {
     const url = `${this.baseURL}/quotations/${id}/pdf`;
     const token = this.getAuthToken();
@@ -322,9 +333,10 @@ class ApiService {
       const err = text?.match(/"message":"([^"]+)"/)?.[1] || 'Invalid PDF response';
       throw new Error(err);
     }
+    const fname = this._filenameFromContentDisposition(res.headers.get('Content-Disposition'), `quotation-${id}.pdf`);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `quotation-${id}.pdf`;
+    a.download = fname;
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -363,9 +375,10 @@ class ApiService {
       const err = text?.match(/"message":"([^"]+)"/)?.[1] || 'Invalid PDF response';
       throw new Error(err);
     }
+    const fname = this._filenameFromContentDisposition(res.headers.get('Content-Disposition'), `purchase-order-${id}.pdf`);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `purchase-order-${id}.pdf`;
+    a.download = fname;
     a.click();
     URL.revokeObjectURL(a.href);
   }

@@ -48,6 +48,7 @@ import {
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const LeadList = () => {
@@ -74,6 +75,8 @@ const LeadList = () => {
   const [contacts, setContacts] = useState([]);
   const [products, setProducts] = useState([]);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [disqualifyDialogOpen, setDisqualifyDialogOpen] = useState(false);
   const [leadToDisqualify, setLeadToDisqualify] = useState(null);
   const [disqualifyReason, setDisqualifyReason] = useState('');
@@ -121,7 +124,9 @@ const LeadList = () => {
       if (companyFilter) params.companyId = companyFilter.id;
       if (contactFilter) params.contactId = contactFilter.id;
       if (productFilter) params.productServiceId = productFilter.id;
-      
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+
       const response = await apiService.getLeads(params);
       if (response.success) {
         setLeads(Array.isArray(response.data) ? response.data : []);
@@ -132,7 +137,7 @@ const LeadList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, statusFilter, sourceFilter, assignedToFilter, companyFilter, contactFilter, productFilter]);
+  }, [page, rowsPerPage, search, statusFilter, sourceFilter, assignedToFilter, companyFilter, contactFilter, productFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchDropdowns();
@@ -155,6 +160,8 @@ const LeadList = () => {
     setCompanyFilter(null);
     setContactFilter(null);
     setProductFilter(null);
+    setDateFrom('');
+    setDateTo('');
     setPage(0);
   };
 
@@ -310,6 +317,18 @@ const LeadList = () => {
                     {filtersExpanded ? 'Hide Filters' : 'Show Filters'}
                   </Button>
                 </Box>
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <ListDateRangeFilter
+                  dateFrom={dateFrom}
+                  dateTo={dateTo}
+                  onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+                  onToChange={(v) => { setDateTo(v); setPage(0); }}
+                  onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+                  helperText="Created date"
+                  compact
+                />
               </Box>
 
               <Collapse in={filtersExpanded}>

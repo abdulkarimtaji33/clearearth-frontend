@@ -6,6 +6,7 @@ import {
   Typography,
   Button,
   TextField,
+  MenuItem,
   Alert,
   CircularProgress,
   Autocomplete,
@@ -48,12 +49,14 @@ const PurchaseOrderForm = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [termsAndConditions, setTermsAndConditions] = useState([]);
+  const [dropdowns, setDropdowns] = useState({ purchaseOrderStatus: [] });
   const [items, setItems] = useState([initialItem()]);
   const [initialValues, setInitialValues] = useState({
     dealId: dealIdFromUrl || null,
     supplierId: supplierIdFromUrl || null,
     poDate: new Date().toISOString().split('T')[0],
     expectedDelivery: '',
+    status: 'draft',
     termsAndConditionsIds: [],
   });
 
@@ -61,16 +64,18 @@ const PurchaseOrderForm = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [dealsRes, suppliersRes, productsRes, termsRes] = await Promise.all([
+      const [dealsRes, suppliersRes, productsRes, termsRes, dropdownRes] = await Promise.all([
         apiService.getDeals({ pageSize: 500 }),
         apiService.getSuppliers({ pageSize: 500 }),
         apiService.getProducts({ pageSize: 500, status: 'active' }),
         apiService.getTermsAndConditions({ pageSize: 500, status: 'active' }),
+        apiService.getAllDropdowns(),
       ]);
       if (dealsRes.success) setDeals(Array.isArray(dealsRes.data) ? dealsRes.data : []);
       if (suppliersRes.success) setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : []);
       if (productsRes.success) setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
       if (termsRes.success) setTermsAndConditions(Array.isArray(termsRes.data) ? termsRes.data : []);
+      if (dropdownRes.success) setDropdowns({ purchaseOrderStatus: dropdownRes.data.purchase_order_status || [] });
     } catch (err) {
       console.error(err);
     }
@@ -87,6 +92,7 @@ const PurchaseOrderForm = () => {
           supplierId: po.supplier_id || null,
           poDate: po.po_date || new Date().toISOString().split('T')[0],
           expectedDelivery: po.expected_delivery || '',
+          status: po.status || 'draft',
           termsAndConditionsIds: (po.terms || []).map((t) => t.id),
         });
         if (po.items && po.items.length > 0) {
@@ -186,6 +192,7 @@ const PurchaseOrderForm = () => {
         supplierId: values.supplierId,
         poDate: values.poDate,
         expectedDelivery: values.expectedDelivery || null,
+        status: values.status || 'draft',
         termsAndConditionsIds: values.termsAndConditionsIds,
         items: items.map((it) => ({
           productServiceId: it.productServiceId,
@@ -197,10 +204,10 @@ const PurchaseOrderForm = () => {
       };
       if (isEdit) {
         await apiService.updatePurchaseOrder(id, payload);
-        setSuccess('Purchase order updated');
+        setSuccess('Purchase quotation updated');
       } else {
         await apiService.createPurchaseOrder(payload);
-        setSuccess('Purchase order created');
+        setSuccess('Purchase quotation created');
       }
       setTimeout(() => navigate('/erp/purchase-orders'), 1500);
     } catch (err) {
@@ -219,7 +226,7 @@ const PurchaseOrderForm = () => {
   }
 
   return (
-    <PageContainer title={isEdit ? 'Edit Purchase Order' : 'Create Purchase Order'} description={isEdit ? 'Update purchase order' : 'Create new purchase order'}>
+    <PageContainer title={isEdit ? 'Edit Purchase Quotation' : 'Create Purchase Quotation'} description={isEdit ? 'Update purchase quotation; set Approved for purchase order PDF' : 'Create purchase quotation; after approval, PDF becomes a purchase order'}>
       <Box>
         <Stack direction="row" alignItems="center" spacing={2} mb={3}>
           <Button startIcon={<IconArrowLeft />} onClick={() => navigate('/erp/purchase-orders')} size="small">
@@ -227,10 +234,10 @@ const PurchaseOrderForm = () => {
           </Button>
           <Box>
             <Typography variant="h4" fontWeight={700}>
-              {isEdit ? 'Edit Purchase Order' : 'Create Purchase Order'}
+              {isEdit ? 'Edit Purchase Quotation' : 'Create Purchase Quotation'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {isEdit ? 'Update purchase order details' : 'Add a new purchase order'}
+              {isEdit ? 'Set status to Approved to download a purchase order PDF' : 'After approval, download PDF is a purchase order'}
             </Typography>
           </Box>
         </Stack>
@@ -243,6 +250,7 @@ const PurchaseOrderForm = () => {
           validationSchema={Yup.object({
             supplierId: Yup.number().nullable().required('Vendor/Supplier is required'),
             poDate: Yup.string().trim().required('Date is required'),
+            status: Yup.string().trim().required('Status is required'),
           })}
           enableReinitialize
           onSubmit={handleSubmit}
@@ -251,7 +259,7 @@ const PurchaseOrderForm = () => {
             <form onSubmit={handleSubmit}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-                  <Typography variant="h5" fontWeight={600} mb={3}>Purchase Order Details</Typography>
+                  <Typography variant="h5" fontWeight={600} mb={3}>Purchase Quotation Details</Typography>
                   <Divider sx={{ mb: 3 }} />
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -312,6 +320,30 @@ const PurchaseOrderForm = () => {
                       onChange={handleChange}
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
+
+                    <TextField
+                      fullWidth
+                      select
+                      label="Status (Required)"
+                      name="status"
+                      value={values.status || 'draft'}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      required
+                      error={touched.status && Boolean(errors.status)}
+                      helperText={(touched.status && errors.status) || 'Approved → PDF is a purchase order'}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
+                    >
+                      {(dropdowns.purchaseOrderStatus?.length ? dropdowns.purchaseOrderStatus : [
+                        { id: 1, value: 'draft', display_name: 'Draft' },
+                        { id: 2, value: 'sent', display_name: 'Sent' },
+                        { id: 3, value: 'approved', display_name: 'Approved' },
+                        { id: 4, value: 'rejected', display_name: 'Rejected' },
+                      ]).map((s) => (
+                        <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
+                      ))}
+                    </TextField>
                   </Box>
                 </CardContent>
               </Card>
@@ -442,7 +474,7 @@ const PurchaseOrderForm = () => {
 
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button type="submit" variant="contained" size="large" sx={{ borderRadius: 2 }}>
-                  {isEdit ? 'Update' : 'Create'} Purchase Order
+                  {isEdit ? 'Update' : 'Create'} Purchase Quotation
                 </Button>
                 <Button variant="outlined" size="large" onClick={() => navigate('/erp/purchase-orders')} sx={{ borderRadius: 2 }}>
                   Cancel

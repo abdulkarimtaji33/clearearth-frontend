@@ -22,6 +22,7 @@ import {
 import { IconSearch, IconClipboardCheck, IconFileReport } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const InspectionRequestList = () => {
@@ -33,11 +34,15 @@ const InspectionRequestList = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
       const params = { page: page + 1, pageSize: rowsPerPage, search };
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
       const response = await apiService.getInspectionRequests(params);
       if (response.success) {
         setRequests(Array.isArray(response.data) ? response.data : []);
@@ -77,7 +82,7 @@ const InspectionRequestList = () => {
                 size="small"
                 placeholder="Search by deal..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -89,6 +94,18 @@ const InspectionRequestList = () => {
                 sx={{ minWidth: 280 }}
               />
             </Stack>
+
+            <Box sx={{ mb: 2 }}>
+              <ListDateRangeFilter
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+                onToChange={(v) => { setDateTo(v); setPage(0); }}
+                onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+                helperText="Request created"
+                compact
+              />
+            </Box>
 
             <TableContainer>
               <Table>

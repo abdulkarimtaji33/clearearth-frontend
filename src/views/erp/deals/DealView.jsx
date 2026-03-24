@@ -24,6 +24,9 @@ import {
   DialogActions,
   TextField,
   MenuItem,
+  Menu,
+  ListItemIcon,
+  ListItemText,
   Autocomplete,
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -33,7 +36,7 @@ import dayjs from 'dayjs';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate, useParams } from 'react-router';
 import FsLightbox from 'fslightbox-react';
-import { IconArrowLeft, IconEdit, IconDownload, IconPlus, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription } from '@tabler/icons-react';
+import { IconArrowLeft, IconEdit, IconDownload, IconPlus, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription, IconChevronDown } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -128,6 +131,8 @@ const DealView = () => {
 
   const [relatedQuotations, setRelatedQuotations] = useState([]);
   const [relatedPOs, setRelatedPOs] = useState([]);
+  const [quotMenuAnchor, setQuotMenuAnchor] = useState(null);
+  const quotMenuOpen = Boolean(quotMenuAnchor);
 
   const fetchDeal = useCallback(async () => {
     if (!id) return;
@@ -309,43 +314,73 @@ const DealView = () => {
               </Typography>
             </Box>
           </Stack>
-          <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
-            {deal.deal_type === 'offer_to_purchase' && (
-              <Button
-                variant="outlined"
-                startIcon={<IconShoppingCart size={20} />}
-                onClick={() => navigate(`/erp/purchase-orders/create?dealId=${id}`)}
-                sx={{ borderRadius: 2 }}
-              >
-                Create Purchase Quotation
-              </Button>
-            )}
-            {deal.deal_type === 'offer_to_purchase' && deal.downstream_partner_supplier_id && (
-              <Button
-                variant="outlined"
-                color="secondary"
-                startIcon={<IconShoppingCart size={20} />}
-                onClick={() => navigate(`/erp/purchase-orders/create?dealId=${id}&supplierId=${deal.downstream_partner_supplier_id}`)}
-                sx={{ borderRadius: 2 }}
-              >
-                Create Purchase Quotation (downstream partner)
-              </Button>
-            )}
-            {deal.deal_type !== 'offer_to_purchase' && (
-              <Button
-                variant="outlined"
-                startIcon={<IconReceipt size={20} />}
-                onClick={() => navigate(`/erp/quotations/create?dealId=${id}`)}
-                sx={{ borderRadius: 2 }}
-              >
-                Create Service Quotation
-              </Button>
-            )}
+          <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Button
+              variant="outlined"
+              size="small"
+              endIcon={<IconChevronDown size={18} />}
+              onClick={(e) => setQuotMenuAnchor(e.currentTarget)}
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+            >
+              Create quotations
+            </Button>
+            <Menu
+              anchorEl={quotMenuAnchor}
+              open={quotMenuOpen}
+              onClose={() => setQuotMenuAnchor(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              slotProps={{ paper: { sx: { borderRadius: 2, minWidth: 280 } } }}
+            >
+              {deal.deal_type === 'offer_to_purchase' && (
+                <MenuItem
+                  dense
+                  onClick={() => {
+                    navigate(`/erp/purchase-orders/create?dealId=${id}`);
+                    setQuotMenuAnchor(null);
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <IconShoppingCart size={18} />
+                  </ListItemIcon>
+                  <ListItemText primary="Purchase quotation" secondary="Primary supplier / default" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
+                </MenuItem>
+              )}
+              {deal.deal_type === 'offer_to_purchase' && deal.downstream_partner_supplier_id && (
+                <MenuItem
+                  dense
+                  onClick={() => {
+                    navigate(`/erp/purchase-orders/create?dealId=${id}&supplierId=${deal.downstream_partner_supplier_id}`);
+                    setQuotMenuAnchor(null);
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <IconShoppingCart size={18} />
+                  </ListItemIcon>
+                  <ListItemText primary="Purchase quotation" secondary="Downstream partner" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
+                </MenuItem>
+              )}
+              {deal.deal_type !== 'offer_to_purchase' && (
+                <MenuItem
+                  dense
+                  onClick={() => {
+                    navigate(`/erp/quotations/create?dealId=${id}`);
+                    setQuotMenuAnchor(null);
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <IconReceipt size={18} />
+                  </ListItemIcon>
+                  <ListItemText primary="Service quotation" secondary="Client quotation" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
+                </MenuItem>
+              )}
+            </Menu>
             <Button
               variant="contained"
-              startIcon={<IconEdit size={20} />}
+              size="small"
+              startIcon={<IconEdit size={18} />}
               onClick={() => navigate(`/erp/deals/edit/${id}`)}
-              sx={{ borderRadius: 2, fontWeight: 600 }}
+              sx={{ borderRadius: 2, fontWeight: 600, textTransform: 'none' }}
             >
               Edit Deal
             </Button>

@@ -309,7 +309,7 @@ const DealView = () => {
               </Typography>
             </Box>
           </Stack>
-          <Stack direction="row" spacing={2}>
+          <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
             {deal.deal_type === 'offer_to_purchase' && (
               <Button
                 variant="outlined"
@@ -318,6 +318,17 @@ const DealView = () => {
                 sx={{ borderRadius: 2 }}
               >
                 Create Purchase Quotation
+              </Button>
+            )}
+            {deal.deal_type === 'offer_to_purchase' && deal.downstream_partner_supplier_id && (
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<IconShoppingCart size={20} />}
+                onClick={() => navigate(`/erp/purchase-orders/create?dealId=${id}&supplierId=${deal.downstream_partner_supplier_id}`)}
+                sx={{ borderRadius: 2 }}
+              >
+                Create Purchase Quotation (downstream partner)
               </Button>
             )}
             {deal.deal_type !== 'offer_to_purchase' && (
@@ -630,7 +641,8 @@ const DealView = () => {
                 <InfoRow label="Contact Person" value={deal.contact ? [deal.contact.first_name, deal.contact.last_name].filter(Boolean).join(' ') || '-' : '-'} />
               </Grid>
               <Grid item xs={12} md={6}>
-                <InfoRow label="Supplier" value={deal.supplier?.company_name || '-'} />
+                <InfoRow label="Supplier (primary)" value={deal.supplier?.company_name || '-'} />
+                <InfoRow label="Downstream partner supplier" value={deal.downstreamPartner?.company_name || deal.downstream_partner?.company_name || '-'} />
                 <InfoRow label="Assigned To" value={deal.assignedUser ? [deal.assignedUser.first_name, deal.assignedUser.last_name].filter(Boolean).join(' ') || '-' : '-'} />
                 <InfoRow label="Terms & Conditions" value={
                   (deal.termsList && deal.termsList.length > 0)

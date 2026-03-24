@@ -57,6 +57,8 @@ const validationSchema = Yup.object({
   status: Yup.string().trim().required('Status is required'),
   dealDate: Yup.date().nullable().required('Date is required'),
   supplierId: Yup.number().nullable(),
+  hasDownstreamPartner: Yup.boolean(),
+  downstreamPartnerSupplierId: Yup.number().nullable(),
   title: Yup.string().trim().required('Title is required'),
   inspectionRequired: Yup.boolean().required('Inspection required is required'),
   termsAndConditionsIds: Yup.array(),
@@ -156,6 +158,8 @@ const DealForm = () => {
     companyId: null,
     contactId: null,
     supplierId: null,
+    hasDownstreamPartner: false,
+    downstreamPartnerSupplierId: null,
     title: '',
     description: '',
     dealDate: new Date().toISOString().split('T')[0],
@@ -273,6 +277,8 @@ const DealForm = () => {
           companyId: d.company_id || null,
           contactId: d.contact_id || null,
           supplierId: d.supplier_id || null,
+          hasDownstreamPartner: !!d.downstream_partner_supplier_id,
+          downstreamPartnerSupplierId: d.downstream_partner_supplier_id || null,
           title: d.title || '',
           description: d.description || '',
           dealDate: d.deal_date ? new Date(d.deal_date).toISOString().split('T')[0] : '',
@@ -549,6 +555,19 @@ const DealForm = () => {
         }
       }
 
+      if (values.hasDownstreamPartner) {
+        if (!values.downstreamPartnerSupplierId) {
+          setError('Select a downstream partner supplier, or uncheck "Downstream partner supplier".');
+          setSubmitting(false);
+          return;
+        }
+        if (values.supplierId && values.downstreamPartnerSupplierId === values.supplierId) {
+          setError('Downstream partner must be a different supplier than the primary supplier.');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       if (values.wdsRequired) {
         const required = ['refNo', 'date', 'companyName', 'licenseNo', 'wasteDescription', 'containerNo'];
         const missing = required.filter((f) => !wdsDetails[f]?.toString().trim());
@@ -560,8 +579,10 @@ const DealForm = () => {
       }
 
       const isOtcContainer = values.dealType === 'offer_to_charge' && values.isContainerType;
+      const { hasDownstreamPartner, downstreamPartnerSupplierId, ...restValues } = values;
       const payload = {
-        ...values,
+        ...restValues,
+        downstreamPartnerSupplierId: hasDownstreamPartner ? downstreamPartnerSupplierId : null,
         containerType: isOtcContainer ? values.containerType : null,
         locationType: isOtcContainer ? values.locationType : null,
         wdsRequired: isOtcContainer ? values.wdsRequired : false,
@@ -866,13 +887,48 @@ const DealForm = () => {
                             <TextField
                               {...params}
                               label="Supplier (Optional)"
-                              placeholder="Select supplier..."
+                              placeholder="Primary supplier for purchase quotations..."
                               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
                           )}
                           isOptionEqualToValue={(opt, val) => opt.id === val?.id}
                           ListboxProps={{ style: { maxHeight: '300px' } }}
                         />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={values.hasDownstreamPartner}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setFieldValue('hasDownstreamPartner', checked);
+                                if (!checked) setFieldValue('downstreamPartnerSupplierId', null);
+                              }}
+                            />
+                          }
+                          label="Is downstream partner? (link a second vendor for a separate purchase quotation)"
+                          sx={{ alignItems: 'flex-start', mt: 1, mr: 0 }}
+                        />
+                        {values.hasDownstreamPartner && (
+                          <Autocomplete
+                            fullWidth
+                            sx={{ mt: 1 }}
+                            options={suppliers.filter((s) => s.id !== values.supplierId)}
+                            getOptionLabel={(opt) => opt.company_name || ''}
+                            value={suppliers.find((s) => s.id === values.downstreamPartnerSupplierId) || null}
+                            onChange={(_, val) => setFieldValue('downstreamPartnerSupplierId', val?.id || null)}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Downstream partner supplier"
+                                placeholder="Select downstream vendor..."
+                                required
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                              />
+                            )}
+                            isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                            ListboxProps={{ style: { maxHeight: '300px' } }}
+                          />
+                        )}
                       </Box>
                     </Box>
                     

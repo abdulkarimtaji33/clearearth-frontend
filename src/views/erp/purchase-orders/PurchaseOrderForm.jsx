@@ -116,12 +116,15 @@ const PurchaseOrderForm = () => {
     }
   }, [id]);
 
-  const applyDealPreFill = useCallback((deal) => {
+  const applyDealPreFill = useCallback((deal, supplierIdOverride = null) => {
     if (!deal) return;
     setInitialValues((prev) => ({
       ...prev,
       dealId: deal.id,
-      supplierId: deal.supplier_id || prev.supplierId,
+      supplierId:
+        supplierIdOverride != null
+          ? Number(supplierIdOverride)
+          : (deal.supplier_id || prev.supplierId),
       termsAndConditionsIds: (deal.termsList && deal.termsList.length > 0)
         ? deal.termsList.map((t) => t.id)
         : (deal.termsAndConditions?.id ? [deal.termsAndConditions.id] : []),
@@ -139,11 +142,11 @@ const PurchaseOrderForm = () => {
     }
   }, []);
 
-  const fetchDealForPreFill = useCallback(async (dealId) => {
+  const fetchDealForPreFill = useCallback(async (dealId, supplierIdOverride = null) => {
     if (!dealId) return;
     try {
       const res = await apiService.getDeal(dealId);
-      if (res.success && res.data) applyDealPreFill(res.data);
+      if (res.success && res.data) applyDealPreFill(res.data, supplierIdOverride);
     } catch (err) {
       console.error(err);
     }
@@ -152,8 +155,11 @@ const PurchaseOrderForm = () => {
   useEffect(() => {
     fetchData();
     if (isEdit) fetchPO();
-    else if (supplierIdFromUrl) setInitialValues((prev) => ({ ...prev, supplierId: supplierIdFromUrl }));
-    else if (dealIdFromUrl) fetchDealForPreFill(dealIdFromUrl);
+    else if (dealIdFromUrl) {
+      fetchDealForPreFill(dealIdFromUrl, supplierIdFromUrl);
+    } else if (supplierIdFromUrl) {
+      setInitialValues((prev) => ({ ...prev, supplierId: supplierIdFromUrl }));
+    }
   }, [fetchData, isEdit, fetchPO, supplierIdFromUrl, dealIdFromUrl, fetchDealForPreFill]);
 
   const handleItemChange = (index, field, value) => {

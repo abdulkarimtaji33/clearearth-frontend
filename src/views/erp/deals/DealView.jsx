@@ -343,7 +343,7 @@ const DealView = () => {
                   <ListItemIcon sx={{ minWidth: 36 }}>
                     <IconShoppingCart size={18} />
                   </ListItemIcon>
-                  <ListItemText primary="Purchase quotation" secondary="Primary supplier / default" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
+                  <ListItemText primary="Purchase quotation" secondary="Client (company)" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
                 </MenuItem>
               )}
               {deal.deal_type === 'offer_to_purchase' && deal.downstream_partner_supplier_id && (
@@ -357,7 +357,7 @@ const DealView = () => {
                   <ListItemIcon sx={{ minWidth: 36 }}>
                     <IconShoppingCart size={18} />
                   </ListItemIcon>
-                  <ListItemText primary="Purchase quotation" secondary="Downstream partner" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
+                  <ListItemText primary="Purchase quotation" secondary="Downstream supplier" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
                 </MenuItem>
               )}
               {deal.deal_type !== 'offer_to_purchase' && (
@@ -756,7 +756,7 @@ const DealView = () => {
                         {relatedPOs.map((po) => (
                           <TableRow key={po.id} hover>
                             <TableCell>{po.po_date ? new Date(po.po_date).toLocaleDateString() : '-'}</TableCell>
-                            <TableCell>{po.supplier?.company_name || '-'}</TableCell>
+                            <TableCell>{po.company?.company_name || po.supplier?.company_name || '-'}</TableCell>
                             <TableCell>{po.expected_delivery ? new Date(po.expected_delivery).toLocaleDateString() : '-'}</TableCell>
                             <TableCell><Chip label={po.status || '-'} size="small" variant="outlined" /></TableCell>
                             <TableCell align="right">

@@ -46,6 +46,7 @@ const PurchaseOrderForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [deals, setDeals] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [termsAndConditions, setTermsAndConditions] = useState([]);
@@ -53,6 +54,7 @@ const PurchaseOrderForm = () => {
   const [items, setItems] = useState([initialItem()]);
   const [initialValues, setInitialValues] = useState({
     dealId: dealIdFromUrl || null,
+    companyId: null,
     supplierId: supplierIdFromUrl || null,
     poDate: new Date().toISOString().split('T')[0],
     expectedDelivery: '',
@@ -64,14 +66,16 @@ const PurchaseOrderForm = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [dealsRes, suppliersRes, productsRes, termsRes, dropdownRes] = await Promise.all([
+      const [dealsRes, companiesRes, suppliersRes, productsRes, termsRes, dropdownRes] = await Promise.all([
         apiService.getDeals({ pageSize: 500 }),
+        apiService.getCompanies({ pageSize: 500 }),
         apiService.getSuppliers({ pageSize: 500 }),
         apiService.getProducts({ pageSize: 500, status: 'active' }),
         apiService.getTermsAndConditions({ pageSize: 500, status: 'active' }),
         apiService.getAllDropdowns(),
       ]);
       if (dealsRes.success) setDeals(Array.isArray(dealsRes.data) ? dealsRes.data : []);
+      if (companiesRes.success) setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
       if (suppliersRes.success) setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : []);
       if (productsRes.success) setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
       if (termsRes.success) setTermsAndConditions(Array.isArray(termsRes.data) ? termsRes.data : []);
@@ -89,6 +93,7 @@ const PurchaseOrderForm = () => {
         const po = res.data;
         setInitialValues({
           dealId: po.deal_id || null,
+          companyId: po.company_id || null,
           supplierId: po.supplier_id || null,
           poDate: po.po_date || new Date().toISOString().split('T')[0],
           expectedDelivery: po.expected_delivery || '',
@@ -118,13 +123,16 @@ const PurchaseOrderForm = () => {
 
   const applyDealPreFill = useCallback((deal, supplierIdOverride) => {
     if (!deal) return;
+    const isOtp = deal.deal_type === 'offer_to_purchase';
+    const useDownstreamSupplier = supplierIdOverride != null;
     setInitialValues((prev) => ({
       ...prev,
       dealId: deal.id,
-      supplierId:
-        supplierIdOverride != null
-          ? supplierIdOverride
-          : (deal.supplier_id || prev.supplierId),
+      ...(useDownstreamSupplier
+        ? { supplierId: supplierIdOverride, companyId: null }
+        : isOtp
+          ? { companyId: deal.company_id || null, supplierId: null }
+          : { supplierId: deal.supplier_id || null, companyId: null }),
       termsAndConditionsIds: (deal.termsList && deal.termsList.length > 0)
         ? deal.termsList.map((t) => t.id)
         : (deal.termsAndConditions?.id ? [deal.termsAndConditions.id] : []),
@@ -158,7 +166,7 @@ const PurchaseOrderForm = () => {
     else if (dealIdFromUrl) {
       fetchDealForPreFill(dealIdFromUrl, supplierIdFromUrl ?? undefined);
     } else if (supplierIdFromUrl) {
-      setInitialValues((prev) => ({ ...prev, supplierId: supplierIdFromUrl }));
+      setInitialValues((prev) => ({ ...prev, supplierId: supplierIdFromUrl, companyId: null }));
     }
   }, [fetchData, isEdit, fetchPO, supplierIdFromUrl, dealIdFromUrl, fetchDealForPreFill]);
 
@@ -195,7 +203,8 @@ const PurchaseOrderForm = () => {
       setError('');
       const payload = {
         dealId: values.dealId || null,
-        supplierId: values.supplierId,
+        companyId: values.companyId || null,
+        supplierId: values.supplierId || null,
         poDate: values.poDate,
         expectedDelivery: values.expectedDelivery || null,
         status: values.status || 'draft',
@@ -254,9 +263,13 @@ const PurchaseOrderForm = () => {
         <Formik
           initialValues={initialValues}
           validationSchema={Yup.object({
-            supplierId: Yup.number().nullable().required('Vendor/Supplier is required'),
+            companyId: Yup.number().nullable(),
+            supplierId: Yup.number().nullable(),
             poDate: Yup.string().trim().required('Date is required'),
             status: Yup.string().trim().required('Status is required'),
+          }).test('party', 'Select client (company) or supplier', function (vals) {
+            if (vals.companyId != null || vals.supplierId != null) return true;
+            return this.createError({ path: 'companyId', message: 'Select client (company) or supplier' });
           })}
           enableReinitialize
           onSubmit={handleSubmit}
@@ -286,17 +299,40 @@ const PurchaseOrderForm = () => {
 
                     <Autocomplete
                       fullWidth
-                      options={suppliers}
+                      options={companies}
                       getOptionLabel={(opt) => opt.company_name || ''}
-                      value={suppliers.find((s) => s.id === values.supplierId) || null}
-                      onChange={(_, v) => setFieldValue('supplierId', v?.id || null)}
+                      value={companies.find((c) => c.id === values.companyId) || null}
+                      onChange={(_, v) => {
+                        setFieldValue('companyId', v?.id || null);
+                        setFieldValue('supplierId', null);
+                      }}
                       renderInput={(params) => (
                         <TextField
                           {...params}
-                          label="Vendor/Supplier Name (Required)"
-                          required
-                          error={touched.supplierId && Boolean(errors.supplierId)}
-                          helperText={touched.supplierId && errors.supplierId}
+                          label="Client (company)"
+                          placeholder="Offer to purchase: quotation to client"
+                          helperText={(errors.companyId && typeof errors.companyId === 'string' ? errors.companyId : null) || 'Pick the client company, or use supplier below — not both'}
+                          error={Boolean(errors.companyId)}
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                      )}
+                      isOptionEqualToValue={(a, b) => a?.id === b?.id}
+                    />
+
+                    <Autocomplete
+                      fullWidth
+                      options={suppliers}
+                      getOptionLabel={(opt) => opt.company_name || ''}
+                      value={suppliers.find((s) => s.id === values.supplierId) || null}
+                      onChange={(_, v) => {
+                        setFieldValue('supplierId', v?.id || null);
+                        setFieldValue('companyId', null);
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Supplier (vendor)"
+                          placeholder="Downstream / vendor purchase quotation"
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                       )}

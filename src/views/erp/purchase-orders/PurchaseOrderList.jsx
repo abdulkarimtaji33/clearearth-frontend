@@ -146,7 +146,7 @@ const PurchaseOrderList = () => {
           <CardContent>
             <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
               <TextField
-                placeholder="Search by vendor..."
+                placeholder="Search client or vendor..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                 InputProps={{
@@ -192,7 +192,7 @@ const PurchaseOrderList = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell><strong>Deal</strong></TableCell>
-                    <TableCell><strong>Vendor / Supplier</strong></TableCell>
+                    <TableCell><strong>Client / Vendor</strong></TableCell>
                     <TableCell><strong>Date</strong></TableCell>
                     <TableCell><strong>Expected Delivery</strong></TableCell>
                     <TableCell><strong>Status</strong></TableCell>
@@ -217,7 +217,7 @@ const PurchaseOrderList = () => {
                     orders.map((o) => (
                       <TableRow key={o.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/purchase-orders/edit/${o.id}`)}>
                         <TableCell>{o.deal ? (o.deal.title || o.deal.deal_number) : '-'}</TableCell>
-                        <TableCell>{o.supplier?.company_name || '-'}</TableCell>
+                        <TableCell>{o.company?.company_name || o.supplier?.company_name || '-'}</TableCell>
                         <TableCell>{o.po_date || '-'}</TableCell>
                         <TableCell>{o.expected_delivery || '-'}</TableCell>
                         <TableCell>{statusLabel(o.status)}</TableCell>

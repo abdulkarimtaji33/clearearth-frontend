@@ -36,7 +36,7 @@ import dayjs from 'dayjs';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate, useParams } from 'react-router';
 import FsLightbox from 'fslightbox-react';
-import { IconArrowLeft, IconEdit, IconDownload, IconPlus, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription, IconChevronDown } from '@tabler/icons-react';
+import { IconArrowLeft, IconEdit, IconDownload, IconPlus, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription, IconChevronDown, IconFileText } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -113,6 +113,7 @@ const DealView = () => {
   const [reportLightboxOpen, setReportLightboxOpen] = useState(false);
   const [reportLightboxIndex, setReportLightboxIndex] = useState(0);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [inspectionReportViewOpen, setInspectionReportViewOpen] = useState(false);
   const [reportFormErrors, setReportFormErrors] = useState({});
   const [reportSaving, setReportSaving] = useState(false);
   const [users, setUsers] = useState([]);
@@ -607,43 +608,206 @@ const DealView = () => {
         {/* Inspection Report */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
           <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={1}>
               <Typography variant="h4" fontWeight={700} color="primary.main">
                 Inspection Report
               </Typography>
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<IconPlus size={18} />}
-                onClick={openReportDialog}
-                sx={{ borderRadius: 2 }}
-              >
-                {deal.inspectionReport ? 'Edit Report' : 'Add Report'}
-              </Button>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                {deal.inspectionReport ? (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<IconFileText size={18} />}
+                    onClick={() => setInspectionReportViewOpen(true)}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    View report
+                  </Button>
+                ) : null}
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<IconPlus size={18} />}
+                  onClick={openReportDialog}
+                  sx={{ borderRadius: 2 }}
+                >
+                  {deal.inspectionReport ? 'Edit Report' : 'Add Report'}
+                </Button>
+              </Stack>
             </Stack>
             <Divider sx={{ mb: 3 }} />
             {deal.inspectionReport ? (
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}><InfoRow label="Inspection Date" value={deal.inspectionReport.inspection_datetime ? new Date(deal.inspectionReport.inspection_datetime).toLocaleString() : '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Approx. Weight" value={deal.inspectionReport.approximate_weight != null ? `${deal.inspectionReport.approximate_weight} ${deal.inspectionReport.weight_uom || ''}` : '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Cargo Type" value={deal.inspectionReport.cargo_type || '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Transportation" value={deal.inspectionReport.transportation_arrangement || '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Approx. Value" value={deal.inspectionReport.approximate_value != null ? deal.inspectionReport.approximate_value : '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Inspector" value={deal.inspectionReport.inspector ? [deal.inspectionReport.inspector.first_name, deal.inspectionReport.inspector.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Approved By" value={deal.inspectionReport.approvedBy ? [deal.inspectionReport.approvedBy.first_name, deal.inspectionReport.approvedBy.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
-                <Grid item xs={12}><InfoRow label="Notes" value={deal.inspectionReport.notes || '-'} /></Grid>
-                {deal.inspectionReport.images && deal.inspectionReport.images.length > 0 && (
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  Summary
+                </Typography>
+                <Typography variant="body1" fontWeight={600}>
+                  {deal.inspectionReport.inspection_datetime
+                    ? new Date(deal.inspectionReport.inspection_datetime).toLocaleString()
+                    : '—'}
+                  {deal.inspectionReport.inspector
+                    ? ` · Inspector: ${[deal.inspectionReport.inspector.first_name, deal.inspectionReport.inspector.last_name].filter(Boolean).join(' ')}`
+                    : ''}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Open the full report for cargo details, approvals, notes, and photos.
+                </Typography>
+              </Paper>
+            ) : (
+              <Typography variant="body2" color="text.secondary">No inspection report added yet.</Typography>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Inspection report — full document view */}
+        <Dialog
+          open={inspectionReportViewOpen && Boolean(deal?.inspectionReport)}
+          onClose={() => setInspectionReportViewOpen(false)}
+          maxWidth="md"
+          fullWidth
+          scroll="paper"
+          PaperProps={{ sx: { borderRadius: 3, maxHeight: '92vh' } }}
+        >
+          {deal?.inspectionReport ? (
+            <>
+              <DialogTitle sx={{ pb: 1, borderBottom: 1, borderColor: 'divider', background: (t) => `linear-gradient(180deg, ${t.palette.primary.main}14 0%, transparent 100%)` }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+                  <Box>
+                    <Typography variant="overline" color="primary.main" fontWeight={700} letterSpacing={1}>
+                      Field inspection report
+                    </Typography>
+                    <Typography variant="h5" fontWeight={800} sx={{ mt: 0.5 }}>
+                      {deal.deal_number} · {deal.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      {deal.company?.company_name ? `Client: ${deal.company.company_name}` : null}
+                      {deal.supplier?.company_name ? ` · Supplier: ${deal.supplier.company_name}` : ''}
+                    </Typography>
+                  </Box>
+                  <Button size="small" variant="outlined" onClick={() => setInspectionReportViewOpen(false)} sx={{ borderRadius: 2 }}>
+                    Close
+                  </Button>
+                </Stack>
+              </DialogTitle>
+              <DialogContent dividers sx={{ px: { xs: 2, sm: 4 }, py: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" fontWeight={700} sx={{ mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Deal snapshot
+                </Typography>
+                <Grid container spacing={2} sx={{ mb: 4 }}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">Deal value</Typography>
+                    <Typography variant="body1" fontWeight={600}>
+                      {deal.currency} {parseFloat(deal.total || 0).toFixed(2)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">Deal date</Typography>
+                    <Typography variant="body1" fontWeight={600}>
+                      {deal.deal_date ? new Date(deal.deal_date).toLocaleDateString() : '—'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">Contact</Typography>
+                    <Typography variant="body1" fontWeight={600}>
+                      {deal.contact ? [deal.contact.first_name, deal.contact.last_name].filter(Boolean).join(' ') : '—'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">Deal status</Typography>
+                    <Typography variant="body1" fontWeight={600}>{deal.status || '—'}</Typography>
+                  </Grid>
+                </Grid>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Typography variant="subtitle2" color="text.secondary" fontWeight={700} sx={{ mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Inspection details
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">Inspection date & time</Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {deal.inspectionReport.inspection_datetime
+                        ? new Date(deal.inspectionReport.inspection_datetime).toLocaleString()
+                        : '—'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">Approx. weight</Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {deal.inspectionReport.approximate_weight != null
+                        ? `${deal.inspectionReport.approximate_weight} ${deal.inspectionReport.weight_uom || ''}`
+                        : '—'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">Cargo type</Typography>
+                    <Typography variant="body1" fontWeight={500}>{deal.inspectionReport.cargo_type || '—'}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">Transportation</Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {deal.inspectionReport.transportation_arrangement || '—'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">Approx. value</Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {deal.inspectionReport.approximate_value != null ? String(deal.inspectionReport.approximate_value) : '—'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">Inspector</Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {deal.inspectionReport.inspector
+                        ? [deal.inspectionReport.inspector.first_name, deal.inspectionReport.inspector.last_name].filter(Boolean).join(' ')
+                        : '—'}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="caption" color="text.secondary">Approved by</Typography>
+                    <Typography variant="body1" fontWeight={500}>
+                      {deal.inspectionReport.approvedBy
+                        ? [deal.inspectionReport.approvedBy.first_name, deal.inspectionReport.approvedBy.last_name].filter(Boolean).join(' ')
+                        : '—'}
+                    </Typography>
+                  </Grid>
                   <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary" fontWeight={600} sx={{ mb: 1 }}>Images</Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    <Typography variant="caption" color="text.secondary">Notes</Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>
+                      {deal.inspectionReport.notes || '—'}
+                    </Typography>
+                  </Grid>
+                </Grid>
+
+                {deal.inspectionReport.images && deal.inspectionReport.images.length > 0 ? (
+                  <>
+                    <Divider sx={{ my: 3 }} />
+                    <Typography variant="subtitle2" color="text.secondary" fontWeight={700} sx={{ mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Site photos
+                    </Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' }, gap: 1.5 }}>
                       {deal.inspectionReport.images.map((path, idx) => (
                         <Box
                           key={idx}
-                          onClick={() => { setReportLightboxIndex(idx); setReportLightboxOpen((p) => !p); }}
                           component="img"
                           src={apiService.getUploadUrl(path)}
                           alt=""
-                          sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', cursor: 'pointer' }}
+                          onClick={() => {
+                            setReportLightboxIndex(idx);
+                            setReportLightboxOpen((p) => !p);
+                          }}
+                          sx={{
+                            width: '100%',
+                            aspectRatio: '4/3',
+                            objectFit: 'cover',
+                            borderRadius: 2,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            cursor: 'pointer',
+                            transition: 'transform 0.2s',
+                            '&:hover': { transform: 'scale(1.02)' },
+                          }}
                         />
                       ))}
                     </Box>
@@ -652,14 +816,20 @@ const DealView = () => {
                       sources={deal.inspectionReport.images.map((p) => apiService.getUploadUrl(p))}
                       sourceIndex={reportLightboxIndex}
                     />
-                  </Grid>
-                )}
-              </Grid>
-            ) : (
-              <Typography variant="body2" color="text.secondary">No inspection report added yet.</Typography>
-            )}
-          </CardContent>
-        </Card>
+                  </>
+                ) : null}
+              </DialogContent>
+              <DialogActions sx={{ px: 3, py: 2, borderTop: 1, borderColor: 'divider' }}>
+                <Button onClick={() => { setInspectionReportViewOpen(false); openReportDialog(); }} variant="outlined" sx={{ borderRadius: 2 }}>
+                  Edit report
+                </Button>
+                <Button onClick={() => setInspectionReportViewOpen(false)} variant="contained" sx={{ borderRadius: 2 }}>
+                  Done
+                </Button>
+              </DialogActions>
+            </>
+          ) : null}
+        </Dialog>
 
         {/* Related Entities */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>

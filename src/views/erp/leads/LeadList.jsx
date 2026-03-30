@@ -5,6 +5,8 @@ import {
   CardContent,
   Typography,
   Button,
+  Stack,
+  Divider,
   Table,
   TableBody,
   TableCell,
@@ -30,7 +32,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Avatar,
 } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import {
   IconSearch,
   IconPlus,
@@ -38,21 +42,231 @@ import {
   IconTrash,
   IconDotsVertical,
   IconCheck,
-  IconX,
   IconRefresh,
   IconFilterOff,
   IconFilter,
   IconChevronDown,
   IconChevronUp,
   IconCircleOff,
+  IconEye,
+  IconMail,
+  IconPhone,
+  IconBuilding,
+  IconUser,
+  IconBriefcase,
+  IconCurrencyDollar,
+  IconUserCheck,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
+import RecordDetailDrawer from '../../../components/erp/RecordDetailDrawer';
 import apiService from '../../../services/api';
+
+const leadStatusChipColor = (status) => {
+  switch (status?.toLowerCase()) {
+    case 'new': return 'info';
+    case 'contacted': return 'primary';
+    case 'qualified':
+    case 'converted':
+      return 'success';
+    case 'disqualified': return 'error';
+    default: return 'default';
+  }
+};
+
+const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany }) => {
+  const theme = useTheme();
+  const companyName = lead.company?.company_name || '';
+  const initial = (companyName.trim().charAt(0) || lead.lead_number?.charAt(0) || '?').toUpperCase();
+  const contactName = lead.contact
+    ? [lead.contact.first_name, lead.contact.last_name].filter(Boolean).join(' ')
+    : '';
+
+  return (
+    <Stack spacing={0}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          py: 3,
+          px: 2,
+          mb: 2,
+          borderRadius: 3,
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
+          border: '1px solid',
+          borderColor: alpha(theme.palette.primary.main, 0.12),
+        }}
+      >
+        <Avatar
+          sx={{
+            width: 72,
+            height: 72,
+            bgcolor: theme.palette.primary.main,
+            color: 'primary.contrastText',
+            fontSize: '1.6rem',
+            fontWeight: 800,
+            mb: 1.5,
+            boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.15)}`,
+          }}
+        >
+          {initial}
+        </Avatar>
+        <Typography variant="caption" color="primary.main" fontWeight={700} letterSpacing={0.5}>
+          {lead.lead_number || 'Lead'}
+        </Typography>
+        <Typography variant="h6" fontWeight={800} textAlign="center" mt={0.5} mb={0.5}>
+          {companyName || contactName || lead.email || 'Lead'}
+        </Typography>
+        {companyName && contactName ? (
+          <Typography variant="body2" color="text.secondary" textAlign="center" mb={1}>
+            {contactName}
+          </Typography>
+        ) : null}
+        <Stack direction="row" gap={0.75} flexWrap="wrap" justifyContent="center">
+          <Chip
+            label={(lead.status || '—').toUpperCase()}
+            size="small"
+            color={leadStatusChipColor(lead.status)}
+            sx={{ fontWeight: 700, fontSize: '0.68rem', letterSpacing: 0.5 }}
+          />
+          {lead.source ? (
+            <Chip label={lead.source} size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: '0.68rem' }} />
+          ) : null}
+        </Stack>
+      </Box>
+
+      <Stack spacing={0} divider={<Divider />}>
+        {lead.email && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.75 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <IconMail size={15} color={theme.palette.primary.main} />
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5}>Email</Typography>
+              <Typography
+                variant="body2"
+                component="a"
+                href={`mailto:${lead.email}`}
+                sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}
+                noWrap
+              >
+                {lead.email}
+              </Typography>
+            </Box>
+          </Box>
+        )}
+        {lead.phone && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.75 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <IconPhone size={15} color={theme.palette.primary.main} />
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5}>Phone</Typography>
+              <Typography variant="body2" fontWeight={500}>{lead.phone}</Typography>
+            </Box>
+          </Box>
+        )}
+        {(lead.company || companyName) && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.75 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <IconBuilding size={15} color={theme.palette.primary.main} />
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5}>Company</Typography>
+              {lead.company?.id ? (
+                <Typography
+                  variant="body2"
+                  fontWeight={600}
+                  color="primary.main"
+                  sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                  onClick={() => onNavigateCompany(lead.company.id)}
+                  noWrap
+                >
+                  {lead.company.company_name}
+                </Typography>
+              ) : (
+                <Typography variant="body2" fontWeight={500}>—</Typography>
+              )}
+            </Box>
+          </Box>
+        )}
+        {contactName && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.75 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <IconUser size={15} color={theme.palette.primary.main} />
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5}>Contact person</Typography>
+              <Typography variant="body2" fontWeight={500}>{contactName}</Typography>
+            </Box>
+          </Box>
+        )}
+        {lead.productService && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.75 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <IconBriefcase size={15} color={theme.palette.primary.main} />
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5}>Product / service</Typography>
+              <Typography variant="body2" fontWeight={500}>
+                {lead.productService.name} ({lead.productService.category})
+              </Typography>
+            </Box>
+          </Box>
+        )}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.75 }}>
+          <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <IconCurrencyDollar size={15} color={theme.palette.primary.main} />
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5}>Estimated value</Typography>
+            <Typography variant="body2" fontWeight={500}>
+              {lead.estimated_value != null ? String(lead.estimated_value) : '—'}
+            </Typography>
+          </Box>
+        </Box>
+        {lead.assignedUser && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.75 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <IconUserCheck size={15} color={theme.palette.primary.main} />
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5}>Assigned to</Typography>
+              <Typography variant="body2" fontWeight={500}>
+                {[lead.assignedUser.first_name, lead.assignedUser.last_name].filter(Boolean).join(' ') || '—'}
+              </Typography>
+            </Box>
+          </Box>
+        )}
+      </Stack>
+
+      {lead.notes ? (
+        <Box sx={{ mt: 2, p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.grey[500], 0.06), border: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5} mb={0.75}>Notes</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+            {lead.notes}
+          </Typography>
+        </Box>
+      ) : null}
+
+      <Button
+        variant="contained"
+        fullWidth
+        startIcon={<IconEdit size={16} />}
+        onClick={onEdit}
+        sx={{ mt: 3, borderRadius: 2.5, fontWeight: 700, py: 1.25 }}
+      >
+        Edit Lead
+      </Button>
+    </Stack>
+  );
+};
 
 const LeadList = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -81,6 +295,9 @@ const LeadList = () => {
   const [leadToDisqualify, setLeadToDisqualify] = useState(null);
   const [disqualifyReason, setDisqualifyReason] = useState('');
   const [disqualifying, setDisqualifying] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewLead, setViewLead] = useState(null);
 
   const fetchDropdowns = useCallback(async () => {
     const results = await Promise.allSettled([
@@ -212,6 +429,26 @@ const LeadList = () => {
     setLeadToDisqualify(selectedLead);
     setDisqualifyReason('');
     setDisqualifyDialogOpen(true);
+    handleMenuClose();
+  };
+
+  const openLeadView = async (lead) => {
+    setViewOpen(true);
+    setViewLead(null);
+    setViewLoading(true);
+    try {
+      const res = await apiService.getLead(lead.id);
+      if (res.success) setViewLead(res.data);
+    } catch (err) {
+      setError(err.message || 'Failed to load lead');
+      setViewOpen(false);
+    } finally {
+      setViewLoading(false);
+    }
+  };
+
+  const handleViewFromMenu = () => {
+    if (selectedLead) openLeadView(selectedLead);
     handleMenuClose();
   };
 
@@ -471,48 +708,99 @@ const LeadList = () => {
             </Box>
 
             <TableContainer>
-              <Table>
+              <Table sx={{ minWidth: 800 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Lead #</TableCell>
-                    <TableCell>Company</TableCell>
-                    <TableCell>Contact Person</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Phone</TableCell>
-                    <TableCell>Source</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Assigned To</TableCell>
-                    <TableCell align="right">Actions</TableCell>
+                    {['Lead', 'Company', 'Contact', 'Email', 'Phone', 'Source', 'Status', 'Assigned', ''].map((h, idx) => (
+                      <TableCell
+                        key={`col-${idx}`}
+                        sx={{
+                          fontWeight: 700,
+                          color: 'text.secondary',
+                          fontSize: '0.75rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5,
+                          py: 1.5,
+                          borderBottom: '2px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        {h}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {leads.map((lead) => (
-                    <TableRow key={lead.id} hover>
-                      <TableCell>{lead.lead_number || '-'}</TableCell>
-                      <TableCell>{lead.company?.company_name || '-'}</TableCell>
-                      <TableCell>
-                        {lead.contact
-                          ? [lead.contact.first_name, lead.contact.last_name].filter(Boolean).join(' ') || '-'
-                          : '-'}
-                      </TableCell>
-                      <TableCell>{lead.email}</TableCell>
-                      <TableCell>{lead.phone}</TableCell>
-                      <TableCell>{lead.source || '-'}</TableCell>
-                      <TableCell>
-                        <Chip label={lead.status} size="small" color={getStatusColor(lead.status)} />
-                      </TableCell>
-                      <TableCell>
-                        {lead.assignedUser
-                          ? [lead.assignedUser.first_name, lead.assignedUser.last_name].filter(Boolean).join(' ') || '-'
-                          : '-'}
-                      </TableCell>
-                      <TableCell align="right">
-                        <IconButton size="small" onClick={(e) => handleMenuOpen(e, lead)}>
-                          <IconDotsVertical size={18} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {leads.map((lead) => {
+                    const label = lead.company?.company_name || lead.lead_number || '?';
+                    const rowInitial = label.trim().charAt(0).toUpperCase();
+                    return (
+                      <TableRow
+                        key={lead.id}
+                        hover
+                        sx={{
+                          cursor: 'pointer',
+                          '&:hover .row-actions': { opacity: 1 },
+                          '& td': { py: 1.5 },
+                        }}
+                        onClick={() => openLeadView(lead)}
+                      >
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Avatar sx={{ width: 34, height: 34, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main', fontSize: '0.85rem', fontWeight: 700, flexShrink: 0 }}>
+                              {rowInitial}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="body2" fontWeight={700} color="primary.main">
+                                {lead.lead_number || '—'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary" noWrap>
+                            {lead.company?.company_name || '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary" noWrap>
+                            {lead.contact
+                              ? [lead.contact.first_name, lead.contact.last_name].filter(Boolean).join(' ') || '—'
+                              : '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary" noWrap>{lead.email || '—'}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">{lead.phone || '—'}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary" noWrap>{lead.source || '—'}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={lead.status} size="small" color={getStatusColor(lead.status)} sx={{ fontWeight: 700, fontSize: '0.68rem' }} />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary" noWrap>
+                            {lead.assignedUser
+                              ? [lead.assignedUser.first_name, lead.assignedUser.last_name].filter(Boolean).join(' ') || '—'
+                              : '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                          <Box className="row-actions" sx={{ opacity: 0, transition: 'opacity 0.15s', display: 'flex', justifyContent: 'flex-end' }}>
+                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); openLeadView(lead); }} title="View">
+                              <IconEye size={17} />
+                            </IconButton>
+                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, lead); }}>
+                              <IconDotsVertical size={17} />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -529,7 +817,11 @@ const LeadList = () => {
           </CardContent>
         </Card>
 
-        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} PaperProps={{ sx: { borderRadius: 2, minWidth: 160 } }}>
+          <MenuItem onClick={handleViewFromMenu} sx={{ gap: 1.5 }}>
+            <IconEye size={16} />
+            View
+          </MenuItem>
           <MenuItem onClick={() => { navigate(`/erp/leads/edit/${selectedLead?.id}`); handleMenuClose(); }}>
             <IconEdit size={18} style={{ marginRight: 8 }} />
             Edit
@@ -573,6 +865,29 @@ const LeadList = () => {
             Delete
           </MenuItem>
         </Menu>
+
+        <RecordDetailDrawer
+          open={viewOpen}
+          onClose={() => { setViewOpen(false); setViewLead(null); }}
+          title={viewLead?.lead_number ? `Lead ${viewLead.lead_number}` : 'Lead'}
+          subtitle={viewLead?.company?.company_name || viewLead?.email || undefined}
+          loading={viewLoading}
+        >
+          {viewLead && (
+            <LeadDrawerContent
+              lead={viewLead}
+              onEdit={() => {
+                const lid = viewLead?.id;
+                setViewOpen(false);
+                if (lid) navigate(`/erp/leads/edit/${lid}`);
+              }}
+              onNavigateCompany={(companyId) => {
+                setViewOpen(false);
+                navigate(`/erp/companies/view/${companyId}`);
+              }}
+            />
+          )}
+        </RecordDetailDrawer>
 
         <Dialog open={disqualifyDialogOpen} onClose={() => setDisqualifyDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
           <DialogTitle>Disqualify Lead</DialogTitle>

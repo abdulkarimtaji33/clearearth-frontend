@@ -25,8 +25,9 @@ import dayjs from 'dayjs';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate, useParams } from 'react-router';
 import FsLightbox from 'fslightbox-react';
-import { IconArrowLeft, IconPlus, IconPhoto } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconPhoto, IconFileReport } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import InspectionReportDialog from '../../../components/erp/InspectionReportDialog';
 import apiService from '../../../services/api';
 
 const ReportImageDropzone = ({ onDrop }) => {
@@ -79,6 +80,7 @@ const InspectionRequestView = () => {
   const [reportLightboxOpen, setReportLightboxOpen] = useState(false);
   const [reportLightboxIndex, setReportLightboxIndex] = useState(0);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportViewOpen, setReportViewOpen] = useState(false);
   const [reportFormErrors, setReportFormErrors] = useState({});
   const [reportSaving, setReportSaving] = useState(false);
   const [users, setUsers] = useState([]);
@@ -268,9 +270,16 @@ const InspectionRequestView = () => {
           <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="h5" fontWeight={600}>Inspection Report</Typography>
-              <Button variant="contained" size="small" startIcon={<IconPlus size={18} />} onClick={openReportDialog} sx={{ borderRadius: 2 }}>
-                {report ? 'Edit Report' : 'Add Report'}
-              </Button>
+              <Stack direction="row" spacing={1}>
+                {report && (
+                  <Button variant="outlined" size="small" startIcon={<IconFileReport size={16} />} onClick={() => setReportViewOpen(true)} sx={{ borderRadius: 2 }}>
+                    View Report
+                  </Button>
+                )}
+                <Button variant="contained" size="small" startIcon={<IconPlus size={18} />} onClick={openReportDialog} sx={{ borderRadius: 2 }}>
+                  {report ? 'Edit Report' : 'Add Report'}
+                </Button>
+              </Stack>
             </Stack>
             <Divider sx={{ mb: 3 }} />
             {report ? (
@@ -305,6 +314,12 @@ const InspectionRequestView = () => {
             )}
           </CardContent>
         </Card>
+
+        <InspectionReportDialog
+          open={reportViewOpen}
+          onClose={() => setReportViewOpen(false)}
+          request={request}
+        />
 
         <Dialog open={reportDialogOpen} onClose={() => setReportDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Inspection Report</DialogTitle>

@@ -19,10 +19,11 @@ import {
   Alert,
   Stack,
 } from '@mui/material';
-import { IconSearch, IconClipboardCheck, IconFileReport } from '@tabler/icons-react';
+import { IconSearch, IconFileReport } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
+import InspectionReportDialog from '../../../components/erp/InspectionReportDialog';
 import apiService from '../../../services/api';
 
 const InspectionRequestList = () => {
@@ -36,6 +37,7 @@ const InspectionRequestList = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [reportDialogReq, setReportDialogReq] = useState(null);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -156,9 +158,26 @@ const InspectionRequestList = () => {
                           )}
                         </TableCell>
                         <TableCell align="right">
-                          <Button size="small" variant="outlined" onClick={(e) => { e.stopPropagation(); navigate(`/erp/inspection-requests/${req.id}`); }}>
-                            {req.deal?.inspectionReport ? 'View Report' : 'Add Report'}
-                          </Button>
+                          {req.deal?.inspectionReport ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<IconFileReport size={15} />}
+                              onClick={(e) => { e.stopPropagation(); setReportDialogReq(req); }}
+                              sx={{ borderRadius: 2 }}
+                            >
+                              View Report
+                            </Button>
+                          ) : (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/erp/inspection-requests/${req.id}`); }}
+                              sx={{ borderRadius: 2 }}
+                            >
+                              Add Report
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
@@ -166,6 +185,12 @@ const InspectionRequestList = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+
+            <InspectionReportDialog
+              open={Boolean(reportDialogReq)}
+              onClose={() => setReportDialogReq(null)}
+              request={reportDialogReq}
+            />
 
             <TablePagination
               component="div"

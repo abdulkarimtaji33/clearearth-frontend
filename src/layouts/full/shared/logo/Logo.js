@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Box, styled } from '@mui/material';
+import { Box } from '@mui/material';
 import config from 'src/context/config';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { useContext, useEffect, useState } from 'react';
@@ -10,6 +10,8 @@ const FALLBACK_LOGO = 'https://i.ibb.co/rfFyXrmZ/IMG-6578.png';
 const Logo = () => {
   const { isCollapse, isSidebarHover } = useContext(CustomizerContext);
   const TopbarHeight = config.topbarHeight;
+  const isCollapsed = isCollapse === 'mini-sidebar' && !isSidebarHover;
+
   const [logoSrc, setLogoSrc] = useState(() => {
     try { return sessionStorage.getItem('tenantLogo') || FALLBACK_LOGO; } catch { return FALLBACK_LOGO; }
   });
@@ -27,20 +29,19 @@ const Logo = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const LinkStyled = styled(Link)(() => ({
-    height: TopbarHeight,
-    width: isCollapse === 'mini-sidebar' && !isSidebarHover ? '40px' : '180px',
-    overflow: 'hidden',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    textDecoration: 'none',
-  }));
-
-  const isCollapsed = isCollapse === 'mini-sidebar' && !isSidebarHover;
-
   return (
-    <LinkStyled to="/">
+    <Link
+      to="/"
+      style={{
+        height: TopbarHeight,
+        width: isCollapsed ? '40px' : '180px',
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        textDecoration: 'none',
+      }}
+    >
       <Box
         component="img"
         src={logoSrc}
@@ -54,7 +55,7 @@ const Logo = () => {
           flexShrink: 0,
         }}
       />
-    </LinkStyled>
+    </Link>
   );
 };
 

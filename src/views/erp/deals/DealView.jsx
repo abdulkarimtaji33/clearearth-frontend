@@ -91,12 +91,12 @@ const ReportImageDropzone = ({ onDrop }) => {
 
 const InfoRow = ({ label, value }) => (
   <Grid container spacing={2} sx={{ mb: 2 }}>
-    <Grid item xs={4} md={3}>
+    <Grid size={{ xs: 4, md: 3 }}>
       <Typography variant="body2" color="text.secondary" fontWeight={600}>
         {label}:
       </Typography>
     </Grid>
-    <Grid item xs={8} md={9}>
+    <Grid size={{ xs: 8, md: 9 }}>
       <Typography variant="body2">{value || '-'}</Typography>
     </Grid>
   </Grid>
@@ -347,7 +347,7 @@ const DealView = () => {
                   <ListItemText primary="Purchase quotation" secondary="Client (company)" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
                 </MenuItem>
               )}
-              {deal.deal_type === 'offer_to_purchase' && deal.downstream_partner_supplier_id && (
+              {deal.downstream_partner_supplier_id && (
                 <MenuItem
                   dense
                   onClick={() => {
@@ -498,7 +498,7 @@ const DealView = () => {
               </Typography>
               <Divider sx={{ my: 3 }} />
               <Grid container spacing={4}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <InfoRow label="Deal Type" value={deal.deal_type?.replace(/_/g, ' ')} />
                   {(deal.container_type || deal.location_type) && (
                     <>
@@ -507,7 +507,7 @@ const DealView = () => {
                     </>
                   )}
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <InfoRow label="WDS Required" value={deal.wds_required ? 'Yes' : 'No'} />
                   <InfoRow label="Inspection Required" value={deal.inspection_required ? 'Yes' : 'No'} />
                   {deal.deal_type === 'offer_to_charge' && (deal.container_type || deal.location_type) && (
@@ -523,21 +523,21 @@ const DealView = () => {
                 <Box sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: 'divider' }}>
                   <Typography variant="h6" fontWeight={600} mb={2}>WDS Details</Typography>
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}><InfoRow label="Ref No" value={deal.wdsDetails.ref_no} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Date" value={deal.wdsDetails.date ? new Date(deal.wdsDetails.date).toLocaleDateString() : '-'} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Company Name" value={deal.wdsDetails.company_name} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="License No" value={deal.wdsDetails.license_no} /></Grid>
-                    <Grid item xs={12}><InfoRow label="Waste Description" value={deal.wdsDetails.waste_description} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Container No" value={deal.wdsDetails.container_no} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Source/Process" value={deal.wdsDetails.source_process} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Package Type" value={deal.wdsDetails.package_type} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Quantity per Package" value={deal.wdsDetails.quantity_per_package} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Total Weight" value={deal.wdsDetails.total_weight} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="BL No" value={deal.wdsDetails.bl_no} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="BOR No" value={deal.wdsDetails.bor_no} /></Grid>
-                    <Grid item xs={12}><InfoRow label="Purpose" value={deal.wdsDetails.purpose} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Ref No" value={deal.wdsDetails.ref_no} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Date" value={deal.wdsDetails.date ? new Date(deal.wdsDetails.date).toLocaleDateString() : '-'} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Company Name" value={deal.wdsDetails.company_name} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="License No" value={deal.wdsDetails.license_no} /></Grid>
+                    <Grid size={12}><InfoRow label="Waste Description" value={deal.wdsDetails.waste_description} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Container No" value={deal.wdsDetails.container_no} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Source/Process" value={deal.wdsDetails.source_process} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Package Type" value={deal.wdsDetails.package_type} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Quantity per Package" value={deal.wdsDetails.quantity_per_package} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Total Weight" value={deal.wdsDetails.total_weight} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="BL No" value={deal.wdsDetails.bl_no} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="BOR No" value={deal.wdsDetails.bor_no} /></Grid>
+                    <Grid size={12}><InfoRow label="Purpose" value={deal.wdsDetails.purpose} /></Grid>
                     {deal.wdsDetails.attachments && deal.wdsDetails.attachments.length > 0 && (
-                      <Grid item xs={12}>
+                      <Grid size={12}>
                         <Typography variant="subtitle2" sx={{ mb: 1 }}>Attachments</Typography>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                           {deal.wdsDetails.attachments.map((a, idx) => (
@@ -563,22 +563,22 @@ const DealView = () => {
                 <Box sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: 'divider' }}>
                   <Typography variant="h6" fontWeight={600} mb={2}>Inspection Request</Typography>
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}><InfoRow label="Material Type" value={deal.inspectionRequest.materialType?.display_name || '-'} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Location" value={deal.inspectionRequest.location || '-'} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Location Type" value={deal.inspectionRequest.location_type ? (deal.inspectionRequest.location_type === 'mainland' ? 'Mainland' : 'Freezone') : '-'} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Gate Pass Requirement" value={deal.inspectionRequest.gate_pass_requirement ? deal.inspectionRequest.gate_pass_requirement.charAt(0).toUpperCase() + deal.inspectionRequest.gate_pass_requirement.slice(1) : '-'} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Service Type" value={deal.inspectionRequest.service_type || '-'} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Quantity" value={deal.inspectionRequest.quantity || '-'} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Safety Tools" value={(() => { const st = deal.inspectionRequest.safety_tools; if (!st) return '-'; try { const arr = typeof st === 'string' ? JSON.parse(st) : (Array.isArray(st) ? st : []); const labels = { safety_jacket: 'Safety Jacket', safety_shoes: 'Safety Shoes', safety_coverall: 'Safety Coverall', safety_helmet: 'Safety Helmet', safety_tools_required: 'Safety Tools Required', safety_mask: 'Safety Mask', safety_goggles: 'Safety Goggles', safety_gloves: 'Safety Gloves' }; return arr.map((v) => labels[v] || v).join(', ') || '-'; } catch { return '-'; } })()} /></Grid>
-                    <Grid item xs={12} md={6}><InfoRow label="Requested By" value={deal.inspectionRequest.requestedByUser ? [deal.inspectionRequest.requestedByUser.first_name, deal.inspectionRequest.requestedByUser.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Material Type" value={deal.inspectionRequest.materialType?.display_name || '-'} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Location" value={deal.inspectionRequest.location || '-'} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Location Type" value={deal.inspectionRequest.location_type ? (deal.inspectionRequest.location_type === 'mainland' ? 'Mainland' : 'Freezone') : '-'} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Gate Pass Requirement" value={deal.inspectionRequest.gate_pass_requirement ? deal.inspectionRequest.gate_pass_requirement.charAt(0).toUpperCase() + deal.inspectionRequest.gate_pass_requirement.slice(1) : '-'} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Service Type" value={deal.inspectionRequest.service_type || '-'} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Quantity" value={deal.inspectionRequest.quantity || '-'} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Safety Tools" value={(() => { const st = deal.inspectionRequest.safety_tools; if (!st) return '-'; try { const arr = typeof st === 'string' ? JSON.parse(st) : (Array.isArray(st) ? st : []); const labels = { safety_jacket: 'Safety Jacket', safety_shoes: 'Safety Shoes', safety_coverall: 'Safety Coverall', safety_helmet: 'Safety Helmet', safety_tools_required: 'Safety Tools Required', safety_mask: 'Safety Mask', safety_goggles: 'Safety Goggles', safety_gloves: 'Safety Gloves' }; return arr.map((v) => labels[v] || v).join(', ') || '-'; } catch { return '-'; } })()} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Requested By" value={deal.inspectionRequest.requestedByUser ? [deal.inspectionRequest.requestedByUser.first_name, deal.inspectionRequest.requestedByUser.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
+                    <Grid size={12}>
                       <Grid container spacing={2} sx={{ mb: 2 }}>
-                        <Grid item xs={4} md={3}>
+                        <Grid size={{ xs: 4, md: 3 }}>
                           <Typography variant="body2" color="text.secondary" fontWeight={600}>
                             Supporting Documents:
                           </Typography>
                         </Grid>
-                        <Grid item xs={8} md={9}>
+                        <Grid size={{ xs: 8, md: 9 }}>
                           {deal.inspectionRequest.supporting_documents ? (
                             <Button
                               size="small"
@@ -597,7 +597,7 @@ const DealView = () => {
                         </Grid>
                       </Grid>
                     </Grid>
-                    <Grid item xs={12}><InfoRow label="Notes" value={deal.inspectionRequest.notes || '-'} /></Grid>
+                    <Grid size={12}><InfoRow label="Notes" value={deal.inspectionRequest.notes || '-'} /></Grid>
                   </Grid>
                 </Box>
               )}
@@ -694,25 +694,25 @@ const DealView = () => {
                   Deal snapshot
                 </Typography>
                 <Grid container spacing={2} sx={{ mb: 4 }}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="text.secondary">Deal value</Typography>
                     <Typography variant="body1" fontWeight={600}>
                       {deal.currency} {parseFloat(deal.total || 0).toFixed(2)}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="text.secondary">Deal date</Typography>
                     <Typography variant="body1" fontWeight={600}>
                       {deal.deal_date ? new Date(deal.deal_date).toLocaleDateString() : '—'}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="text.secondary">Contact</Typography>
                     <Typography variant="body1" fontWeight={600}>
                       {deal.contact ? [deal.contact.first_name, deal.contact.last_name].filter(Boolean).join(' ') : '—'}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="text.secondary">Deal status</Typography>
                     <Typography variant="body1" fontWeight={600}>{deal.status || '—'}</Typography>
                   </Grid>
@@ -724,7 +724,7 @@ const DealView = () => {
                   Inspection details
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="text.secondary">Inspection date & time</Typography>
                     <Typography variant="body1" fontWeight={500}>
                       {deal.inspectionReport.inspection_datetime
@@ -732,7 +732,7 @@ const DealView = () => {
                         : '—'}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="text.secondary">Approx. weight</Typography>
                     <Typography variant="body1" fontWeight={500}>
                       {deal.inspectionReport.approximate_weight != null
@@ -740,23 +740,23 @@ const DealView = () => {
                         : '—'}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="text.secondary">Cargo type</Typography>
                     <Typography variant="body1" fontWeight={500}>{deal.inspectionReport.cargo_type || '—'}</Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="text.secondary">Transportation</Typography>
                     <Typography variant="body1" fontWeight={500}>
                       {deal.inspectionReport.transportation_arrangement || '—'}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="text.secondary">Approx. value</Typography>
                     <Typography variant="body1" fontWeight={500}>
                       {deal.inspectionReport.approximate_value != null ? String(deal.inspectionReport.approximate_value) : '—'}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="text.secondary">Inspector</Typography>
                     <Typography variant="body1" fontWeight={500}>
                       {deal.inspectionReport.inspector
@@ -764,7 +764,7 @@ const DealView = () => {
                         : '—'}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="caption" color="text.secondary">Approved by</Typography>
                     <Typography variant="body1" fontWeight={500}>
                       {deal.inspectionReport.approvedBy
@@ -772,7 +772,7 @@ const DealView = () => {
                         : '—'}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={12}>
                     <Typography variant="caption" color="text.secondary">Notes</Typography>
                     <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>
                       {deal.inspectionReport.notes || '—'}
@@ -840,12 +840,12 @@ const DealView = () => {
             <Divider sx={{ my: 3 }} />
             
             <Grid container spacing={4}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <InfoRow label="Source Lead" value={deal.lead?.lead_number || '-'} />
                 <InfoRow label="Company (Client)" value={deal.company?.company_name || '-'} />
                 <InfoRow label="Contact Person" value={deal.contact ? [deal.contact.first_name, deal.contact.last_name].filter(Boolean).join(' ') || '-' : '-'} />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <InfoRow label="Supplier (primary)" value={deal.supplier?.company_name || '-'} />
                 <InfoRow label="Downstream partner supplier" value={deal.downstreamPartner?.company_name || deal.downstream_partner?.company_name || '-'} />
                 <InfoRow label="Assigned To" value={deal.assignedUser ? [deal.assignedUser.first_name, deal.assignedUser.last_name].filter(Boolean).join(' ') || '-' : '-'} />

@@ -6,6 +6,7 @@ import { useContext, useEffect, useState } from 'react';
 import apiService from 'src/services/api';
 
 const FALLBACK_LOGO = 'https://i.ibb.co/rfFyXrmZ/IMG-6578.png';
+const SESSION_KEY = 'tenantLogo';
 
 const Logo = () => {
   const { isCollapse, isSidebarHover } = useContext(CustomizerContext);
@@ -13,18 +14,19 @@ const Logo = () => {
   const isCollapsed = isCollapse === 'mini-sidebar' && !isSidebarHover;
 
   const [logoSrc, setLogoSrc] = useState(() => {
-    try { return sessionStorage.getItem('tenantLogo') || FALLBACK_LOGO; } catch { return FALLBACK_LOGO; }
+    try { return sessionStorage.getItem(SESSION_KEY) || FALLBACK_LOGO; } catch { return FALLBACK_LOGO; }
   });
 
   useEffect(() => {
+    // Already cached — skip fetch
+    try { if (sessionStorage.getItem(SESSION_KEY)) return; } catch { /* ignore */ }
+
     let cancelled = false;
-    apiService.getTenant().then((res) => {
-      if (cancelled) return;
-      if (res?.success && res.data?.logo) {
-        const url = apiService.getUploadUrl(res.data.logo);
-        setLogoSrc(url);
-        try { sessionStorage.setItem('tenantLogo', url); } catch { /* ignore */ }
-      }
+    apiService.getPublicLogo().then((res) => {
+      if (cancelled || !res?.success || !res.data?.logo) return;
+      const url = apiService.getUploadUrl(res.data.logo);
+      setLogoSrc(url);
+      try { sessionStorage.setItem(SESSION_KEY, url); } catch { /* ignore */ }
     }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -46,7 +48,7 @@ const Logo = () => {
         component="img"
         src={logoSrc}
         alt="Clear Earth"
-        onError={() => setLogoSrc(FALLBACK_LOGO)}
+        onError={(e) => { e.target.src = FALLBACK_LOGO; }}
         sx={{
           height: isCollapsed ? 32 : 48,
           width: isCollapsed ? 32 : 'auto',

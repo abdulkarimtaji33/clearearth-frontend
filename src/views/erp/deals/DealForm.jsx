@@ -1367,7 +1367,7 @@ const DealForm = () => {
                   <Divider sx={{ mb: 4 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
                         select
@@ -1386,7 +1386,7 @@ const DealForm = () => {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
                         select
@@ -1402,7 +1402,7 @@ const DealForm = () => {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
                         label="Paid Amount"
@@ -1416,7 +1416,7 @@ const DealForm = () => {
                         helperText={`Total: ${values.currency} ${total.toFixed(2)}`}
                       />
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
                         select

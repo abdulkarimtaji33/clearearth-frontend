@@ -212,7 +212,7 @@ const CompanyView = () => {
 
             {/* Contacts column */}
             {contactsCount > 0 && (
-              <Grid item xs={12} md={dealsCount > 0 ? 5 : 12}>
+              <Grid size={{ xs: 12, md: dealsCount > 0 ? 5 : 12 }}>
                 <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                   <CardContent sx={{ p: 2 }}>
                     <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
@@ -262,7 +262,7 @@ const CompanyView = () => {
 
             {/* Deals column */}
             {dealsCount > 0 && (
-              <Grid item xs={12} md={contactsCount > 0 ? 7 : 12}>
+              <Grid size={{ xs: 12, md: contactsCount > 0 ? 7 : 12 }}>
                 <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                   <CardContent sx={{ p: 2 }}>
                     <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>

@@ -343,7 +343,7 @@ const SupplierForm = () => {
                   <Divider sx={{ mb: 4 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="Supplier Name"
@@ -358,7 +358,7 @@ const SupplierForm = () => {
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         select
@@ -376,7 +376,7 @@ const SupplierForm = () => {
                         <MenuItem value="organization">Organization</MenuItem>
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         select
@@ -396,7 +396,7 @@ const SupplierForm = () => {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="Email"
@@ -412,7 +412,7 @@ const SupplierForm = () => {
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="Phone"
@@ -427,7 +427,7 @@ const SupplierForm = () => {
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <Box position="relative">
                         <Autocomplete
                           fullWidth
@@ -493,7 +493,7 @@ const SupplierForm = () => {
                         </Box>
                       </Box>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         select
@@ -520,7 +520,7 @@ const SupplierForm = () => {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         select
@@ -547,7 +547,7 @@ const SupplierForm = () => {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="Address"
@@ -562,7 +562,7 @@ const SupplierForm = () => {
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="Website"
@@ -576,7 +576,7 @@ const SupplierForm = () => {
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="VAT/TRN Number"
@@ -746,7 +746,7 @@ const SupplierForm = () => {
         </DialogTitle>
         <DialogContent sx={{ pt: 5, px: 4 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Autocomplete
                 options={contacts}
                 getOptionLabel={(opt) =>
@@ -774,7 +774,7 @@ const SupplierForm = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 select
@@ -796,7 +796,7 @@ const SupplierForm = () => {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Divider sx={{ my: 1 }} />
               <Button
                 fullWidth
@@ -855,7 +855,7 @@ const SupplierForm = () => {
             <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{newContactErrors.submit}</Alert>
           )}
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="First Name"
@@ -867,7 +867,7 @@ const SupplierForm = () => {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Last Name"
@@ -879,7 +879,7 @@ const SupplierForm = () => {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Email"
@@ -891,7 +891,7 @@ const SupplierForm = () => {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Phone"
@@ -903,7 +903,7 @@ const SupplierForm = () => {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 select

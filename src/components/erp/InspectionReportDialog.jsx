@@ -251,13 +251,13 @@ const InspectionReportDialog = ({ open, onClose, request }) => {
         {/* Inspection request details */}
         <Section title="Inspection request">
           <Grid container spacing={0}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Field icon={IconBuilding} label="Material type" value={request.materialType?.display_name} />
               <Field icon={IconBuilding} label="Location" value={request.location} />
               <Field icon={IconBuilding} label="Location type" value={request.location_type === 'mainland' ? 'Mainland' : request.location_type === 'freezone' ? 'Freezone' : request.location_type} />
               <Field icon={IconBuilding} label="Service type" value={request.service_type} />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Field icon={IconBuilding} label="Quantity" value={request.quantity_uom ? `${request.quantity} ${request.quantity_uom}` : request.quantity} />
               <Field icon={IconBuilding} label="Gate pass" value={request.gate_pass_requirement} />
               <Field icon={IconBuilding} label="Safety tools" value={safetyToolsLabel} />
@@ -279,12 +279,12 @@ const InspectionReportDialog = ({ open, onClose, request }) => {
             {/* Inspection findings */}
             <Section title="Inspection findings">
               <Grid container spacing={0}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Field icon={IconCalendar} label="Inspection date & time" value={report.inspection_datetime ? new Date(report.inspection_datetime).toLocaleString() : null} />
                   <Field icon={IconWeight} label="Approximate weight" value={report.approximate_weight != null ? `${report.approximate_weight} ${report.weight_uom || ''}` : null} />
                   <Field icon={IconTruck} label="Cargo type" value={report.cargo_type} />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Field icon={IconTruck} label="Transportation" value={report.transportation_arrangement} />
                   <Field icon={IconCurrencyDollar} label="Approximate value" value={report.approximate_value != null ? String(report.approximate_value) : null} />
                 </Grid>

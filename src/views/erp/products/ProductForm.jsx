@@ -192,7 +192,7 @@ const ProductForm = () => {
                   <Divider sx={{ mb: 4 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="Product/Service Name"
@@ -207,7 +207,7 @@ const ProductForm = () => {
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         select
@@ -234,7 +234,7 @@ const ProductForm = () => {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <TextField
                         fullWidth
                         multiline
@@ -263,7 +263,7 @@ const ProductForm = () => {
                   <Divider sx={{ mb: 4 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <TextField
                         fullWidth
                         select
@@ -290,7 +290,7 @@ const ProductForm = () => {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <TextField
                         fullWidth
                         label="Price"
@@ -306,7 +306,7 @@ const ProductForm = () => {
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <TextField
                         fullWidth
                         select

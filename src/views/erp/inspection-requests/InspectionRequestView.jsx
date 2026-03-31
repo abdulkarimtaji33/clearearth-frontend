@@ -60,12 +60,12 @@ const ReportImageDropzone = ({ onDrop }) => {
 
 const InfoRow = ({ label, value }) => (
   <Grid container spacing={2} sx={{ mb: 2 }}>
-    <Grid item xs={4} md={3}>
+    <Grid size={{ xs: 4, md: 3 }}>
       <Typography variant="body2" color="text.secondary" fontWeight={600}>
         {label}:
       </Typography>
     </Grid>
-    <Grid item xs={8} md={9}>
+    <Grid size={{ xs: 8, md: 9 }}>
       <Typography variant="body2">{value || '-'}</Typography>
     </Grid>
   </Grid>
@@ -253,15 +253,15 @@ const InspectionRequestView = () => {
             <Typography variant="h5" fontWeight={600} mb={2}>Request Details</Typography>
             <Divider sx={{ mb: 3 }} />
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}><InfoRow label="Deal" value={deal?.title} /></Grid>
-              <Grid item xs={12} md={6}><InfoRow label="Client" value={deal?.company?.company_name || deal?.supplier?.company_name} /></Grid>
-              <Grid item xs={12} md={6}><InfoRow label="Material Type" value={request.materialType?.display_name} /></Grid>
-              <Grid item xs={12} md={6}><InfoRow label="Quantity" value={request.quantity_uom ? `${request.quantity} ${request.quantity_uom}` : request.quantity} /></Grid>
-              <Grid item xs={12} md={6}><InfoRow label="Safety Tools" value={(() => { const st = request.safety_tools; if (!st) return '-'; try { const arr = typeof st === 'string' ? JSON.parse(st) : (Array.isArray(st) ? st : []); const labels = { safety_jacket: 'Safety Jacket', safety_shoes: 'Safety Shoes', safety_coverall: 'Safety Coverall', safety_helmet: 'Safety Helmet', safety_tools_required: 'Safety Tools Required', safety_mask: 'Safety Mask', safety_goggles: 'Safety Goggles', safety_gloves: 'Safety Gloves' }; return arr.map((v) => labels[v] || v).join(', ') || '-'; } catch { return '-'; } })()} /></Grid>
-              <Grid item xs={12} md={6}><InfoRow label="Location" value={request.location} /></Grid>
-              <Grid item xs={12} md={6}><InfoRow label="Service Type" value={request.service_type} /></Grid>
-              <Grid item xs={12} md={6}><InfoRow label="Requested By" value={request.requestedByUser ? [request.requestedByUser.first_name, request.requestedByUser.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
-              <Grid item xs={12}><InfoRow label="Notes" value={request.notes} /></Grid>
+              <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Deal" value={deal?.title} /></Grid>
+              <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Client" value={deal?.company?.company_name || deal?.supplier?.company_name} /></Grid>
+              <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Material Type" value={request.materialType?.display_name} /></Grid>
+              <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Quantity" value={request.quantity_uom ? `${request.quantity} ${request.quantity_uom}` : request.quantity} /></Grid>
+              <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Safety Tools" value={(() => { const st = request.safety_tools; if (!st) return '-'; try { const arr = typeof st === 'string' ? JSON.parse(st) : (Array.isArray(st) ? st : []); const labels = { safety_jacket: 'Safety Jacket', safety_shoes: 'Safety Shoes', safety_coverall: 'Safety Coverall', safety_helmet: 'Safety Helmet', safety_tools_required: 'Safety Tools Required', safety_mask: 'Safety Mask', safety_goggles: 'Safety Goggles', safety_gloves: 'Safety Gloves' }; return arr.map((v) => labels[v] || v).join(', ') || '-'; } catch { return '-'; } })()} /></Grid>
+              <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Location" value={request.location} /></Grid>
+              <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Service Type" value={request.service_type} /></Grid>
+              <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Requested By" value={request.requestedByUser ? [request.requestedByUser.first_name, request.requestedByUser.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
+              <Grid size={12}><InfoRow label="Notes" value={request.notes} /></Grid>
             </Grid>
           </CardContent>
         </Card>
@@ -284,14 +284,14 @@ const InspectionRequestView = () => {
             <Divider sx={{ mb: 3 }} />
             {report ? (
               <Grid container spacing={3}>
-                <Grid item xs={12} md={6}><InfoRow label="Inspection Date" value={report.inspection_datetime ? new Date(report.inspection_datetime).toLocaleString() : '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Approx. Weight" value={report.approximate_weight != null ? `${report.approximate_weight} ${report.weight_uom || ''}` : '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Cargo Type" value={report.cargo_type} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Transportation" value={report.transportation_arrangement} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Inspector" value={report.inspector ? [report.inspector.first_name, report.inspector.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
-                <Grid item xs={12} md={6}><InfoRow label="Approved By" value={report.approvedBy ? [report.approvedBy.first_name, report.approvedBy.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Inspection Date" value={report.inspection_datetime ? new Date(report.inspection_datetime).toLocaleString() : '-'} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Approx. Weight" value={report.approximate_weight != null ? `${report.approximate_weight} ${report.weight_uom || ''}` : '-'} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Cargo Type" value={report.cargo_type} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Transportation" value={report.transportation_arrangement} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Inspector" value={report.inspector ? [report.inspector.first_name, report.inspector.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
+                <Grid size={{ xs: 12, md: 6 }}><InfoRow label="Approved By" value={report.approvedBy ? [report.approvedBy.first_name, report.approvedBy.last_name].filter(Boolean).join(' ') || '-' : '-'} /></Grid>
                 {report.images && report.images.length > 0 && (
-                  <Grid item xs={12}>
+                  <Grid size={12}>
                     <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>Images</Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                       {report.images.map((path, idx) => (

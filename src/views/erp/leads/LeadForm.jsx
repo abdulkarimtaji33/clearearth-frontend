@@ -17,6 +17,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Popper,
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -25,6 +26,12 @@ import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+
+// Popper that matches the anchor element width
+const WidePopper = ({ style, anchorEl, ...props }) => {
+  const width = anchorEl ? anchorEl.getBoundingClientRect().width : undefined;
+  return <Popper {...props} anchorEl={anchorEl} style={{ ...style, width }} placement="bottom-start" />;
+};
 
 const validationSchema = Yup.object({
   companyId: Yup.number().nullable().required('Company is required'),
@@ -352,7 +359,7 @@ const LeadForm = () => {
                   <Divider sx={{ mb: 4 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <Box position="relative">
                         <Autocomplete
                           fullWidth
@@ -382,14 +389,7 @@ const LeadForm = () => {
                             />
                           )}
                           isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                          ListboxProps={{
-                            style: { maxHeight: '300px' }
-                          }}
-                          sx={{
-                            '& .MuiAutocomplete-inputRoot': {
-                              minWidth: '300px',
-                            }
-                          }}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
                         />
                         <Box
                           sx={{
@@ -423,7 +423,7 @@ const LeadForm = () => {
                         </Box>
                       </Box>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <Box position="relative">
                         <Autocomplete
                           fullWidth
@@ -469,14 +469,7 @@ const LeadForm = () => {
                             />
                           )}
                           isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                          ListboxProps={{
-                            style: { maxHeight: '300px' }
-                          }}
-                          sx={{
-                            '& .MuiAutocomplete-inputRoot': {
-                              minWidth: '300px',
-                            }
-                          }}
+                          ListboxProps={{ style: { maxHeight: '300px' } }}
                         />
                         <Box
                           sx={{
@@ -518,7 +511,7 @@ const LeadForm = () => {
                         </Box>
                       </Box>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="Email"
@@ -533,7 +526,7 @@ const LeadForm = () => {
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="Phone"
@@ -563,7 +556,7 @@ const LeadForm = () => {
                   <Divider sx={{ mb: 4 }} />
                   
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         select
@@ -590,7 +583,7 @@ const LeadForm = () => {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         select
@@ -619,7 +612,7 @@ const LeadForm = () => {
                       </TextField>
                     </Grid>
                     {showAssignedTo && (
-                      <Grid item xs={12} md={6}>
+                      <Grid size={{ xs: 12, md: 6 }}>
                         <Autocomplete
                           fullWidth
                           options={users}
@@ -644,7 +637,7 @@ const LeadForm = () => {
                         />
                       </Grid>
                     )}
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <Autocomplete
                         fullWidth
                         options={products}
@@ -658,7 +651,7 @@ const LeadForm = () => {
                           <TextField
                             {...params}
                             label="Item"
-                            placeholder="Required - Select product or service..."
+                            placeholder="Select product or service..."
                             error={touched.productServiceId && Boolean(errors.productServiceId)}
                             helperText={touched.productServiceId ? errors.productServiceId : ' '}
                             required
@@ -667,9 +660,10 @@ const LeadForm = () => {
                         )}
                         isOptionEqualToValue={(opt, val) => opt.id === val?.id}
                         ListboxProps={{ style: { maxHeight: '300px' } }}
+                        PopperComponent={WidePopper}
                       />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <TextField
                         fullWidth
                         multiline
@@ -719,50 +713,50 @@ const LeadForm = () => {
           <DialogContent sx={{ pt: 5, px: 4 }}>
             {newCompanyErrors.submit && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{newCompanyErrors.submit}</Alert>}
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth label="Company Name" value={newCompanyValues.companyName} onChange={(e) => setNewCompanyValues((v) => ({ ...v, companyName: e.target.value }))}
                   error={Boolean(newCompanyErrors.companyName)} helperText={newCompanyErrors.companyName} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth select label="Type" value={newCompanyValues.type || 'organization'} onChange={(e) => setNewCompanyValues((v) => ({ ...v, type: e.target.value }))}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
                   <MenuItem value="individual">Individual</MenuItem>
                   <MenuItem value="organization">Organization</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth label="Phone" required value={newCompanyValues.phone} onChange={(e) => setNewCompanyValues((v) => ({ ...v, phone: e.target.value }))}
                   error={Boolean(newCompanyErrors.phone)} helperText={newCompanyErrors.phone} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth label="Email" type="email" value={newCompanyValues.email} onChange={(e) => setNewCompanyValues((v) => ({ ...v, email: e.target.value }))}
                   error={Boolean(newCompanyErrors.email)} helperText={newCompanyErrors.email} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth select label="Country" required value={newCompanyValues.country} onChange={(e) => setNewCompanyValues((v) => ({ ...v, country: e.target.value }))}
                   error={Boolean(newCompanyErrors.country)} helperText={newCompanyErrors.country} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
                   {dropdowns.countries?.map((c) => <MenuItem key={c.id} value={c.value}>{c.display_name}</MenuItem>)}
                 </TextField>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth select label="City" required value={newCompanyValues.city} onChange={(e) => setNewCompanyValues((v) => ({ ...v, city: e.target.value }))}
                   error={Boolean(newCompanyErrors.city)} helperText={newCompanyErrors.city} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
                   <MenuItem value="">None</MenuItem>
                   {dropdowns.cities?.map((city) => <MenuItem key={city.id} value={city.value}>{city.display_name}</MenuItem>)}
                 </TextField>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField fullWidth label="Address" required value={newCompanyValues.address} onChange={(e) => setNewCompanyValues((v) => ({ ...v, address: e.target.value }))}
                   error={Boolean(newCompanyErrors.address)} helperText={newCompanyErrors.address} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField fullWidth select label="Industry Type" value={newCompanyValues.industryType} onChange={(e) => setNewCompanyValues((v) => ({ ...v, industryType: e.target.value }))}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
                   <MenuItem value="">None</MenuItem>
                   {dropdowns.industryTypes?.map((t) => <MenuItem key={t.id} value={t.value}>{t.display_name}</MenuItem>)}
                 </TextField>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField fullWidth label="VAT/TRN Number" placeholder="Optional" value={newCompanyValues.vatNumber} onChange={(e) => setNewCompanyValues((v) => ({ ...v, vatNumber: e.target.value }))}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
@@ -785,23 +779,23 @@ const LeadForm = () => {
           <DialogContent sx={{ pt: 5, px: 4 }}>
             {newContactErrors.submit && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{newContactErrors.submit}</Alert>}
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth label="First Name" value={newContactValues.firstName} onChange={(e) => setNewContactValues((v) => ({ ...v, firstName: e.target.value }))}
                   error={Boolean(newContactErrors.firstName)} helperText={newContactErrors.firstName} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth label="Last Name" value={newContactValues.lastName} onChange={(e) => setNewContactValues((v) => ({ ...v, lastName: e.target.value }))}
                   error={Boolean(newContactErrors.lastName)} helperText={newContactErrors.lastName} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth label="Phone" value={newContactValues.phone} onChange={(e) => setNewContactValues((v) => ({ ...v, phone: e.target.value }))}
                   error={Boolean(newContactErrors.phone)} helperText={newContactErrors.phone} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField fullWidth label="Email" type="email" value={newContactValues.email} onChange={(e) => setNewContactValues((v) => ({ ...v, email: e.target.value }))}
                   error={Boolean(newContactErrors.email)} helperText={newContactErrors.email} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField fullWidth select label="Designation" value={newContactValues.designation} onChange={(e) => setNewContactValues((v) => ({ ...v, designation: e.target.value }))}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
                   <MenuItem value="">None</MenuItem>

@@ -453,6 +453,12 @@ class ApiService {
     return this.get('/tenants/me');
   }
 
+  async getPublicLogo() {
+    const url = `${this.baseURL}/tenants/logo`;
+    const res = await fetch(url);
+    return res.json();
+  }
+
   async updateTenant(data) {
     return this.put('/tenants/me', data);
   }

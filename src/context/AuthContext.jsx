@@ -25,6 +25,11 @@ export const AuthProvider = ({ children }) => {
         setTenant(response.data.tenant);
         setPermissions(response.data.permissions || []);
         setIsAuthenticated(true);
+        // Cache tenant logo so Logo.js can read it without an extra API call
+        const logo = response.data.tenant?.logo;
+        if (logo) {
+          try { sessionStorage.setItem('tenantLogo', apiService.getUploadUrl(logo)); } catch { /* ignore */ }
+        }
       }
     } catch (error) {
       console.error('Failed to load user:', error);

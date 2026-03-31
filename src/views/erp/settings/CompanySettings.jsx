@@ -222,40 +222,40 @@ const CompanySettings = () => {
                   <Divider sx={{ mb: 4 }} />
 
                   <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField fullWidth label="Tenant Name" name="name" value={values.name} onChange={handleChange} onBlur={handleBlur} error={touched.name && Boolean(errors.name)} helperText={touched.name ? errors.name : ' '} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField fullWidth label="Company Name" name="company_name" placeholder="As shown on documents" value={values.company_name} onChange={handleChange} onBlur={handleBlur} error={touched.company_name && Boolean(errors.company_name)} helperText={touched.company_name ? errors.company_name : ' '} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField fullWidth label="Email" name="email" type="email" value={values.email} onChange={handleChange} onBlur={handleBlur} error={touched.email && Boolean(errors.email)} helperText={touched.email ? errors.email : ' '} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField fullWidth label="Phone" name="phone" value={values.phone || ''} onChange={handleChange} onBlur={handleBlur} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <TextField fullWidth label="Address" name="address" multiline rows={2} value={values.address || ''} onChange={handleChange} onBlur={handleBlur} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                     </Grid>
-                    <Grid item xs={12} sm={4}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField fullWidth select label="Country" name="country" value={values.country || ''} onChange={handleChange} onBlur={handleBlur} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
                         <MenuItem value="">Select</MenuItem>
                         {dropdowns.countries.map((c) => (<MenuItem key={c.id} value={c.value}>{c.display_name}</MenuItem>))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} sm={4}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField fullWidth select label="City" name="city" value={values.city || ''} onChange={handleChange} onBlur={handleBlur} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
                         <MenuItem value="">Select</MenuItem>
                         {dropdowns.cities.map((city) => (<MenuItem key={city.id} value={city.value}>{city.display_name}</MenuItem>))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} sm={4}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField fullWidth label="TRN Number" name="trn_number" placeholder="Tax Registration" value={values.trn_number || ''} onChange={handleChange} onBlur={handleBlur} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField fullWidth label="VAT Registration Number" name="vat_registration_number" value={values.vat_registration_number || ''} onChange={handleChange} onBlur={handleBlur} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField fullWidth label="License Number" name="license_number" value={values.license_number || ''} onChange={handleChange} onBlur={handleBlur} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                     </Grid>
                   </Grid>

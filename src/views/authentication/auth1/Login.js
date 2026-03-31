@@ -6,6 +6,7 @@ import { styled, alpha, keyframes } from '@mui/material/styles';
 import PageContainer from 'src/components/container/PageContainer';
 import AuthLogin from '../authForms/AuthLogin';
 import { IconShieldCheck, IconBolt } from '@tabler/icons-react';
+import Logo from 'src/layouts/full/shared/logo/Logo';
 
 const LOGO_URL = 'https://i.ibb.co/rfFyXrmZ/IMG-6578.png';
 
@@ -146,17 +147,7 @@ const Login = () => (
       <GlassCard>
         {/* Logo */}
         <LogoBox>
-          <Box
-            component="img"
-            src={LOGO_URL}
-            alt="Clear Earth"
-            sx={{
-              height: 64,
-              width: 'auto',
-              maxWidth: '100%',
-              objectFit: 'contain',
-            }}
-          />
+          <Logo />
         </LogoBox>
 
         {/* Feature Badge */}

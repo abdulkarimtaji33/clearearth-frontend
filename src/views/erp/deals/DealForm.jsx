@@ -517,6 +517,16 @@ const DealForm = () => {
         return;
       }
 
+      const zeroQtyIndex = lineItems.findIndex((item) => {
+        const qty = parseFloat(item.quantity);
+        return isNaN(qty) || qty <= 0;
+      });
+      if (zeroQtyIndex !== -1) {
+        setError(`Line item ${zeroQtyIndex + 1}: Quantity must be greater than 0`);
+        setSubmitting(false);
+        return;
+      }
+
       if (values.inspectionRequired) {
         if (!values.companyId) {
           setError('Company is required when inspection is required');
@@ -690,8 +700,17 @@ const DealForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue, setFieldTouched }) => (
-            <form onSubmit={formikSubmit}>
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue, setFieldTouched, submitCount }) => (
+            <form onSubmit={(e) => {
+              formikSubmit(e);
+              // Surface Yup validation errors as a top-level alert after first submit attempt
+              setTimeout(() => {
+                const errs = Object.values(errors);
+                if (errs.length > 0) {
+                  setError(errs.filter(Boolean).join(' · '));
+                }
+              }, 50);
+            }}>
               {/* Basic Information */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>

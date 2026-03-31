@@ -335,6 +335,7 @@ export default function components(theme) {
           width: '100%',
           padding: '15px',
           backgroundImage: 'none',
+          overflow: 'visible',
         },
       },
     },

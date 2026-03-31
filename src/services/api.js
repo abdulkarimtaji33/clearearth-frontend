@@ -457,6 +457,12 @@ class ApiService {
     return this.put('/tenants/me', data);
   }
 
+  async uploadTenantLogo(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.post('/upload/tenant-logo', formData);
+  }
+
   // Dropdowns
   async getAllDropdowns() {
     return this.get('/dropdowns/all');

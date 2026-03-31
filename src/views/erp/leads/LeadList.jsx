@@ -790,9 +790,6 @@ const LeadList = () => {
                         </TableCell>
                         <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                           <Box className="row-actions" sx={{ opacity: 0, transition: 'opacity 0.15s', display: 'flex', justifyContent: 'flex-end' }}>
-                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); openLeadView(lead); }} title="View">
-                              <IconEye size={17} />
-                            </IconButton>
                             <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, lead); }}>
                               <IconDotsVertical size={17} />
                             </IconButton>

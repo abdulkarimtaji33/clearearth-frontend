@@ -666,9 +666,8 @@ const LeadForm = () => {
                           />
                         )}
                         isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                        ListboxProps={{
-                          style: { maxHeight: '300px' }
-                        }}
+                        ListboxProps={{ style: { maxHeight: '300px' } }}
+                        slotProps={{ popper: { style: { width: 'auto', minWidth: 300 } } }}
                       />
                     </Grid>
                     <Grid item xs={12}>

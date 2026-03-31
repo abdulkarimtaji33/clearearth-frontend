@@ -644,7 +644,7 @@ const LeadForm = () => {
                         />
                       </Grid>
                     )}
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12}>
                       <Autocomplete
                         fullWidth
                         options={products}
@@ -667,7 +667,6 @@ const LeadForm = () => {
                         )}
                         isOptionEqualToValue={(opt, val) => opt.id === val?.id}
                         ListboxProps={{ style: { maxHeight: '300px' } }}
-                        slotProps={{ popper: { style: { width: 'auto', minWidth: 300 } } }}
                       />
                     </Grid>
                     <Grid item xs={12}>
@@ -717,7 +716,7 @@ const LeadForm = () => {
             <Typography variant="h4" fontWeight={700}>Add New Company</Typography>
             <Typography variant="body2" color="text.secondary" mt={1}>Create a company and select it for this lead</Typography>
           </DialogTitle>
-          <DialogContent sx={{ pt: 3, px: 4 }}>
+          <DialogContent sx={{ pt: 5, px: 4 }}>
             {newCompanyErrors.submit && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{newCompanyErrors.submit}</Alert>}
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
@@ -783,7 +782,7 @@ const LeadForm = () => {
             <Typography variant="h4" fontWeight={700}>Add New Contact</Typography>
             <Typography variant="body2" color="text.secondary" mt={1}>Create a contact and select it for this lead</Typography>
           </DialogTitle>
-          <DialogContent sx={{ pt: 3, px: 4 }}>
+          <DialogContent sx={{ pt: 5, px: 4 }}>
             {newContactErrors.submit && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{newContactErrors.submit}</Alert>}
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>

@@ -328,7 +328,7 @@ const InspectionRequestView = () => {
               <Alert severity="error" sx={{ mb: 2 }}>{Object.values(reportFormErrors)[0]}</Alert>
             )}
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 4 }}>
                 <DateTimePicker
                   label="Inspection Date & Time (Required)"
                   value={reportForm.inspectionDatetime}

@@ -559,6 +559,13 @@ export default function components(theme) {
         },
       },
     },
+    MuiDialogContent: {
+      styleOverrides: {
+        root: {
+          paddingTop: '24px !important',
+        },
+      },
+    },
     MuiPopover: {
       styleOverrides: {
         paper: {

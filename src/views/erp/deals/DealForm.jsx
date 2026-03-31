@@ -1501,7 +1501,7 @@ const DealForm = () => {
             </Typography>
           </DialogTitle>
           <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 4 }}>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
                 <TextField
                   fullWidth
@@ -1703,7 +1703,7 @@ const DealForm = () => {
         <Dialog open={inspectionDialogOpen} onClose={() => setInspectionDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Inspection Request</DialogTitle>
           <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 4 }}>
               <Autocomplete
                 fullWidth
                 options={materialTypes}

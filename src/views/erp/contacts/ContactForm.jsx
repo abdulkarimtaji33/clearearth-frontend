@@ -538,7 +538,7 @@ const ContactForm = () => {
             Create a new company to link with this contact
           </Typography>
         </DialogTitle>
-        <DialogContent sx={{ pt: 3, px: 4 }}>
+        <DialogContent sx={{ pt: 5, px: 4 }}>
           {newCompanyErrors.submit && (
             <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{newCompanyErrors.submit}</Alert>
           )}

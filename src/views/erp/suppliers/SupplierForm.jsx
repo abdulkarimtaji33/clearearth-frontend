@@ -744,7 +744,7 @@ const SupplierForm = () => {
             Select an existing contact or create a new one
           </Typography>
         </DialogTitle>
-        <DialogContent sx={{ pt: 3, px: 4 }}>
+        <DialogContent sx={{ pt: 5, px: 4 }}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <Autocomplete
@@ -850,7 +850,7 @@ const SupplierForm = () => {
             Add a new contact and link to this supplier
           </Typography>
         </DialogTitle>
-        <DialogContent sx={{ pt: 3, px: 4 }}>
+        <DialogContent sx={{ pt: 5, px: 4 }}>
           {newContactErrors.submit && (
             <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{newContactErrors.submit}</Alert>
           )}

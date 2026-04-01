@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -54,12 +54,10 @@ import {
   IconClipboardCheck,
   IconTruckDelivery,
   IconFileInvoice,
-  IconTool,
-  IconUsers,
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { WorkOrderRow } from '../work-orders/WorkOrderExpandableRows';
+import config from 'src/context/config';
 
 const getStatusColor = (status) => {
   const colors = {
@@ -126,7 +124,7 @@ const SectionCard = ({ id: sectionId, children, sx }) => (
       borderColor: 'divider',
       borderRadius: 3,
       mb: 3,
-      scrollMarginTop: 72,
+      scrollMarginTop: `${config.topbarHeight + 52}px`,
       ...sx,
     }}
   >
@@ -166,10 +164,9 @@ const SectionHeader = ({ icon: Icon, title, subtitle, action }) => (
 const NAV_ITEMS = [
   { id: 'sec-overview', label: 'Overview', icon: IconInfoCircle },
   { id: 'sec-products', label: 'Products', icon: IconPackage },
-  { id: 'sec-inspection', label: 'Inspection', icon: IconClipboardCheck },
   { id: 'sec-logistics', label: 'Logistics', icon: IconTruckDelivery },
+  { id: 'sec-inspection', label: 'Inspection', icon: IconClipboardCheck },
   { id: 'sec-quotations', label: 'Quotations', icon: IconFileInvoice },
-  { id: 'sec-workorders', label: 'Work Orders', icon: IconTool },
 ];
 
 const DealView = () => {
@@ -204,7 +201,6 @@ const DealView = () => {
 
   const [relatedQuotations, setRelatedQuotations] = useState([]);
   const [relatedPOs, setRelatedPOs] = useState([]);
-  const [workOrders, setWorkOrders] = useState([]);
   const [quotMenuAnchor, setQuotMenuAnchor] = useState(null);
   const quotMenuOpen = Boolean(quotMenuAnchor);
 
@@ -224,14 +220,12 @@ const DealView = () => {
   const fetchRelatedDocs = useCallback(async () => {
     if (!id) return;
     try {
-      const [quotRes, poRes, woRes] = await Promise.all([
+      const [quotRes, poRes] = await Promise.all([
         apiService.getQuotations({ dealId: id, pageSize: 50 }),
         apiService.getPurchaseOrders({ dealId: id, pageSize: 50 }),
-        apiService.getWorkOrders({ dealId: id, pageSize: 50 }),
       ]);
       if (quotRes.success) setRelatedQuotations(Array.isArray(quotRes.data) ? quotRes.data : []);
       if (poRes.success) setRelatedPOs(Array.isArray(poRes.data) ? poRes.data : []);
-      if (woRes.success) setWorkOrders(Array.isArray(woRes.data) ? woRes.data : []);
     } catch (err) {
       console.error(err);
     }
@@ -256,7 +250,7 @@ const DealView = () => {
           setActiveSection(top.target.id);
         }
       },
-      { rootMargin: '-60px 0px -60% 0px', threshold: 0 }
+      { rootMargin: `-${config.topbarHeight + 44}px 0px -55% 0px`, threshold: 0 }
     );
     NAV_ITEMS.forEach(({ id: sid }) => {
       const el = document.getElementById(sid);
@@ -264,15 +258,6 @@ const DealView = () => {
     });
     return () => observer.disconnect();
   }, [deal]);
-
-  const handleDeleteWorkOrder = async (wo) => {
-    try {
-      await apiService.deleteWorkOrder(wo.id);
-      fetchRelatedDocs();
-    } catch (err) {
-      setError(err.message || 'Failed to delete work order');
-    }
-  };
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -386,7 +371,7 @@ const DealView = () => {
 
   return (
     <PageContainer title={`Deal: ${deal.deal_number}`} description="View deal details">
-      <Box sx={{ maxWidth: 'min(5000px, 100%)', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
+      <Box sx={{ maxWidth: 'min(5000px, 100%)', mx: 'auto', px: { xs: 1.5, sm: 2 }, overflow: 'visible' }}>
 
         {/* ── Page header ── */}
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
@@ -455,18 +440,21 @@ const DealView = () => {
           </Stack>
         </Stack>
 
-        {/* ── Sticky section nav ── */}
+        {/* ── Sticky section nav (top = app bar height so it sits below sticky header) ── */}
         <Box
           sx={{
             position: 'sticky',
-            top: 0,
-            zIndex: 100,
+            top: config.topbarHeight,
+            zIndex: (t) => t.zIndex.appBar - 1,
             mb: 3,
-            bgcolor: 'background.default',
-            borderBottom: '1px solid',
-            borderColor: 'divider',
             mx: { xs: -1.5, sm: -2 },
             px: { xs: 1.5, sm: 2 },
+            py: 0.5,
+            bgcolor: (t) => alpha(t.palette.background.paper, 0.92),
+            backdropFilter: 'blur(8px)',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            boxShadow: 1,
           }}
         >
           <Stack
@@ -548,12 +536,16 @@ const DealView = () => {
               ))}
             </Stack>
 
-            <Grid container spacing={{ xs: 0, md: 2, xl: 3 }}>
-              {/* Deal Information — md–lg: half row; xl+: 4/12 (3 cols only on wide screens) */}
+            <Grid container spacing={3}>
+              {/* Deal Information (includes deal type) — md:6 pairs with Related Entities */}
               <Grid
-                size={{ xs: 12, md: 6, xl: 4 }}
+                size={{ xs: 12, md: 6 }}
                 sx={{
-                  pr: { xl: 1 },
+                  borderRight: { xs: 'none', md: '1px solid' },
+                  borderBottom: { xs: '1px solid', md: 'none' },
+                  borderColor: 'divider',
+                  pr: { md: 2 },
+                  pb: { xs: 2, md: 0 },
                 }}
               >
                 <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={2}>Deal Information</Typography>
@@ -568,17 +560,7 @@ const DealView = () => {
               </Grid>
 
               {/* Related Entities */}
-              <Grid
-                size={{ xs: 12, md: 6, xl: 4 }}
-                sx={{
-                  borderTop: { xs: '1px solid', md: 'none' },
-                  borderLeft: { md: '1px solid', xs: 'none' },
-                  borderColor: 'divider',
-                  pl: { md: 2, xl: 2.5 },
-                  pt: { xs: 3, md: 0 },
-                  pr: { xl: 1 },
-                }}
-              >
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={2}>Related Entities</Typography>
                 <InfoRow label="Source lead" value={deal.lead?.lead_number} />
                 <InfoRow label="Company (client)" value={deal.company?.company_name} />
@@ -591,31 +573,6 @@ const DealView = () => {
                     ? deal.termsList.map((t) => t.title).join(', ')
                     : deal.termsAndConditions?.title
                 } />
-              </Grid>
-
-              {/* Logistics — full width below md–xl; third column only xl+ */}
-              <Grid
-                size={{ xs: 12, md: 12, xl: 4 }}
-                sx={{
-                  borderTop: { xs: '1px solid', md: '1px solid', xl: 'none' },
-                  borderLeft: { xl: '1px solid', xs: 'none' },
-                  borderColor: 'divider',
-                  pl: { xl: 2.5 },
-                  pt: { xs: 3, md: 3, xl: 0 },
-                }}
-              >
-                <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={2}>Logistics</Typography>
-                <InfoRow label="Container type" value={deal.container_type} />
-                <InfoRow label="Location type" value={deal.location_type} />
-                <InfoRow label="WDS required" value={deal.wds_required ? 'Yes' : 'No'} />
-                <InfoRow label="Inspection required" value={deal.inspection_required ? 'Yes' : 'No'} />
-                {deal.deal_type === 'offer_to_charge' && (
-                  <>
-                    <InfoRow label="Custom inspection" value={deal.custom_inspection ? 'Yes' : 'No'} />
-                    <InfoRow label="Trakhees inspection" value={deal.trakhees_inspection ? 'Yes' : 'No'} />
-                    <InfoRow label="Dubai municipality" value={deal.dubai_municipality_inspection ? 'Yes' : 'No'} />
-                  </>
-                )}
               </Grid>
             </Grid>
 
@@ -720,7 +677,88 @@ const DealView = () => {
           </CardContent>
         </SectionCard>
 
-        {/* ── SECTION 3: Inspection ── */}
+        {/* ── SECTION 3: Logistics Details (summary + WDS + inspection request) ── */}
+        <SectionCard id="sec-logistics">
+          <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+            <SectionHeader icon={IconTruckDelivery} title="Logistics Details" subtitle="Container, requirements, WDS, and inspection requests" />
+            <Divider sx={{ mb: 2.5 }} />
+
+            <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>General</Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Container type" value={deal.container_type} /></Grid>
+              <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Location type" value={deal.location_type} /></Grid>
+              <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="WDS required" value={deal.wds_required ? 'Yes' : 'No'} /></Grid>
+              <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Inspection required" value={deal.inspection_required ? 'Yes' : 'No'} /></Grid>
+              {deal.deal_type === 'offer_to_charge' && (
+                <>
+                  <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Custom inspection" value={deal.custom_inspection ? 'Yes' : 'No'} /></Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Trakhees inspection" value={deal.trakhees_inspection ? 'Yes' : 'No'} /></Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Dubai municipality" value={deal.dubai_municipality_inspection ? 'Yes' : 'No'} /></Grid>
+                </>
+              )}
+            </Grid>
+
+            {deal.wds_required && deal.wdsDetails && (
+                <>
+                  <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>WDS Details</Typography>
+                  <Grid container spacing={2} mb={2}>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Ref No" value={deal.wdsDetails.ref_no} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Date" value={deal.wdsDetails.date ? new Date(deal.wdsDetails.date).toLocaleDateString() : '-'} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Company name" value={deal.wdsDetails.company_name} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="License No" value={deal.wdsDetails.license_no} /></Grid>
+                    <Grid size={12}><InfoRow label="Waste description" value={deal.wdsDetails.waste_description} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Container No" value={deal.wdsDetails.container_no} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Source / process" value={deal.wdsDetails.source_process} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Package type" value={deal.wdsDetails.package_type} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Qty per package" value={deal.wdsDetails.quantity_per_package} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Total weight" value={deal.wdsDetails.total_weight} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="BL No" value={deal.wdsDetails.bl_no} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="BOR No" value={deal.wdsDetails.bor_no} /></Grid>
+                    <Grid size={12}><InfoRow label="Purpose" value={deal.wdsDetails.purpose} /></Grid>
+                  </Grid>
+                  {deal.wdsDetails.attachments?.length > 0 && (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+                      {deal.wdsDetails.attachments.map((a, idx) => (
+                        <Button key={idx} size="small" variant="outlined" href={apiService.getUploadUrl(a.file_path)} target="_blank" rel="noopener noreferrer" startIcon={<IconFileDescription size={15} />} sx={{ borderRadius: 2 }}>
+                          {a.file_name || a.file_path?.split('/').pop() || 'Attachment'}
+                        </Button>
+                      ))}
+                    </Box>
+                  )}
+                </>
+              )}
+
+              {deal.inspection_required && deal.inspectionRequest && (
+                <>
+                  <Divider sx={{ my: 2.5 }} />
+                  <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>Inspection Request</Typography>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Material type" value={deal.inspectionRequest.materialType?.display_name} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Location" value={deal.inspectionRequest.location} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Location type" value={deal.inspectionRequest.location_type === 'mainland' ? 'Mainland' : deal.inspectionRequest.location_type === 'freezone' ? 'Freezone' : deal.inspectionRequest.location_type} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Gate pass" value={deal.inspectionRequest.gate_pass_requirement ? deal.inspectionRequest.gate_pass_requirement.charAt(0).toUpperCase() + deal.inspectionRequest.gate_pass_requirement.slice(1) : null} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Service type" value={deal.inspectionRequest.service_type} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Quantity" value={deal.inspectionRequest.quantity} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Safety tools" value={(() => { const st = deal.inspectionRequest.safety_tools; if (!st) return null; try { const arr = typeof st === 'string' ? JSON.parse(st) : (Array.isArray(st) ? st : []); const labels = { safety_jacket: 'Safety Jacket', safety_shoes: 'Safety Shoes', safety_coverall: 'Safety Coverall', safety_helmet: 'Safety Helmet', safety_tools_required: 'Safety Tools Required', safety_mask: 'Safety Mask', safety_goggles: 'Safety Goggles', safety_gloves: 'Safety Gloves' }; return arr.map((v) => labels[v] || v).join(', ') || null; } catch { return null; } })()} /></Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Requested by" value={deal.inspectionRequest.requestedByUser ? [deal.inspectionRequest.requestedByUser.first_name, deal.inspectionRequest.requestedByUser.last_name].filter(Boolean).join(' ') : null} /></Grid>
+                    {deal.inspectionRequest.supporting_documents && (
+                      <Grid size={12}>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Typography variant="body2" color="text.secondary" fontWeight={600}>Supporting docs:</Typography>
+                          <Button size="small" startIcon={<IconDownload size={15} />} href={apiService.getUploadUrl(deal.inspectionRequest.supporting_documents)} target="_blank" rel="noopener noreferrer" download sx={{ borderRadius: 2 }}>
+                            Download
+                          </Button>
+                        </Stack>
+                      </Grid>
+                    )}
+                    <Grid size={12}><InfoRow label="Notes" value={deal.inspectionRequest.notes} /></Grid>
+                  </Grid>
+                </>
+              )}
+            </CardContent>
+          </SectionCard>
+
+        {/* ── SECTION 4: Inspection Report ── */}
         <SectionCard id="sec-inspection">
           <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
             <SectionHeader
@@ -754,74 +792,6 @@ const DealView = () => {
             )}
           </CardContent>
         </SectionCard>
-
-        {/* ── SECTION 4: Logistics (WDS + Inspection request) ── */}
-        {(deal.wds_required || deal.inspection_required) && (
-          <SectionCard id="sec-logistics">
-            <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
-              <SectionHeader icon={IconTruckDelivery} title="Logistics Details" subtitle="WDS and inspection request information" />
-              <Divider sx={{ mb: 2.5 }} />
-
-              {deal.wds_required && deal.wdsDetails && (
-                <>
-                  <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>WDS Details</Typography>
-                  <Grid container spacing={2} mb={2}>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Ref No" value={deal.wdsDetails.ref_no} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Date" value={deal.wdsDetails.date ? new Date(deal.wdsDetails.date).toLocaleDateString() : '-'} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Company name" value={deal.wdsDetails.company_name} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="License No" value={deal.wdsDetails.license_no} /></Grid>
-                    <Grid size={12}><InfoRow label="Waste description" value={deal.wdsDetails.waste_description} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Container No" value={deal.wdsDetails.container_no} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Source / process" value={deal.wdsDetails.source_process} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Package type" value={deal.wdsDetails.package_type} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Qty per package" value={deal.wdsDetails.quantity_per_package} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Total weight" value={deal.wdsDetails.total_weight} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="BL No" value={deal.wdsDetails.bl_no} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="BOR No" value={deal.wdsDetails.bor_no} /></Grid>
-                    <Grid size={12}><InfoRow label="Purpose" value={deal.wdsDetails.purpose} /></Grid>
-                  </Grid>
-                  {deal.wdsDetails.attachments?.length > 0 && (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-                      {deal.wdsDetails.attachments.map((a, idx) => (
-                        <Button key={idx} size="small" variant="outlined" href={apiService.getUploadUrl(a.file_path)} target="_blank" rel="noopener noreferrer" startIcon={<IconFileDescription size={15} />} sx={{ borderRadius: 2 }}>
-                          {a.file_name || a.file_path?.split('/').pop() || 'Attachment'}
-                        </Button>
-                      ))}
-                    </Box>
-                  )}
-                </>
-              )}
-
-              {deal.inspection_required && deal.inspectionRequest && (
-                <>
-                  {deal.wds_required && <Divider sx={{ my: 2.5 }} />}
-                  <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>Inspection Request</Typography>
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Material type" value={deal.inspectionRequest.materialType?.display_name} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Location" value={deal.inspectionRequest.location} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Location type" value={deal.inspectionRequest.location_type === 'mainland' ? 'Mainland' : deal.inspectionRequest.location_type === 'freezone' ? 'Freezone' : deal.inspectionRequest.location_type} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Gate pass" value={deal.inspectionRequest.gate_pass_requirement ? deal.inspectionRequest.gate_pass_requirement.charAt(0).toUpperCase() + deal.inspectionRequest.gate_pass_requirement.slice(1) : null} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Service type" value={deal.inspectionRequest.service_type} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Quantity" value={deal.inspectionRequest.quantity} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Safety tools" value={(() => { const st = deal.inspectionRequest.safety_tools; if (!st) return null; try { const arr = typeof st === 'string' ? JSON.parse(st) : (Array.isArray(st) ? st : []); const labels = { safety_jacket: 'Safety Jacket', safety_shoes: 'Safety Shoes', safety_coverall: 'Safety Coverall', safety_helmet: 'Safety Helmet', safety_tools_required: 'Safety Tools Required', safety_mask: 'Safety Mask', safety_goggles: 'Safety Goggles', safety_gloves: 'Safety Gloves' }; return arr.map((v) => labels[v] || v).join(', ') || null; } catch { return null; } })()} /></Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Requested by" value={deal.inspectionRequest.requestedByUser ? [deal.inspectionRequest.requestedByUser.first_name, deal.inspectionRequest.requestedByUser.last_name].filter(Boolean).join(' ') : null} /></Grid>
-                    {deal.inspectionRequest.supporting_documents && (
-                      <Grid size={12}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Typography variant="body2" color="text.secondary" fontWeight={600}>Supporting docs:</Typography>
-                          <Button size="small" startIcon={<IconDownload size={15} />} href={apiService.getUploadUrl(deal.inspectionRequest.supporting_documents)} target="_blank" rel="noopener noreferrer" download sx={{ borderRadius: 2 }}>
-                            Download
-                          </Button>
-                        </Stack>
-                      </Grid>
-                    )}
-                    <Grid size={12}><InfoRow label="Notes" value={deal.inspectionRequest.notes} /></Grid>
-                  </Grid>
-                </>
-              )}
-            </CardContent>
-          </SectionCard>
-        )}
 
         {/* ── SECTION 5: Quotations ── */}
         <SectionCard id="sec-quotations">
@@ -895,47 +865,6 @@ const DealView = () => {
               <Typography variant="body2" color="text.secondary">
                 {deal.deal_type !== 'offer_to_purchase' ? 'Purchase quotations are only for Offer to Purchase deals.' : 'No purchase quotations linked.'}
               </Typography>
-            )}
-          </CardContent>
-        </SectionCard>
-
-        {/* ── SECTION 6: Work Orders ── */}
-        <SectionCard id="sec-workorders">
-          <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
-            <SectionHeader
-              icon={IconTool}
-              title="Work Orders"
-              subtitle="Operations work orders for this deal"
-              action={
-                <Button variant="contained" size="small" startIcon={<IconPlus size={16} />} onClick={() => navigate(`/erp/work-orders/create?dealId=${id}`)} sx={{ borderRadius: 2, fontWeight: 700 }}>
-                  New Work Order
-                </Button>
-              }
-            />
-            <Divider sx={{ mb: 2.5 }} />
-            {workOrders.length > 0 ? (
-              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                      <TableCell sx={{ width: 40 }} />
-                      <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Tasks</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Created By</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {workOrders.map((wo) => (
-                      <WorkOrderRow key={wo.id} wo={wo} onDelete={handleDeleteWorkOrder} showDealSubtext={false} showViewDealInMenu={false} />
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Typography variant="body2" color="text.secondary">No work orders yet.</Typography>
             )}
           </CardContent>
         </SectionCard>

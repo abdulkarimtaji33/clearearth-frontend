@@ -548,9 +548,14 @@ const DealView = () => {
               ))}
             </Stack>
 
-            <Grid container spacing={3}>
-              {/* Deal Information (includes deal type) */}
-              <Grid size={{ xs: 12, md: 4 }}>
+            <Grid container spacing={{ xs: 0, md: 2, xl: 3 }}>
+              {/* Deal Information — md–lg: half row; xl+: 4/12 (3 cols only on wide screens) */}
+              <Grid
+                size={{ xs: 12, md: 6, xl: 4 }}
+                sx={{
+                  pr: { xl: 1 },
+                }}
+              >
                 <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={2}>Deal Information</Typography>
                 <InfoRow label="Title" value={deal.title} />
                 <InfoRow label="Deal type" value={deal.deal_type?.replace(/_/g, ' ')} />
@@ -562,15 +567,18 @@ const DealView = () => {
                 <InfoRow label="Updated" value={new Date(deal.updated_at).toLocaleString()} />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 0.1 }} sx={{ display: { xs: 'none', md: 'block' } }}>
-                <Divider orientation="vertical" sx={{ height: '100%', mx: 'auto' }} />
-              </Grid>
-              <Grid size={{ xs: 12, md: 0 }} sx={{ display: { xs: 'block', md: 'none' } }}>
-                <Divider />
-              </Grid>
-
               {/* Related Entities */}
-              <Grid size={{ xs: 12, md: 3.9 }}>
+              <Grid
+                size={{ xs: 12, md: 6, xl: 4 }}
+                sx={{
+                  borderTop: { xs: '1px solid', md: 'none' },
+                  borderLeft: { md: '1px solid', xs: 'none' },
+                  borderColor: 'divider',
+                  pl: { md: 2, xl: 2.5 },
+                  pt: { xs: 3, md: 0 },
+                  pr: { xl: 1 },
+                }}
+              >
                 <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={2}>Related Entities</Typography>
                 <InfoRow label="Source lead" value={deal.lead?.lead_number} />
                 <InfoRow label="Company (client)" value={deal.company?.company_name} />
@@ -585,15 +593,17 @@ const DealView = () => {
                 } />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 0.1 }} sx={{ display: { xs: 'none', md: 'block' } }}>
-                <Divider orientation="vertical" sx={{ height: '100%', mx: 'auto' }} />
-              </Grid>
-              <Grid size={{ xs: 12, md: 0 }} sx={{ display: { xs: 'block', md: 'none' } }}>
-                <Divider />
-              </Grid>
-
-              {/* Logistics (container, location, flags — deal type lives under Deal Information) */}
-              <Grid size={{ xs: 12, md: 3.9 }}>
+              {/* Logistics — full width below md–xl; third column only xl+ */}
+              <Grid
+                size={{ xs: 12, md: 12, xl: 4 }}
+                sx={{
+                  borderTop: { xs: '1px solid', md: '1px solid', xl: 'none' },
+                  borderLeft: { xl: '1px solid', xs: 'none' },
+                  borderColor: 'divider',
+                  pl: { xl: 2.5 },
+                  pt: { xs: 3, md: 3, xl: 0 },
+                }}
+              >
                 <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={2}>Logistics</Typography>
                 <InfoRow label="Container type" value={deal.container_type} />
                 <InfoRow label="Location type" value={deal.location_type} />

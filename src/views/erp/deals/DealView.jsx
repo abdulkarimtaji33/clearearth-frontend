@@ -549,42 +549,17 @@ const DealView = () => {
             </Stack>
 
             <Grid container spacing={3}>
-              {/* Deal Information */}
+              {/* Deal Information (includes deal type) */}
               <Grid size={{ xs: 12, md: 4 }}>
-                <Stack direction="row" spacing={1} alignItems="center" mb={2}>
-                  <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1}>Deal Information</Typography>
-                </Stack>
+                <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={2}>Deal Information</Typography>
                 <InfoRow label="Title" value={deal.title} />
+                <InfoRow label="Deal type" value={deal.deal_type?.replace(/_/g, ' ')} />
                 <InfoRow label="Deal number" value={deal.deal_number} />
                 <InfoRow label="Deal date" value={new Date(deal.deal_date).toLocaleDateString()} />
                 <InfoRow label="Description" value={deal.description} />
                 {deal.notes && <InfoRow label="Notes" value={deal.notes} />}
                 <InfoRow label="Created" value={new Date(deal.created_at).toLocaleString()} />
                 <InfoRow label="Updated" value={new Date(deal.updated_at).toLocaleString()} />
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 0.1 }} sx={{ display: { xs: 'none', md: 'block' } }}>
-                <Divider orientation="vertical" sx={{ height: '100%', mx: 'auto' }} />
-              </Grid>
-              <Grid size={{ xs: 12, md: 0 }} sx={{ display: { xs: 'block', md: 'none' } }}>
-                <Divider />
-              </Grid>
-
-              {/* Deal Type & Logistics */}
-              <Grid size={{ xs: 12, md: 3.9 }}>
-                <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={2}>Deal Type & Logistics</Typography>
-                <InfoRow label="Deal type" value={deal.deal_type?.replace(/_/g, ' ')} />
-                <InfoRow label="Container type" value={deal.container_type} />
-                <InfoRow label="Location type" value={deal.location_type} />
-                <InfoRow label="WDS required" value={deal.wds_required ? 'Yes' : 'No'} />
-                <InfoRow label="Inspection required" value={deal.inspection_required ? 'Yes' : 'No'} />
-                {deal.deal_type === 'offer_to_charge' && (
-                  <>
-                    <InfoRow label="Custom inspection" value={deal.custom_inspection ? 'Yes' : 'No'} />
-                    <InfoRow label="Trakhees inspection" value={deal.trakhees_inspection ? 'Yes' : 'No'} />
-                    <InfoRow label="Dubai municipality" value={deal.dubai_municipality_inspection ? 'Yes' : 'No'} />
-                  </>
-                )}
               </Grid>
 
               <Grid size={{ xs: 12, md: 0.1 }} sx={{ display: { xs: 'none', md: 'block' } }}>
@@ -608,6 +583,29 @@ const DealView = () => {
                     ? deal.termsList.map((t) => t.title).join(', ')
                     : deal.termsAndConditions?.title
                 } />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 0.1 }} sx={{ display: { xs: 'none', md: 'block' } }}>
+                <Divider orientation="vertical" sx={{ height: '100%', mx: 'auto' }} />
+              </Grid>
+              <Grid size={{ xs: 12, md: 0 }} sx={{ display: { xs: 'block', md: 'none' } }}>
+                <Divider />
+              </Grid>
+
+              {/* Logistics (container, location, flags — deal type lives under Deal Information) */}
+              <Grid size={{ xs: 12, md: 3.9 }}>
+                <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={2}>Logistics</Typography>
+                <InfoRow label="Container type" value={deal.container_type} />
+                <InfoRow label="Location type" value={deal.location_type} />
+                <InfoRow label="WDS required" value={deal.wds_required ? 'Yes' : 'No'} />
+                <InfoRow label="Inspection required" value={deal.inspection_required ? 'Yes' : 'No'} />
+                {deal.deal_type === 'offer_to_charge' && (
+                  <>
+                    <InfoRow label="Custom inspection" value={deal.custom_inspection ? 'Yes' : 'No'} />
+                    <InfoRow label="Trakhees inspection" value={deal.trakhees_inspection ? 'Yes' : 'No'} />
+                    <InfoRow label="Dubai municipality" value={deal.dubai_municipality_inspection ? 'Yes' : 'No'} />
+                  </>
+                )}
               </Grid>
             </Grid>
 

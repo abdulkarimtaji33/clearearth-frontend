@@ -132,6 +132,7 @@ const DealView = () => {
 
   const [relatedQuotations, setRelatedQuotations] = useState([]);
   const [relatedPOs, setRelatedPOs] = useState([]);
+  const [workOrders, setWorkOrders] = useState([]);
   const [quotMenuAnchor, setQuotMenuAnchor] = useState(null);
   const quotMenuOpen = Boolean(quotMenuAnchor);
 
@@ -153,12 +154,14 @@ const DealView = () => {
   const fetchRelatedDocs = useCallback(async () => {
     if (!id) return;
     try {
-      const [quotRes, poRes] = await Promise.all([
+      const [quotRes, poRes, woRes] = await Promise.all([
         apiService.getQuotations({ dealId: id, pageSize: 50 }),
         apiService.getPurchaseOrders({ dealId: id, pageSize: 50 }),
+        apiService.getWorkOrders({ dealId: id, pageSize: 50 }),
       ]);
       if (quotRes.success) setRelatedQuotations(Array.isArray(quotRes.data) ? quotRes.data : []);
       if (poRes.success) setRelatedPOs(Array.isArray(poRes.data) ? poRes.data : []);
+      if (woRes.success) setWorkOrders(Array.isArray(woRes.data) ? woRes.data : []);
     } catch (err) {
       console.error(err);
     }
@@ -943,6 +946,81 @@ const DealView = () => {
                 {deal.deal_type !== 'offer_to_purchase'
                   ? 'Purchase quotations are only for Offer to Purchase deals.'
                   : 'No purchase quotations linked. Use &quot;Create Purchase Quotation&quot; above.'}
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Work Orders */}
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1}>
+              <Box>
+                <Typography variant="h4" fontWeight={700} color="primary.main">
+                  Work Orders
+                </Typography>
+                <Typography variant="body2" color="text.secondary" mt={0.5}>
+                  Operations work orders for this deal
+                </Typography>
+              </Box>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<IconPlus size={16} />}
+                onClick={() => navigate(`/erp/work-orders/create?dealId=${id}`)}
+                sx={{ borderRadius: 2.5, fontWeight: 700, flexShrink: 0 }}
+              >
+                New Work Order
+              </Button>
+            </Stack>
+            <Divider sx={{ mb: 3 }} />
+            {workOrders.length > 0 ? (
+              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: 'action.hover' }}>
+                      <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Tasks</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
+                      <TableCell align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {workOrders.map(wo => (
+                      <TableRow key={wo.id} hover>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600}>
+                            {wo.title || `Work Order #${wo.id}`}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={wo.status?.replace('_', ' ')}
+                            size="small"
+                            color={{ draft: 'default', in_progress: 'primary', completed: 'success', cancelled: 'error' }[wo.status] || 'default'}
+                            sx={{ fontWeight: 700, fontSize: '0.7rem' }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{wo.tasks?.length || 0} task{wo.tasks?.length !== 1 ? 's' : ''}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {wo.created_at ? new Date(wo.created_at).toLocaleDateString() : '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Button size="small" onClick={() => navigate(`/erp/work-orders/edit/${wo.id}`)}>Edit</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                No work orders yet. Click &quot;New Work Order&quot; to create one.
               </Typography>
             )}
           </CardContent>

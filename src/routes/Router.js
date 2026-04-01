@@ -16,6 +16,7 @@ const CompanyForm = Loadable(lazy(() => import('../views/erp/companies/CompanyFo
 const CompanyView = Loadable(lazy(() => import('../views/erp/companies/CompanyView')));
 const SupplierList = Loadable(lazy(() => import('../views/erp/suppliers/SupplierList')));
 const SupplierForm = Loadable(lazy(() => import('../views/erp/suppliers/SupplierForm')));
+const SupplierView = Loadable(lazy(() => import('../views/erp/suppliers/SupplierView')));
 const LeadList = Loadable(lazy(() => import('../views/erp/leads/LeadList')));
 const LeadForm = Loadable(lazy(() => import('../views/erp/leads/LeadForm')));
 const ProductList = Loadable(lazy(() => import('../views/erp/products/ProductList')));
@@ -35,6 +36,8 @@ const UserList = Loadable(lazy(() => import('../views/erp/users/UserList')));
 const UserForm = Loadable(lazy(() => import('../views/erp/users/UserForm')));
 const InspectionRequestList = Loadable(lazy(() => import('../views/erp/inspection-requests/InspectionRequestList')));
 const InspectionRequestView = Loadable(lazy(() => import('../views/erp/inspection-requests/InspectionRequestView')));
+const WorkOrderList = Loadable(lazy(() => import('../views/erp/work-orders/WorkOrderList')));
+const WorkOrderForm = Loadable(lazy(() => import('../views/erp/work-orders/WorkOrderForm')));
 const CompanySettings = Loadable(lazy(() => import('../views/erp/settings/CompanySettings')));
 
 // authentication
@@ -66,6 +69,7 @@ const Router = createBrowserRouter([
       { path: '/erp/companies/view/:id', element: <CompanyView /> },
       { path: '/erp/suppliers', element: <SupplierList /> },
       { path: '/erp/suppliers/create', element: <SupplierForm /> },
+      { path: '/erp/suppliers/view/:id', element: <SupplierView /> },
       { path: '/erp/suppliers/edit/:id', element: <SupplierForm /> },
       { path: '/erp/leads', element: <LeadList /> },
       { path: '/erp/leads/create', element: <LeadForm /> },
@@ -94,6 +98,9 @@ const Router = createBrowserRouter([
       { path: '/erp/users/edit/:id', element: <UserForm /> },
       { path: '/erp/inspection-requests', element: <InspectionRequestList /> },
       { path: '/erp/inspection-requests/:id', element: <InspectionRequestView /> },
+      { path: '/erp/work-orders', element: <WorkOrderList /> },
+      { path: '/erp/work-orders/create', element: <WorkOrderForm /> },
+      { path: '/erp/work-orders/edit/:id', element: <WorkOrderForm /> },
       { path: '/erp/settings/company', element: <CompanySettings /> },
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],

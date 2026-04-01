@@ -41,6 +41,7 @@ import {
   IconFilter,
   IconChevronDown,
   IconChevronUp,
+  IconEye,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
@@ -133,6 +134,11 @@ const SupplierList = () => {
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedSupplier(null);
+  };
+
+  const handleView = () => {
+    navigate(`/erp/suppliers/view/${selectedSupplier.id}`);
+    handleMenuClose();
   };
 
   const handleEdit = () => {
@@ -452,6 +458,10 @@ const SupplierList = () => {
         </Card>
 
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+          <MenuItemMui onClick={handleView}>
+            <IconEye size={18} style={{ marginRight: 8 }} />
+            View
+          </MenuItemMui>
           <MenuItemMui onClick={handleEdit}>
             <IconEdit size={18} style={{ marginRight: 8 }} />
             Edit

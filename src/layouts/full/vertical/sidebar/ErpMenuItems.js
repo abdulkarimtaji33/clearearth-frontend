@@ -16,6 +16,7 @@ import {
   IconSettings,
   IconPoint,
   IconLayoutDashboard,
+  IconHammer,
 } from '@tabler/icons-react';
 
 const ErpMenuItems = [
@@ -82,6 +83,17 @@ const ErpMenuItems = [
     title: 'Terms & Conditions',
     icon: IconFileText,
     href: '/erp/terms',
+    permission: 'deals.read',
+  },
+  {
+    navlabel: true,
+    subheader: 'Operations',
+  },
+  {
+    id: uniqueId(),
+    title: 'Work Orders',
+    icon: IconHammer,
+    href: '/erp/work-orders',
     permission: 'deals.read',
   },
   {

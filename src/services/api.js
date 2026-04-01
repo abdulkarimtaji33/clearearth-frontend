@@ -528,6 +528,54 @@ class ApiService {
     return this.put(`/roles/${id}`, data);
   }
 
+  // Work Orders
+  async getWorkOrders(params) {
+    return this.get('/work-orders', params);
+  }
+
+  async getWorkOrder(id) {
+    return this.get(`/work-orders/${id}`);
+  }
+
+  async createWorkOrder(data) {
+    return this.post('/work-orders', data);
+  }
+
+  async updateWorkOrder(id, data) {
+    return this.put(`/work-orders/${id}`, data);
+  }
+
+  async deleteWorkOrder(id) {
+    return this.delete(`/work-orders/${id}`);
+  }
+
+  async updateWorkOrderTaskStatus(workOrderId, taskId, status) {
+    return this.request(`/work-orders/${workOrderId}/tasks/${taskId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async getWorkTypes(params) {
+    return this.get('/work-types', params);
+  }
+
+  async getWorkType(id) {
+    return this.get(`/work-types/${id}`);
+  }
+
+  async createWorkType(data) {
+    return this.post('/work-types', data);
+  }
+
+  async updateWorkType(id, data) {
+    return this.put(`/work-types/${id}`, data);
+  }
+
+  async deleteWorkType(id) {
+    return this.delete(`/work-types/${id}`);
+  }
+
   async assignRolePermissions(roleId, permissionIds) {
     return this.post(`/roles/${roleId}/permissions`, { permissions: permissionIds });
   }

@@ -39,6 +39,7 @@ import FsLightbox from 'fslightbox-react';
 import { IconArrowLeft, IconEdit, IconDownload, IconPlus, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription, IconChevronDown, IconFileText } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { WorkOrderRow } from '../work-orders/WorkOrderExpandableRows';
 
 const getStatusColor = (status) => {
   const colors = {
@@ -175,6 +176,15 @@ const DealView = () => {
   useEffect(() => {
     if (id && deal) fetchRelatedDocs();
   }, [id, deal, fetchRelatedDocs]);
+
+  const handleDeleteWorkOrder = async (wo) => {
+    try {
+      await apiService.deleteWorkOrder(wo.id);
+      fetchRelatedDocs();
+    } catch (err) {
+      setError(err.message || 'Failed to delete work order');
+    }
+  };
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -979,41 +989,24 @@ const DealView = () => {
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ backgroundColor: 'action.hover' }}>
-                      <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Tasks</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
-                      <TableCell align="right">Actions</TableCell>
+                      <TableCell sx={{ width: 40 }} />
+                      <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Tasks</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Created By</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {workOrders.map(wo => (
-                      <TableRow key={wo.id} hover>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={600}>
-                            {wo.title || `Work Order #${wo.id}`}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={wo.status?.replace('_', ' ')}
-                            size="small"
-                            color={{ draft: 'default', in_progress: 'primary', completed: 'success', cancelled: 'error' }[wo.status] || 'default'}
-                            sx={{ fontWeight: 700, fontSize: '0.7rem' }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">{wo.tasks?.length || 0} task{wo.tasks?.length !== 1 ? 's' : ''}</Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {wo.created_at ? new Date(wo.created_at).toLocaleDateString() : '-'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Button size="small" onClick={() => navigate(`/erp/work-orders/edit/${wo.id}`)}>Edit</Button>
-                        </TableCell>
-                      </TableRow>
+                    {workOrders.map((wo) => (
+                      <WorkOrderRow
+                        key={wo.id}
+                        wo={wo}
+                        onDelete={handleDeleteWorkOrder}
+                        showDealSubtext={false}
+                        showViewDealInMenu={false}
+                      />
                     ))}
                   </TableBody>
                 </Table>

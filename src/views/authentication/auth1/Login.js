@@ -1,274 +1,320 @@
-import React from 'react';
-import { Link } from 'react-router';
-import { Box, Typography, Stack, Card } from '@mui/material';
-import { styled, alpha, keyframes } from '@mui/material/styles';
+import React, { useState } from 'react';
+import {
+  Box, Typography, Stack, TextField, Button, Checkbox,
+  FormControlLabel, InputAdornment, IconButton, Alert, Divider,
+} from '@mui/material';
+import { alpha, keyframes } from '@mui/material/styles';
+import { Link, useNavigate } from 'react-router';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
+import {
+  IconMail, IconLock, IconEye, IconEyeOff,
+  IconLeaf, IconRecycle, IconWorld,
+} from '@tabler/icons-react';
+import { useAuth } from '../../../context/AuthContext';
 
-import PageContainer from 'src/components/container/PageContainer';
-import AuthLogin from '../authForms/AuthLogin';
-import { IconShieldCheck, IconBolt } from '@tabler/icons-react';
-import Logo from 'src/layouts/full/shared/logo/Logo';
+const TENANT_LOGO = 'https://i.ibb.co/rfFyXrmZ/IMG-6578.png';
 
-const LOGO_URL = 'https://i.ibb.co/rfFyXrmZ/IMG-6578.png';
-
-const shimmer = keyframes`
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 `;
 
-const slideUp = keyframes`
-  0% { transform: translateY(20px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+const float = keyframes`
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-12px) rotate(2deg); }
+  66%       { transform: translateY(-6px) rotate(-1deg); }
 `;
 
-const pulse = keyframes`
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.6; }
-`;
-
-// Main container
-const LoginContainer = styled(Box)(({ theme }) => ({
-  height: '100vh',
-  width: '100vw',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: '#0a0f1e',
-  position: 'relative',
-  overflow: 'hidden',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    width: 'min(600px, 100vmin)',
-    height: 'min(600px, 100vmin)',
-    background: `radial-gradient(circle, ${alpha('#10b981', 0.12)} 0%, transparent 70%)`,
-    top: '-100px',
-    left: '-100px',
-    filter: 'blur(80px)',
-  },
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    width: 'min(600px, 100vmin)',
-    height: 'min(600px, 100vmin)',
-    background: `radial-gradient(circle, ${alpha('#06b6d4', 0.12)} 0%, transparent 70%)`,
-    bottom: '-100px',
-    right: '-100px',
-    filter: 'blur(80px)',
-  },
-}));
-
-// Grid pattern overlay
-const GridOverlay = styled(Box)({
-  position: 'absolute',
-  inset: 0,
-  backgroundImage: `linear-gradient(${alpha('#10b981', 0.03)} 1px, transparent 1px),
-                    linear-gradient(90deg, ${alpha('#10b981', 0.03)} 1px, transparent 1px)`,
-  backgroundSize: '50px 50px',
-  opacity: 0.5,
+const validationSchema = Yup.object({
+  email: Yup.string().email('Invalid email').required('Email is required'),
+  password: Yup.string().required('Password is required'),
 });
 
-// Glass card
-const GlassCard = styled(Card)(({ theme }) => ({
-  background: `linear-gradient(135deg, 
-    ${alpha('#ffffff', 0.09)} 0%, 
-    ${alpha('#ffffff', 0.04)} 100%)`,
-  backdropFilter: 'blur(40px) saturate(180%)',
-  WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-  borderRadius: '24px',
-  border: `1px solid ${alpha('#ffffff', 0.18)}`,
-  boxShadow: `
-    0 20px 60px ${alpha('#000', 0.5)},
-    inset 0 1px 0 ${alpha('#ffffff', 0.1)}
-  `,
-  padding: theme.spacing(3.5, 4),
-  width: '100%',
-  maxWidth: '440px',
-  maxHeight: '90vh',
-  overflowY: 'auto',
-  position: 'relative',
-  zIndex: 10,
-  animation: `${slideUp} 0.5s ease-out`,
-  margin: theme.spacing(2),
-  '&::-webkit-scrollbar': {
-    width: '6px',
-  },
-  '&::-webkit-scrollbar-track': {
-    background: alpha('#fff', 0.05),
-    borderRadius: '3px',
-  },
-  '&::-webkit-scrollbar-thumb': {
-    background: alpha('#10b981', 0.3),
-    borderRadius: '3px',
-    '&:hover': {
-      background: alpha('#10b981', 0.5),
-    },
-  },
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '2px',
-    background: `linear-gradient(90deg, 
-      transparent,
-      #10b981,
-      #06b6d4,
-      transparent)`,
-    backgroundSize: '200% 100%',
-    animation: `${shimmer} 3s ease infinite`,
-  },
-}));
+const BRAND_GREEN = '#10b981';
+const BRAND_TEAL  = '#06b6d4';
+const BRAND_DARK  = '#0a1628';
 
-const LogoBox = styled(Box)({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginBottom: '20px',
-});
+const ClearEarthLogo = () => (
+  <Box
+    component="img"
+    src={TENANT_LOGO}
+    alt="Clear Earth"
+    sx={{ height: 52, maxWidth: 200, objectFit: 'contain' }}
+  />
+);
 
-const FeatureBadge = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(0.75),
-  padding: theme.spacing(0.75, 1.5),
-  background: alpha('#10b981', 0.1),
-  borderRadius: '100px',
-  border: `1px solid ${alpha('#10b981', 0.2)}`,
-  marginBottom: theme.spacing(2),
-  justifyContent: 'center',
-}));
+const FEATURES = [
+  { icon: IconRecycle, label: 'Waste Management', desc: 'End-to-end tracking of waste streams and recycling operations' },
+  { icon: IconLeaf,    label: 'Sustainability',   desc: 'Monitor environmental impact and compliance reporting' },
+  { icon: IconWorld,   label: 'Global Operations', desc: 'Manage clients, vendors, and work orders across regions' },
+];
 
-const Login = () => (
-  <PageContainer title="Login" description="Clear Earth ERP Login">
-    <LoginContainer>
-      <GridOverlay />
-      
-      <GlassCard>
-        {/* Logo */}
-        <LogoBox>
-          <Logo />
-        </LogoBox>
+const Login = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [loginError, setLoginError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
-        {/* Feature Badge */}
-        <FeatureBadge>
-          <IconBolt size={14} color="#10b981" />
-          <Typography
-            sx={{
-              color: '#10b981',
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              letterSpacing: '0.3px',
-            }}
-          >
-            Waste Management & Recycling
-          </Typography>
-        </FeatureBadge>
+  const handleSubmit = async (values, { setSubmitting }) => {
+    try {
+      setLoginError('');
+      await login({ email: values.email, password: values.password });
+      navigate('/');
+    } catch (err) {
+      setLoginError(err.message || 'Invalid email or password.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-        {/* Title */}
-        <Box sx={{ mb: 2, textAlign: 'center' }}>
-          <Typography
-            variant="h3"
-            sx={{
-              color: 'white',
-              fontWeight: 700,
-              mb: 0.5,
-              fontSize: '1.75rem',
-              letterSpacing: '-0.5px',
-            }}
-          >
-            Welcome Back
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              color: alpha('#fff', 0.65),
-              fontSize: '0.875rem',
-            }}
-          >
-            Sign in to access your dashboard
-          </Typography>
+  return (
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f8fafc' }}>
+
+      {/* ── Left panel (brand) ── */}
+      <Box
+        sx={{
+          display: { xs: 'none', md: 'flex' },
+          flex: '0 0 48%',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          p: 6,
+          background: `linear-gradient(145deg, ${BRAND_DARK} 0%, #0d2137 60%, #0a2e1f 100%)`,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Ambient blobs */}
+        <Box sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <Box sx={{ position: 'absolute', width: 480, height: 480, borderRadius: '50%', background: `radial-gradient(circle, ${alpha(BRAND_GREEN, 0.18)} 0%, transparent 70%)`, top: -120, left: -120, filter: 'blur(60px)' }} />
+          <Box sx={{ position: 'absolute', width: 360, height: 360, borderRadius: '50%', background: `radial-gradient(circle, ${alpha(BRAND_TEAL, 0.15)} 0%, transparent 70%)`, bottom: -80, right: -80, filter: 'blur(60px)' }} />
+          {/* Subtle grid */}
+          <Box sx={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(${alpha('#fff', 0.025)} 1px, transparent 1px), linear-gradient(90deg, ${alpha('#fff', 0.025)} 1px, transparent 1px)`, backgroundSize: '48px 48px' }} />
         </Box>
 
-        {/* Login Form */}
-        <AuthLogin
-          title=""
-          subtext={null}
-          subtitle={
-            <Stack direction="row" spacing={1} mt={2.5} justifyContent="center" flexWrap="wrap">
-              <Typography
-                sx={{
-                  color: alpha('#fff', 0.6),
-                  fontSize: '0.82rem',
-                }}
-              >
-                New to Clear Earth?
-              </Typography>
-              <Typography
-                component={Link}
-                to="/auth/register"
-                sx={{
-                  textDecoration: 'none',
-                  color: '#10b981',
-                  fontWeight: 600,
-                  fontSize: '0.82rem',
-                  '&:hover': {
-                    textDecoration: 'underline',
-                  },
-                }}
-              >
-                Create account
-              </Typography>
-            </Stack>
-          }
-        />
+        {/* Logo */}
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <ClearEarthLogo />
+        </Box>
 
-        {/* Footer */}
-        <Stack
-          direction="row"
-          spacing={1.5}
-          alignItems="center"
-          justifyContent="center"
+        {/* Centre content */}
+        <Box sx={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', py: 4 }}>
+          {/* Floating icon */}
+          <Box
+            sx={{
+              width: 72, height: 72, borderRadius: 4,
+              background: `linear-gradient(135deg, ${BRAND_GREEN}, ${BRAND_TEAL})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              mb: 3, boxShadow: `0 16px 40px ${alpha(BRAND_GREEN, 0.35)}`,
+              animation: `${float} 5s ease-in-out infinite`,
+            }}
+          >
+            <IconLeaf size={34} color="#fff" />
+          </Box>
+
+          <Typography variant="h2" fontWeight={800} sx={{ color: '#fff', lineHeight: 1.15, mb: 2, fontSize: { md: '2rem', lg: '2.5rem' } }}>
+            Smarter waste.<br />
+            <Box component="span" sx={{ background: `linear-gradient(90deg, ${BRAND_GREEN}, ${BRAND_TEAL})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Greener future.
+            </Box>
+          </Typography>
+
+          <Typography sx={{ color: alpha('#fff', 0.6), fontSize: '0.95rem', lineHeight: 1.7, mb: 4, maxWidth: 380 }}>
+            The all-in-one ERP platform built for waste management and recycling companies.
+          </Typography>
+
+          <Stack spacing={2}>
+            {FEATURES.map(({ icon: Icon, label, desc }) => (
+              <Stack key={label} direction="row" spacing={2} alignItems="flex-start">
+                <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(BRAND_GREEN, 0.15), border: `1px solid ${alpha(BRAND_GREEN, 0.25)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.25 }}>
+                  <Icon size={18} color={BRAND_GREEN} />
+                </Box>
+                <Box>
+                  <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.3 }}>{label}</Typography>
+                  <Typography sx={{ color: alpha('#fff', 0.5), fontSize: '0.78rem', lineHeight: 1.5 }}>{desc}</Typography>
+                </Box>
+              </Stack>
+            ))}
+          </Stack>
+        </Box>
+
+        {/* Bottom tagline */}
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Typography sx={{ color: alpha('#fff', 0.35), fontSize: '0.75rem' }}>
+            © {new Date().getFullYear()} Clear Earth. All rights reserved.
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* ── Right panel (form) ── */}
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: { xs: 3, sm: 5 },
+          bgcolor: '#fff',
+          position: 'relative',
+        }}
+      >
+
+        <Box
           sx={{
-            mt: 2.5,
-            pt: 2,
-            borderTop: `1px solid ${alpha('#fff', 0.08)}`,
+            width: '100%',
+            maxWidth: 420,
+            animation: `${fadeIn} 0.45s ease-out`,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <IconShieldCheck size={12} color={alpha('#fff', 0.4)} />
-            <Typography
-              variant="caption"
-              sx={{
-                color: alpha('#fff', 0.4),
-                fontSize: '0.7rem',
-              }}
-            >
-              Secure
+          {/* Logo + Heading */}
+          <Box mb={4}>
+            <Box mb={2.5} sx={{ display: { xs: 'flex', md: 'none' }, justifyContent: 'center' }}>
+              <Box
+                component="img"
+                src={TENANT_LOGO}
+                alt="Clear Earth"
+                sx={{ height: 48, maxWidth: 180, objectFit: 'contain' }}
+              />
+            </Box>
+            <Typography variant="h3" fontWeight={800} color="text.primary" mb={0.75} sx={{ fontSize: '1.85rem', letterSpacing: '-0.5px' }}>
+              Welcome back
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Sign in to your Clear Earth account
             </Typography>
           </Box>
-          <Typography
-            variant="caption"
-            sx={{
-              color: alpha('#fff', 0.3),
-              fontSize: '0.7rem',
-            }}
+
+          {/* Form */}
+          <Formik
+            initialValues={{ email: '', password: '', rememberMe: true }}
+            validationSchema={validationSchema}
+            onSubmit={handleSubmit}
           >
-            •
+            {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting }) => (
+              <form onSubmit={formikSubmit} noValidate>
+                <Stack spacing={2.5}>
+                  {loginError && (
+                    <Alert severity="error" sx={{ borderRadius: 2 }} onClose={() => setLoginError('')}>
+                      {loginError}
+                    </Alert>
+                  )}
+
+                  <TextField
+                    fullWidth
+                    id="email"
+                    name="email"
+                    label="Email address"
+                    type="email"
+                    autoComplete="email"
+                    value={values.email}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    error={touched.email && Boolean(errors.email)}
+                    helperText={touched.email && errors.email}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <IconMail size={18} style={{ color: alpha('#000', 0.35) }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+
+                  <TextField
+                    fullWidth
+                    id="password"
+                    name="password"
+                    label="Password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    value={values.password}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    error={touched.password && Boolean(errors.password)}
+                    helperText={touched.password && errors.password}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <IconLock size={18} style={{ color: alpha('#000', 0.35) }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => setShowPassword(v => !v)} edge="end" size="small" tabIndex={-1}>
+                            {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          name="rememberMe"
+                          checked={values.rememberMe}
+                          onChange={handleChange}
+                          size="small"
+                          sx={{ '&.Mui-checked': { color: BRAND_GREEN } }}
+                        />
+                      }
+                      label={<Typography variant="body2" color="text.secondary">Remember me</Typography>}
+                    />
+                    <Typography
+                      component={Link}
+                      to="/auth/forgot-password"
+                      variant="body2"
+                      sx={{ color: BRAND_GREEN, textDecoration: 'none', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}
+                    >
+                      Forgot password?
+                    </Typography>
+                  </Stack>
+
+                  <Button
+                    type="submit"
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    disabled={isSubmitting}
+                    sx={{
+                      borderRadius: 2.5,
+                      py: 1.5,
+                      fontWeight: 700,
+                      fontSize: '0.95rem',
+                      background: `linear-gradient(135deg, ${BRAND_GREEN} 0%, ${BRAND_TEAL} 100%)`,
+                      boxShadow: `0 8px 24px ${alpha(BRAND_GREEN, 0.3)}`,
+                      '&:hover': {
+                        background: `linear-gradient(135deg, #0ea571 0%, #0599b0 100%)`,
+                        boxShadow: `0 10px 28px ${alpha(BRAND_GREEN, 0.4)}`,
+                        transform: 'translateY(-1px)',
+                      },
+                      '&:active': { transform: 'translateY(0)' },
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {isSubmitting ? 'Signing in…' : 'Sign in'}
+                  </Button>
+                </Stack>
+              </form>
+            )}
+          </Formik>
+
+          <Divider sx={{ my: 3 }}>
+            <Typography variant="caption" color="text.disabled" sx={{ px: 1 }}>
+              Clear Earth ERP
+            </Typography>
+          </Divider>
+
+          <Typography variant="caption" color="text.disabled" align="center" display="block">
+            Having trouble? Contact your system administrator.
           </Typography>
-          <Typography
-            variant="caption"
-            sx={{
-              color: alpha('#fff', 0.4),
-              fontSize: '0.7rem',
-            }}
-          >
-            © 2024 Clear Earth
-          </Typography>
-        </Stack>
-      </GlassCard>
-    </LoginContainer>
-  </PageContainer>
-);
+        </Box>
+      </Box>
+    </Box>
+  );
+};
 
 export default Login;

@@ -1,24 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box,
-  CardContent,
-  Typography,
-  Button,
-  Grid,
-  Alert,
-  CircularProgress,
-  Stack,
-  TextField,
-  MenuItem,
-  Autocomplete,
-  IconButton,
-  InputAdornment,
-  Divider,
-  Paper,
+  Box, CardContent, Typography, Button, Grid, Alert, CircularProgress,
+  Stack, TextField, MenuItem, Autocomplete, IconButton, InputAdornment,
+  Divider, Paper, Drawer, Chip, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Tooltip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { IconArrowLeft, IconPlus, IconTrash, IconSettings } from '@tabler/icons-react';
+import {
+  IconArrowLeft, IconPlus, IconTrash, IconSettings, IconEdit,
+  IconX, IconCheck, IconClock, IconUser, IconCurrencyDollar,
+  IconCalendar, IconHammer,
+} from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import WorkTypesManageDialog from './WorkTypesManageDialog';
@@ -26,6 +19,13 @@ import TaskStatusSegments from './TaskStatusSegments';
 
 const WO_STATUS_OPTIONS = ['draft', 'in_progress', 'completed', 'cancelled'];
 const DURATION_UNITS = ['minutes', 'hours', 'days'];
+
+const STATUS_COLOR = {
+  not_started: 'default',
+  in_progress: 'warning',
+  completed: 'success',
+  blocked: 'error',
+};
 
 const emptyTask = () => ({
   workTypeId: null,
@@ -55,55 +55,43 @@ const WorkOrderForm = () => {
   const [workTypes, setWorkTypes] = useState([]);
   const [manageTypesOpen, setManageTypesOpen] = useState(false);
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTaskIdx, setDrawerTaskIdx] = useState(null);
+  const [drawerTask, setDrawerTask] = useState(null);
+
   const [form, setForm] = useState({
     dealId: searchParams.get('dealId') ? parseInt(searchParams.get('dealId'), 10) : null,
     title: '',
     notes: '',
     status: 'draft',
-    tasks: [emptyTask()],
+    tasks: [],
   });
 
   const fetchUsers = useCallback(async () => {
     try {
       const res = await apiService.getUsers({ pageSize: 500 });
-      if (res.success) {
-        const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
-        setUsers(list);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+      if (res.success) setUsers(Array.isArray(res.data) ? res.data : res.data?.items || []);
+    } catch (err) { console.error(err); }
   }, []);
 
   const fetchDeals = useCallback(async () => {
     try {
       const res = await apiService.getDeals({ pageSize: 500 });
-      if (res.success) {
-        const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
-        setDeals(list);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+      if (res.success) setDeals(Array.isArray(res.data) ? res.data : res.data?.items || []);
+    } catch (err) { console.error(err); }
   }, []);
 
   const fetchWorkTypes = useCallback(async () => {
     try {
       const res = await apiService.getWorkTypes({});
-      if (res.success) {
-        const list = Array.isArray(res.data) ? res.data : [];
-        setWorkTypes(list);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+      if (res.success) setWorkTypes(Array.isArray(res.data) ? res.data : []);
+    } catch (err) { console.error(err); }
   }, []);
 
   const parseDuration = (raw) => {
     if (!raw) return { durationValue: '', durationUnit: 'hours' };
     const match = raw.match(/^(\d+(?:\.\d+)?)\s*(minutes?|hours?|days?)$/i);
     if (match) {
-      const unit = match[2].toLowerCase().replace(/s$/, '') + (match[2].toLowerCase().endsWith('s') ? 's' : '');
       const normalized = ['minutes', 'hours', 'days'].find(u => u.startsWith(match[2].toLowerCase().replace(/s$/, ''))) || 'hours';
       return { durationValue: match[1], durationUnit: normalized };
     }
@@ -155,30 +143,42 @@ const WorkOrderForm = () => {
 
   const setField = (field, value) => setForm(f => ({ ...f, [field]: value }));
 
-  const setTask = (idx, field, value) => {
-    setForm(f => {
-      const tasks = [...f.tasks];
-      tasks[idx] = { ...tasks[idx], [field]: value };
-      return { ...f, tasks };
-    });
+  const openDrawer = (idx) => {
+    const task = idx === 'new' ? emptyTask() : { ...form.tasks[idx] };
+    setDrawerTaskIdx(idx);
+    setDrawerTask(task);
+    setDrawerOpen(true);
   };
 
-  const setTaskWorkType = (idx, workTypeId) => {
-    setForm(f => {
-      const tasks = [...f.tasks];
-      const prev = tasks[idx];
-      const wt = workTypes.find(w => w.id === workTypeId);
-      const id = workTypeId || null;
-      tasks[idx] = {
-        ...prev,
-        workTypeId: id,
-        typeOfWork: wt ? wt.name : prev.workTypeId ? '' : prev.typeOfWork,
-      };
-      return { ...f, tasks };
-    });
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setDrawerTaskIdx(null);
+    setDrawerTask(null);
   };
 
-  const addTask = () => setForm(f => ({ ...f, tasks: [...f.tasks, emptyTask()] }));
+  const setDrawerField = (field, value) => setDrawerTask(t => ({ ...t, [field]: value }));
+
+  const setDrawerWorkType = (workTypeId) => {
+    const wt = workTypes.find(w => w.id === workTypeId);
+    setDrawerTask(t => ({
+      ...t,
+      workTypeId: workTypeId || null,
+      typeOfWork: wt ? wt.name : workTypeId ? '' : t.typeOfWork,
+    }));
+  };
+
+  const saveDrawerTask = () => {
+    setForm(f => {
+      const tasks = [...f.tasks];
+      if (drawerTaskIdx === 'new') {
+        tasks.push(drawerTask);
+      } else {
+        tasks[drawerTaskIdx] = drawerTask;
+      }
+      return { ...f, tasks };
+    });
+    closeDrawer();
+  };
 
   const removeTask = (idx) => {
     setForm(f => ({ ...f, tasks: f.tasks.filter((_, i) => i !== idx) }));
@@ -238,9 +238,20 @@ const WorkOrderForm = () => {
 
   const selectedDeal = deals.find(d => d.id === form.dealId) || null;
 
+  const getTaskLabel = (task) => {
+    if (task.workTypeId) return workTypes.find(w => w.id === task.workTypeId)?.name || task.typeOfWork || 'Task';
+    return task.typeOfWork || 'Untitled task';
+  };
+
+  const getAssigneeName = (task) => {
+    const u = users.find(u => u.id === task.assignedTo);
+    return u ? `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email : null;
+  };
+
   return (
     <PageContainer title={isEdit ? 'Edit Work Order' : 'New Work Order'}>
-      <Box sx={{ maxWidth: 960, mx: 'auto', px: { xs: 1, sm: 2 }, pb: 4 }}>
+      <Box sx={{ maxWidth: 860, mx: 'auto', px: { xs: 1, sm: 2 }, pb: 4 }}>
+        {/* Header */}
         <Stack direction="row" alignItems="center" spacing={2} mb={3}>
           <IconButton
             onClick={() => form.dealId ? navigate(`/erp/deals/view/${form.dealId}`) : navigate('/erp/work-orders')}
@@ -249,10 +260,15 @@ const WorkOrderForm = () => {
             <IconArrowLeft size={18} />
           </IconButton>
           <Box>
-            <Typography variant="h4" fontWeight={800}>
-              {isEdit ? 'Edit Work Order' : 'New Work Order'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconHammer size={18} />
+              </Box>
+              <Typography variant="h4" fontWeight={800}>
+                {isEdit ? 'Edit Work Order' : 'New Work Order'}
+              </Typography>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" ml={6}>
               {isEdit ? 'Update work order details and tasks' : 'Create a work order with tasks for a deal'}
             </Typography>
           </Box>
@@ -260,16 +276,14 @@ const WorkOrderForm = () => {
 
         {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-        {/* Header card */}
+        {/* Overview card */}
         <Paper variant="outlined" sx={{ borderRadius: 3, mb: 3, overflow: 'hidden' }}>
+          <Box sx={{ px: 3, py: 2, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="subtitle2" fontWeight={700} color="text.secondary" textTransform="uppercase" letterSpacing={0.8} fontSize="0.7rem">
+              Work Order Details
+            </Typography>
+          </Box>
           <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Typography variant="overline" color="text.secondary" letterSpacing={1.2} display="block" mb={0.5}>
-              Overview
-            </Typography>
-            <Typography variant="subtitle1" fontWeight={700} mb={2}>
-              Work order details
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
             <Grid container spacing={2}>
               <Grid size={{ xs: 12 }}>
                 <Autocomplete
@@ -321,281 +335,144 @@ const WorkOrderForm = () => {
           </CardContent>
         </Paper>
 
-        {/* Tasks */}
+        {/* Tasks card */}
         <Paper variant="outlined" sx={{ borderRadius: 3, mb: 3, overflow: 'hidden' }}>
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={2} flexWrap="wrap" gap={1}>
-              <Box>
-                <Typography variant="overline" color="text.secondary" letterSpacing={1.2} display="block" mb={0.5}>
-                  Tasks
-                </Typography>
-                <Typography variant="subtitle1" fontWeight={700}>Work tasks</Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Choose a type of work per row; manage the list with Types.
-                </Typography>
-              </Box>
+          <Box sx={{ px: 3, py: 2, bgcolor: alpha(theme.palette.primary.main, 0.03), borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Typography variant="subtitle2" fontWeight={700} color="text.secondary" textTransform="uppercase" letterSpacing={0.8} fontSize="0.7rem">
+                Tasks
+              </Typography>
+              {form.tasks.length > 0 && (
+                <Chip label={form.tasks.length} size="small" color="primary" sx={{ height: 18, fontSize: '0.68rem', fontWeight: 700 }} />
+              )}
+            </Stack>
+            <Stack direction="row" spacing={1}>
               <Button
                 size="small"
-                startIcon={<IconPlus size={16} />}
-                onClick={addTask}
+                variant="outlined"
+                startIcon={<IconSettings size={15} />}
+                onClick={() => setManageTypesOpen(true)}
+                sx={{ borderRadius: 2, fontSize: '0.75rem' }}
+              >
+                Manage types
+              </Button>
+              <Button
+                size="small"
                 variant="contained"
-                sx={{ borderRadius: 2 }}
+                startIcon={<IconPlus size={15} />}
+                onClick={() => openDrawer('new')}
+                sx={{ borderRadius: 2, fontSize: '0.75rem' }}
               >
                 Add task
               </Button>
             </Stack>
-            <Divider sx={{ mb: 2.5 }} />
+          </Box>
 
-            <Stack spacing={2.5}>
-              {form.tasks.map((task, idx) => (
-                <Paper
-                  key={idx}
-                  variant="outlined"
-                  elevation={0}
-                  sx={{
-                    borderRadius: 2.5,
-                    overflow: 'hidden',
-                    borderLeftWidth: 4,
-                    borderLeftColor: 'primary.main',
-                    borderLeftStyle: 'solid',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      px: 2,
-                      py: 1.5,
-                      bgcolor: alpha(theme.palette.primary.main, 0.04),
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 1,
-                    }}
-                  >
-                    <Stack direction="row" alignItems="center" spacing={1.5} minWidth={0}>
-                      <Box
-                        sx={{
-                          minWidth: 28,
-                          height: 28,
-                          borderRadius: 1.5,
-                          bgcolor: 'primary.main',
-                          color: 'primary.contrastText',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.75rem',
-                          fontWeight: 800,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {idx + 1}
-                      </Box>
-                      <Box minWidth={0}>
-                        <Typography variant="caption" color="text.secondary" display="block" lineHeight={1.2}>
-                          Task
-                        </Typography>
-                        <Typography variant="body2" fontWeight={700} noWrap>
-                          {task.typeOfWork || `Untitled task ${idx + 1}`}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                    {form.tasks.length > 1 && (
-                      <IconButton size="small" onClick={() => removeTask(idx)} color="error" sx={{ p: 0.5 }} aria-label="Remove task">
-                        <IconTrash size={18} />
-                      </IconButton>
-                    )}
-                  </Box>
-
-                  <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
-                    <Typography variant="overline" color="text.secondary" fontSize="0.65rem" letterSpacing={0.8} display="block" mb={1.5}>
-                      Type & effort
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <Stack spacing={0.5}>
-                          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
-                            <TextField
-                              select
-                              fullWidth
-                              label="Type of work"
-                              value={task.workTypeId ?? ''}
-                              onChange={e => {
-                                const v = e.target.value === '' ? null : Number(e.target.value);
-                                setTaskWorkType(idx, v);
-                              }}
-                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                            >
-                              <MenuItem value="">
-                                <em>Select type</em>
-                              </MenuItem>
-                              {workTypes.map(wt => (
-                                <MenuItem key={wt.id} value={wt.id}>
-                                  {wt.name}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                            <Button
-                              variant="outlined"
-                              size="medium"
-                              startIcon={<IconSettings size={18} />}
-                              onClick={() => setManageTypesOpen(true)}
-                              sx={{ flexShrink: 0, borderRadius: 2, px: 2, alignSelf: { xs: 'stretch', sm: 'flex-start' }, mt: { sm: 0.5 } }}
-                            >
-                              Manage types
-                            </Button>
-                          </Stack>
-                          {task.typeOfWork && !task.workTypeId && (
-                            <Typography variant="caption" color="warning.main">
-                              Legacy label: {task.typeOfWork} — select a type to link it.
-                            </Typography>
-                          )}
-                        </Stack>
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                        <TextField
-                          fullWidth
-                          label="Expense"
-                          type="number"
-                          value={task.expense}
-                          onChange={e => setTask(idx, 'expense', e.target.value)}
-                          inputProps={{ min: 0, step: '0.01' }}
-                          InputProps={{
-                            startAdornment: <InputAdornment position="start">AED</InputAdornment>,
-                          }}
-                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                        <Stack direction="row" spacing={1} alignItems="flex-start">
-                          <TextField
-                            label="Duration"
-                            type="number"
-                            value={task.durationValue}
-                            onChange={e => setTask(idx, 'durationValue', e.target.value)}
-                            inputProps={{ min: 0, step: '1' }}
-                            sx={{ flex: 1, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          />
-                          <TextField
-                            select
-                            label="Unit"
-                            value={task.durationUnit}
-                            onChange={e => setTask(idx, 'durationUnit', e.target.value)}
-                            sx={{ width: 108, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          >
-                            {DURATION_UNITS.map(u => (
-                              <MenuItem key={u} value={u}>{u}</MenuItem>
-                            ))}
-                          </TextField>
-                        </Stack>
-                      </Grid>
-                    </Grid>
-
-                    <Divider sx={{ my: 2.5 }} />
-
-                    <Typography variant="overline" color="text.secondary" fontSize="0.65rem" letterSpacing={0.8} display="block" mb={1.5}>
-                      Schedule
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          fullWidth
-                          label="Start date"
-                          type="date"
-                          value={task.startDate}
-                          onChange={e => setTask(idx, 'startDate', e.target.value)}
-                          InputLabelProps={{ shrink: true }}
-                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField
-                          fullWidth
-                          label="End date"
-                          type="date"
-                          value={task.endDate}
-                          onChange={e => setTask(idx, 'endDate', e.target.value)}
-                          InputLabelProps={{ shrink: true }}
-                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    <Divider sx={{ my: 2.5 }} />
-
-                    <Typography variant="overline" color="text.secondary" fontSize="0.65rem" letterSpacing={0.8} display="block" mb={1.5}>
-                      Assignment & status
-                    </Typography>
-                    <Grid container spacing={2} alignItems="flex-end">
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <Autocomplete
-                          options={users}
-                          getOptionLabel={u => `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || ''}
-                          value={users.find(u => u.id === task.assignedTo) || null}
-                          onChange={(_, v) => setTask(idx, 'assignedTo', v?.id || null)}
-                          renderInput={params => (
-                            <TextField
-                              {...params}
-                              label="Assigned to"
-                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                            />
-                          )}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <Typography variant="caption" color="text.secondary" display="block" mb={0.75} fontWeight={600}>
-                          Task status
-                        </Typography>
-                        <TaskStatusSegments
-                          value={task.status}
-                          onChange={v => setTask(idx, 'status', v)}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12 }}>
-                        <TextField
-                          fullWidth
-                          multiline
-                          minRows={2}
-                          label="Notes"
-                          value={task.notes}
-                          onChange={e => setTask(idx, 'notes', e.target.value)}
-                          placeholder="Optional details for this task…"
-                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        />
-                      </Grid>
-                    </Grid>
-                  </Box>
-                </Paper>
-              ))}
-            </Stack>
-
+          {form.tasks.length === 0 ? (
             <Box
-              onClick={addTask}
+              onClick={() => openDrawer('new')}
               sx={{
-                mt: 2.5,
-                py: 2,
-                px: 2,
-                borderRadius: 2.5,
-                border: '2px dashed',
-                borderColor: 'divider',
-                bgcolor: alpha(theme.palette.primary.main, 0.02),
-                cursor: 'pointer',
-                textAlign: 'center',
-                transition: 'border-color 0.2s, background-color 0.2s',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  bgcolor: alpha(theme.palette.primary.main, 0.06),
-                },
+                py: 5, px: 3, textAlign: 'center', cursor: 'pointer',
+                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.03) },
+                transition: 'background 0.15s',
               }}
             >
-              <Stack direction="row" alignItems="center" justifyContent="center" spacing={1} color="primary.main">
-                <IconPlus size={20} stroke={2} />
-                <Typography variant="body2" fontWeight={700}>
-                  Add another task
-                </Typography>
-              </Stack>
+              <Box sx={{ width: 44, height: 44, borderRadius: '50%', bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1.5 }}>
+                <IconPlus size={22} />
+              </Box>
+              <Typography variant="body2" fontWeight={600} color="primary.main">Add your first task</Typography>
+              <Typography variant="caption" color="text.secondary">Click to add a task to this work order</Typography>
             </Box>
-          </CardContent>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: alpha(theme.palette.background.default, 0.8) }}>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, width: 36 }}>#</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Type of Work</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Assigned To</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Schedule</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Expense</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Status</TableCell>
+                    <TableCell align="right" sx={{ width: 80 }} />
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {form.tasks.map((task, idx) => (
+                    <TableRow
+                      key={idx}
+                      hover
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}
+                      onClick={() => openDrawer(idx)}
+                    >
+                      <TableCell>
+                        <Box sx={{ width: 24, height: 24, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800 }}>
+                          {idx + 1}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600}>{getTaskLabel(task)}</Typography>
+                        {task.notes && <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 200, display: 'block' }}>{task.notes}</Typography>}
+                      </TableCell>
+                      <TableCell>
+                        {getAssigneeName(task)
+                          ? <Stack direction="row" alignItems="center" spacing={0.5}><IconUser size={13} style={{ opacity: 0.4 }} /><Typography variant="body2">{getAssigneeName(task)}</Typography></Stack>
+                          : <Typography variant="body2" color="text.disabled">—</Typography>}
+                      </TableCell>
+                      <TableCell>
+                        {task.startDate || task.endDate ? (
+                          <Stack direction="row" alignItems="center" spacing={0.5}>
+                            <IconCalendar size={13} style={{ opacity: 0.4 }} />
+                            <Typography variant="body2" fontSize="0.78rem">
+                              {task.startDate || '?'}{task.endDate ? ` → ${task.endDate}` : ''}
+                            </Typography>
+                          </Stack>
+                        ) : <Typography variant="body2" color="text.disabled">—</Typography>}
+                      </TableCell>
+                      <TableCell>
+                        {task.expense
+                          ? <Stack direction="row" alignItems="center" spacing={0.5}><IconCurrencyDollar size={13} style={{ opacity: 0.4 }} /><Typography variant="body2">AED {task.expense}</Typography></Stack>
+                          : <Typography variant="body2" color="text.disabled">—</Typography>}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={(task.status || 'not_started').replace(/_/g, ' ')}
+                          size="small"
+                          color={STATUS_COLOR[task.status] || 'default'}
+                          sx={{ fontWeight: 600, fontSize: '0.68rem' }}
+                        />
+                      </TableCell>
+                      <TableCell align="right" onClick={e => e.stopPropagation()}>
+                        <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
+                          <Tooltip title="Edit task">
+                            <IconButton size="small" onClick={() => openDrawer(idx)} sx={{ borderRadius: 1.5 }}>
+                              <IconEdit size={14} />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Remove task">
+                            <IconButton size="small" onClick={() => removeTask(idx)} color="error" sx={{ borderRadius: 1.5 }}>
+                              <IconTrash size={14} />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+
+          {form.tasks.length > 0 && (
+            <Box sx={{ px: 3, py: 1.5, borderTop: '1px dashed', borderColor: 'divider' }}>
+              <Button size="small" startIcon={<IconPlus size={14} />} onClick={() => openDrawer('new')} sx={{ borderRadius: 2, color: 'text.secondary', fontSize: '0.78rem' }}>
+                Add another task
+              </Button>
+            </Box>
+          )}
         </Paper>
 
+        {/* Actions */}
         <Stack direction="row" spacing={2} justifyContent="flex-end">
           <Button
             variant="outlined"
@@ -613,13 +490,205 @@ const WorkOrderForm = () => {
             {saving ? 'Saving...' : isEdit ? 'Update Work Order' : 'Create Work Order'}
           </Button>
         </Stack>
-
-        <WorkTypesManageDialog
-          open={manageTypesOpen}
-          onClose={() => setManageTypesOpen(false)}
-          onSaved={fetchWorkTypes}
-        />
       </Box>
+
+      {/* Task Drawer */}
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={closeDrawer}
+        PaperProps={{
+          sx: {
+            width: { xs: '100vw', sm: 480 },
+            borderRadius: { sm: '16px 0 0 16px' },
+            overflow: 'hidden',
+          },
+        }}
+      >
+        {drawerTask && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* Drawer header */}
+            <Box sx={{ px: 3, py: 2.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.primary.main, 0.04), flexShrink: 0 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={800}>
+                    {drawerTaskIdx === 'new' ? 'Add Task' : `Edit Task ${drawerTaskIdx + 1}`}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">Fill in the task details below</Typography>
+                </Box>
+                <IconButton size="small" onClick={closeDrawer} sx={{ borderRadius: 1.5 }}>
+                  <IconX size={18} />
+                </IconButton>
+              </Stack>
+            </Box>
+
+            {/* Drawer body */}
+            <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+              <Stack spacing={3}>
+                {/* Type & effort */}
+                <Box>
+                  <Typography variant="overline" color="text.secondary" fontSize="0.65rem" letterSpacing={1} display="block" mb={1.5}>
+                    Type & Effort
+                  </Typography>
+                  <Stack spacing={2}>
+                    <Stack direction="row" spacing={1} alignItems="flex-start">
+                      <TextField
+                        select
+                        fullWidth
+                        label="Type of work"
+                        value={drawerTask.workTypeId ?? ''}
+                        onChange={e => setDrawerWorkType(e.target.value === '' ? null : Number(e.target.value))}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      >
+                        <MenuItem value=""><em>Select type</em></MenuItem>
+                        {workTypes.map(wt => <MenuItem key={wt.id} value={wt.id}>{wt.name}</MenuItem>)}
+                      </TextField>
+                      <Tooltip title="Manage work types">
+                        <IconButton onClick={() => setManageTypesOpen(true)} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, mt: 0.5 }}>
+                          <IconSettings size={18} />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                    {drawerTask.typeOfWork && !drawerTask.workTypeId && (
+                      <Typography variant="caption" color="warning.main">Legacy label: {drawerTask.typeOfWork} — select a type to link it.</Typography>
+                    )}
+                    <TextField
+                      fullWidth
+                      label="Expense"
+                      type="number"
+                      value={drawerTask.expense}
+                      onChange={e => setDrawerField('expense', e.target.value)}
+                      inputProps={{ min: 0, step: '0.01' }}
+                      InputProps={{ startAdornment: <InputAdornment position="start">AED</InputAdornment> }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                    <Stack direction="row" spacing={1.5}>
+                      <TextField
+                        fullWidth
+                        label="Duration"
+                        type="number"
+                        value={drawerTask.durationValue}
+                        onChange={e => setDrawerField('durationValue', e.target.value)}
+                        inputProps={{ min: 0 }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
+                      <TextField
+                        select
+                        label="Unit"
+                        value={drawerTask.durationUnit}
+                        onChange={e => setDrawerField('durationUnit', e.target.value)}
+                        sx={{ width: 120, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      >
+                        {DURATION_UNITS.map(u => <MenuItem key={u} value={u}>{u}</MenuItem>)}
+                      </TextField>
+                    </Stack>
+                  </Stack>
+                </Box>
+
+                <Divider />
+
+                {/* Schedule */}
+                <Box>
+                  <Typography variant="overline" color="text.secondary" fontSize="0.65rem" letterSpacing={1} display="block" mb={1.5}>
+                    Schedule
+                  </Typography>
+                  <Stack direction="row" spacing={1.5}>
+                    <TextField
+                      fullWidth
+                      label="Start date"
+                      type="date"
+                      value={drawerTask.startDate}
+                      onChange={e => setDrawerField('startDate', e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="End date"
+                      type="date"
+                      value={drawerTask.endDate}
+                      onChange={e => setDrawerField('endDate', e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  </Stack>
+                </Box>
+
+                <Divider />
+
+                {/* Assignment & status */}
+                <Box>
+                  <Typography variant="overline" color="text.secondary" fontSize="0.65rem" letterSpacing={1} display="block" mb={1.5}>
+                    Assignment & Status
+                  </Typography>
+                  <Stack spacing={2}>
+                    <Autocomplete
+                      options={users}
+                      getOptionLabel={u => `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || ''}
+                      value={users.find(u => u.id === drawerTask.assignedTo) || null}
+                      onChange={(_, v) => setDrawerField('assignedTo', v?.id || null)}
+                      renderInput={params => (
+                        <TextField {...params} label="Assigned to" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                      )}
+                    />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.75}>
+                        Task status
+                      </Typography>
+                      <TaskStatusSegments
+                        value={drawerTask.status}
+                        onChange={v => setDrawerField('status', v)}
+                      />
+                    </Box>
+                  </Stack>
+                </Box>
+
+                <Divider />
+
+                {/* Notes */}
+                <Box>
+                  <Typography variant="overline" color="text.secondary" fontSize="0.65rem" letterSpacing={1} display="block" mb={1.5}>
+                    Notes
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    label="Task notes"
+                    value={drawerTask.notes}
+                    onChange={e => setDrawerField('notes', e.target.value)}
+                    placeholder="Optional details for this task…"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                </Box>
+              </Stack>
+            </Box>
+
+            {/* Drawer footer */}
+            <Box sx={{ px: 3, py: 2.5, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', flexShrink: 0 }}>
+              <Stack direction="row" spacing={1.5} justifyContent="flex-end">
+                <Button variant="outlined" onClick={closeDrawer} sx={{ borderRadius: 2 }}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={saveDrawerTask}
+                  startIcon={<IconCheck size={16} />}
+                  sx={{ borderRadius: 2, px: 3 }}
+                >
+                  {drawerTaskIdx === 'new' ? 'Add Task' : 'Save Task'}
+                </Button>
+              </Stack>
+            </Box>
+          </Box>
+        )}
+      </Drawer>
+
+      <WorkTypesManageDialog
+        open={manageTypesOpen}
+        onClose={() => setManageTypesOpen(false)}
+        onSaved={fetchWorkTypes}
+      />
     </PageContainer>
   );
 };

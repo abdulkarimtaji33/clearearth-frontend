@@ -1,107 +1,27 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  CircularProgress,
-  Alert,
-  Stack,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  Divider,
+  Box, Card, Typography, Button, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, TablePagination, TextField,
+  InputAdornment, IconButton, Menu, MenuItem, Dialog, DialogTitle,
+  DialogContent, DialogContentText, DialogActions, CircularProgress,
+  Alert, Stack, Chip, FormControl, InputLabel, Select,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload, IconHammer, IconShoppingCart, IconTruck } from '@tabler/icons-react';
+import {
+  IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical,
+  IconFileDownload, IconHammer, IconTruck,
+} from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const STATUS_COLOR = {
-  draft: 'default',
-  pending: 'warning',
-  approved: 'success',
-  rejected: 'error',
-  cancelled: 'error',
+  draft: 'default', pending: 'warning', approved: 'success',
+  rejected: 'error', cancelled: 'error',
 };
 
-const POTable = ({ title, icon: Icon, iconColor, rows, loading, onMenu, navigate }) => {
-  const theme = useTheme();
-  return (
-    <Box>
-      <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
-        <Box sx={{ width: 28, height: 28, borderRadius: 1.5, bgcolor: alpha(iconColor, 0.12), color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon size={16} />
-        </Box>
-        <Typography variant="subtitle1" fontWeight={700}>{title}</Typography>
-        <Chip label={rows.length} size="small" sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }} />
-      </Stack>
-      <TableContainer sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ bgcolor: alpha(iconColor, 0.05) }}>
-              {['Deal', 'Party', 'Date', 'Delivery', 'Status', 'Items', ''].map((h, i) => (
-                <TableCell key={i} align={i === 6 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, py: 1.25 }}>{h}</TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4 }}><CircularProgress size={24} /></TableCell></TableRow>
-            ) : rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                  <Typography variant="body2" color="text.secondary">No records found</Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map(o => (
-                <TableRow key={o.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(iconColor, 0.02) } }} onClick={() => navigate(`/erp/purchase-orders/edit/${o.id}`)}>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={600}>{o.deal ? (o.deal.title || o.deal.deal_number) : '—'}</Typography>
-                  </TableCell>
-                  <TableCell><Typography variant="body2">{o.company?.company_name || o.supplier?.company_name || '—'}</Typography></TableCell>
-                  <TableCell><Typography variant="body2">{o.po_date || '—'}</Typography></TableCell>
-                  <TableCell><Typography variant="body2">{o.expected_delivery || '—'}</Typography></TableCell>
-                  <TableCell><Chip label={o.status || '—'} size="small" color={STATUS_COLOR[o.status] || 'default'} sx={{ fontWeight: 600 }} /></TableCell>
-                  <TableCell><Typography variant="body2" color="text.secondary">{o.items?.length || 0}</Typography></TableCell>
-                  <TableCell align="right" onClick={e => e.stopPropagation()}>
-                    <IconButton size="small" onClick={e => onMenu(e, o)} sx={{ borderRadius: 1.5 }}>
-                      <IconDotsVertical size={15} />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
-  );
-};
-
-const PurchaseOrderList = () => {
+const SupplierPurchaseOrderList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const [orders, setOrders] = useState([]);
@@ -109,7 +29,7 @@ const PurchaseOrderList = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [search, setSearch] = useState('');
   const [totalCount, setTotalCount] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -137,8 +57,10 @@ const PurchaseOrderList = () => {
       if (dateTo) params.dateTo = dateTo;
       const response = await apiService.getPurchaseOrders(params);
       if (response.success) {
-        setOrders(Array.isArray(response.data) ? response.data : []);
-        setTotalCount(response.pagination?.totalItems || 0);
+        const all = Array.isArray(response.data) ? response.data : [];
+        const supplierOnly = all.filter(o => o.supplier_id);
+        setOrders(supplierOnly);
+        setTotalCount(supplierOnly.length);
       }
     } catch (err) {
       setError(err.message || 'Failed to load purchase orders');
@@ -177,22 +99,20 @@ const PurchaseOrderList = () => {
   };
 
   const isApproved = (o) => String(o?.status || '').toLowerCase() === 'approved';
-  const clientOrders = orders.filter(o => o.company_id);
-  const supplierOrders = orders.filter(o => o.supplier_id);
 
   return (
-    <PageContainer title="Purchase Orders" description="Quotations to vendors; approved records export as purchase order PDF">
+    <PageContainer title="Supplier Purchase Orders" description="Downstream purchase orders for suppliers">
       <Box>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={2}>
           <Box>
             <Stack direction="row" alignItems="center" spacing={1.5} mb={0.5}>
               <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.secondary.main, 0.1), color: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IconShoppingCart size={20} />
+                <IconTruck size={20} />
               </Box>
-              <Typography variant="h4" fontWeight={700}>Purchase Orders</Typography>
+              <Typography variant="h4" fontWeight={700}>Supplier Purchase Orders</Typography>
             </Stack>
             <Typography variant="body2" color="text.secondary" ml={6.5}>
-              {totalCount > 0 ? `${totalCount} order${totalCount !== 1 ? 's' : ''}` : 'Approved → downloads as purchase order PDF'}
+              {totalCount > 0 ? `${totalCount} order${totalCount !== 1 ? 's' : ''}` : 'Downstream purchase orders issued to suppliers'}
             </Typography>
           </Box>
           <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/purchase-orders/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
@@ -208,7 +128,7 @@ const PurchaseOrderList = () => {
             <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" gap={1}>
               <TextField
                 size="small"
-                placeholder="Search client or vendor..."
+                placeholder="Search supplier or deal..."
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(0); }}
                 InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={16} /></InputAdornment>, sx: { borderRadius: 2 } }}
@@ -227,40 +147,58 @@ const PurchaseOrderList = () => {
             </Box>
           </Box>
 
-          <CardContent sx={{ p: 3 }}>
-            <Stack spacing={4}>
-              <POTable
-                title="Client Purchase Orders"
-                icon={IconShoppingCart}
-                iconColor={theme.palette.primary.main}
-                rows={clientOrders}
-                loading={loading}
-                onMenu={(e, o) => { setAnchorEl(e.currentTarget); setSelectedOrder(o); }}
-                navigate={navigate}
-              />
-              <Divider />
-              <POTable
-                title="Downstream Supplier Purchase Orders"
-                icon={IconTruck}
-                iconColor={theme.palette.secondary.main}
-                rows={supplierOrders}
-                loading={loading}
-                onMenu={(e, o) => { setAnchorEl(e.currentTarget); setSelectedOrder(o); }}
-                navigate={navigate}
-              />
-            </Stack>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.04) }}>
+                  {['Deal', 'Supplier', 'PO Date', 'Delivery', 'Status', 'Items', ''].map((h, i) => (
+                    <TableCell key={i} align={i === 6 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  [...Array(5)].map((_, i) => (
+                    <TableRow key={i}><TableCell colSpan={7} sx={{ py: 2 }}><Box sx={{ height: 20, bgcolor: 'action.hover', borderRadius: 1, animation: 'pulse 1.5s ease-in-out infinite', '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } } }} /></TableCell></TableRow>
+                  ))
+                ) : orders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                      <IconTruck size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
+                      <Typography variant="body2" color="text.secondary">No supplier purchase orders found</Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  orders.map(o => (
+                    <TableRow key={o.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.02) } }} onClick={() => navigate(`/erp/purchase-orders/edit/${o.id}`)}>
+                      <TableCell><Typography variant="body2" fontWeight={600}>{o.deal ? (o.deal.title || o.deal.deal_number) : '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2">{o.supplier?.company_name || '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2">{o.po_date || '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2">{o.expected_delivery || '—'}</Typography></TableCell>
+                      <TableCell><Chip label={o.status || '—'} size="small" color={STATUS_COLOR[o.status] || 'default'} sx={{ fontWeight: 600 }} /></TableCell>
+                      <TableCell><Typography variant="body2" color="text.secondary">{o.items?.length || 0}</Typography></TableCell>
+                      <TableCell align="right" onClick={e => e.stopPropagation()}>
+                        <IconButton size="small" onClick={e => { setAnchorEl(e.currentTarget); setSelectedOrder(o); }} sx={{ borderRadius: 1.5 }}>
+                          <IconDotsVertical size={15} />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-            <TablePagination
-              component="div"
-              count={totalCount}
-              page={page}
-              onPageChange={(_, p) => setPage(p)}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value)); setPage(0); }}
-              rowsPerPageOptions={[25, 50, 100]}
-              sx={{ mt: 2, borderTop: '1px solid', borderColor: 'divider' }}
-            />
-          </CardContent>
+          <TablePagination
+            component="div"
+            count={totalCount}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value)); setPage(0); }}
+            rowsPerPageOptions={[10, 25, 50]}
+            sx={{ borderTop: '1px solid', borderColor: 'divider' }}
+          />
         </Card>
 
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} PaperProps={{ sx: { borderRadius: 3 } }}>
@@ -294,4 +232,4 @@ const PurchaseOrderList = () => {
   );
 };
 
-export default PurchaseOrderList;
+export default SupplierPurchaseOrderList;

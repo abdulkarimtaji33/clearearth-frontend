@@ -30,6 +30,8 @@ const QuotationList = Loadable(lazy(() => import('../views/erp/quotations/Quotat
 const QuotationForm = Loadable(lazy(() => import('../views/erp/quotations/QuotationForm')));
 const PurchaseOrderList = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderList')));
 const PurchaseOrderForm = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderForm')));
+const ClientPurchaseOrderList = Loadable(lazy(() => import('../views/erp/purchase-orders/ClientPurchaseOrderList')));
+const SupplierPurchaseOrderList = Loadable(lazy(() => import('../views/erp/purchase-orders/SupplierPurchaseOrderList')));
 const RoleList = Loadable(lazy(() => import('../views/erp/roles/RoleList')));
 const RoleForm = Loadable(lazy(() => import('../views/erp/roles/RoleForm')));
 const UserList = Loadable(lazy(() => import('../views/erp/users/UserList')));
@@ -90,6 +92,8 @@ const Router = createBrowserRouter([
       { path: '/erp/purchase-orders', element: <PurchaseOrderList /> },
       { path: '/erp/purchase-orders/create', element: <PurchaseOrderForm /> },
       { path: '/erp/purchase-orders/edit/:id', element: <PurchaseOrderForm /> },
+      { path: '/erp/client-purchase-orders', element: <ClientPurchaseOrderList /> },
+      { path: '/erp/supplier-purchase-orders', element: <SupplierPurchaseOrderList /> },
       { path: '/erp/roles', element: <RoleList /> },
       { path: '/erp/roles/create', element: <RoleForm /> },
       { path: '/erp/roles/edit/:id', element: <RoleForm /> },

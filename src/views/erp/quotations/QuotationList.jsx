@@ -24,15 +24,30 @@ import {
   DialogActions,
   CircularProgress,
   Alert,
+  Stack,
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
-import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload, IconHammer } from '@tabler/icons-react';
+import { alpha, useTheme } from '@mui/material/styles';
+import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload, IconHammer, IconReceipt } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
+const STATUS_COLOR = {
+  draft: 'default',
+  pending: 'warning',
+  approved: 'success',
+  rejected: 'error',
+  cancelled: 'error',
+};
+
 const QuotationList = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,9 +69,7 @@ const QuotationList = () => {
     try {
       const res = await apiService.getAllDropdowns();
       if (res.success) setDropdowns({ quotationStatus: res.data.quotation_status || [] });
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   }, []);
 
   const fetchQuotations = useCallback(async () => {
@@ -78,23 +91,8 @@ const QuotationList = () => {
     }
   }, [page, rowsPerPage, search, statusFilter, dateFrom, dateTo]);
 
-  useEffect(() => {
-    fetchDropdowns();
-  }, [fetchDropdowns]);
-
-  useEffect(() => {
-    fetchQuotations();
-  }, [fetchQuotations]);
-
-  const handleMenuOpen = (e, q) => {
-    setAnchorEl(e.currentTarget);
-    setSelectedQuotation(q);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedQuotation(null);
-  };
+  useEffect(() => { fetchDropdowns(); }, [fetchDropdowns]);
+  useEffect(() => { fetchQuotations(); }, [fetchQuotations]);
 
   const handleDownloadPdf = async (q) => {
     if (!q?.id) return;
@@ -122,112 +120,95 @@ const QuotationList = () => {
     }
   };
 
-  const statusLabel = (v) => dropdowns.quotationStatus.find((s) => s.value === v)?.display_name || v;
+  const statusLabel = (v) => dropdowns.quotationStatus.find(s => s.value === v)?.display_name || v;
+  const isApproved = (q) => String(q?.status || '').toLowerCase() === 'approved';
 
   return (
     <PageContainer title="Service Quotations" description="Client quotations; approved records export as service order PDF">
       <Box>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={2}>
           <Box>
-            <Typography variant="h4" fontWeight={600} mb={0.5}>
-              Service Quotations
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Status Approved → download is a service order PDF
+            <Stack direction="row" alignItems="center" spacing={1.5} mb={0.5}>
+              <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconReceipt size={20} />
+              </Box>
+              <Typography variant="h4" fontWeight={700}>Service Quotations</Typography>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" ml={6.5}>
+              {totalCount > 0 ? `${totalCount} quotation${totalCount !== 1 ? 's' : ''}` : 'Approved → downloads as service order PDF'}
             </Typography>
           </Box>
-          <Button variant="contained" startIcon={<IconPlus />} onClick={() => navigate('/erp/quotations/create')} size="large">
-            Add Service Quotation
+          <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/quotations/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
+            Add Quotation
           </Button>
-        </Box>
+        </Stack>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
-        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
+          <Box sx={{ p: 2.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.background.default, 0.6) }}>
+            <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" gap={1}>
               <TextField
-                fullWidth
+                size="small"
                 placeholder="Search by deal title..."
                 value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <IconSearch size={20} />
-                    </InputAdornment>
-                  ),
-                }}
-                size="small"
-                sx={{ maxWidth: 320 }}
+                onChange={e => { setSearch(e.target.value); setPage(0); }}
+                InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={16} /></InputAdornment>, sx: { borderRadius: 2 } }}
+                sx={{ minWidth: 260, flex: 1 }}
               />
-              <TextField
-                select
-                label="Status"
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-                size="small"
-                sx={{ minWidth: 140 }}
-                SelectProps={{ native: true }}
-              >
-                <option value="">All</option>
-                {dropdowns.quotationStatus.map((s) => (
-                  <option key={s.id} value={s.value}>{s.display_name}</option>
-                ))}
-              </TextField>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel>Status</InputLabel>
+                <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }} label="Status" sx={{ borderRadius: 2 }}>
+                  <MenuItem value="">All</MenuItem>
+                  {dropdowns.quotationStatus.map(s => <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Stack>
+            <Box sx={{ mt: 2 }}>
+              <ListDateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onFromChange={v => { setDateFrom(v); setPage(0); }} onToChange={v => { setDateTo(v); setPage(0); }} onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }} helperText="Quotation date" compact />
             </Box>
+          </Box>
 
-            <Box sx={{ mb: 2 }}>
-              <ListDateRangeFilter
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-                onFromChange={(v) => { setDateFrom(v); setPage(0); }}
-                onToChange={(v) => { setDateTo(v); setPage(0); }}
-                onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
-                helperText="Quotation date"
-                compact
-              />
-            </Box>
-
+          <CardContent sx={{ p: 0 }}>
             <TableContainer>
               <Table>
                 <TableHead>
-                  <TableRow>
-                    <TableCell><strong>Deal</strong></TableCell>
-                    <TableCell><strong>Prepared By</strong></TableCell>
-                    <TableCell><strong>Date</strong></TableCell>
-                    <TableCell align="right"><strong>Amount (AED)</strong></TableCell>
-                    <TableCell><strong>Status</strong></TableCell>
-                    <TableCell align="right">Actions</TableCell>
+                  <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
+                    {['Deal', 'Prepared By', 'Date', 'Amount (AED)', 'Status', ''].map((h, i) => (
+                      <TableCell key={i} align={i === 3 ? 'right' : i === 5 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                    ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                        <CircularProgress size={32} />
-                      </TableCell>
-                    </TableRow>
+                    <TableRow><TableCell colSpan={6} align="center" sx={{ py: 8 }}><CircularProgress /></TableCell></TableRow>
                   ) : quotations.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4 }} color="text.secondary">
-                        No quotations found
+                      <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                        <IconReceipt size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
+                        <Typography variant="body2" color="text.secondary">No quotations found</Typography>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    quotations.map((q) => (
-                      <TableRow key={q.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/quotations/edit/${q.id}`)}>
-                        <TableCell>{q.deal?.title || q.deal?.deal_number || '-'}</TableCell>
+                    quotations.map(q => (
+                      <TableRow key={q.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }} onClick={() => navigate(`/erp/quotations/edit/${q.id}`)}>
                         <TableCell>
-                          {q.preparedByUser ? `${q.preparedByUser.first_name || ''} ${q.preparedByUser.last_name || ''}`.trim() : '-'}
+                          <Typography variant="body2" fontWeight={600}>{q.deal?.title || q.deal?.deal_number || '—'}</Typography>
                         </TableCell>
-                        <TableCell>{q.quotation_date || '-'}</TableCell>
-                        <TableCell align="right">{parseFloat(q.quotation_amount || 0).toLocaleString()}</TableCell>
-                        <TableCell>{statusLabel(q.status)}</TableCell>
-                        <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                          <IconButton size="small" onClick={(e) => handleMenuOpen(e, q)}>
-                            <IconDotsVertical size={18} />
+                        <TableCell>
+                          <Typography variant="body2">{q.preparedByUser ? `${q.preparedByUser.first_name || ''} ${q.preparedByUser.last_name || ''}`.trim() : '—'}</Typography>
+                        </TableCell>
+                        <TableCell><Typography variant="body2">{q.quotation_date || '—'}</Typography></TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" fontWeight={600}>{parseFloat(q.quotation_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={statusLabel(q.status) || q.status} size="small" color={STATUS_COLOR[q.status] || 'default'} sx={{ fontWeight: 600 }} />
+                        </TableCell>
+                        <TableCell align="right" onClick={e => e.stopPropagation()}>
+                          <IconButton size="small" onClick={e => { setAnchorEl(e.currentTarget); setSelectedQuotation(q); }} sx={{ borderRadius: 1.5 }}>
+                            <IconDotsVertical size={16} />
                           </IconButton>
                         </TableCell>
                       </TableRow>
@@ -237,47 +218,34 @@ const QuotationList = () => {
               </Table>
             </TableContainer>
 
-            <TablePagination
-              component="div"
-              count={totalCount}
-              page={page}
-              onPageChange={(_, p) => setPage(p)}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value)); setPage(0); }}
-              rowsPerPageOptions={[5, 10, 25, 50]}
-            />
+            <TablePagination component="div" count={totalCount} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value)); setPage(0); }} rowsPerPageOptions={[5, 10, 25, 50]} sx={{ borderTop: '1px solid', borderColor: 'divider' }} />
           </CardContent>
         </Card>
 
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-          <DialogTitle>Delete Quotation</DialogTitle>
-          <DialogContent>
-            <DialogContentText>Are you sure you want to delete this quotation?</DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} PaperProps={{ sx: { borderRadius: 3 } }}>
+          <DialogTitle fontWeight={700}>Delete Quotation</DialogTitle>
+          <DialogContent><DialogContentText>Are you sure you want to delete this quotation?</DialogContentText></DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2.5 }}>
+            <Button onClick={() => setDeleteDialogOpen(false)} sx={{ borderRadius: 2 }}>Cancel</Button>
+            <Button onClick={handleDelete} color="error" variant="contained" sx={{ borderRadius: 2 }}>Delete</Button>
           </DialogActions>
         </Dialog>
 
-        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-          <MenuItem onClick={() => { navigate(`/erp/quotations/edit/${selectedQuotation?.id}`); handleMenuClose(); }}>
-            <IconEdit size={18} style={{ marginRight: 8 }} /> Edit
+        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => { setAnchorEl(null); setSelectedQuotation(null); }} PaperProps={{ sx: { borderRadius: 2, minWidth: 200 } }}>
+          <MenuItem onClick={() => { navigate(`/erp/quotations/edit/${selectedQuotation?.id}`); setAnchorEl(null); }}>
+            <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
           </MenuItem>
-          <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation); handleMenuClose(); }} disabled={pdfLoading === selectedQuotation?.id}>
-            {pdfLoading === selectedQuotation?.id ? <CircularProgress size={18} sx={{ mr: 1 }} /> : <IconFileDownload size={18} style={{ marginRight: 8 }} />}
-            {String(selectedQuotation?.status || '').toLowerCase() === 'approved' ? 'Download service order PDF' : 'Download service quotation PDF'}
+          <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation); setAnchorEl(null); }} disabled={pdfLoading === selectedQuotation?.id}>
+            {pdfLoading === selectedQuotation?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+            {isApproved(selectedQuotation) ? 'Download service order PDF' : 'Download quotation PDF'}
           </MenuItem>
-          {String(selectedQuotation?.status || '').toLowerCase() === 'approved' && (
-            <MenuItem onClick={() => {
-              navigate(`/erp/work-orders/create${selectedQuotation?.deal?.id ? `?dealId=${selectedQuotation.deal.id}` : ''}`);
-              handleMenuClose();
-            }}>
-              <IconHammer size={18} style={{ marginRight: 8 }} /> Create Work Order
+          {isApproved(selectedQuotation) && (
+            <MenuItem onClick={() => { navigate(`/erp/work-orders/create${selectedQuotation?.deal?.id ? `?dealId=${selectedQuotation.deal.id}` : ''}`); setAnchorEl(null); }}>
+              <IconHammer size={16} style={{ marginRight: 10 }} /> Create Work Order
             </MenuItem>
           )}
-          <MenuItem onClick={() => { setDeleteDialogOpen(true); handleMenuClose(); }} sx={{ color: 'error.main' }}>
-            <IconTrash size={18} style={{ marginRight: 8 }} /> Delete
+          <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
+            <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
           </MenuItem>
         </Menu>
       </Box>

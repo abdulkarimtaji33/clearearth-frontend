@@ -10,6 +10,7 @@ import {
   IconFileText,
   IconReceipt,
   IconShoppingCart,
+  IconTruck,
   IconShield,
   IconUsers,
   IconClipboardCheck,
@@ -63,7 +64,8 @@ const ErpMenuItems = [
     permission: 'deals.read',
     children: [
       { id: uniqueId(), title: 'Service Quotations', icon: IconPoint, href: '/erp/quotations', permission: 'deals.read' },
-      { id: uniqueId(), title: 'Purchase Quotations', icon: IconPoint, href: '/erp/purchase-orders', permission: 'deals.read' },
+      { id: uniqueId(), title: 'Client Purchase Orders', icon: IconShoppingCart, href: '/erp/client-purchase-orders', permission: 'deals.read' },
+      { id: uniqueId(), title: 'Supplier Purchase Orders', icon: IconTruck, href: '/erp/supplier-purchase-orders', permission: 'deals.read' },
     ],
   },
   {

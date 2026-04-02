@@ -132,14 +132,14 @@ const CompanySettings = () => {
 
   return (
     <PageContainer title="Company Settings" description="Your organization details used in quotations and purchase orders">
-      <Box sx={{ maxWidth: 800, mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
+      <Box sx={{ maxWidth: 820, mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
         <Stack direction="row" alignItems="center" spacing={2} mb={4}>
-          <Button variant="outlined" startIcon={<IconArrowLeft size={20} />} onClick={() => navigate(-1)} sx={{ borderRadius: 2 }}>
+          <Button variant="outlined" startIcon={<IconArrowLeft size={18} />} onClick={() => navigate(-1)} sx={{ borderRadius: 2, fontWeight: 600 }}>
             Back
           </Button>
           <Box>
-            <Typography variant="h3" fontWeight={700}>Company Settings</Typography>
-            <Typography variant="body2" color="text.secondary" mt={0.5}>Update your organization info (used in PDF documents)</Typography>
+            <Typography variant="h4" fontWeight={700}>Company Settings</Typography>
+            <Typography variant="body2" color="text.secondary" mt={0.25}>Organization info used in PDF documents</Typography>
           </Box>
         </Stack>
 
@@ -147,12 +147,12 @@ const CompanySettings = () => {
         {success && <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>{success}</Alert>}
 
         {/* Logo card */}
-        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3, overflow: 'hidden' }}>
+          <Box sx={{ px: { xs: 2.5, sm: 3 }, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
+            <Typography variant="subtitle1" fontWeight={700}>Company Logo</Typography>
+            <Typography variant="body2" color="text.secondary">Appears on the sidebar, login page, and PDF documents</Typography>
+          </Box>
           <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
-            <Typography variant="h6" fontWeight={700} mb={0.5}>Company Logo</Typography>
-            <Typography variant="body2" color="text.secondary" mb={2.5}>
-              Appears on the sidebar, login page, and PDF documents
-            </Typography>
             <Stack direction="row" alignItems="center" spacing={3}>
               <Box
                 sx={{
@@ -211,15 +211,12 @@ const CompanySettings = () => {
         >
           {({ values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting }) => (
             <form onSubmit={handleSubmit}>
-              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-                <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-                  <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
-                    Organization Details
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" mb={4}>
-                    This information appears as the "From" party on quotations and purchase orders
-                  </Typography>
-                  <Divider sx={{ mb: 4 }} />
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3, overflow: 'hidden' }}>
+                <Box sx={{ px: { xs: 2.5, sm: 3 }, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
+                  <Typography variant="subtitle1" fontWeight={700}>Organization Details</Typography>
+                  <Typography variant="body2" color="text.secondary">Appears as the "From" party on quotations and purchase orders</Typography>
+                </Box>
+                <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
 
                   <Grid container spacing={3}>
                     <Grid size={{ xs: 12, sm: 6 }}>
@@ -260,9 +257,9 @@ const CompanySettings = () => {
                     </Grid>
                   </Grid>
 
-                  <Stack direction="row" justifyContent="flex-end" mt={4}>
-                    <Button type="submit" variant="contained" size="large" disabled={isSubmitting} sx={{ minWidth: 140, borderRadius: 2, fontWeight: 600 }}>
-                      {isSubmitting ? 'Saving...' : 'Save Changes'}
+                  <Stack direction="row" justifyContent="flex-end" mt={3}>
+                    <Button type="submit" variant="contained" size="large" disabled={isSubmitting} sx={{ minWidth: 160, borderRadius: 2, fontWeight: 700, px: 4 }}>
+                      {isSubmitting ? 'Saving…' : 'Save Changes'}
                     </Button>
                   </Stack>
                 </CardContent>

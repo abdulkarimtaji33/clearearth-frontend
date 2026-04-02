@@ -1,54 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Chip,
-  Menu,
-  MenuItem as MenuItemMui,
-  Dialog,
-  CircularProgress,
-  Alert,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Collapse,
-  Autocomplete,
-  Stack,
-  Avatar,
-  Divider,
+  Box, Card, Typography, Button, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, TablePagination, TextField,
+  InputAdornment, IconButton, Chip, Menu, MenuItem as MenuItemMui,
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
+  Alert, Grid, FormControl, InputLabel, Select, MenuItem, Collapse,
+  Autocomplete, Stack, Avatar, Divider, Tooltip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import {
-  IconSearch,
-  IconPlus,
-  IconEdit,
-  IconTrash,
-  IconDotsVertical,
-  IconFilterOff,
-  IconFilter,
-  IconChevronDown,
-  IconChevronUp,
-  IconEye,
-  IconMail,
-  IconPhone,
-  IconBuilding,
-  IconBriefcase,
-  IconUser,
+  IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical,
+  IconFilterOff, IconFilter, IconChevronDown, IconChevronUp,
+  IconEye, IconMail, IconPhone, IconBuilding, IconBriefcase,
+  IconAddressBook, IconUser,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
@@ -63,58 +27,18 @@ const ContactDrawerContent = ({ contact, onEdit, onNavigateCompany }) => {
 
   return (
     <Stack spacing={0}>
-      {/* Avatar hero */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          py: 3,
-          px: 2,
-          mb: 2,
-          borderRadius: 3,
-          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
-          border: '1px solid',
-          borderColor: alpha(theme.palette.primary.main, 0.12),
-        }}
-      >
-        <Avatar
-          sx={{
-            width: 72,
-            height: 72,
-            bgcolor: theme.palette.primary.main,
-            color: 'primary.contrastText',
-            fontSize: '1.6rem',
-            fontWeight: 800,
-            mb: 1.5,
-            boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.15)}`,
-          }}
-        >
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 3, px: 2, mb: 2, borderRadius: 3, background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`, border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.12) }}>
+        <Avatar sx={{ width: 72, height: 72, bgcolor: theme.palette.primary.main, color: 'primary.contrastText', fontSize: '1.6rem', fontWeight: 800, mb: 1.5, boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.15)}` }}>
           {initial}
         </Avatar>
         <Typography variant="h6" fontWeight={800} textAlign="center" mb={0.5}>{fullName}</Typography>
-        {contact.designation && (
-          <Typography variant="body2" color="text.secondary" mb={1}>{contact.designation}</Typography>
-        )}
+        {contact.designation && <Typography variant="body2" color="text.secondary" mb={1}>{contact.designation}</Typography>}
         <Stack direction="row" gap={0.75} flexWrap="wrap" justifyContent="center">
-          <Chip
-            label={contact.status?.toUpperCase() || 'UNKNOWN'}
-            size="small"
-            color={contact.status === 'active' ? 'success' : 'default'}
-            sx={{ fontWeight: 700, fontSize: '0.68rem', letterSpacing: 0.5 }}
-          />
-          {contact.contact_type && (
-            <Chip
-              label={contact.contact_type.charAt(0).toUpperCase() + contact.contact_type.slice(1)}
-              size="small"
-              variant="outlined"
-              sx={{ fontWeight: 600, fontSize: '0.68rem' }}
-            />
-          )}
+          <Chip label={contact.status?.toUpperCase() || 'UNKNOWN'} size="small" color={contact.status === 'active' ? 'success' : 'default'} sx={{ fontWeight: 700, fontSize: '0.68rem', letterSpacing: 0.5 }} />
+          {contact.contact_type && <Chip label={contact.contact_type.charAt(0).toUpperCase() + contact.contact_type.slice(1)} size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: '0.68rem' }} />}
         </Stack>
       </Box>
 
-      {/* Contact details */}
       <Stack spacing={0} divider={<Divider />}>
         {contact.email && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.75 }}>
@@ -123,15 +47,7 @@ const ContactDrawerContent = ({ contact, onEdit, onNavigateCompany }) => {
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5}>Email</Typography>
-              <Typography
-                variant="body2"
-                component="a"
-                href={`mailto:${contact.email}`}
-                sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}
-                noWrap
-              >
-                {contact.email}
-              </Typography>
+              <Typography variant="body2" component="a" href={`mailto:${contact.email}`} sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }} noWrap>{contact.email}</Typography>
             </Box>
           </Box>
         )}
@@ -165,14 +81,7 @@ const ContactDrawerContent = ({ contact, onEdit, onNavigateCompany }) => {
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5}>Company</Typography>
               {contact.company?.id ? (
-                <Typography
-                  variant="body2"
-                  fontWeight={600}
-                  color="primary.main"
-                  sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-                  onClick={() => onNavigateCompany(contact.company.id)}
-                  noWrap
-                >
+                <Typography variant="body2" fontWeight={600} color="primary.main" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }} onClick={() => onNavigateCompany(contact.company.id)} noWrap>
                   {contact.company.company_name}
                 </Typography>
               ) : (
@@ -186,19 +95,11 @@ const ContactDrawerContent = ({ contact, onEdit, onNavigateCompany }) => {
       {contact.notes && (
         <Box sx={{ mt: 2, p: 2, borderRadius: 2, bgcolor: alpha(theme.palette.grey[500], 0.06), border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5} mb={0.75}>Notes</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-            {contact.notes}
-          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{contact.notes}</Typography>
         </Box>
       )}
 
-      <Button
-        variant="contained"
-        fullWidth
-        startIcon={<IconEdit size={16} />}
-        onClick={onEdit}
-        sx={{ mt: 3, borderRadius: 2.5, fontWeight: 700, py: 1.25 }}
-      >
+      <Button variant="contained" fullWidth startIcon={<IconEdit size={16} />} onClick={onEdit} sx={{ mt: 3, borderRadius: 2.5, fontWeight: 700, py: 1.25 }}>
         Edit Contact
       </Button>
     </Stack>
@@ -235,9 +136,7 @@ const ContactList = () => {
   const [viewContact, setViewContact] = useState(null);
 
   useEffect(() => { fetchDropdowns(); }, []);
-  useEffect(() => {
-    fetchContacts();
-  }, [page, rowsPerPage, search, statusFilter, contactTypeFilter, designationFilter, departmentFilter, companyFilter, dateFrom, dateTo]);
+  useEffect(() => { fetchContacts(); }, [page, rowsPerPage, search, statusFilter, contactTypeFilter, designationFilter, departmentFilter, companyFilter, dateFrom, dateTo]);
 
   const fetchDropdowns = async () => {
     try {
@@ -247,9 +146,7 @@ const ContactList = () => {
       ]);
       if (dropdownRes.success) setDropdowns({ designations: dropdownRes.data.designations || [] });
       if (companiesRes.success) setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
-    } catch (err) {
-      console.error('Failed to fetch dropdowns:', err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const fetchContacts = async () => {
@@ -275,10 +172,6 @@ const ContactList = () => {
     }
   };
 
-  const handleMenuOpen = (event, contact) => { setAnchorEl(event.currentTarget); setSelectedContact(contact); };
-  const handleMenuClose = () => { setAnchorEl(null); setSelectedContact(null); };
-  const handleEdit = () => { navigate(`/erp/contacts/edit/${selectedContact.id}`); handleMenuClose(); };
-
   const openContactView = async (contact) => {
     setViewOpen(true);
     setViewContact(null);
@@ -294,20 +187,17 @@ const ContactList = () => {
     }
   };
 
-  const handleViewFromMenu = () => { if (selectedContact) openContactView(selectedContact); handleMenuClose(); };
-  const handleOpenDeleteDialog = () => { setContactToDelete(selectedContact); setDeleteDialogOpen(true); handleMenuClose(); };
-  const handleCloseDeleteDialog = () => { setDeleteDialogOpen(false); setContactToDelete(null); };
-
   const handleDelete = async () => {
     if (!contactToDelete) return;
     try {
       await apiService.deleteContact(contactToDelete.id);
-      setSuccess('Contact deleted successfully!');
+      setSuccess('Contact deleted');
       fetchContacts();
-      handleCloseDeleteDialog();
+      setDeleteDialogOpen(false);
+      setContactToDelete(null);
     } catch (err) {
       setError(err.message || 'Failed to delete contact');
-      handleCloseDeleteDialog();
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -317,85 +207,77 @@ const ContactList = () => {
     setDateFrom(''); setDateTo(''); setPage(0);
   };
 
-  const hasActiveFilters = !!(search || statusFilter || contactTypeFilter || designationFilter || departmentFilter || companyFilter || dateFrom || dateTo);
+  const hasFilters = !!(search || statusFilter || contactTypeFilter || designationFilter || departmentFilter || companyFilter || dateFrom || dateTo);
 
-  if (loading && contacts.length === 0) {
-    return (
-      <PageContainer title="Contacts" description="Manage contacts">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-          <CircularProgress />
-        </Box>
-      </PageContainer>
-    );
-  }
+  const getInitials = (c) => {
+    const n = [c.first_name, c.last_name].filter(Boolean).join(' ');
+    return n.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || '?';
+  };
+
+  const TYPE_COLOR = { clients: 'primary', vendors: 'secondary' };
 
   return (
     <PageContainer title="Contacts" description="Manage contacts">
       <Box>
-        {/* Header */}
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={2}>
           <Box>
-            <Typography variant="h4" fontWeight={800} letterSpacing={-0.5} mb={0.5}>Contacts</Typography>
-            <Typography variant="body2" color="text.secondary">Manage individual contact persons</Typography>
+            <Stack direction="row" alignItems="center" spacing={1.5} mb={0.5}>
+              <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconAddressBook size={20} />
+              </Box>
+              <Typography variant="h4" fontWeight={700}>Contacts</Typography>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" ml={6.5}>
+              {totalCount > 0 ? `${totalCount} contact${totalCount !== 1 ? 's' : ''}` : 'Manage individual contact persons'}
+            </Typography>
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<IconPlus size={18} />}
-            onClick={() => navigate('/erp/contacts/create')}
-            sx={{ borderRadius: 2.5, fontWeight: 700, px: 2.5 }}
-          >
+          <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/contacts/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
             Add Contact
           </Button>
-        </Box>
+        </Stack>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
-        <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
-          <CardContent sx={{ p: 3 }}>
-            {/* Search + filter toggle */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
+          {/* Filter bar */}
+          <Box sx={{ p: 2.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.background.default, 0.6) }}>
+            <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" gap={1}>
               <TextField
-                fullWidth
                 placeholder="Search by name, email or phone..."
                 value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start"><IconSearch size={18} /></InputAdornment>
-                  ),
-                }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                onChange={e => { setSearch(e.target.value); setPage(0); }}
+                size="small"
+                InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={16} /></InputAdornment>, sx: { borderRadius: 2 } }}
+                sx={{ minWidth: 260, flex: 1 }}
               />
               <Button
                 variant={filtersExpanded ? 'contained' : 'outlined'}
-                startIcon={filtersExpanded ? <IconChevronUp size={16} /> : <IconFilter size={16} />}
-                onClick={() => setFiltersExpanded(!filtersExpanded)}
-                sx={{ borderRadius: 2, height: 56, minWidth: 130, fontWeight: 600, flexShrink: 0 }}
+                color={hasFilters ? 'primary' : 'inherit'}
+                startIcon={<IconFilter size={16} />}
+                endIcon={filtersExpanded ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+                onClick={() => setFiltersExpanded(v => !v)}
+                size="small"
+                sx={{ borderRadius: 2, fontWeight: 600, whiteSpace: 'nowrap' }}
               >
-                Filters
+                Filters{hasFilters ? ' •' : ''}
               </Button>
-            </Box>
-
-            <Box sx={{ mb: 2 }}>
-              <ListDateRangeFilter
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-                onFromChange={(v) => { setDateFrom(v); setPage(0); }}
-                onToChange={(v) => { setDateTo(v); setPage(0); }}
-                onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
-                helperText="Created date"
-                compact
-              />
-            </Box>
+              {hasFilters && (
+                <Tooltip title="Clear all filters">
+                  <IconButton size="small" onClick={clearAllFilters} sx={{ color: 'error.main' }}>
+                    <IconFilterOff size={18} />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Stack>
 
             <Collapse in={filtersExpanded}>
-              <Box sx={{ p: 2.5, mb: 2, bgcolor: alpha(theme.palette.primary.main, 0.03), borderRadius: 2, border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.1) }}>
-                <Grid container spacing={2} alignItems="center">
+              <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Grid container spacing={2}>
                   <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth size="small">
                       <InputLabel>Status</InputLabel>
-                      <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }} label="Status" sx={{ borderRadius: 2 }}>
+                      <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }} label="Status" sx={{ borderRadius: 2 }}>
                         <MenuItem value="">All</MenuItem>
                         <MenuItem value="active">Active</MenuItem>
                         <MenuItem value="inactive">Inactive</MenuItem>
@@ -403,9 +285,9 @@ const ContactList = () => {
                     </FormControl>
                   </Grid>
                   <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                    <FormControl fullWidth>
-                      <InputLabel>Contact Type</InputLabel>
-                      <Select value={contactTypeFilter} onChange={(e) => { setContactTypeFilter(e.target.value); setPage(0); }} label="Contact Type" sx={{ borderRadius: 2 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Type</InputLabel>
+                      <Select value={contactTypeFilter} onChange={e => { setContactTypeFilter(e.target.value); setPage(0); }} label="Type" sx={{ borderRadius: 2 }}>
                         <MenuItem value="">All</MenuItem>
                         <MenuItem value="clients">Clients</MenuItem>
                         <MenuItem value="vendors">Vendors</MenuItem>
@@ -413,167 +295,152 @@ const ContactList = () => {
                     </FormControl>
                   </Grid>
                   <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth size="small">
                       <InputLabel>Designation</InputLabel>
-                      <Select value={designationFilter} onChange={(e) => { setDesignationFilter(e.target.value); setPage(0); }} label="Designation" sx={{ borderRadius: 2 }}>
+                      <Select value={designationFilter} onChange={e => { setDesignationFilter(e.target.value); setPage(0); }} label="Designation" sx={{ borderRadius: 2 }}>
                         <MenuItem value="">All</MenuItem>
-                        {dropdowns.designations.map((d) => <MenuItem key={d.id} value={d.value}>{d.display_name}</MenuItem>)}
+                        {dropdowns.designations.map(d => <MenuItem key={d.id} value={d.value}>{d.display_name}</MenuItem>)}
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <TextField
-                      fullWidth
-                      label="Department"
-                      placeholder="e.g. Sales"
-                      value={departmentFilter}
-                      onChange={(e) => { setDepartmentFilter(e.target.value); setPage(0); }}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
+                  <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+                    <TextField fullWidth size="small" label="Department" value={departmentFilter} onChange={e => { setDepartmentFilter(e.target.value); setPage(0); }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Autocomplete
-                      fullWidth
+                      size="small"
                       options={companies}
-                      getOptionLabel={(o) => o.company_name || ''}
+                      getOptionLabel={o => o.company_name || ''}
                       value={companyFilter}
                       onChange={(_, v) => { setCompanyFilter(v); setPage(0); }}
-                      renderInput={(params) => <TextField {...params} label="Company" placeholder="Select company..." sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
+                      renderInput={p => <TextField {...p} label="Company" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
                       isOptionEqualToValue={(o, v) => o.id === v?.id}
                     />
                   </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      startIcon={<IconFilterOff size={16} />}
-                      onClick={clearAllFilters}
-                      disabled={!hasActiveFilters}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      Clear All Filters
-                    </Button>
+                  <Grid size={12}>
+                    <ListDateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onFromChange={v => { setDateFrom(v); setPage(0); }} onToChange={v => { setDateTo(v); setPage(0); }} onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }} helperText="Created date" compact />
                   </Grid>
                 </Grid>
               </Box>
             </Collapse>
+          </Box>
 
-            {/* Table */}
-            <TableContainer>
-              <Table sx={{ minWidth: 700 }}>
-                <TableHead>
+          {/* Table */}
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
+                  {['Contact', 'Type', 'Company', 'Email', 'Phone', 'Status', ''].map((h, i) => (
+                    <TableCell key={i} align={i === 6 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  [...Array(5)].map((_, i) => (
+                    <TableRow key={i}><TableCell colSpan={7} sx={{ py: 2 }}><Box sx={{ height: 20, bgcolor: 'action.hover', borderRadius: 1, animation: 'pulse 1.5s ease-in-out infinite', '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } } }} /></TableCell></TableRow>
+                  ))
+                ) : contacts.length === 0 ? (
                   <TableRow>
-                    {['Name', 'Contact Type', 'Designation', 'Company / Supplier', 'Email', 'Phone', 'Status', ''].map((h) => (
-                      <TableCell key={h} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5, py: 1.5, borderBottom: '2px solid', borderColor: 'divider' }}>
-                        {h}
-                      </TableCell>
-                    ))}
+                    <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                      <IconUser size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {hasFilters ? 'No contacts match your filters' : 'No contacts yet'}
+                      </Typography>
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {contacts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
-                        <IconUser size={40} style={{ opacity: 0.2, display: 'block', margin: '0 auto 12px' }} />
-                        <Typography color="text.secondary" fontWeight={500}>
-                          {hasActiveFilters ? 'No contacts found matching your filters' : 'No contacts yet. Click "Add Contact" to create one.'}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    contacts.map((contact) => {
-                      const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || '—';
-                      const initial = (contact.first_name || contact.last_name || '?').charAt(0).toUpperCase();
-                      return (
-                        <TableRow
-                          key={contact.id}
-                          hover
-                          sx={{
-                            cursor: 'pointer',
-                            '&:hover .row-actions': { opacity: 1 },
-                            '& td': { py: 1.5 },
-                          }}
-                          onClick={() => openContactView(contact)}
-                        >
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                              <Avatar sx={{ width: 34, height: 34, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main', fontSize: '0.85rem', fontWeight: 700, flexShrink: 0 }}>
-                                {initial}
-                              </Avatar>
-                              <Typography variant="body2" fontWeight={600}>{fullName}</Typography>
+                ) : (
+                  contacts.map(contact => {
+                    const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || '—';
+                    return (
+                      <TableRow
+                        key={contact.id}
+                        hover
+                        sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) }, '&:hover .row-actions': { opacity: 1 } }}
+                        onClick={() => openContactView(contact)}
+                      >
+                        <TableCell>
+                          <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <Avatar sx={{ width: 34, height: 34, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main', fontSize: '0.75rem', fontWeight: 700 }}>
+                              {getInitials(contact)}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="body2" fontWeight={700}>{fullName}</Typography>
+                              {contact.designation && <Typography variant="caption" color="text.secondary">{contact.designation}</Typography>}
                             </Box>
-                          </TableCell>
-                          <TableCell>
-                            {contact.contact_type ? (
-                              <Chip
-                                label={contact.contact_type.charAt(0).toUpperCase() + contact.contact_type.slice(1)}
-                                size="small"
-                                variant="outlined"
-                                sx={{ fontSize: '0.72rem', fontWeight: 600, borderRadius: 1.5 }}
-                              />
-                            ) : <Typography variant="body2" color="text.secondary">—</Typography>}
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary">{contact.designation || '—'}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary" noWrap>
-                              {contact.company?.company_name || contact.supplier?.company_name || '—'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary" noWrap>{contact.email || '—'}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary">{contact.phone || contact.mobile || '—'}</Typography>
-                          </TableCell>
-                          <TableCell>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          {contact.contact_type ? (
                             <Chip
-                              label={contact.status?.toUpperCase() || '—'}
+                              label={contact.contact_type === 'clients' ? 'Client' : 'Vendor'}
                               size="small"
-                              color={contact.status === 'active' ? 'success' : 'default'}
-                              sx={{ fontWeight: 700, fontSize: '0.68rem' }}
+                              color={TYPE_COLOR[contact.contact_type] || 'default'}
+                              variant="outlined"
+                              sx={{ fontWeight: 600, fontSize: '0.72rem' }}
                             />
-                          </TableCell>
-                          <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                            <Box className="row-actions" sx={{ opacity: 0, transition: 'opacity 0.15s', display: 'flex', justifyContent: 'flex-end' }}>
-                              <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, contact); }}>
-                                <IconDotsVertical size={17} />
-                              </IconButton>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                          ) : <Typography variant="body2" color="text.disabled">—</Typography>}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" noWrap>
+                            {contact.company?.company_name || contact.supplier?.company_name || <Box component="span" sx={{ color: 'text.disabled' }}>—</Box>}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {contact.email ? (
+                            <Stack direction="row" alignItems="center" spacing={0.5}>
+                              <IconMail size={13} style={{ opacity: 0.4 }} />
+                              <Typography variant="body2" noWrap>{contact.email}</Typography>
+                            </Stack>
+                          ) : <Typography variant="body2" color="text.disabled">—</Typography>}
+                        </TableCell>
+                        <TableCell>
+                          {(contact.phone || contact.mobile) ? (
+                            <Stack direction="row" alignItems="center" spacing={0.5}>
+                              <IconPhone size={13} style={{ opacity: 0.4 }} />
+                              <Typography variant="body2">{contact.phone || contact.mobile}</Typography>
+                            </Stack>
+                          ) : <Typography variant="body2" color="text.disabled">—</Typography>}
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={contact.status === 'active' ? 'Active' : 'Inactive'} size="small" color={contact.status === 'active' ? 'success' : 'default'} sx={{ fontWeight: 600 }} />
+                        </TableCell>
+                        <TableCell align="right" onClick={e => e.stopPropagation()}>
+                          <Box className="row-actions" sx={{ opacity: 0, transition: 'opacity 0.15s' }}>
+                            <IconButton size="small" onClick={e => { setAnchorEl(e.currentTarget); setSelectedContact(contact); }} sx={{ borderRadius: 1.5 }}>
+                              <IconDotsVertical size={16} />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-            <TablePagination
-              component="div"
-              count={totalCount}
-              page={page}
-              onPageChange={(e, newPage) => setPage(newPage)}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-              rowsPerPageOptions={[5, 10, 25, 50]}
-            />
-          </CardContent>
+          <TablePagination
+            component="div"
+            count={totalCount}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            sx={{ borderTop: '1px solid', borderColor: 'divider' }}
+          />
         </Card>
 
-        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} PaperProps={{ sx: { borderRadius: 2, minWidth: 160 } }}>
-          <MenuItemMui onClick={handleViewFromMenu} sx={{ gap: 1.5 }}>
-            <IconEye size={16} />
-            View
+        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => { setAnchorEl(null); setSelectedContact(null); }} PaperProps={{ sx: { borderRadius: 2, minWidth: 150 } }}>
+          <MenuItemMui onClick={() => { if (selectedContact) openContactView(selectedContact); setAnchorEl(null); }}>
+            <IconEye size={16} style={{ marginRight: 10 }} /> View
           </MenuItemMui>
-          <MenuItemMui onClick={handleEdit} sx={{ gap: 1.5 }}>
-            <IconEdit size={16} />
-            Edit
+          <MenuItemMui onClick={() => { navigate(`/erp/contacts/edit/${selectedContact?.id}`); setAnchorEl(null); }}>
+            <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
           </MenuItemMui>
-          <MenuItemMui onClick={handleOpenDeleteDialog} sx={{ color: 'error.main', gap: 1.5 }}>
-            <IconTrash size={16} />
-            Delete
+          <MenuItemMui onClick={() => { setContactToDelete(selectedContact); setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
+            <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
           </MenuItemMui>
         </Menu>
 
@@ -587,36 +454,23 @@ const ContactList = () => {
           {viewContact && (
             <ContactDrawerContent
               contact={viewContact}
-              onEdit={() => { const id = viewContact?.id; setViewOpen(false); if (id) navigate(`/erp/contacts/edit/${id}`); }}
-              onNavigateCompany={(companyId) => { setViewOpen(false); navigate(`/erp/companies/view/${companyId}`); }}
+              onEdit={() => { const cid = viewContact?.id; setViewOpen(false); if (cid) navigate(`/erp/contacts/edit/${cid}`); }}
+              onNavigateCompany={companyId => { setViewOpen(false); navigate(`/erp/companies/view/${companyId}`); }}
             />
           )}
         </RecordDetailDrawer>
 
-        {/* Delete dialog */}
-        <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-          <Box p={3}>
-            <Typography variant="h5" mb={0.75} fontWeight={700}>Delete Contact</Typography>
-            <Typography mb={2.5} color="text.secondary" variant="body2">
-              This action cannot be undone. The contact will be permanently removed.
-            </Typography>
-            {contactToDelete && (
-              <Box p={2} mb={3} sx={{ bgcolor: alpha(theme.palette.error.main, 0.06), borderRadius: 2, border: '1px solid', borderColor: alpha(theme.palette.error.main, 0.2) }}>
-                <Typography variant="body2" fontWeight={700} color="error.main">
-                  {[contactToDelete.first_name, contactToDelete.last_name].filter(Boolean).join(' ') || '—'}
-                </Typography>
-                {contactToDelete.email && (
-                  <Typography variant="caption" color="text.secondary">{contactToDelete.email}</Typography>
-                )}
-              </Box>
-            )}
-            <Box display="flex" justifyContent="flex-end" gap={1.5}>
-              <Button onClick={handleCloseDeleteDialog} sx={{ borderRadius: 2 }}>Cancel</Button>
-              <Button variant="contained" color="error" onClick={handleDelete} sx={{ borderRadius: 2, fontWeight: 700 }}>
-                Delete Contact
-              </Button>
-            </Box>
-          </Box>
+        <Dialog open={deleteDialogOpen} onClose={() => { setDeleteDialogOpen(false); setContactToDelete(null); }} PaperProps={{ sx: { borderRadius: 3 } }}>
+          <DialogTitle fontWeight={700}>Delete Contact</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete <strong>"{[contactToDelete?.first_name, contactToDelete?.last_name].filter(Boolean).join(' ')}"</strong>? This cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2.5 }}>
+            <Button onClick={() => { setDeleteDialogOpen(false); setContactToDelete(null); }} sx={{ borderRadius: 2 }}>Cancel</Button>
+            <Button onClick={handleDelete} color="error" variant="contained" sx={{ borderRadius: 2 }}>Delete</Button>
+          </DialogActions>
         </Dialog>
       </Box>
     </PageContainer>

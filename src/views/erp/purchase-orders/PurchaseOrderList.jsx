@@ -25,7 +25,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload } from '@tabler/icons-react';
+import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload, IconHammer } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -187,12 +187,14 @@ const PurchaseOrderList = () => {
               />
             </Box>
 
-            <TableContainer>
+            {/* Client Purchase Orders */}
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Client Purchase Orders</Typography>
+            <TableContainer sx={{ mb: 3 }}>
               <Table>
                 <TableHead>
                   <TableRow>
                     <TableCell><strong>Deal</strong></TableCell>
-                    <TableCell><strong>Client / Vendor</strong></TableCell>
+                    <TableCell><strong>Client</strong></TableCell>
                     <TableCell><strong>Date</strong></TableCell>
                     <TableCell><strong>Expected Delivery</strong></TableCell>
                     <TableCell><strong>Status</strong></TableCell>
@@ -202,22 +204,55 @@ const PurchaseOrderList = () => {
                 </TableHead>
                 <TableBody>
                   {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                        <CircularProgress size={32} />
-                      </TableCell>
-                    </TableRow>
-                  ) : orders.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 4 }} color="text.secondary">
-                        No purchase quotations found
-                      </TableCell>
-                    </TableRow>
+                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3 }}><CircularProgress size={28} /></TableCell></TableRow>
+                  ) : orders.filter(o => o.company_id).length === 0 ? (
+                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3, color: 'text.secondary' }}>No client purchase orders found</TableCell></TableRow>
                   ) : (
-                    orders.map((o) => (
+                    orders.filter(o => o.company_id).map((o) => (
                       <TableRow key={o.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/purchase-orders/edit/${o.id}`)}>
                         <TableCell>{o.deal ? (o.deal.title || o.deal.deal_number) : '-'}</TableCell>
-                        <TableCell>{o.company?.company_name || o.supplier?.company_name || '-'}</TableCell>
+                        <TableCell>{o.company?.company_name || '-'}</TableCell>
+                        <TableCell>{o.po_date || '-'}</TableCell>
+                        <TableCell>{o.expected_delivery || '-'}</TableCell>
+                        <TableCell>{statusLabel(o.status)}</TableCell>
+                        <TableCell>{o.items?.length || 0} item(s)</TableCell>
+                        <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                          <IconButton size="small" onClick={(e) => handleMenuOpen(e, o)}>
+                            <IconDotsVertical size={18} />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {/* Downstream Supplier Purchase Orders */}
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Downstream Supplier Purchase Orders</Typography>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Deal</strong></TableCell>
+                    <TableCell><strong>Supplier</strong></TableCell>
+                    <TableCell><strong>Date</strong></TableCell>
+                    <TableCell><strong>Expected Delivery</strong></TableCell>
+                    <TableCell><strong>Status</strong></TableCell>
+                    <TableCell><strong>Items</strong></TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3 }}><CircularProgress size={28} /></TableCell></TableRow>
+                  ) : orders.filter(o => o.supplier_id).length === 0 ? (
+                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3, color: 'text.secondary' }}>No downstream supplier purchase orders found</TableCell></TableRow>
+                  ) : (
+                    orders.filter(o => o.supplier_id).map((o) => (
+                      <TableRow key={o.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/purchase-orders/edit/${o.id}`)}>
+                        <TableCell>{o.deal ? (o.deal.title || o.deal.deal_number) : '-'}</TableCell>
+                        <TableCell>{o.supplier?.company_name || '-'}</TableCell>
                         <TableCell>{o.po_date || '-'}</TableCell>
                         <TableCell>{o.expected_delivery || '-'}</TableCell>
                         <TableCell>{statusLabel(o.status)}</TableCell>
@@ -265,6 +300,14 @@ const PurchaseOrderList = () => {
             {pdfLoading === selectedOrder?.id ? <CircularProgress size={18} sx={{ mr: 1 }} /> : <IconFileDownload size={18} style={{ marginRight: 8 }} />}
             {String(selectedOrder?.status || '').toLowerCase() === 'approved' ? 'Download purchase order PDF' : 'Download purchase quotation PDF'}
           </MenuItem>
+          {String(selectedOrder?.status || '').toLowerCase() === 'approved' && (
+            <MenuItem onClick={() => {
+              navigate(`/erp/work-orders/create${selectedOrder?.deal?.id ? `?dealId=${selectedOrder.deal.id}` : ''}`);
+              handleMenuClose();
+            }}>
+              <IconHammer size={18} style={{ marginRight: 8 }} /> Create Work Order
+            </MenuItem>
+          )}
           <MenuItem onClick={() => { setDeleteDialogOpen(true); handleMenuClose(); }} sx={{ color: 'error.main' }}>
             <IconTrash size={18} style={{ marginRight: 8 }} /> Delete
           </MenuItem>

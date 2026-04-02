@@ -25,7 +25,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload } from '@tabler/icons-react';
+import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload, IconHammer } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -268,6 +268,14 @@ const QuotationList = () => {
             {pdfLoading === selectedQuotation?.id ? <CircularProgress size={18} sx={{ mr: 1 }} /> : <IconFileDownload size={18} style={{ marginRight: 8 }} />}
             {String(selectedQuotation?.status || '').toLowerCase() === 'approved' ? 'Download service order PDF' : 'Download service quotation PDF'}
           </MenuItem>
+          {String(selectedQuotation?.status || '').toLowerCase() === 'approved' && (
+            <MenuItem onClick={() => {
+              navigate(`/erp/work-orders/create${selectedQuotation?.deal?.id ? `?dealId=${selectedQuotation.deal.id}` : ''}`);
+              handleMenuClose();
+            }}>
+              <IconHammer size={18} style={{ marginRight: 8 }} /> Create Work Order
+            </MenuItem>
+          )}
           <MenuItem onClick={() => { setDeleteDialogOpen(true); handleMenuClose(); }} sx={{ color: 'error.main' }}>
             <IconTrash size={18} style={{ marginRight: 8 }} /> Delete
           </MenuItem>

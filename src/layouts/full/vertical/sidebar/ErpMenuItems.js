@@ -1,23 +1,18 @@
 import { uniqueId } from 'lodash';
 
 import {
-  IconTruckDelivery,
-  IconPhone,
   IconAddressBook,
-  IconBuilding,
   IconPackage,
   IconBriefcase,
   IconFileText,
   IconReceipt,
   IconShoppingCart,
-  IconTruck,
   IconShield,
   IconUsers,
   IconClipboardCheck,
   IconSettings,
   IconPoint,
   IconLayoutDashboard,
-  IconHammer,
 } from '@tabler/icons-react';
 
 const ErpMenuItems = [
@@ -58,14 +53,34 @@ const ErpMenuItems = [
   },
   {
     id: uniqueId(),
-    title: 'Quotations',
+    title: 'Service and Purchase',
     icon: IconReceipt,
     href: '/erp/quotations',
     permission: 'deals.read',
     children: [
-      { id: uniqueId(), title: 'Service Quotations', icon: IconPoint, href: '/erp/quotations', permission: 'deals.read' },
-      { id: uniqueId(), title: 'Client Purchase Orders', icon: IconShoppingCart, href: '/erp/client-purchase-orders', permission: 'deals.read' },
-      { id: uniqueId(), title: 'Supplier Purchase Orders', icon: IconTruck, href: '/erp/supplier-purchase-orders', permission: 'deals.read' },
+      {
+        id: uniqueId(),
+        title: 'Quotations',
+        icon: IconFileText,
+        href: '/erp/quotations',
+        permission: 'deals.read',
+        children: [
+          { id: uniqueId(), title: 'Service Quotation', icon: IconPoint, href: '/erp/quotations', permission: 'deals.read' },
+          { id: uniqueId(), title: 'Purchase Quotation', icon: IconPoint, href: '/erp/purchase-orders', permission: 'deals.read' },
+        ],
+      },
+      {
+        id: uniqueId(),
+        title: 'Orders',
+        icon: IconShoppingCart,
+        href: '/erp/work-orders',
+        permission: 'deals.read',
+        children: [
+          { id: uniqueId(), title: 'Clients Service Orders', icon: IconPoint, href: '/erp/work-orders', permission: 'deals.read' },
+          { id: uniqueId(), title: 'Clients Purchase Orders', icon: IconPoint, href: '/erp/client-purchase-orders', permission: 'deals.read' },
+          { id: uniqueId(), title: 'Vendor Purchase Orders', icon: IconPoint, href: '/erp/supplier-purchase-orders', permission: 'deals.read' },
+        ],
+      },
     ],
   },
   {
@@ -85,17 +100,6 @@ const ErpMenuItems = [
     title: 'Terms & Conditions',
     icon: IconFileText,
     href: '/erp/terms',
-    permission: 'deals.read',
-  },
-  {
-    navlabel: true,
-    subheader: 'Operations',
-  },
-  {
-    id: uniqueId(),
-    title: 'Work Orders',
-    icon: IconHammer,
-    href: '/erp/work-orders',
     permission: 'deals.read',
   },
   {

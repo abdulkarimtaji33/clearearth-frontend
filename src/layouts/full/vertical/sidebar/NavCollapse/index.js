@@ -14,6 +14,28 @@ import { useAuth } from 'src/context/AuthContext';
 import { IconChevronDown, IconChevronUp } from '@tabler/icons';
 import { useTranslation } from 'react-i18next';
 
+/** Open parent menus when pathname matches a leaf or nested route (e.g. /erp/quotations/edit/1). */
+function pathMatchesMenuBranch(children, pathname) {
+  if (!children?.length) return false;
+  for (const item of children) {
+    if (item.href) {
+      if (pathname === item.href) return true;
+      if (item.href !== '/' && pathname.startsWith(`${item.href}/`)) return true;
+    }
+    if (item.children && pathMatchesMenuBranch(item.children, pathname)) return true;
+  }
+  return false;
+}
+
+function branchHasVisibleItem(items, hasPermission, hasAdminDashboardAccess) {
+  if (!items?.length) return false;
+  return items.some((item) => {
+    if (item.adminDashboardOnly && !hasAdminDashboardAccess()) return false;
+    if (item.children?.length) return branchHasVisibleItem(item.children, hasPermission, hasAdminDashboardAccess);
+    return !item.permission || hasPermission(item.permission);
+  });
+}
+
 // FC Component For Dropdown Menu
 const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hideMenu }) => {
   const { isBorderRadius } = useContext(CustomizerContext);
@@ -31,14 +53,9 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hi
     setOpen(!open);
   };
 
-  // menu collapse for sub-levels
+  // menu collapse for sub-levels (including nested children)
   React.useEffect(() => {
-    setOpen(false);
-    menu.children.forEach((item) => {
-      if (item.href === pathname) {
-        setOpen(true);
-      }
-    });
+    setOpen(pathMatchesMenuBranch(menu.children, pathname));
   }, [pathname, menu.children]);
   const isActiveOrOpen = pathname.includes(menu.href) || open;
   const ListItemStyled = styled(ListItem)(() => ({
@@ -66,6 +83,7 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hi
   // If Menu has Children - filter by permission
   const visibleChildren = (menu.children || []).filter((item) => {
     if (item.adminDashboardOnly && !hasAdminDashboardAccess()) return false;
+    if (item.children?.length) return branchHasVisibleItem(item.children, hasPermission, hasAdminDashboardAccess);
     return !item.permission || hasPermission(item.permission);
   });
   if (visibleChildren.length === 0) return null;

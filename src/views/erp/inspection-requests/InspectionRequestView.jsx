@@ -319,6 +319,11 @@ const InspectionRequestView = () => {
           open={reportViewOpen}
           onClose={() => setReportViewOpen(false)}
           request={request}
+          hideDealPrice
+          onEditReport={() => {
+            setReportViewOpen(false);
+            openReportDialog();
+          }}
         />
 
         <Dialog open={reportDialogOpen} onClose={() => setReportDialogOpen(false)} maxWidth="sm" fullWidth>

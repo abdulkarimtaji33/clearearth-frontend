@@ -32,6 +32,7 @@ import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconTrash, IconUserPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import OrganizationDocumentationSection from '../../../components/erp/OrganizationDocumentationSection';
 import apiService from '../../../services/api';
 
 // Suppliers: Name, Contact, Country, City, Address, Email (required), Website (optional)
@@ -87,6 +88,15 @@ const SupplierForm = () => {
     country: 'UAE',
     city: '',
     address: '',
+    tradeLicenseFilePath: '',
+    tradeLicenseNumber: '',
+    tradeLicenseName: '',
+    tradeLicenseExpiryDate: '',
+    vatCertificateFilePath: '',
+    vatCertificateTrn: '',
+    bankDetailsFilePath: '',
+    bankName: '',
+    bankIban: '',
   });
 
   const isEdit = Boolean(id);
@@ -143,6 +153,15 @@ const SupplierForm = () => {
           country: s.country || 'UAE',
           city: s.city || '',
           address: s.address || '',
+          tradeLicenseFilePath: s.trade_license_file_path || '',
+          tradeLicenseNumber: s.trade_license_number || '',
+          tradeLicenseName: s.trade_license_name || '',
+          tradeLicenseExpiryDate: s.trade_license_expiry_date ? String(s.trade_license_expiry_date).slice(0, 10) : '',
+          vatCertificateFilePath: s.vat_certificate_file_path || '',
+          vatCertificateTrn: s.vat_certificate_trn || '',
+          bankDetailsFilePath: s.bank_details_file_path || '',
+          bankName: s.bank_name || '',
+          bankIban: s.bank_iban || '',
         });
         setLinkedContacts(
           (s.contacts || []).map((ct) => ({
@@ -591,6 +610,12 @@ const SupplierForm = () => {
                   </Grid>
                 </CardContent>
               </Card>
+
+              <OrganizationDocumentationSection
+                title="Vendor documentation"
+                values={values}
+                setFieldValue={setFieldValue}
+              />
 
               {/* Additional Contacts */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>

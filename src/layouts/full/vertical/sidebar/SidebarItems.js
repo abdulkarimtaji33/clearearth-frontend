@@ -9,6 +9,14 @@ import NavItem from './NavItem';
 import NavCollapse from './NavCollapse';
 import NavGroup from './NavGroup/NavGroup';
 
+function collectLeafPermissions(nodes) {
+  if (!nodes?.length) return [];
+  return nodes.flatMap((n) => {
+    if (n.children?.length) return collectLeafPermissions(n.children);
+    return n.permission ? [n.permission] : [];
+  });
+}
+
 const SidebarItems = () => {
   const { pathname } = useLocation();
   const pathDirect = pathname;
@@ -22,7 +30,7 @@ const SidebarItems = () => {
   const filteredItems = Menuitems.filter((item, index) => {
     if (item.adminDashboardOnly && !hasAdminDashboardAccess()) return false;
     if (item.children) {
-      const childPerms = item.children.map((c) => c.permission).filter(Boolean);
+      const childPerms = collectLeafPermissions(item.children);
       if (childPerms.length) return childPerms.some((p) => hasPermission(p));
       return true;
     }

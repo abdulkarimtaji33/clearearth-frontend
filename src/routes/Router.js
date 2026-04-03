@@ -87,6 +87,7 @@ const Router = createBrowserRouter([
       { path: '/erp/terms/create', element: <TermsForm /> },
       { path: '/erp/terms/edit/:id', element: <TermsForm /> },
       { path: '/erp/quotations', element: <QuotationList /> },
+      { path: '/erp/service-orders', element: <QuotationList /> },
       { path: '/erp/quotations/create', element: <QuotationForm /> },
       { path: '/erp/quotations/edit/:id', element: <QuotationForm /> },
       { path: '/erp/purchase-orders', element: <PurchaseOrderList /> },

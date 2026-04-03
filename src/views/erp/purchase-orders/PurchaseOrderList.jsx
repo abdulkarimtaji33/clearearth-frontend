@@ -133,6 +133,7 @@ const PurchaseOrderList = () => {
       setLoading(true);
       const params = { page: page + 1, pageSize: rowsPerPage, search };
       if (statusFilter) params.status = statusFilter;
+      else params.statusNot = 'approved';
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
       const response = await apiService.getPurchaseOrders(params);
@@ -181,7 +182,7 @@ const PurchaseOrderList = () => {
   const supplierOrders = orders.filter(o => o.supplier_id);
 
   return (
-    <PageContainer title="Purchase Orders" description="Quotations to vendors; approved records export as purchase order PDF">
+    <PageContainer title="Purchase Quotations" description="Drafts and pending POs; approve to move to Clients or Vendor Purchase Orders">
       <Box>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={2}>
           <Box>
@@ -189,14 +190,14 @@ const PurchaseOrderList = () => {
               <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.secondary.main, 0.1), color: 'secondary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <IconShoppingCart size={20} />
               </Box>
-              <Typography variant="h4" fontWeight={700}>Purchase Orders</Typography>
+              <Typography variant="h4" fontWeight={700}>Purchase Quotations</Typography>
             </Stack>
             <Typography variant="body2" color="text.secondary" ml={6.5}>
-              {totalCount > 0 ? `${totalCount} order${totalCount !== 1 ? 's' : ''}` : 'Approved → downloads as purchase order PDF'}
+              {totalCount > 0 ? `${totalCount} record${totalCount !== 1 ? 's' : ''}` : 'Excludes approved purchase orders'}
             </Typography>
           </Box>
           <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/purchase-orders/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
-            Add Order
+            Add Purchase
           </Button>
         </Stack>
 
@@ -217,8 +218,8 @@ const PurchaseOrderList = () => {
               <FormControl size="small" sx={{ minWidth: 160 }}>
                 <InputLabel>Status</InputLabel>
                 <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }} label="Status" sx={{ borderRadius: 2 }}>
-                  <MenuItem value="">All</MenuItem>
-                  {dropdowns.purchaseOrderStatus.map(s => <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>)}
+                  <MenuItem value="">All (excl. approved)</MenuItem>
+                  {dropdowns.purchaseOrderStatus.filter(s => s.value !== 'approved').map(s => <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>)}
                 </Select>
               </FormControl>
             </Stack>
@@ -230,7 +231,7 @@ const PurchaseOrderList = () => {
           <CardContent sx={{ p: 3 }}>
             <Stack spacing={4}>
               <POTable
-                title="Client Purchase Orders"
+                title="Client purchase quotations"
                 icon={IconShoppingCart}
                 iconColor={theme.palette.primary.main}
                 rows={clientOrders}
@@ -240,7 +241,7 @@ const PurchaseOrderList = () => {
               />
               <Divider />
               <POTable
-                title="Downstream Supplier Purchase Orders"
+                title="Vendor purchase quotations"
                 icon={IconTruck}
                 iconColor={theme.palette.secondary.main}
                 rows={supplierOrders}

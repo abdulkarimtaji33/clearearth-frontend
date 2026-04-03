@@ -4,7 +4,7 @@ import {
   TableContainer, TableHead, TableRow, TablePagination, TextField,
   InputAdornment, IconButton, Menu, MenuItem, Dialog, DialogTitle,
   DialogContent, DialogContentText, DialogActions, CircularProgress,
-  Alert, Stack, Chip, FormControl, InputLabel, Select,
+  Alert, Stack, Chip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import {
@@ -36,40 +36,28 @@ const ClientPurchaseOrderList = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(null);
-  const [dropdowns, setDropdowns] = useState({ purchaseOrderStatus: [] });
-  const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-
-  const fetchDropdowns = useCallback(async () => {
-    try {
-      const res = await apiService.getAllDropdowns();
-      if (res.success) setDropdowns({ purchaseOrderStatus: res.data.purchase_order_status || [] });
-    } catch (err) { console.error(err); }
-  }, []);
 
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const params = { page: page + 1, pageSize: rowsPerPage, search };
-      if (statusFilter) params.status = statusFilter;
+      const params = { page: page + 1, pageSize: rowsPerPage, search, status: 'approved', side: 'client' };
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
       const response = await apiService.getPurchaseOrders(params);
       if (response.success) {
-        const all = Array.isArray(response.data) ? response.data : [];
-        const clientOnly = all.filter(o => o.company_id);
-        setOrders(clientOnly);
-        setTotalCount(clientOnly.length);
+        const rows = Array.isArray(response.data) ? response.data : [];
+        setOrders(rows);
+        setTotalCount(response.pagination?.totalItems ?? rows.length);
       }
     } catch (err) {
       setError(err.message || 'Failed to load purchase orders');
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, statusFilter, dateFrom, dateTo]);
+  }, [page, rowsPerPage, search, dateFrom, dateTo]);
 
-  useEffect(() => { fetchDropdowns(); }, [fetchDropdowns]);
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const handleDownloadPdf = async (o) => {
@@ -101,7 +89,7 @@ const ClientPurchaseOrderList = () => {
   const isApproved = (o) => String(o?.status || '').toLowerCase() === 'approved';
 
   return (
-    <PageContainer title="Client Purchase Orders" description="Purchase orders for clients">
+    <PageContainer title="Client Purchase Orders" description="Approved client POs (moved from Purchase Quotations)">
       <Box>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={2}>
           <Box>
@@ -134,13 +122,6 @@ const ClientPurchaseOrderList = () => {
                 InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={16} /></InputAdornment>, sx: { borderRadius: 2 } }}
                 sx={{ minWidth: 260, flex: 1 }}
               />
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel>Status</InputLabel>
-                <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }} label="Status" sx={{ borderRadius: 2 }}>
-                  <MenuItem value="">All</MenuItem>
-                  {dropdowns.purchaseOrderStatus.map(s => <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>)}
-                </Select>
-              </FormControl>
             </Stack>
             <Box sx={{ mt: 2 }}>
               <ListDateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onFromChange={v => { setDateFrom(v); setPage(0); }} onToChange={v => { setDateTo(v); setPage(0); }} onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }} helperText="PO date" compact />

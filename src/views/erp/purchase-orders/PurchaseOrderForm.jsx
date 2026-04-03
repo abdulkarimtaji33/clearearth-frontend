@@ -58,7 +58,7 @@ const PurchaseOrderForm = () => {
     supplierId: supplierIdFromUrl || null,
     poDate: new Date().toISOString().split('T')[0],
     expectedDelivery: '',
-    status: 'draft',
+    status: supplierIdFromUrl ? 'approved' : 'draft',
     termsAndConditionsIds: [],
   });
 
@@ -166,7 +166,7 @@ const PurchaseOrderForm = () => {
     else if (dealIdFromUrl) {
       fetchDealForPreFill(dealIdFromUrl, supplierIdFromUrl ?? undefined);
     } else if (supplierIdFromUrl) {
-      setInitialValues((prev) => ({ ...prev, supplierId: supplierIdFromUrl, companyId: null }));
+      setInitialValues((prev) => ({ ...prev, supplierId: supplierIdFromUrl, companyId: null, status: 'approved' }));
     }
   }, [fetchData, isEdit, fetchPO, supplierIdFromUrl, dealIdFromUrl, fetchDealForPreFill]);
 
@@ -207,7 +207,7 @@ const PurchaseOrderForm = () => {
         supplierId: values.supplierId || null,
         poDate: values.poDate,
         expectedDelivery: values.expectedDelivery || null,
-        status: values.status || 'draft',
+        status: values.status || (values.supplierId ? 'approved' : 'draft'),
         termsAndConditionsIds: values.termsAndConditionsIds,
         items: items.map((it) => ({
           productServiceId: it.productServiceId,
@@ -305,6 +305,7 @@ const PurchaseOrderForm = () => {
                       onChange={(_, v) => {
                         setFieldValue('companyId', v?.id || null);
                         setFieldValue('supplierId', null);
+                        setFieldValue('status', 'draft');
                       }}
                       renderInput={(params) => (
                         <TextField
@@ -327,6 +328,7 @@ const PurchaseOrderForm = () => {
                       onChange={(_, v) => {
                         setFieldValue('supplierId', v?.id || null);
                         setFieldValue('companyId', null);
+                        setFieldValue('status', v?.id ? 'approved' : 'draft');
                       }}
                       renderInput={(params) => (
                         <TextField

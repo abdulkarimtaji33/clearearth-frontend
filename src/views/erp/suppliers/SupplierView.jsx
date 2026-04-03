@@ -12,6 +12,7 @@ import {
   Chip,
   Avatar,
   Paper,
+  Collapse,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router';
@@ -28,6 +29,11 @@ import {
   IconHash,
   IconExternalLink,
   IconTruckDelivery,
+  IconChevronDown,
+  IconChevronUp,
+  IconFileText,
+  IconCertificate,
+  IconBuildingBank,
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -68,6 +74,55 @@ const StatCell = ({ value, label, icon: Icon, color }) => {
   );
 };
 
+const DocRow = ({ label, value, filePath }) => {
+  const url = filePath ? apiService.getUploadUrl(filePath) : null;
+  if (!value && !filePath) return null;
+  return (
+    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.75 }}>
+      <Typography variant="caption" color="text.secondary" fontWeight={600}>{label}</Typography>
+      <Stack direction="row" alignItems="center" spacing={1}>
+        {value && <Typography variant="body2" fontWeight={600}>{value}</Typography>}
+        {url && (
+          <Button size="small" href={url} target="_blank" rel="noopener noreferrer" startIcon={<IconFileText size={14} />} sx={{ borderRadius: 1.5, py: 0.25, px: 1, fontSize: '0.72rem' }}>
+            View
+          </Button>
+        )}
+      </Stack>
+    </Stack>
+  );
+};
+
+const DocSection = ({ icon: Icon, iconColor, title, children, hasData }) => {
+  const [open, setOpen] = useState(false);
+  const theme = useTheme();
+  if (!hasData) return null;
+  return (
+    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', mb: 1.5 }}>
+      <Box
+        onClick={() => setOpen((v) => !v)}
+        sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          px: 2, py: 1.25, cursor: 'pointer',
+          bgcolor: open ? alpha(iconColor, 0.04) : 'transparent',
+          transition: 'background 0.15s',
+          '&:hover': { bgcolor: alpha(iconColor, 0.06) },
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Box sx={{ width: 26, height: 26, borderRadius: 1.5, bgcolor: alpha(iconColor, 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon size={14} color={iconColor} />
+          </Box>
+          <Typography variant="subtitle2" fontWeight={700}>{title}</Typography>
+        </Stack>
+        {open ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
+      </Box>
+      <Collapse in={open}>
+        <Box sx={{ px: 2, pb: 1.5 }}>{children}</Box>
+      </Collapse>
+    </Box>
+  );
+};
+
 const SupplierView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -75,6 +130,7 @@ const SupplierView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [supplier, setSupplier] = useState(null);
+  const [docsOpen, setDocsOpen] = useState(false);
 
   const fetchSupplier = useCallback(async () => {
     try {
@@ -116,6 +172,11 @@ const SupplierView = () => {
   const initial = (supplier.company_name || '?').trim().charAt(0).toUpperCase();
   const contactsCount = supplier.contacts?.length || 0;
   const dealsCount = supplier.deals?.length || 0;
+
+  const hasTradeLicense = !!(supplier.trade_license_file_path || supplier.trade_license_number || supplier.trade_license_name || supplier.trade_license_expiry_date);
+  const hasVat = !!(supplier.vat_certificate_file_path || supplier.vat_certificate_trn);
+  const hasBank = !!(supplier.bank_details_file_path || supplier.bank_name || supplier.bank_iban);
+  const hasAnyDoc = hasTradeLicense || hasVat || hasBank;
 
   const vendorRoleChip = (role) => {
     if (role === 'downstream') return <Chip label="Downstream" size="small" variant="outlined" color="secondary" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700 }} />;
@@ -198,6 +259,7 @@ const SupplierView = () => {
           </Box>
         </Paper>
 
+        {/* Notes */}
         {supplier.notes && (
           <Card elevation={0} sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', mb: 2 }}>
             <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
@@ -207,9 +269,51 @@ const SupplierView = () => {
           </Card>
         )}
 
+        {/* Documentation */}
+        {hasAnyDoc && (
+          <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', mb: 2 }}>
+            <Box
+              onClick={() => setDocsOpen((v) => !v)}
+              sx={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                px: 2.5, py: 1.75, cursor: 'pointer',
+                bgcolor: docsOpen ? alpha(theme.palette.secondary.main, 0.03) : 'transparent',
+                borderRadius: docsOpen ? '12px 12px 0 0' : 3,
+                transition: 'background 0.15s',
+                '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.05) },
+              }}
+            >
+              <Stack direction="row" alignItems="center" spacing={1.5}>
+                <Box sx={{ width: 30, height: 30, borderRadius: 1.5, bgcolor: alpha(theme.palette.secondary.main, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <IconFileText size={16} color={theme.palette.secondary.main} />
+                </Box>
+                <Typography variant="subtitle1" fontWeight={800}>Vendor Documentation</Typography>
+                <Chip label={[hasTradeLicense, hasVat, hasBank].filter(Boolean).length} size="small" sx={{ fontWeight: 700, height: 20, fontSize: '0.7rem' }} />
+              </Stack>
+              {docsOpen ? <IconChevronUp size={18} /> : <IconChevronDown size={18} />}
+            </Box>
+            <Collapse in={docsOpen}>
+              <Box sx={{ px: 2.5, pb: 2.5, pt: 1 }}>
+                <DocSection icon={IconFileText} iconColor={theme.palette.primary.main} title="Trade License" hasData={hasTradeLicense}>
+                  <DocRow label="License number" value={supplier.trade_license_number} filePath={supplier.trade_license_file_path} />
+                  <DocRow label="Name on license" value={supplier.trade_license_name} />
+                  <DocRow label="Expiry date" value={supplier.trade_license_expiry_date ? String(supplier.trade_license_expiry_date).slice(0, 10) : null} />
+                </DocSection>
+                <DocSection icon={IconCertificate} iconColor={theme.palette.warning.main} title="VAT Certificate" hasData={hasVat}>
+                  <DocRow label="TRN number" value={supplier.vat_certificate_trn} filePath={supplier.vat_certificate_file_path} />
+                </DocSection>
+                <DocSection icon={IconBuildingBank} iconColor={theme.palette.success.main} title="Bank Details" hasData={hasBank}>
+                  <DocRow label="Bank name" value={supplier.bank_name} filePath={supplier.bank_details_file_path} />
+                  <DocRow label="IBAN" value={supplier.bank_iban} />
+                </DocSection>
+              </Box>
+            </Collapse>
+          </Card>
+        )}
+
+        {/* Contacts + Deals */}
         {(contactsCount > 0 || dealsCount > 0) && (
           <Grid container spacing={2} alignItems="flex-start">
-
             {contactsCount > 0 && (
               <Grid size={{ xs: 12, md: dealsCount > 0 ? 5 : 12 }}>
                 <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
@@ -226,13 +330,8 @@ const SupplierView = () => {
                         <Box
                           key={contact.id}
                           sx={{
-                            display: 'flex',
-                            gap: 1.5,
-                            alignItems: 'flex-start',
-                            p: 1.5,
-                            borderRadius: 2,
-                            border: '1px solid',
-                            borderColor: 'divider',
+                            display: 'flex', gap: 1.5, alignItems: 'flex-start',
+                            p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider',
                             transition: 'all 0.15s',
                             '&:hover': { borderColor: 'secondary.main', bgcolor: alpha(theme.palette.secondary.main, 0.04) },
                           }}
@@ -276,13 +375,8 @@ const SupplierView = () => {
                           key={deal.id}
                           onClick={() => navigate(`/erp/deals/view/${deal.id}`)}
                           sx={{
-                            display: 'flex',
-                            borderRadius: 2,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            overflow: 'hidden',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s',
+                            display: 'flex', borderRadius: 2, border: '1px solid', borderColor: 'divider',
+                            overflow: 'hidden', cursor: 'pointer', transition: 'all 0.15s',
                             '&:hover': { borderColor: 'primary.main', boxShadow: `0 2px 12px ${alpha(theme.palette.primary.main, 0.1)}`, transform: 'translateY(-1px)' },
                           }}
                         >

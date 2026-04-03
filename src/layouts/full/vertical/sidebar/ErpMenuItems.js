@@ -73,10 +73,10 @@ const ErpMenuItems = [
         id: uniqueId(),
         title: 'Orders',
         icon: IconShoppingCart,
-        href: '/erp/work-orders',
+        href: '/erp/service-orders',
         permission: 'deals.read',
         children: [
-          { id: uniqueId(), title: 'Clients Service Orders', icon: IconPoint, href: '/erp/work-orders', permission: 'deals.read' },
+          { id: uniqueId(), title: 'Clients Service Orders', icon: IconPoint, href: '/erp/service-orders', permission: 'deals.read' },
           { id: uniqueId(), title: 'Clients Purchase Orders', icon: IconPoint, href: '/erp/client-purchase-orders', permission: 'deals.read' },
           { id: uniqueId(), title: 'Vendor Purchase Orders', icon: IconPoint, href: '/erp/supplier-purchase-orders', permission: 'deals.read' },
         ],

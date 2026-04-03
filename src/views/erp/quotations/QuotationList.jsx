@@ -32,7 +32,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload, IconHammer, IconReceipt } from '@tabler/icons-react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
@@ -47,6 +47,8 @@ const STATUS_COLOR = {
 
 const QuotationList = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isOrdersView = pathname.includes('/service-orders');
   const theme = useTheme();
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,13 @@ const QuotationList = () => {
     try {
       setLoading(true);
       const params = { page: page + 1, pageSize: rowsPerPage, search };
-      if (statusFilter) params.status = statusFilter;
+      if (isOrdersView) {
+        params.status = 'approved';
+      } else if (statusFilter) {
+        params.status = statusFilter;
+      } else {
+        params.statusNot = 'approved';
+      }
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
       const response = await apiService.getQuotations(params);
@@ -89,7 +97,7 @@ const QuotationList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, statusFilter, dateFrom, dateTo]);
+  }, [page, rowsPerPage, search, statusFilter, dateFrom, dateTo, isOrdersView]);
 
   useEffect(() => { fetchDropdowns(); }, [fetchDropdowns]);
   useEffect(() => { fetchQuotations(); }, [fetchQuotations]);
@@ -123,8 +131,13 @@ const QuotationList = () => {
   const statusLabel = (v) => dropdowns.quotationStatus.find(s => s.value === v)?.display_name || v;
   const isApproved = (q) => String(q?.status || '').toLowerCase() === 'approved';
 
+  const pageTitle = isOrdersView ? 'Clients Service Orders' : 'Service Quotations';
+  const pageDesc = isOrdersView
+    ? 'Approved quotations; export as service order PDF'
+    : 'Drafts and pending quotations; approve to move to Clients Service Orders';
+
   return (
-    <PageContainer title="Service Quotations" description="Client quotations; approved records export as service order PDF">
+    <PageContainer title={pageTitle} description={pageDesc}>
       <Box>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={2}>
           <Box>
@@ -132,15 +145,17 @@ const QuotationList = () => {
               <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <IconReceipt size={20} />
               </Box>
-              <Typography variant="h4" fontWeight={700}>Service Quotations</Typography>
+              <Typography variant="h4" fontWeight={700}>{pageTitle}</Typography>
             </Stack>
             <Typography variant="body2" color="text.secondary" ml={6.5}>
-              {totalCount > 0 ? `${totalCount} quotation${totalCount !== 1 ? 's' : ''}` : 'Approved → downloads as service order PDF'}
+              {totalCount > 0 ? `${totalCount} record${totalCount !== 1 ? 's' : ''}` : pageDesc}
             </Typography>
           </Box>
-          <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/quotations/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
-            Add Quotation
-          </Button>
+          {!isOrdersView && (
+            <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/quotations/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
+              Add Quotation
+            </Button>
+          )}
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -157,13 +172,15 @@ const QuotationList = () => {
                 InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={16} /></InputAdornment>, sx: { borderRadius: 2 } }}
                 sx={{ minWidth: 260, flex: 1 }}
               />
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel>Status</InputLabel>
-                <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }} label="Status" sx={{ borderRadius: 2 }}>
-                  <MenuItem value="">All</MenuItem>
-                  {dropdowns.quotationStatus.map(s => <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>)}
-                </Select>
-              </FormControl>
+              {!isOrdersView && (
+                <FormControl size="small" sx={{ minWidth: 160 }}>
+                  <InputLabel>Status</InputLabel>
+                  <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }} label="Status" sx={{ borderRadius: 2 }}>
+                    <MenuItem value="">All (excl. approved)</MenuItem>
+                    {dropdowns.quotationStatus.filter(s => s.value !== 'approved').map(s => <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              )}
             </Stack>
             <Box sx={{ mt: 2 }}>
               <ListDateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onFromChange={v => { setDateFrom(v); setPage(0); }} onToChange={v => { setDateTo(v); setPage(0); }} onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }} helperText="Quotation date" compact />
@@ -187,7 +204,7 @@ const QuotationList = () => {
                     <TableRow>
                       <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
                         <IconReceipt size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
-                        <Typography variant="body2" color="text.secondary">No quotations found</Typography>
+                        <Typography variant="body2" color="text.secondary">{isOrdersView ? 'No approved service orders yet' : 'No quotations found'}</Typography>
                       </TableCell>
                     </TableRow>
                   ) : (

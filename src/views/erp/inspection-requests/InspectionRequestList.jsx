@@ -21,10 +21,9 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconSearch, IconFileReport, IconClipboardCheck } from '@tabler/icons-react';
-import { useNavigate } from 'react-router';
+import { useNavigate, Link } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
-import InspectionReportDialog from '../../../components/erp/InspectionReportDialog';
 import apiService from '../../../services/api';
 
 const InspectionRequestList = () => {
@@ -39,7 +38,6 @@ const InspectionRequestList = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [reportDialogReq, setReportDialogReq] = useState(null);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -121,7 +119,21 @@ const InspectionRequestList = () => {
                     requests.map(req => (
                       <TableRow key={req.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.02) } }} onClick={() => navigate(`/erp/inspection-requests/${req.id}`)}>
                         <TableCell>
-                          <Typography variant="body2" fontWeight={700} color="primary.main">{req.deal?.deal_number || `#${req.deal?.id || '—'}`}</Typography>
+                          {req.deal?.id ? (
+                            <Typography
+                              component={Link}
+                              to={`/erp/deals/view/${req.deal.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              variant="body2"
+                              fontWeight={700}
+                              color="primary.main"
+                              sx={{ textDecoration: 'none', display: 'block', '&:hover': { textDecoration: 'underline' } }}
+                            >
+                              {req.deal?.deal_number || `#${req.deal.id}`}
+                            </Typography>
+                          ) : (
+                            <Typography variant="body2" fontWeight={700} color="primary.main">{req.deal?.deal_number || '—'}</Typography>
+                          )}
                           <Typography variant="body2" fontWeight={500}>{req.deal?.title || '—'}</Typography>
                         </TableCell>
                         <TableCell><Typography variant="body2">{req.deal?.company?.company_name || req.deal?.supplier?.company_name || '—'}</Typography></TableCell>
@@ -138,7 +150,7 @@ const InspectionRequestList = () => {
                         </TableCell>
                         <TableCell align="right" onClick={e => e.stopPropagation()}>
                           {req.deal?.inspectionReport ? (
-                            <Button size="small" variant="outlined" startIcon={<IconFileReport size={14} />} onClick={() => setReportDialogReq(req)} sx={{ borderRadius: 2 }}>
+                            <Button size="small" variant="outlined" startIcon={<IconFileReport size={14} />} onClick={() => navigate(`/erp/inspection-requests/${req.id}`)} sx={{ borderRadius: 2 }}>
                               View Report
                             </Button>
                           ) : (
@@ -153,8 +165,6 @@ const InspectionRequestList = () => {
                 </TableBody>
               </Table>
             </TableContainer>
-
-            <InspectionReportDialog open={Boolean(reportDialogReq)} onClose={() => setReportDialogReq(null)} request={reportDialogReq} />
 
             <TablePagination
               component="div"

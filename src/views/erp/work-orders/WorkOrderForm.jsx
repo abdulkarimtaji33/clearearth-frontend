@@ -10,8 +10,15 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
   IconArrowLeft, IconPlus, IconTrash, IconSettings, IconEdit,
   IconX, IconCheck, IconClock, IconUser, IconCurrencyDollar,
-  IconCalendar, IconHammer,
+  IconCalendar, IconHammer, IconGripVertical,
 } from '@tabler/icons-react';
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import WorkTypesManageDialog from './WorkTypesManageDialog';
@@ -40,6 +47,86 @@ const emptyTask = () => ({
   notes: '',
 });
 
+const SortableTaskRow = ({ task, idx, theme, getTaskLabel, getAssigneeName, STATUS_COLOR, openDrawer, removeTask }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `task-${idx}` });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.7 : 1,
+    zIndex: isDragging ? 999 : undefined,
+    position: isDragging ? 'relative' : undefined,
+  };
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      hover
+      sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}
+      onClick={() => openDrawer(idx)}
+    >
+      <TableCell sx={{ width: 28, pr: 0, cursor: 'grab', '&:active': { cursor: 'grabbing' } }}
+        onClick={e => e.stopPropagation()}
+        {...attributes}
+        {...listeners}
+      >
+        <IconGripVertical size={15} style={{ opacity: 0.35, display: 'block' }} />
+      </TableCell>
+      <TableCell>
+        <Box sx={{ width: 24, height: 24, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800 }}>
+          {idx + 1}
+        </Box>
+      </TableCell>
+      <TableCell>
+        <Typography variant="body2" fontWeight={600}>{getTaskLabel(task)}</Typography>
+        {task.notes && <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 200, display: 'block' }}>{task.notes}</Typography>}
+      </TableCell>
+      <TableCell>
+        {getAssigneeName(task)
+          ? <Stack direction="row" alignItems="center" spacing={0.5}><IconUser size={13} style={{ opacity: 0.4 }} /><Typography variant="body2">{getAssigneeName(task)}</Typography></Stack>
+          : <Typography variant="body2" color="text.disabled">—</Typography>}
+      </TableCell>
+      <TableCell>
+        {task.startDate || task.endDate ? (
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <IconCalendar size={13} style={{ opacity: 0.4 }} />
+            <Typography variant="body2" fontSize="0.78rem">
+              {task.startDate || '?'}{task.endDate ? ` → ${task.endDate}` : ''}
+            </Typography>
+          </Stack>
+        ) : <Typography variant="body2" color="text.disabled">—</Typography>}
+      </TableCell>
+      <TableCell>
+        {task.expense
+          ? <Stack direction="row" alignItems="center" spacing={0.5}><IconCurrencyDollar size={13} style={{ opacity: 0.4 }} /><Typography variant="body2">AED {task.expense}</Typography></Stack>
+          : <Typography variant="body2" color="text.disabled">—</Typography>}
+      </TableCell>
+      <TableCell>
+        <Chip
+          label={(task.status || 'not_started').replace(/_/g, ' ')}
+          size="small"
+          color={STATUS_COLOR[task.status] || 'default'}
+          sx={{ fontWeight: 600, fontSize: '0.68rem' }}
+        />
+      </TableCell>
+      <TableCell align="right" onClick={e => e.stopPropagation()}>
+        <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
+          <Tooltip title="Edit task">
+            <IconButton size="small" onClick={() => openDrawer(idx)} sx={{ borderRadius: 1.5 }}>
+              <IconEdit size={14} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Remove task">
+            <IconButton size="small" onClick={() => removeTask(idx)} color="error" sx={{ borderRadius: 1.5 }}>
+              <IconTrash size={14} />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      </TableCell>
+    </TableRow>
+  );
+};
+
 const WorkOrderForm = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -58,6 +145,19 @@ const WorkOrderForm = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTaskIdx, setDrawerTaskIdx] = useState(null);
   const [drawerTask, setDrawerTask] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = parseInt(active.id.replace('task-', ''), 10);
+    const newIdx = parseInt(over.id.replace('task-', ''), 10);
+    if (isNaN(oldIdx) || isNaN(newIdx)) return;
+    setForm(f => ({ ...f, tasks: arrayMove(f.tasks, oldIdx, newIdx) }));
+  };
 
   const [form, setForm] = useState({
     dealId: searchParams.get('dealId') ? parseInt(searchParams.get('dealId'), 10) : null,
@@ -384,83 +484,41 @@ const WorkOrderForm = () => {
               <Typography variant="caption" color="text.secondary">Click to add a task to this work order</Typography>
             </Box>
           ) : (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ bgcolor: alpha(theme.palette.background.default, 0.8) }}>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, width: 36 }}>#</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Type of Work</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Assigned To</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Schedule</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Expense</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Status</TableCell>
-                    <TableCell align="right" sx={{ width: 80 }} />
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {form.tasks.map((task, idx) => (
-                    <TableRow
-                      key={idx}
-                      hover
-                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}
-                      onClick={() => openDrawer(idx)}
-                    >
-                      <TableCell>
-                        <Box sx={{ width: 24, height: 24, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800 }}>
-                          {idx + 1}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={600}>{getTaskLabel(task)}</Typography>
-                        {task.notes && <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 200, display: 'block' }}>{task.notes}</Typography>}
-                      </TableCell>
-                      <TableCell>
-                        {getAssigneeName(task)
-                          ? <Stack direction="row" alignItems="center" spacing={0.5}><IconUser size={13} style={{ opacity: 0.4 }} /><Typography variant="body2">{getAssigneeName(task)}</Typography></Stack>
-                          : <Typography variant="body2" color="text.disabled">—</Typography>}
-                      </TableCell>
-                      <TableCell>
-                        {task.startDate || task.endDate ? (
-                          <Stack direction="row" alignItems="center" spacing={0.5}>
-                            <IconCalendar size={13} style={{ opacity: 0.4 }} />
-                            <Typography variant="body2" fontSize="0.78rem">
-                              {task.startDate || '?'}{task.endDate ? ` → ${task.endDate}` : ''}
-                            </Typography>
-                          </Stack>
-                        ) : <Typography variant="body2" color="text.disabled">—</Typography>}
-                      </TableCell>
-                      <TableCell>
-                        {task.expense
-                          ? <Stack direction="row" alignItems="center" spacing={0.5}><IconCurrencyDollar size={13} style={{ opacity: 0.4 }} /><Typography variant="body2">AED {task.expense}</Typography></Stack>
-                          : <Typography variant="body2" color="text.disabled">—</Typography>}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={(task.status || 'not_started').replace(/_/g, ' ')}
-                          size="small"
-                          color={STATUS_COLOR[task.status] || 'default'}
-                          sx={{ fontWeight: 600, fontSize: '0.68rem' }}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={form.tasks.map((_, i) => `task-${i}`)} strategy={verticalListSortingStrategy}>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: alpha(theme.palette.background.default, 0.8) }}>
+                        <TableCell sx={{ width: 20, p: 0 }} />
+                        <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, width: 36 }}>#</TableCell>
+                        <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Type of Work</TableCell>
+                        <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Assigned To</TableCell>
+                        <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Schedule</TableCell>
+                        <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Expense</TableCell>
+                        <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Status</TableCell>
+                        <TableCell align="right" sx={{ width: 80 }} />
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {form.tasks.map((task, idx) => (
+                        <SortableTaskRow
+                          key={idx}
+                          task={task}
+                          idx={idx}
+                          theme={theme}
+                          getTaskLabel={getTaskLabel}
+                          getAssigneeName={getAssigneeName}
+                          STATUS_COLOR={STATUS_COLOR}
+                          openDrawer={openDrawer}
+                          removeTask={removeTask}
                         />
-                      </TableCell>
-                      <TableCell align="right" onClick={e => e.stopPropagation()}>
-                        <Stack direction="row" justifyContent="flex-end" spacing={0.5}>
-                          <Tooltip title="Edit task">
-                            <IconButton size="small" onClick={() => openDrawer(idx)} sx={{ borderRadius: 1.5 }}>
-                              <IconEdit size={14} />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Remove task">
-                            <IconButton size="small" onClick={() => removeTask(idx)} color="error" sx={{ borderRadius: 1.5 }}>
-                              <IconTrash size={14} />
-                            </IconButton>
-                          </Tooltip>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </SortableContext>
+            </DndContext>
           )}
 
           {form.tasks.length > 0 && (

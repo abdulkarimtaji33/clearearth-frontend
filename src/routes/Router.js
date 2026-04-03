@@ -40,6 +40,7 @@ const InspectionRequestList = Loadable(lazy(() => import('../views/erp/inspectio
 const InspectionRequestView = Loadable(lazy(() => import('../views/erp/inspection-requests/InspectionRequestView')));
 const WorkOrderList = Loadable(lazy(() => import('../views/erp/work-orders/WorkOrderList')));
 const WorkOrderForm = Loadable(lazy(() => import('../views/erp/work-orders/WorkOrderForm')));
+const WorkOrderView = Loadable(lazy(() => import('../views/erp/work-orders/WorkOrderView')));
 const CompanySettings = Loadable(lazy(() => import('../views/erp/settings/CompanySettings')));
 
 // authentication
@@ -106,6 +107,7 @@ const Router = createBrowserRouter([
       { path: '/erp/work-orders', element: <WorkOrderList /> },
       { path: '/erp/work-orders/create', element: <WorkOrderForm /> },
       { path: '/erp/work-orders/edit/:id', element: <WorkOrderForm /> },
+      { path: '/erp/work-orders/view/:id', element: <WorkOrderView /> },
       { path: '/erp/settings/company', element: <CompanySettings /> },
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],

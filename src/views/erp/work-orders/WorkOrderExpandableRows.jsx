@@ -89,9 +89,9 @@ export const WorkOrderRow = ({
       <TableRow
         hover
         sx={{ cursor: 'pointer', '& td': { borderBottom: expanded ? 'none' : undefined } }}
-        onClick={() => setExpanded((e) => !e)}
+        onClick={() => navigate(`/erp/work-orders/view/${wo.id}`)}
       >
-        <TableCell sx={{ width: 40, pr: 0 }}>
+        <TableCell sx={{ width: 40, pr: 0 }} onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}>
           <IconButton size="small" sx={{ p: 0.25 }}>
             {expanded ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
           </IconButton>
@@ -132,7 +132,7 @@ export const WorkOrderRow = ({
             {wo.created_at ? new Date(wo.created_at).toLocaleDateString() : '-'}
           </Typography>
         </TableCell>
-        <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+        <TableCell align="right" onClick={e => e.stopPropagation()}>
           <IconButton
             size="small"
             onClick={(e) => {
@@ -262,6 +262,17 @@ export const WorkOrderRow = ({
       </TableRow>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+        <MenuItem
+          onClick={() => {
+            navigate(`/erp/work-orders/view/${wo.id}`);
+            setMenuAnchor(null);
+          }}
+        >
+          <ListItemIcon>
+            <IconEye size={16} />
+          </ListItemIcon>
+          <ListItemText>View</ListItemText>
+        </MenuItem>
         <MenuItem
           onClick={() => {
             navigate(`/erp/work-orders/edit/${wo.id}`);

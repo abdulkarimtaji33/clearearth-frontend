@@ -41,12 +41,18 @@ import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const STATUS_CONFIG = {
-  draft:       { label: 'Draft',       color: 'default' },
-  pending:     { label: 'Pending',     color: 'warning' },
-  approved:    { label: 'Approved',    color: 'info' },
-  in_progress: { label: 'In Progress', color: 'primary' },
-  completed:   { label: 'Completed',   color: 'success' },
-  cancelled:   { label: 'Cancelled',   color: 'error' },
+  new:            { label: 'New',            color: 'default' },
+  approved:       { label: 'Approved',       color: 'info' },
+  quotation_sent: { label: 'Quotation Sent', color: 'primary' },
+  negotiation:    { label: 'Negotiation',    color: 'warning' },
+  won:            { label: 'Won',            color: 'success' },
+  lost:           { label: 'Lost',           color: 'error' },
+  // legacy
+  draft:          { label: 'Draft',          color: 'default' },
+  pending:        { label: 'Pending',        color: 'warning' },
+  in_progress:    { label: 'In Progress',    color: 'primary' },
+  completed:      { label: 'Completed',      color: 'success' },
+  cancelled:      { label: 'Cancelled',      color: 'error' },
 };
 
 const PAYMENT_CONFIG = {

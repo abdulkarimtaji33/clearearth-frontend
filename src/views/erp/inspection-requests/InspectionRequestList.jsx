@@ -18,6 +18,10 @@ import {
   CircularProgress,
   Alert,
   Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconSearch, IconFileReport, IconClipboardCheck } from '@tabler/icons-react';
@@ -25,6 +29,13 @@ import { useNavigate, Link } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
+
+const INSPECTION_STATUS_CONFIG = {
+  request_submitted:    { label: 'Request Submitted',   color: 'default' },
+  team_assigned:        { label: 'Team Assigned',       color: 'info' },
+  inspection_completed: { label: 'Inspection Completed', color: 'warning' },
+  report_submitted:     { label: 'Report Submitted',    color: 'success' },
+};
 
 const InspectionRequestList = () => {
   const navigate = useNavigate();
@@ -38,6 +49,7 @@ const InspectionRequestList = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -45,6 +57,7 @@ const InspectionRequestList = () => {
       const params = { page: page + 1, pageSize: rowsPerPage, search };
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
+      if (statusFilter) params.status = statusFilter;
       const response = await apiService.getInspectionRequests(params);
       if (response.success) {
         setRequests(Array.isArray(response.data) ? response.data : []);
@@ -55,7 +68,7 @@ const InspectionRequestList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, dateFrom, dateTo]);
+  }, [page, rowsPerPage, search, dateFrom, dateTo, statusFilter]);
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
@@ -87,8 +100,17 @@ const InspectionRequestList = () => {
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(0); }}
                 InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={16} /></InputAdornment>, sx: { borderRadius: 2 } }}
-                sx={{ minWidth: 260, flex: 1 }}
+                sx={{ minWidth: 220, flex: 1 }}
               />
+              <FormControl size="small" sx={{ minWidth: 180 }}>
+                <InputLabel>Stage</InputLabel>
+                <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }} label="Stage" sx={{ borderRadius: 2 }}>
+                  <MenuItem value="">All stages</MenuItem>
+                  {Object.entries(INSPECTION_STATUS_CONFIG).map(([v, c]) => (
+                    <MenuItem key={v} value={v}>{c.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Stack>
             <Box sx={{ mt: 2 }}>
               <ListDateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onFromChange={v => { setDateFrom(v); setPage(0); }} onToChange={v => { setDateTo(v); setPage(0); }} onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }} helperText="Request created" compact />
@@ -100,7 +122,7 @@ const InspectionRequestList = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.success.main, 0.04) }}>
-                    {['Deal', 'Client', 'Material', 'Requested By', 'Report', ''].map((h, i) => (
+                    {['Deal', 'Client', 'Material', 'Stage', 'Requested By', ''].map((h, i) => (
                       <TableCell key={i} align={i === 5 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                     ))}
                   </TableRow>
@@ -111,6 +133,7 @@ const InspectionRequestList = () => {
                   ) : requests.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+
                         <IconClipboardCheck size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
                         <Typography variant="body2" color="text.secondary">No inspection requests found</Typography>
                       </TableCell>
@@ -139,25 +162,20 @@ const InspectionRequestList = () => {
                         <TableCell><Typography variant="body2">{req.deal?.company?.company_name || req.deal?.supplier?.company_name || '—'}</Typography></TableCell>
                         <TableCell><Typography variant="body2">{req.materialType?.display_name || '—'}</Typography></TableCell>
                         <TableCell>
+                          {(() => {
+                            const cfg = INSPECTION_STATUS_CONFIG[req.status] || { label: req.status || 'Request Submitted', color: 'default' };
+                            return <Chip size="small" label={cfg.label} color={cfg.color} sx={{ fontWeight: 600, fontSize: '0.7rem' }} />;
+                          })()}
+                        </TableCell>
+                        <TableCell>
                           <Typography variant="body2">
                             {req.requestedByUser ? [req.requestedByUser.first_name, req.requestedByUser.last_name].filter(Boolean).join(' ') || '—' : '—'}
                           </Typography>
                         </TableCell>
-                        <TableCell>
-                          {req.deal?.inspectionReport
-                            ? <Chip size="small" label="Submitted" color="success" variant="outlined" sx={{ fontWeight: 600 }} />
-                            : <Chip size="small" label="Pending" color="warning" variant="outlined" sx={{ fontWeight: 600 }} />}
-                        </TableCell>
                         <TableCell align="right" onClick={e => e.stopPropagation()}>
-                          {req.deal?.inspectionReport ? (
-                            <Button size="small" variant="outlined" startIcon={<IconFileReport size={14} />} onClick={() => navigate(`/erp/inspection-requests/${req.id}`)} sx={{ borderRadius: 2 }}>
-                              View Report
-                            </Button>
-                          ) : (
-                            <Button size="small" variant="contained" onClick={() => navigate(`/erp/inspection-requests/${req.id}`)} sx={{ borderRadius: 2 }}>
-                              Add Report
-                            </Button>
-                          )}
+                          <Button size="small" variant={req.deal?.inspectionReport ? 'outlined' : 'contained'} startIcon={req.deal?.inspectionReport ? <IconFileReport size={14} /> : null} onClick={() => navigate(`/erp/inspection-requests/${req.id}`)} sx={{ borderRadius: 2 }}>
+                            {req.deal?.inspectionReport ? 'View Report' : 'Open'}
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))

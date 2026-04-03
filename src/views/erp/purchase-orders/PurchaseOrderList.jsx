@@ -39,11 +39,16 @@ import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 
 const STATUS_COLOR = {
-  draft: 'default',
-  pending: 'warning',
-  approved: 'success',
-  rejected: 'error',
-  cancelled: 'error',
+  new:          'default',
+  sent:         'info',
+  under_review: 'warning',
+  revised:      'primary',
+  approved:     'success',
+  rejected:     'error',
+  // legacy
+  draft:        'default',
+  pending:      'warning',
+  cancelled:    'error',
 };
 
 const POTable = ({ title, icon: Icon, iconColor, rows, loading, onMenu, navigate }) => {

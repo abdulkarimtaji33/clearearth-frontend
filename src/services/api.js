@@ -284,6 +284,13 @@ class ApiService {
     return this.get(`/inspection-requests/${id}`);
   }
 
+  async updateInspectionRequestStatus(id, status) {
+    return this.request(`/inspection-requests/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
   async getInspectors() {
     return this.get('/users/inspectors');
   }

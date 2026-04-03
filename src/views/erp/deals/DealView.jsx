@@ -62,9 +62,15 @@ import config from 'src/context/config';
 
 const getStatusColor = (status) => {
   const colors = {
+    new: 'default',
+    approved: 'info',
+    quotation_sent: 'primary',
+    negotiation: 'warning',
+    won: 'success',
+    lost: 'error',
+    // legacy
     draft: 'default',
     pending: 'warning',
-    approved: 'info',
     in_progress: 'primary',
     completed: 'success',
     cancelled: 'error',
@@ -552,6 +558,7 @@ const DealView = () => {
             >
               {[
                 { label: 'Deal Status', value: <Chip label={deal.status?.replace(/_/g, ' ').toUpperCase()} color={getStatusColor(deal.status)} size="small" sx={{ fontWeight: 700 }} /> },
+                ...(deal.status === 'lost' && deal.loss_reason ? [{ label: 'Loss Reason', value: <Typography variant="body2" color="error.main" fontWeight={600}>{deal.loss_reason}</Typography> }] : []),
                 { label: 'Payment', value: <Chip label={deal.payment_status?.replace(/_/g, ' ').toUpperCase()} color={getPaymentStatusColor(deal.payment_status)} size="small" sx={{ fontWeight: 700 }} /> },
                 { label: 'Total', value: <Typography variant="subtitle1" fontWeight={800} color="primary.main">{deal.currency} {Number(deal.total).toFixed(2)}</Typography> },
                 ...(deal.payment_status !== 'unpaid' ? [{ label: 'Paid', value: <Typography variant="subtitle1" fontWeight={700} color="success.main">{deal.currency} {Number(deal.paid_amount).toFixed(2)}</Typography> }] : []),
@@ -866,7 +873,7 @@ const DealView = () => {
                         <TableRow key={q.id} hover>
                           <TableCell>{q.quotation_date ? new Date(q.quotation_date).toLocaleDateString() : '-'}</TableCell>
                           <TableCell>{q.currency || 'AED'} {Number(q.quotation_amount || 0).toFixed(2)}</TableCell>
-                          <TableCell><Chip label={q.status || '-'} size="small" variant="outlined" /></TableCell>
+                          <TableCell><Chip label={(q.status || '-').replace(/_/g, ' ')} size="small" color={{ new:'default', sent:'info', under_review:'warning', revised:'primary', approved:'success', rejected:'error' }[q.status] || 'default'} sx={{ fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
                           <TableCell>{q.preparedByUser ? [q.preparedByUser.first_name, q.preparedByUser.last_name].filter(Boolean).join(' ') || '-' : '-'}</TableCell>
                           <TableCell align="right"><Button size="small" onClick={() => navigate(`/erp/quotations/edit/${q.id}`)}>Edit</Button></TableCell>
                         </TableRow>
@@ -901,7 +908,7 @@ const DealView = () => {
                           <TableCell>{po.po_date ? new Date(po.po_date).toLocaleDateString() : '-'}</TableCell>
                           <TableCell>{po.company?.company_name || po.supplier?.company_name || '-'}</TableCell>
                           <TableCell>{po.expected_delivery ? new Date(po.expected_delivery).toLocaleDateString() : '-'}</TableCell>
-                          <TableCell><Chip label={po.status || '-'} size="small" variant="outlined" /></TableCell>
+                          <TableCell><Chip label={(po.status || '-').replace(/_/g, ' ')} size="small" color={{ new:'default', sent:'info', under_review:'warning', revised:'primary', approved:'success', rejected:'error' }[po.status] || 'default'} sx={{ fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
                           <TableCell align="right"><Button size="small" onClick={() => navigate(`/erp/purchase-orders/edit/${po.id}`)}>Edit</Button></TableCell>
                         </TableRow>
                       ))}

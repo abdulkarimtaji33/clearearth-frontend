@@ -141,6 +141,72 @@ const ReportImageDropzone = ({ onDrop }) => {
   );
 };
 
+const INSPECTION_STAGES = [
+  { value: 'request_submitted',    label: 'Request Submitted' },
+  { value: 'team_assigned',        label: 'Team Assigned' },
+  { value: 'inspection_completed', label: 'Inspection Completed' },
+  { value: 'report_submitted',     label: 'Report Submitted' },
+];
+
+const STAGE_COLORS = {
+  request_submitted:    'default',
+  team_assigned:        'info',
+  inspection_completed: 'warning',
+  report_submitted:     'success',
+};
+
+const InspectionStageStepper = ({ currentStatus, requestId, onUpdated }) => {
+  const [updating, setUpdating] = useState(false);
+  const currentIdx = INSPECTION_STAGES.findIndex(s => s.value === currentStatus);
+
+  const handleClick = async (value, idx) => {
+    if (value === currentStatus || updating) return;
+    setUpdating(true);
+    try {
+      await apiService.updateInspectionRequestStatus(requestId, value);
+      if (onUpdated) await onUpdated();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return (
+    <Box sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'background.paper' }}>
+      <Typography variant="caption" color="text.secondary" fontWeight={700} textTransform="uppercase" letterSpacing={0.6} fontSize="0.65rem" display="block" mb={1.5}>
+        Inspection Stage
+      </Typography>
+      <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
+        {INSPECTION_STAGES.map((stage, idx) => {
+          const isActive = stage.value === currentStatus;
+          const isPast = idx < currentIdx;
+          return (
+            <Chip
+              key={stage.value}
+              label={stage.label}
+              size="small"
+              color={isActive ? STAGE_COLORS[stage.value] : 'default'}
+              variant={isActive ? 'filled' : 'outlined'}
+              onClick={() => handleClick(stage.value, idx)}
+              disabled={updating}
+              sx={{
+                fontWeight: isActive ? 700 : 500,
+                fontSize: '0.72rem',
+                cursor: 'pointer',
+                opacity: isPast ? 0.6 : 1,
+                transition: 'all 0.15s',
+                '&:hover': { opacity: 1 },
+              }}
+            />
+          );
+        })}
+        {updating && <CircularProgress size={14} sx={{ ml: 1 }} />}
+      </Stack>
+    </Box>
+  );
+};
+
 /**
  * Full inspection request + report UI (same as the standalone page).
  * @param {object} request — inspection request payload from API
@@ -395,6 +461,13 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+
+        {/* ── Inspection Stage stepper ── */}
+        <InspectionStageStepper
+          currentStatus={request.status || 'request_submitted'}
+          requestId={request.id}
+          onUpdated={refresh}
+        />
 
         {/* ── main two-column layout ── */}
         <Grid container spacing={3} alignItems="flex-start">

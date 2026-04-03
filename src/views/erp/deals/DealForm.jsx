@@ -165,7 +165,8 @@ const DealForm = () => {
     dealDate: new Date().toISOString().split('T')[0],
     vatPercentage: 5,
     currency: 'AED',
-    status: 'draft',
+    status: 'new',
+    lossReason: '',
     paymentStatus: 'unpaid',
     paidAmount: 0,
     assignedTo: null,
@@ -284,7 +285,8 @@ const DealForm = () => {
           dealDate: d.deal_date ? new Date(d.deal_date).toISOString().split('T')[0] : '',
           vatPercentage: d.vat_percentage || 5,
           currency: d.currency || 'AED',
-          status: d.status || 'draft',
+          status: d.status || 'new',
+          lossReason: d.loss_reason || '',
           paymentStatus: d.payment_status || 'unpaid',
           paidAmount: d.paid_amount || 0,
           assignedTo: d.assigned_to || null,
@@ -1386,6 +1388,22 @@ const DealForm = () => {
                         ))}
                       </TextField>
                     </Grid>
+                    {values.status === 'lost' && (
+                      <Grid size={{ xs: 12 }}>
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={2}
+                          label="Reason for Loss"
+                          name="lossReason"
+                          value={values.lossReason || ''}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          placeholder="Describe why this deal was lost..."
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                      </Grid>
+                    )}
                     <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth

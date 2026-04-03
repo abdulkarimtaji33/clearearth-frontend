@@ -576,6 +576,13 @@ class ApiService {
     });
   }
 
+  async updateWorkOrderTaskNotes(workOrderId, taskId, notes) {
+    return this.request(`/work-orders/${workOrderId}/tasks/${taskId}/notes`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes }),
+    });
+  }
+
   async getWorkTypes(params) {
     return this.get('/work-types', params);
   }

@@ -15,8 +15,9 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   IconArrowLeft, IconEdit, IconHammer, IconCalendar, IconUser,
   IconCurrencyDollar, IconClock, IconGripVertical, IconLock,
-  IconAlertCircle, IconCircleCheck, IconNote,
+  IconAlertCircle, IconCircleCheck, IconNote, IconCheck, IconX,
 } from '@tabler/icons-react';
+import { TextField, InputAdornment } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
@@ -49,11 +50,19 @@ const isTaskUnlocked = (tasks, idx) => {
 
 // ─── Sortable task card ───────────────────────────────────────────────────────
 
-const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onOrderChange }) => {
+const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNoteUpdated }) => {
   const theme = useTheme();
   const unlocked = isTaskUnlocked(tasks, idx);
   const statusColor = taskStatusColor(theme, task.status);
   const [updating, setUpdating] = useState(false);
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteValue, setNoteValue] = useState(task.notes || '');
+  const [savingNote, setSavingNote] = useState(false);
+
+  // Sync note value when task prop changes externally
+  useEffect(() => {
+    if (!editingNote) setNoteValue(task.notes || '');
+  }, [task.notes, editingNote]);
 
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging,
@@ -77,6 +86,26 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onOr
     } finally {
       setUpdating(false);
     }
+  };
+
+  const handleNoteSave = async () => {
+    const trimmed = noteValue.trim();
+    if (trimmed === (task.notes || '').trim()) { setEditingNote(false); return; }
+    setSavingNote(true);
+    try {
+      await apiService.updateWorkOrderTaskNotes(workOrderId, task.id, trimmed);
+      onNoteUpdated(task.id, trimmed);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingNote(false);
+      setEditingNote(false);
+    }
+  };
+
+  const handleNoteKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleNoteSave(); }
+    if (e.key === 'Escape') { setNoteValue(task.notes || ''); setEditingNote(false); }
   };
 
   const assigneeName = task.assignedUser
@@ -197,24 +226,67 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onOr
               )}
             </Stack>
 
-            {/* Notes */}
-            {task.notes && (
+            {/* Notes — inline editable */}
+            {editingNote ? (
+              <Box sx={{ mt: 1 }} onClick={e => e.stopPropagation()}>
+                <TextField
+                  autoFocus
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  maxRows={5}
+                  size="small"
+                  placeholder="Add a note for this task…"
+                  value={noteValue}
+                  onChange={e => setNoteValue(e.target.value)}
+                  onKeyDown={handleNoteKeyDown}
+                  disabled={savingNote}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5, fontSize: '0.82rem' } }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Stack direction="row" spacing={0.25}>
+                          <Tooltip title="Save (Enter)">
+                            <IconButton size="small" onClick={handleNoteSave} disabled={savingNote} color="primary" sx={{ borderRadius: 1 }}>
+                              {savingNote ? <CircularProgress size={14} /> : <IconCheck size={14} />}
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Cancel (Esc)">
+                            <IconButton size="small" onClick={() => { setNoteValue(task.notes || ''); setEditingNote(false); }} sx={{ borderRadius: 1 }}>
+                              <IconX size={14} />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+            ) : (
               <Box
+                onClick={e => { e.stopPropagation(); if (unlocked) { setNoteValue(task.notes || ''); setEditingNote(true); } }}
                 sx={{
                   mt: 1,
-                  px: 1.5, py: 1,
+                  px: 1.5, py: 0.75,
                   borderRadius: 1.5,
-                  bgcolor: alpha(theme.palette.info.main, 0.06),
-                  border: '1px solid',
-                  borderColor: alpha(theme.palette.info.main, 0.15),
+                  border: '1px dashed',
+                  borderColor: task.notes ? alpha(theme.palette.info.main, 0.3) : alpha(theme.palette.divider, 0.8),
+                  bgcolor: task.notes ? alpha(theme.palette.info.main, 0.04) : 'transparent',
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: 0.75,
+                  cursor: unlocked ? 'text' : 'default',
+                  transition: 'border-color 0.15s, background 0.15s',
+                  '&:hover': unlocked ? { borderColor: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.03) } : {},
                 }}
               >
-                <IconNote size={13} style={{ marginTop: 2, opacity: 0.6, color: theme.palette.info.main }} />
-                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', lineHeight: 1.5 }}>
-                  {task.notes}
+                <IconNote size={13} style={{ marginTop: 2, flexShrink: 0, opacity: task.notes ? 0.7 : 0.35, color: task.notes ? theme.palette.info.main : theme.palette.text.disabled }} />
+                <Typography
+                  variant="caption"
+                  color={task.notes ? 'text.secondary' : 'text.disabled'}
+                  sx={{ fontStyle: task.notes ? 'italic' : 'normal', lineHeight: 1.5 }}
+                >
+                  {task.notes || (unlocked ? 'Click to add a note…' : '')}
                 </Typography>
               </Box>
             )}
@@ -294,6 +366,10 @@ const WorkOrderView = () => {
 
   const handleStatusUpdated = (taskId, newStatus) => {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+  };
+
+  const handleNoteUpdated = (taskId, notes) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, notes } : t));
   };
 
   const handleDragEnd = async (event) => {
@@ -548,6 +624,7 @@ const WorkOrderView = () => {
                         tasks={tasks}
                         workOrderId={wo.id}
                         onStatusUpdated={handleStatusUpdated}
+                        onNoteUpdated={handleNoteUpdated}
                       />
                     ))}
                   </Stack>

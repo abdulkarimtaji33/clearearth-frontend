@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -32,9 +32,11 @@ import {
   Menu,
   MenuItem as MenuItemMui,
   Tooltip,
+  Popover,
+  CircularProgress,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconPlus, IconEdit, IconTrash, IconSearch, IconEye, IconFilterOff, IconFilter, IconChevronDown, IconChevronUp, IconDotsVertical, IconBriefcase } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconSearch, IconEye, IconFilterOff, IconFilter, IconChevronDown, IconChevronUp, IconDotsVertical, IconBriefcase, IconCheck } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -55,6 +57,8 @@ const STATUS_CONFIG = {
   cancelled:      { label: 'Cancelled',      color: 'error' },
 };
 
+const DEAL_STATUSES = ['new', 'approved', 'quotation_sent', 'negotiation', 'won', 'lost'];
+
 const PAYMENT_CONFIG = {
   unpaid:  { label: 'Unpaid',   color: 'error' },
   partial: { label: 'Partial',  color: 'warning' },
@@ -64,6 +68,110 @@ const PAYMENT_CONFIG = {
 const StatusChip = ({ value, config }) => {
   const cfg = config[value] || { label: value || '—', color: 'default' };
   return <Chip label={cfg.label} size="small" color={cfg.color} sx={{ fontWeight: 600, textTransform: 'capitalize' }} />;
+};
+
+const InlineStatusPicker = ({ deal, onUpdated, onError }) => {
+  const theme = useTheme();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [lossDialogOpen, setLossDialogOpen] = useState(false);
+  const [lossReason, setLossReason] = useState('');
+  const pendingStatus = useRef(null);
+
+  const cfg = STATUS_CONFIG[deal.status] || { label: deal.status || '—', color: 'default' };
+
+  const handleChipClick = (e) => {
+    e.stopPropagation();
+    setAnchorEl(e.currentTarget);
+  };
+
+  const handleSelect = async (status) => {
+    setAnchorEl(null);
+    if (status === deal.status) return;
+    if (status === 'lost') {
+      pendingStatus.current = status;
+      setLossReason('');
+      setLossDialogOpen(true);
+      return;
+    }
+    await doUpdate(status, null);
+  };
+
+  const doUpdate = async (status, lossReasonVal) => {
+    setSaving(true);
+    try {
+      const payload = { status };
+      if (lossReasonVal !== null) payload.lossReason = lossReasonVal;
+      await apiService.updateDeal(deal.id, payload);
+      onUpdated(deal.id, status, lossReasonVal);
+    } catch (err) {
+      onError(err.message || 'Failed to update status');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLossConfirm = async () => {
+    setLossDialogOpen(false);
+    await doUpdate('lost', lossReason);
+  };
+
+  return (
+    <>
+      <Chip
+        label={saving ? <CircularProgress size={12} color="inherit" /> : cfg.label}
+        size="small"
+        color={cfg.color}
+        onClick={handleChipClick}
+        sx={{ fontWeight: 600, cursor: 'pointer', '&:hover': { opacity: 0.85 } }}
+      />
+      <Popover
+        open={Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={() => setAnchorEl(null)}
+        onClick={e => e.stopPropagation()}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        PaperProps={{ sx: { borderRadius: 2, minWidth: 180, py: 0.5, boxShadow: theme.shadows[8] } }}
+      >
+        {DEAL_STATUSES.map(s => {
+          const c = STATUS_CONFIG[s];
+          return (
+            <MenuItemMui
+              key={s}
+              onClick={() => handleSelect(s)}
+              selected={s === deal.status}
+              sx={{ fontSize: '0.85rem', py: 0.75, gap: 1 }}
+            >
+              <Chip label={c.label} size="small" color={c.color} sx={{ fontWeight: 600, pointerEvents: 'none', minWidth: 100 }} />
+              {s === deal.status && <IconCheck size={14} style={{ marginLeft: 'auto', opacity: 0.6 }} />}
+            </MenuItemMui>
+          );
+        })}
+      </Popover>
+
+      <Dialog open={lossDialogOpen} onClose={() => setLossDialogOpen(false)} onClick={e => e.stopPropagation()} PaperProps={{ sx: { borderRadius: 3 } }} maxWidth="xs" fullWidth>
+        <DialogTitle fontWeight={700}>Mark as Lost</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>Optionally provide a reason for losing this deal.</DialogContentText>
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            minRows={2}
+            label="Reason for loss"
+            value={lossReason}
+            onChange={e => setLossReason(e.target.value)}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setLossDialogOpen(false)} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button onClick={handleLossConfirm} color="error" variant="contained" sx={{ borderRadius: 2 }}>Confirm Lost</Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
 };
 
 const DealList = () => {
@@ -166,6 +274,11 @@ const DealList = () => {
   };
 
   const hasFilters = search || statusFilter || paymentStatusFilter || companyFilter || contactFilter || assignedToFilter || productFilter || minAmountFilter || maxAmountFilter || dateFrom || dateTo;
+
+  const handleStatusUpdated = (dealId, newStatus, lossReason) => {
+    setDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: newStatus, loss_reason: lossReason ?? d.loss_reason } : d));
+    setSuccess('Status updated');
+  };
 
   return (
     <PageContainer title="Deals" description="Manage all deals">
@@ -321,7 +434,9 @@ const DealList = () => {
                         <Typography variant="body2" fontWeight={700}>{Number(deal.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
                         <Typography variant="caption" color="text.secondary">+VAT {Number(deal.vat_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
                       </TableCell>
-                      <TableCell><StatusChip value={deal.status} config={STATUS_CONFIG} /></TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}>
+                        <InlineStatusPicker deal={deal} onUpdated={handleStatusUpdated} onError={setError} />
+                      </TableCell>
                       <TableCell>
                         <StatusChip value={deal.payment_status} config={PAYMENT_CONFIG} />
                         {deal.payment_status === 'partial' && (

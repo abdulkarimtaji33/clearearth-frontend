@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Box,
   Card,
@@ -29,9 +29,10 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Popover,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload, IconHammer, IconReceipt } from '@tabler/icons-react';
+import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload, IconHammer, IconReceipt, IconCheck } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -48,6 +49,77 @@ const STATUS_COLOR = {
   draft:        'default',
   pending:      'warning',
   cancelled:    'error',
+};
+
+const QUOTATION_STATUSES = [
+  { value: 'new',          label: 'New',          color: 'default' },
+  { value: 'sent',         label: 'Sent',         color: 'info' },
+  { value: 'under_review', label: 'Under Review', color: 'warning' },
+  { value: 'revised',      label: 'Revised',      color: 'primary' },
+  { value: 'approved',     label: 'Approved',     color: 'success' },
+  { value: 'rejected',     label: 'Rejected',     color: 'error' },
+];
+
+const InlineStatusPicker = ({ quotation, statusLabel: statusLabelFn, onUpdated, onError }) => {
+  const theme = useTheme();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const current = QUOTATION_STATUSES.find(s => s.value === quotation.status);
+  const label = current?.label || statusLabelFn(quotation.status) || quotation.status || '—';
+  const color = STATUS_COLOR[quotation.status] || 'default';
+
+  const handleChipClick = (e) => {
+    e.stopPropagation();
+    setAnchorEl(e.currentTarget);
+  };
+
+  const handleSelect = async (status) => {
+    setAnchorEl(null);
+    if (status === quotation.status) return;
+    setSaving(true);
+    try {
+      await apiService.updateQuotation(quotation.id, { status });
+      onUpdated(quotation.id, status);
+    } catch (err) {
+      onError(err.message || 'Failed to update status');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <Chip
+        label={saving ? <CircularProgress size={12} color="inherit" /> : label}
+        size="small"
+        color={color}
+        onClick={handleChipClick}
+        sx={{ fontWeight: 600, cursor: 'pointer', '&:hover': { opacity: 0.85 } }}
+      />
+      <Popover
+        open={Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={() => setAnchorEl(null)}
+        onClick={e => e.stopPropagation()}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        PaperProps={{ sx: { borderRadius: 2, minWidth: 180, py: 0.5, boxShadow: theme.shadows[8] } }}
+      >
+        {QUOTATION_STATUSES.map(s => (
+          <MenuItem
+            key={s.value}
+            onClick={() => handleSelect(s.value)}
+            selected={s.value === quotation.status}
+            sx={{ fontSize: '0.85rem', py: 0.75, gap: 1 }}
+          >
+            <Chip label={s.label} size="small" color={s.color} sx={{ fontWeight: 600, pointerEvents: 'none', minWidth: 100 }} />
+            {s.value === quotation.status && <IconCheck size={14} style={{ marginLeft: 'auto', opacity: 0.6 }} />}
+          </MenuItem>
+        ))}
+      </Popover>
+    </>
+  );
 };
 
 const QuotationList = () => {
@@ -134,6 +206,11 @@ const QuotationList = () => {
   };
 
   const statusLabel = (v) => dropdowns.quotationStatus.find(s => s.value === v)?.display_name || v;
+
+  const handleStatusUpdated = (quotationId, newStatus) => {
+    setQuotations(prev => prev.map(q => q.id === quotationId ? { ...q, status: newStatus } : q));
+    setSuccess('Status updated');
+  };
   const isApproved = (q) => String(q?.status || '').toLowerCase() === 'approved';
 
   const pageTitle = isOrdersView ? 'Clients Service Orders' : 'Service Quotations';
@@ -225,8 +302,8 @@ const QuotationList = () => {
                         <TableCell align="right">
                           <Typography variant="body2" fontWeight={600}>{parseFloat(q.quotation_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
                         </TableCell>
-                        <TableCell>
-                          <Chip label={statusLabel(q.status) || q.status} size="small" color={STATUS_COLOR[q.status] || 'default'} sx={{ fontWeight: 600 }} />
+                        <TableCell onClick={e => e.stopPropagation()}>
+                          <InlineStatusPicker quotation={q} statusLabel={statusLabel} onUpdated={handleStatusUpdated} onError={setError} />
                         </TableCell>
                         <TableCell align="right" onClick={e => e.stopPropagation()}>
                           <IconButton size="small" onClick={e => { setAnchorEl(e.currentTarget); setSelectedQuotation(q); }} sx={{ borderRadius: 1.5 }}>

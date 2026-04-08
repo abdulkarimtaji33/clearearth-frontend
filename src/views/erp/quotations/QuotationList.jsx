@@ -124,8 +124,9 @@ const InlineStatusPicker = ({ quotation, statusLabel: statusLabelFn, onUpdated, 
 
 const QuotationList = () => {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const isOrdersView = pathname.includes('/service-orders');
+  const location = useLocation();
+  const isOrdersView = location.pathname.includes('/service-orders');
+  const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -274,24 +275,24 @@ const QuotationList = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                    {['Deal', 'Prepared By', 'Date', 'Amount (AED)', 'Status', ''].map((h, i) => (
-                      <TableCell key={i} align={i === 3 ? 'right' : i === 5 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                    {['Deal', 'Prepared By', 'Date', 'Items', 'Amount (AED)', 'Status', ''].map((h, i) => (
+                      <TableCell key={i} align={i === 4 ? 'right' : i === 6 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {loading ? (
-                    <TableRow><TableCell colSpan={6} align="center" sx={{ py: 8 }}><CircularProgress /></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 8 }}><CircularProgress /></TableCell></TableRow>
                   ) : quotations.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                      <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
                         <IconReceipt size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
                         <Typography variant="body2" color="text.secondary">{isOrdersView ? 'No approved service orders yet' : 'No quotations found'}</Typography>
                       </TableCell>
                     </TableRow>
                   ) : (
                     quotations.map(q => (
-                      <TableRow key={q.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }} onClick={() => navigate(`/erp/quotations/edit/${q.id}`)}>
+                      <TableRow key={q.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }} onClick={() => navigate(`/erp/quotations/view/${q.id}?return=${listReturnEnc}`)}>
                         <TableCell>
                           <Typography variant="body2" fontWeight={600}>{q.deal?.title || q.deal?.deal_number || '—'}</Typography>
                         </TableCell>
@@ -299,6 +300,7 @@ const QuotationList = () => {
                           <Typography variant="body2">{q.preparedByUser ? `${q.preparedByUser.first_name || ''} ${q.preparedByUser.last_name || ''}`.trim() : '—'}</Typography>
                         </TableCell>
                         <TableCell><Typography variant="body2">{q.quotation_date || '—'}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" color="text.secondary">{q.deal?.items?.length ?? 0}</Typography></TableCell>
                         <TableCell align="right">
                           <Typography variant="body2" fontWeight={600}>{parseFloat(q.quotation_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
                         </TableCell>

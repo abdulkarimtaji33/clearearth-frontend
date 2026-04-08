@@ -13,12 +13,6 @@ import {
   Autocomplete,
   Divider,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Paper,
   IconButton,
   Checkbox,
@@ -393,9 +387,9 @@ const DealForm = () => {
           productServiceId: item.product_service_id,
           productName: item.productService?.name || '',
           quantity: item.quantity,
+          unitOfMeasure: item.unit_of_measure || item.productService?.unit_of_measure || '',
           unitPrice: item.unit_price,
           lineTotal: item.line_total,
-          notes: item.notes || '',
         }));
         setLineItems(items);
       }
@@ -426,9 +420,9 @@ const DealForm = () => {
             productServiceId: lead.product_service_id,
             productName: lead.productService?.name || '',
             quantity: 1,
+            unitOfMeasure: lead.productService?.unit_of_measure || '',
             unitPrice: lead.estimated_value || 0,
             lineTotal: lead.estimated_value || 0,
-            notes: '',
           }]);
         }
       }
@@ -467,9 +461,9 @@ const DealForm = () => {
       productServiceId: null,
       productName: '',
       quantity: 1,
+      unitOfMeasure: '',
       unitPrice: 0,
       lineTotal: 0,
-      notes: '',
     }]);
   };
 
@@ -488,14 +482,17 @@ const DealForm = () => {
       newItems[index].lineTotal = (qty * price).toFixed(2);
     }
     
-    // Auto-fill price when product is selected
+    // Auto-fill price and UOM when product is selected (same catalog as Product form / inspection UOM)
     if (field === 'productServiceId') {
       const product = products.find(p => p.id === value);
       if (product) {
         newItems[index].productName = product.name;
         newItems[index].unitPrice = product.price || 0;
+        newItems[index].unitOfMeasure = product.unit_of_measure || '';
         const qty = parseFloat(newItems[index].quantity || 0);
         newItems[index].lineTotal = (qty * parseFloat(product.price || 0)).toFixed(2);
+      } else {
+        newItems[index].unitOfMeasure = '';
       }
     }
     
@@ -525,6 +522,13 @@ const DealForm = () => {
       });
       if (zeroQtyIndex !== -1) {
         setError(`Line item ${zeroQtyIndex + 1}: Quantity must be greater than 0`);
+        setSubmitting(false);
+        return;
+      }
+
+      const missingUomIndex = lineItems.findIndex((item) => !item.unitOfMeasure?.toString().trim());
+      if (missingUomIndex !== -1) {
+        setError(`Line item ${missingUomIndex + 1}: Unit of measure (UOM) is required`);
         setSubmitting(false);
         return;
       }
@@ -605,7 +609,7 @@ const DealForm = () => {
           productServiceId: item.productServiceId,
           quantity: parseFloat(item.quantity),
           unitPrice: parseFloat(item.unitPrice),
-          notes: item.notes,
+          unitOfMeasure: item.unitOfMeasure?.toString().trim() || null,
         })),
         wdsDetails: values.wdsRequired ? { ...wdsDetails, attachments: wdsAttachments.map(a => ({ path: a.path, fileName: a.fileName })) } : null,
         inspectionDetails: values.inspectionRequired ? inspectionDetails : null,
@@ -1227,86 +1231,101 @@ const DealForm = () => {
                       </Typography>
                     </Box>
                   ) : (
-                    <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
-                      <Table>
-                        <TableHead>
-                          <TableRow sx={{ backgroundColor: 'primary.lighter' }}>
-                            <TableCell sx={{ fontWeight: 700, minWidth: 250 }}>Product/Service</TableCell>
-                            <TableCell sx={{ fontWeight: 700, width: 100 }}>Quantity</TableCell>
-                            <TableCell sx={{ fontWeight: 700, width: 130 }}>Unit Price</TableCell>
-                            <TableCell sx={{ fontWeight: 700, width: 130 }}>Line Total</TableCell>
-                            <TableCell sx={{ fontWeight: 700, width: 150 }}>Notes</TableCell>
-                            <TableCell align="center" sx={{ fontWeight: 700, width: 80 }}>Action</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {lineItems.map((item, index) => (
-                            <TableRow key={index}>
-                              <TableCell>
-                                <Autocomplete
-                                  options={products}
-                                  getOptionLabel={(opt) => `${opt.name} (${opt.category})`}
-                                  value={products.find((p) => p.id === item.productServiceId) || null}
-                                  onChange={(_, val) => handleLineItemChange(index, 'productServiceId', val?.id || null)}
-                                  renderInput={(params) => (
-                                    <TextField
-                                      {...params}
-                                      size="small"
-                                      placeholder="Select..."
-                                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
-                                    />
-                                  )}
-                                  isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                                />
-                              </TableCell>
-                              <TableCell>
+                    <Stack spacing={2}>
+                      {lineItems.map((item, index) => (
+                        <Paper
+                          key={index}
+                          variant="outlined"
+                          sx={{ borderRadius: 2, p: 2.5, position: 'relative' }}
+                        >
+                          {/* Item number + remove */}
+                          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                              Item #{index + 1}
+                            </Typography>
+                            <IconButton size="small" color="error" onClick={() => handleRemoveLineItem(index)}>
+                              <IconTrash size={16} />
+                            </IconButton>
+                          </Stack>
+
+                          {/* Row 1: Product selector (full width) */}
+                          <Box mb={2}>
+                            <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>Product / Service</Typography>
+                            <Autocomplete
+                              options={products}
+                              getOptionLabel={(opt) => `${opt.name} (${opt.category})`}
+                              value={products.find((p) => p.id === item.productServiceId) || null}
+                              onChange={(_, val) => handleLineItemChange(index, 'productServiceId', val?.id || null)}
+                              renderInput={(params) => (
                                 <TextField
+                                  {...params}
                                   size="small"
-                                  type="number"
-                                  value={item.quantity}
-                                  onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
-                                  inputProps={{ min: 0, step: 0.01 }}
+                                  placeholder="Select a product or service..."
                                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                                 />
-                              </TableCell>
-                              <TableCell>
-                                <TextField
-                                  size="small"
-                                  type="number"
-                                  value={item.unitPrice}
-                                  onChange={(e) => handleLineItemChange(index, 'unitPrice', e.target.value)}
-                                  inputProps={{ min: 0, step: 0.01 }}
-                                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Typography variant="body2" fontWeight={600}>
+                              )}
+                              isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                            />
+                          </Box>
+
+                          {/* Row 2: Qty · UOM · Unit Price · Line Total */}
+                          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2}>
+                            <Box sx={{ flex: '0 0 100px' }}>
+                              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>Quantity</Typography>
+                              <TextField
+                                size="small"
+                                fullWidth
+                                type="number"
+                                value={item.quantity}
+                                onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
+                                inputProps={{ min: 0, step: 0.01 }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                              />
+                            </Box>
+                            <Box sx={{ flex: '0 0 140px' }}>
+                              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>Unit of measure</Typography>
+                              <TextField
+                                size="small"
+                                fullWidth
+                                select
+                                value={item.unitOfMeasure || ''}
+                                onChange={(e) => handleLineItemChange(index, 'unitOfMeasure', e.target.value)}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                                SelectProps={{
+                                  displayEmpty: true,
+                                  MenuProps: { PaperProps: { style: { maxHeight: 280 } } },
+                                }}
+                              >
+                                <MenuItem value=""><em>Select UOM</em></MenuItem>
+                                {(dropdowns.unitsOfMeasure || []).map((u) => (
+                                  <MenuItem key={u.id} value={u.value}>{u.display_name}</MenuItem>
+                                ))}
+                              </TextField>
+                            </Box>
+                            <Box sx={{ flex: '0 0 140px' }}>
+                              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>Unit price ({values.currency})</Typography>
+                              <TextField
+                                size="small"
+                                fullWidth
+                                type="number"
+                                value={item.unitPrice}
+                                onChange={(e) => handleLineItemChange(index, 'unitPrice', e.target.value)}
+                                inputProps={{ min: 0, step: 0.01 }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                              />
+                            </Box>
+                            <Box sx={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
+                              <Box sx={{ pb: 0.25 }}>
+                                <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>Line total</Typography>
+                                <Typography variant="body1" fontWeight={700} color="primary.main">
                                   {values.currency} {parseFloat(item.lineTotal || 0).toFixed(2)}
                                 </Typography>
-                              </TableCell>
-                              <TableCell>
-                                <TextField
-                                  size="small"
-                                  value={item.notes}
-                                  onChange={(e) => handleLineItemChange(index, 'notes', e.target.value)}
-                                  placeholder="Notes..."
-                                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
-                                />
-                              </TableCell>
-                              <TableCell align="center">
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handleRemoveLineItem(index)}
-                                >
-                                  <IconTrash size={18} />
-                                </IconButton>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
+                              </Box>
+                            </Box>
+                          </Stack>
+                        </Paper>
+                      ))}
+                    </Stack>
                   )}
 
                   {/* Totals Summary */}

@@ -11,7 +11,7 @@ import {
   IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical,
   IconFileDownload, IconHammer, IconShoppingCart,
 } from '@tabler/icons-react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
@@ -24,6 +24,8 @@ const STATUS_COLOR = {
 
 const ClientPurchaseOrderList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +154,7 @@ const ClientPurchaseOrderList = () => {
                   </TableRow>
                 ) : (
                   orders.map(o => (
-                    <TableRow key={o.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }} onClick={() => navigate(`/erp/purchase-orders/edit/${o.id}`)}>
+                    <TableRow key={o.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }} onClick={() => navigate(`/erp/purchase-orders/view/${o.id}?return=${listReturnEnc}`)}>
                       <TableCell><Typography variant="body2" fontWeight={600}>{o.deal ? (o.deal.title || o.deal.deal_number) : '—'}</Typography></TableCell>
                       <TableCell><Typography variant="body2">{o.company?.company_name || '—'}</Typography></TableCell>
                       <TableCell><Typography variant="body2">{o.po_date || '—'}</Typography></TableCell>

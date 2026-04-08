@@ -211,15 +211,22 @@ export const WorkOrderRow = ({
                               sx={{ height: 18, fontSize: '0.65rem' }}
                             />
                           )}
-                          {task.expense != null && (
-                            <Chip
-                              label={`AED ${parseFloat(task.expense).toLocaleString()}`}
-                              size="small"
-                              variant="outlined"
-                              color="primary"
-                              sx={{ height: 18, fontSize: '0.65rem' }}
-                            />
-                          )}
+                          {(() => {
+                            const expSum = task.expenses?.length
+                              ? task.expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0)
+                              : (task.expense != null ? parseFloat(task.expense) : 0);
+                            if (!expSum) return null;
+                            const n = task.expenses?.length || 1;
+                            return (
+                              <Chip
+                                label={n > 1 ? `AED ${expSum.toLocaleString()} (${n})` : `AED ${expSum.toLocaleString()}`}
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                                sx={{ height: 18, fontSize: '0.65rem' }}
+                              />
+                            );
+                          })()}
                         </Stack>
                         <Stack direction="row" flexWrap="wrap" gap={1.5} sx={{ color: 'text.secondary' }}>
                           {task.assignedUser && (

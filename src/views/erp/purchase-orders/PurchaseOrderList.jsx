@@ -33,7 +33,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload, IconHammer, IconShoppingCart, IconTruck } from '@tabler/icons-react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
@@ -51,7 +51,7 @@ const STATUS_COLOR = {
   cancelled:    'error',
 };
 
-const POTable = ({ title, icon: Icon, iconColor, rows, loading, onMenu, navigate }) => {
+const POTable = ({ title, icon: Icon, iconColor, rows, loading, onMenu, navigate, listReturnEnc }) => {
   const theme = useTheme();
   return (
     <Box>
@@ -82,7 +82,7 @@ const POTable = ({ title, icon: Icon, iconColor, rows, loading, onMenu, navigate
               </TableRow>
             ) : (
               rows.map(o => (
-                <TableRow key={o.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(iconColor, 0.02) } }} onClick={() => navigate(`/erp/purchase-orders/edit/${o.id}`)}>
+                <TableRow key={o.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(iconColor, 0.02) } }} onClick={() => navigate(`/erp/purchase-orders/view/${o.id}?return=${listReturnEnc}`)}>
                   <TableCell>
                     <Typography variant="body2" fontWeight={600}>{o.deal ? (o.deal.title || o.deal.deal_number) : '—'}</Typography>
                   </TableCell>
@@ -108,6 +108,8 @@ const POTable = ({ title, icon: Icon, iconColor, rows, loading, onMenu, navigate
 
 const PurchaseOrderList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -243,6 +245,7 @@ const PurchaseOrderList = () => {
                 loading={loading}
                 onMenu={(e, o) => { setAnchorEl(e.currentTarget); setSelectedOrder(o); }}
                 navigate={navigate}
+                listReturnEnc={listReturnEnc}
               />
               <Divider />
               <POTable
@@ -253,6 +256,7 @@ const PurchaseOrderList = () => {
                 loading={loading}
                 onMenu={(e, o) => { setAnchorEl(e.currentTarget); setSelectedOrder(o); }}
                 navigate={navigate}
+                listReturnEnc={listReturnEnc}
               />
             </Stack>
 

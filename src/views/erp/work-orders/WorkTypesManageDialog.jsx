@@ -24,7 +24,7 @@ import {
 import { IconEdit, IconTrash, IconPlus } from '@tabler/icons-react';
 import apiService from '../../../services/api';
 
-const emptyForm = () => ({ name: '', displayOrder: 0, isActive: true });
+const emptyForm = () => ({ name: '', displayOrder: 0, isActive: true, isDefault: false });
 
 const WorkTypesManageDialog = ({ open, onClose, onSaved }) => {
   const [loading, setLoading] = useState(false);
@@ -66,6 +66,7 @@ const WorkTypesManageDialog = ({ open, onClose, onSaved }) => {
       name: row.name || '',
       displayOrder: row.display_order ?? 0,
       isActive: row.is_active !== false,
+      isDefault: !!row.is_default,
     });
     setError('');
   };
@@ -149,6 +150,15 @@ const WorkTypesManageDialog = ({ open, onClose, onSaved }) => {
             }
             label="Active"
           />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={form.isDefault}
+                onChange={(e) => setForm((f) => ({ ...f, isDefault: e.target.checked }))}
+              />
+            }
+            label="Default task"
+          />
           <Button
             variant="contained"
             startIcon={editingId ? <IconEdit size={18} /> : <IconPlus size={18} />}
@@ -171,6 +181,7 @@ const WorkTypesManageDialog = ({ open, onClose, onSaved }) => {
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
                   <TableCell width={100} sx={{ fontWeight: 700 }}>Order</TableCell>
+                  <TableCell width={90} sx={{ fontWeight: 700 }}>Default</TableCell>
                   <TableCell width={100} sx={{ fontWeight: 700 }}>Active</TableCell>
                   <TableCell width={100} align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
                 </TableRow>
@@ -178,7 +189,7 @@ const WorkTypesManageDialog = ({ open, onClose, onSaved }) => {
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4}>
+                    <TableCell colSpan={5}>
                       <Typography variant="body2" color="text.secondary" align="center" py={2}>
                         No types yet.
                       </Typography>
@@ -189,6 +200,7 @@ const WorkTypesManageDialog = ({ open, onClose, onSaved }) => {
                     <TableRow key={row.id} hover selected={editingId === row.id}>
                       <TableCell>{row.name}</TableCell>
                       <TableCell>{row.display_order}</TableCell>
+                      <TableCell>{row.is_default ? 'Yes' : '—'}</TableCell>
                       <TableCell>{row.is_active ? 'Yes' : 'No'}</TableCell>
                       <TableCell align="right">
                         <IconButton size="small" onClick={() => startEdit(row)} color="primary">

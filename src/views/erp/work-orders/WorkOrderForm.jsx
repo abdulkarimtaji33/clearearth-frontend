@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box, CardContent, Typography, Button, Grid, Alert, CircularProgress,
   Stack, TextField, MenuItem, Autocomplete, IconButton, InputAdornment,
@@ -37,7 +37,7 @@ const STATUS_COLOR = {
 const emptyTask = () => ({
   workTypeId: null,
   typeOfWork: '',
-  expense: '',
+  expenses: [{ description: '', amount: '' }],
   durationValue: '',
   durationUnit: 'hours',
   startDate: '',
@@ -46,6 +46,21 @@ const emptyTask = () => ({
   status: 'not_started',
   notes: '',
 });
+
+const sumTaskExpenses = (task) => {
+  if (!Array.isArray(task.expenses)) return 0;
+  return task.expenses.reduce((s, e) => {
+    const v = parseFloat(e.amount);
+    return s + (Number.isFinite(v) ? v : 0);
+  }, 0);
+};
+
+const taskHasBillableContent = (t) => {
+  if (t.workTypeId || (t.typeOfWork && String(t.typeOfWork).trim())) return true;
+  if (sumTaskExpenses(t) > 0) return true;
+  if (t.durationValue || t.startDate || t.endDate || t.assignedTo) return true;
+  return false;
+};
 
 const SortableTaskRow = ({ task, idx, theme, getTaskLabel, getAssigneeName, STATUS_COLOR, openDrawer, removeTask }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `task-${idx}` });
@@ -97,8 +112,18 @@ const SortableTaskRow = ({ task, idx, theme, getTaskLabel, getAssigneeName, STAT
         ) : <Typography variant="body2" color="text.disabled">—</Typography>}
       </TableCell>
       <TableCell>
-        {task.expense
-          ? <Stack direction="row" alignItems="center" spacing={0.5}><IconCurrencyDollar size={13} style={{ opacity: 0.4 }} /><Typography variant="body2">AED {task.expense}</Typography></Stack>
+        {sumTaskExpenses(task) > 0
+          ? (
+            <Stack spacing={0.25}>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <IconCurrencyDollar size={13} style={{ opacity: 0.4 }} />
+                <Typography variant="body2" fontWeight={600}>AED {sumTaskExpenses(task).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+              </Stack>
+              {(task.expenses || []).filter(e => e.amount !== '' && Number.isFinite(parseFloat(e.amount))).length > 1 && (
+                <Typography variant="caption" color="text.secondary">{task.expenses.filter(e => e.amount !== '' && Number.isFinite(parseFloat(e.amount))).length} lines</Typography>
+              )}
+            </Stack>
+          )
           : <Typography variant="body2" color="text.disabled">—</Typography>}
       </TableCell>
       <TableCell>
@@ -141,6 +166,7 @@ const WorkOrderForm = () => {
   const [deals, setDeals] = useState([]);
   const [workTypes, setWorkTypes] = useState([]);
   const [manageTypesOpen, setManageTypesOpen] = useState(false);
+  const defaultTaskSeeded = useRef(false);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTaskIdx, setDrawerTaskIdx] = useState(null);
@@ -212,10 +238,13 @@ const WorkOrderForm = () => {
           status: wo.status || 'draft',
           tasks: (wo.tasks || []).map(t => {
             const dur = parseDuration(t.estimated_duration);
+            const expRows = (t.expenses && t.expenses.length > 0)
+              ? t.expenses.map(e => ({ description: e.description || '', amount: e.amount != null ? String(e.amount) : '' }))
+              : (t.expense != null ? [{ description: '', amount: String(t.expense) }] : [{ description: '', amount: '' }]);
             return {
               workTypeId: t.work_type_id || null,
               typeOfWork: t.type_of_work || t.workType?.name || '',
-              expense: t.expense != null ? String(t.expense) : '',
+              expenses: expRows,
               durationValue: dur.durationValue,
               durationUnit: dur.durationUnit,
               startDate: t.start_date || '',
@@ -241,6 +270,20 @@ const WorkOrderForm = () => {
     if (isEdit) fetchWorkOrder();
   }, [fetchUsers, fetchDeals, fetchWorkTypes, fetchWorkOrder, isEdit]);
 
+  useEffect(() => {
+    if (isEdit || defaultTaskSeeded.current || workTypes.length === 0) return;
+    const def = workTypes.find(w => w.is_default);
+    if (!def) return;
+    setForm(f => {
+      if (f.tasks.length > 0) return f;
+      defaultTaskSeeded.current = true;
+      return {
+        ...f,
+        tasks: [{ ...emptyTask(), workTypeId: def.id, typeOfWork: def.name || '' }],
+      };
+    });
+  }, [workTypes, isEdit]);
+
   const setField = (field, value) => setForm(f => ({ ...f, [field]: value }));
 
   const openDrawer = (idx) => {
@@ -257,6 +300,25 @@ const WorkOrderForm = () => {
   };
 
   const setDrawerField = (field, value) => setDrawerTask(t => ({ ...t, [field]: value }));
+
+  const setDrawerExpenseRow = (idx, field, value) => {
+    setDrawerTask(t => {
+      const expenses = [...(t.expenses || [{ description: '', amount: '' }])];
+      expenses[idx] = { ...expenses[idx], [field]: value };
+      return { ...t, expenses };
+    });
+  };
+
+  const addDrawerExpenseRow = () => {
+    setDrawerTask(t => ({ ...t, expenses: [...(t.expenses || []), { description: '', amount: '' }] }));
+  };
+
+  const removeDrawerExpenseRow = (idx) => {
+    setDrawerTask(t => {
+      const expenses = (t.expenses || []).filter((_, i) => i !== idx);
+      return { ...t, expenses: expenses.length ? expenses : [{ description: '', amount: '' }] };
+    });
+  };
 
   const setDrawerWorkType = (workTypeId) => {
     const wt = workTypes.find(w => w.id === workTypeId);
@@ -294,11 +356,16 @@ const WorkOrderForm = () => {
         notes: form.notes || null,
         status: form.status,
         tasks: form.tasks
-          .filter(t => t.workTypeId || t.typeOfWork || t.expense || t.durationValue || t.startDate || t.endDate || t.assignedTo)
+          .filter(t => taskHasBillableContent(t))
           .map(t => ({
             workTypeId: t.workTypeId || null,
             typeOfWork: t.workTypeId ? null : (t.typeOfWork || null),
-            expense: t.expense !== '' ? parseFloat(t.expense) : null,
+            expenses: (t.expenses || [])
+              .filter(e => e.amount !== '' && Number.isFinite(parseFloat(e.amount)))
+              .map(e => ({
+                description: e.description?.trim() || null,
+                amount: parseFloat(e.amount),
+              })),
             estimatedDuration: t.durationValue ? `${t.durationValue} ${t.durationUnit}` : null,
             startDate: t.startDate || null,
             endDate: t.endDate || null,
@@ -610,16 +677,44 @@ const WorkOrderForm = () => {
                     {drawerTask.typeOfWork && !drawerTask.workTypeId && (
                       <Typography variant="caption" color="warning.main">Legacy label: {drawerTask.typeOfWork} — select a type to link it.</Typography>
                     )}
-                    <TextField
-                      fullWidth
-                      label="Expense"
-                      type="number"
-                      value={drawerTask.expense}
-                      onChange={e => setDrawerField('expense', e.target.value)}
-                      inputProps={{ min: 0, step: '0.01' }}
-                      InputProps={{ startAdornment: <InputAdornment position="start">AED</InputAdornment> }}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={1}>
+                        Expenses (one or more lines)
+                      </Typography>
+                      <Stack spacing={1.5}>
+                        {(drawerTask.expenses || [{ description: '', amount: '' }]).map((row, ei) => (
+                          <Stack key={ei} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="Description"
+                              value={row.description}
+                              onChange={e => setDrawerExpenseRow(ei, 'description', e.target.value)}
+                              placeholder="Optional"
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                            <TextField
+                              size="small"
+                              label="Amount"
+                              type="number"
+                              value={row.amount}
+                              onChange={e => setDrawerExpenseRow(ei, 'amount', e.target.value)}
+                              inputProps={{ min: 0, step: '0.01' }}
+                              InputProps={{ startAdornment: <InputAdornment position="start">AED</InputAdornment> }}
+                              sx={{ minWidth: { sm: 160 }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                            {(drawerTask.expenses || []).length > 1 && (
+                              <IconButton size="small" color="error" onClick={() => removeDrawerExpenseRow(ei)} sx={{ mt: { sm: 0.5 } }}>
+                                <IconTrash size={16} />
+                              </IconButton>
+                            )}
+                          </Stack>
+                        ))}
+                        <Button size="small" startIcon={<IconPlus size={14} />} onClick={addDrawerExpenseRow} sx={{ alignSelf: 'flex-start', borderRadius: 2 }}>
+                          Add expense line
+                        </Button>
+                      </Stack>
+                    </Box>
                     <Stack direction="row" spacing={1.5}>
                       <TextField
                         fullWidth

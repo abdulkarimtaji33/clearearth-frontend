@@ -218,12 +218,21 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
                   <Typography variant="caption" color="text.secondary">{task.estimated_duration}</Typography>
                 </Stack>
               )}
-              {task.expense != null && (
+              {(task.expenses && task.expenses.length > 0) ? (
+                task.expenses.map((ex, exi) => (
+                  <Stack key={ex.id ?? `ex-${exi}`} direction="row" alignItems="center" spacing={0.5} sx={{ maxWidth: '100%' }}>
+                    <IconCurrencyDollar size={13} style={{ opacity: 0.45, flexShrink: 0 }} />
+                    <Typography variant="caption" color="text.secondary" noWrap title={ex.description || ''}>
+                      {ex.description ? `${ex.description}: ` : ''}AED {parseFloat(ex.amount).toLocaleString()}
+                    </Typography>
+                  </Stack>
+                ))
+              ) : task.expense != null ? (
                 <Stack direction="row" alignItems="center" spacing={0.5}>
                   <IconCurrencyDollar size={13} style={{ opacity: 0.45 }} />
                   <Typography variant="caption" color="text.secondary">AED {parseFloat(task.expense).toLocaleString()}</Typography>
                 </Stack>
-              )}
+              ) : null}
             </Stack>
 
             {/* Notes — inline editable */}
@@ -391,7 +400,9 @@ const WorkOrderView = () => {
           id: t.id,
           workTypeId: t.work_type_id || null,
           typeOfWork: t.type_of_work || null,
-          expense: t.expense != null ? parseFloat(t.expense) : null,
+          expenses: (t.expenses && t.expenses.length > 0)
+            ? t.expenses.map(e => ({ description: e.description || null, amount: parseFloat(e.amount) }))
+            : (t.expense != null ? [{ description: null, amount: parseFloat(t.expense) }] : []),
           estimatedDuration: t.estimated_duration || null,
           startDate: t.start_date || null,
           endDate: t.end_date || null,
@@ -428,7 +439,11 @@ const WorkOrderView = () => {
 
   const completedCount = tasks.filter(t => t.status === 'completed').length;
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
-  const totalExpense = tasks.reduce((sum, t) => sum + (t.expense != null ? parseFloat(t.expense) : 0), 0);
+  const taskExpenseTotal = (t) => {
+    if (t.expenses?.length) return t.expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+    return t.expense != null ? parseFloat(t.expense) : 0;
+  };
+  const totalExpense = tasks.reduce((sum, t) => sum + taskExpenseTotal(t), 0);
 
   return (
     <PageContainer title={wo.title || `Work Order #${wo.id}`}>

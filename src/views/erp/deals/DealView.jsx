@@ -211,6 +211,20 @@ const DealView = () => {
   const [inspectionPopupOpen, setInspectionPopupOpen] = useState(false);
   const [inspectionPopupData, setInspectionPopupData] = useState(null);
   const [inspectionPopupLoading, setInspectionPopupLoading] = useState(false);
+  const [uomList, setUomList] = useState([]);
+
+  useEffect(() => {
+    apiService.getAllDropdowns().then((r) => {
+      if (r.success) setUomList(r.data.units_of_measure || []);
+    });
+  }, []);
+
+  const formatDealItemUom = (item) => {
+    const v = item.unit_of_measure || item.productService?.unit_of_measure;
+    if (!v) return '—';
+    const o = uomList.find((u) => u.value === v);
+    return o?.display_name || v;
+  };
 
   const fetchDeal = useCallback(async () => {
     if (!id) return;
@@ -662,6 +676,7 @@ const DealView = () => {
                       <TableCell sx={{ fontWeight: 700 }}>Product / Service</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
                       <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Qty</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>UOM</TableCell>
                       <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Unit Price</TableCell>
                       <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Line Total</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
@@ -673,6 +688,7 @@ const DealView = () => {
                         <TableCell><Typography variant="body2" fontWeight={600}>{item.productService?.name || '-'}</Typography></TableCell>
                         <TableCell><Chip label={item.productService?.category || '-'} size="small" variant="outlined" /></TableCell>
                         <TableCell align="right"><Typography variant="body2">{Number(item.quantity).toFixed(2)}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" color="text.secondary">{formatDealItemUom(item)}</Typography></TableCell>
                         <TableCell align="right"><Typography variant="body2">{deal.currency} {Number(item.unit_price).toFixed(2)}</Typography></TableCell>
                         <TableCell align="right"><Typography variant="body2" fontWeight={600}>{deal.currency} {Number(item.line_total).toFixed(2)}</Typography></TableCell>
                         <TableCell><Typography variant="caption" color="text.secondary">{item.notes || '-'}</Typography></TableCell>
@@ -875,7 +891,7 @@ const DealView = () => {
                           <TableCell>{q.currency || 'AED'} {Number(q.quotation_amount || 0).toFixed(2)}</TableCell>
                           <TableCell><Chip label={(q.status || '-').replace(/_/g, ' ')} size="small" color={{ new:'default', sent:'info', under_review:'warning', revised:'primary', approved:'success', rejected:'error' }[q.status] || 'default'} sx={{ fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
                           <TableCell>{q.preparedByUser ? [q.preparedByUser.first_name, q.preparedByUser.last_name].filter(Boolean).join(' ') || '-' : '-'}</TableCell>
-                          <TableCell align="right"><Button size="small" onClick={() => navigate(`/erp/quotations/edit/${q.id}`)}>Edit</Button></TableCell>
+                          <TableCell align="right"><Button size="small" onClick={() => navigate(`/erp/quotations/view/${q.id}?return=${encodeURIComponent(`/erp/deals/view/${id}`)}`)}>View</Button></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -909,7 +925,7 @@ const DealView = () => {
                           <TableCell>{po.company?.company_name || po.supplier?.company_name || '-'}</TableCell>
                           <TableCell>{po.expected_delivery ? new Date(po.expected_delivery).toLocaleDateString() : '-'}</TableCell>
                           <TableCell><Chip label={(po.status || '-').replace(/_/g, ' ')} size="small" color={{ new:'default', sent:'info', under_review:'warning', revised:'primary', approved:'success', rejected:'error' }[po.status] || 'default'} sx={{ fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
-                          <TableCell align="right"><Button size="small" onClick={() => navigate(`/erp/purchase-orders/edit/${po.id}`)}>Edit</Button></TableCell>
+                          <TableCell align="right"><Button size="small" onClick={() => navigate(`/erp/purchase-orders/view/${po.id}?return=${encodeURIComponent(`/erp/deals/view/${id}`)}`)}>View</Button></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

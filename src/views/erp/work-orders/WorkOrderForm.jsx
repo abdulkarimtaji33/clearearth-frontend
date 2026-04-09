@@ -381,13 +381,9 @@ const WorkOrderForm = () => {
 
       if (isEdit) {
         await apiService.updateWorkOrder(id, payload);
+        navigate(`/erp/work-orders/view/${id}`);
       } else {
         await apiService.createWorkOrder(payload);
-      }
-
-      if (form.dealId) {
-        navigate(`/erp/deals/view/${form.dealId}`);
-      } else {
         navigate('/erp/work-orders');
       }
     } catch (err) {

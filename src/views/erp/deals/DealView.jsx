@@ -18,6 +18,7 @@ import {
   TableRow,
   Paper,
   Chip,
+  LinearProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -54,6 +55,11 @@ import {
   IconClipboardCheck,
   IconTruckDelivery,
   IconFileInvoice,
+  IconHammer,
+  IconCircleCheck,
+  IconLoader2,
+  IconCircle,
+  IconAlertCircle,
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import InspectionRequestDetail from '../../../components/erp/InspectionRequestDetail';
@@ -171,10 +177,214 @@ const SectionHeader = ({ icon: Icon, title, subtitle, action }) => (
 const NAV_ITEMS = [
   { id: 'sec-overview', label: 'Overview', icon: IconInfoCircle },
   { id: 'sec-products', label: 'Products', icon: IconPackage },
+  { id: 'sec-work-progress', label: 'Work progress', icon: IconHammer },
   { id: 'sec-logistics', label: 'Logistics', icon: IconTruckDelivery },
   { id: 'sec-inspection', label: 'Inspection', icon: IconClipboardCheck },
   { id: 'sec-quotations', label: 'Quotations', icon: IconFileInvoice },
 ];
+
+const WO_HEADER_STATUS_COLOR = { draft: 'default', in_progress: 'info', completed: 'success', cancelled: 'error' };
+
+const taskStatusMeta = (status) => {
+  const s = String(status || 'not_started').toLowerCase();
+  if (s === 'completed') return { label: 'Completed', color: 'success', Icon: IconCircleCheck };
+  if (s === 'in_progress') return { label: 'In progress', color: 'warning', Icon: IconLoader2 };
+  if (s === 'blocked') return { label: 'Blocked', color: 'error', Icon: IconAlertCircle };
+  return { label: 'Not started', color: 'default', Icon: IconCircle };
+};
+
+const WorkOrderPipeline = ({ workOrder, theme, onOpen }) => {
+  const tasks = [...(workOrder.tasks || [])].sort((a, b) => (a.id || 0) - (b.id || 0));
+  const title = workOrder.title?.trim() || `Work order #${workOrder.id}`;
+  const done = tasks.filter((t) => String(t.status).toLowerCase() === 'completed').length;
+  const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 2, sm: 2.5 },
+        mb: 2.5,
+        borderRadius: 3,
+        border: '1px solid',
+        borderColor: 'divider',
+        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.04)} 0%, ${alpha(theme.palette.primary.main, 0)} 55%)`,
+      }}
+    >
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} gap={1.5} mb={2}>
+        <Box>
+          <Typography variant="subtitle1" fontWeight={800} letterSpacing={-0.2}>{title}</Typography>
+          <Stack direction="row" alignItems="center" spacing={1} mt={0.75} flexWrap="wrap" useFlexGap>
+            <Chip
+              label={String(workOrder.status || '—').replace(/_/g, ' ')}
+              size="small"
+              color={WO_HEADER_STATUS_COLOR[workOrder.status] || 'default'}
+              sx={{ fontWeight: 700, textTransform: 'capitalize' }}
+            />
+            {tasks.length > 0 && (
+              <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                {done} of {tasks.length} tasks complete
+              </Typography>
+            )}
+          </Stack>
+        </Box>
+        <Button variant="contained" size="small" onClick={onOpen} sx={{ borderRadius: 2, alignSelf: { xs: 'stretch', sm: 'center' }, whiteSpace: 'nowrap' }}>
+          Open work order
+        </Button>
+      </Stack>
+
+      {tasks.length > 0 && (
+        <LinearProgress
+          variant="determinate"
+          value={pct}
+          sx={{
+            height: 8,
+            borderRadius: 99,
+            mb: 2.5,
+            bgcolor: alpha(theme.palette.primary.main, 0.08),
+            '& .MuiLinearProgress-bar': { borderRadius: 99 },
+          }}
+        />
+      )}
+
+      {tasks.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">No tasks on this work order yet.</Typography>
+      ) : (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'stretch',
+            gap: 0,
+            overflowX: 'auto',
+            pb: 0.5,
+            mx: { xs: -0.5, sm: 0 },
+            px: { xs: 0.5, sm: 0 },
+            '&::-webkit-scrollbar': { height: 6 },
+            '&::-webkit-scrollbar-thumb': { bgcolor: alpha(theme.palette.text.primary, 0.15), borderRadius: 3 },
+          }}
+        >
+          {tasks.map((task, idx) => {
+            const meta = taskStatusMeta(task.status);
+            const TaskIcon = meta.Icon;
+            const name = task.type_of_work || task.workType?.name || `Task ${idx + 1}`;
+            const st = String(task.status || 'not_started').toLowerCase();
+            const prevDone = idx > 0 && String(tasks[idx - 1].status).toLowerCase() === 'completed';
+
+            return (
+              <React.Fragment key={task.id}>
+                {idx > 0 && (
+                  <Box
+                    sx={{
+                      flex: '1 0 20px',
+                      minWidth: 16,
+                      maxWidth: 48,
+                      alignSelf: 'center',
+                      height: 4,
+                      borderRadius: 2,
+                      mx: 0.5,
+                      bgcolor: prevDone ? theme.palette.success.main : alpha(theme.palette.text.primary, 0.1),
+                    }}
+                  />
+                )}
+                <Box sx={{ flex: '0 0 auto', width: { xs: 148, sm: 160 } }}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      height: '100%',
+                      p: 2,
+                      borderRadius: 3,
+                      border: '2px solid',
+                      borderColor:
+                        st === 'completed'
+                          ? theme.palette.success.main
+                          : st === 'in_progress'
+                            ? theme.palette.warning.main
+                            : st === 'blocked'
+                              ? theme.palette.error.main
+                              : theme.palette.divider,
+                      bgcolor:
+                        st === 'completed'
+                          ? alpha(theme.palette.success.main, 0.08)
+                          : st === 'in_progress'
+                            ? alpha(theme.palette.warning.main, 0.1)
+                            : 'background.paper',
+                      boxShadow:
+                        st === 'in_progress'
+                          ? `0 0 0 4px ${alpha(theme.palette.warning.main, 0.12)}, 0 8px 24px ${alpha(theme.palette.common.black, 0.06)}`
+                          : st === 'completed'
+                            ? `0 4px 14px ${alpha(theme.palette.success.main, 0.12)}`
+                            : 'none',
+                      transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+                    }}
+                  >
+                    <Stack alignItems="center" spacing={1.25}>
+                      <Box
+                        sx={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          bgcolor:
+                            st === 'completed'
+                              ? alpha(theme.palette.success.main, 0.15)
+                              : st === 'in_progress'
+                                ? alpha(theme.palette.warning.main, 0.2)
+                                : alpha(theme.palette.action.hover, 0.6),
+                          color:
+                            st === 'completed'
+                              ? theme.palette.success.dark
+                              : st === 'in_progress'
+                                ? theme.palette.warning.dark
+                                : theme.palette.text.secondary,
+                          ...(st === 'in_progress'
+                            ? {
+                                '@keyframes woPulse': {
+                                  '0%, 100%': { boxShadow: `0 0 0 0 ${alpha(theme.palette.warning.main, 0.35)}` },
+                                  '50%': { boxShadow: `0 0 0 8px ${alpha(theme.palette.warning.main, 0)}` },
+                                },
+                                animation: 'woPulse 2s ease-in-out infinite',
+                              }
+                            : {}),
+                        }}
+                      >
+                        {st === 'in_progress' ? (
+                          <Box
+                            component="span"
+                            sx={{
+                              display: 'inline-flex',
+                              '@keyframes dealSpin': { to: { transform: 'rotate(360deg)' } },
+                              animation: 'dealSpin 0.85s linear infinite',
+                            }}
+                          >
+                            <IconLoader2 size={22} stroke={1.75} />
+                          </Box>
+                        ) : (
+                          <TaskIcon size={22} stroke={1.75} />
+                        )}
+                      </Box>
+                      <Typography variant="subtitle2" fontWeight={800} textAlign="center" lineHeight={1.35} sx={{ wordBreak: 'break-word' }}>
+                        {name}
+                      </Typography>
+                      <Chip
+                        label={meta.label}
+                        size="small"
+                        color={meta.color}
+                        variant={st === 'not_started' ? 'outlined' : 'filled'}
+                        sx={{ fontWeight: 700, fontSize: '0.7rem' }}
+                      />
+                    </Stack>
+                  </Paper>
+                </Box>
+              </React.Fragment>
+            );
+          })}
+        </Box>
+      )}
+    </Paper>
+  );
+};
 
 const DealView = () => {
   const { id } = useParams();
@@ -735,6 +945,58 @@ const DealView = () => {
                 </Paper>
               </Box>
             </Box>
+          </CardContent>
+        </SectionCard>
+
+        {/* ── Work order task pipeline ── */}
+        <SectionCard id="sec-work-progress">
+          <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+            <SectionHeader
+              icon={IconHammer}
+              title="Field work progress"
+              subtitle="Work order tasks in sequence — pickup, processing, delivery, and more"
+              action={
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<IconPlus size={16} />}
+                  onClick={() => navigate(`/erp/work-orders/create?dealId=${id}`)}
+                  sx={{ borderRadius: 2 }}
+                >
+                  New work order
+                </Button>
+              }
+            />
+            <Divider sx={{ mb: 2.5 }} />
+            {(() => {
+              const wos = [...(deal.workOrders || deal.work_orders || [])].sort(
+                (a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0)
+              );
+              if (wos.length === 0) {
+                return (
+                  <Paper variant="outlined" sx={{ p: 4, borderRadius: 3, textAlign: 'center', bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+                    <IconHammer size={40} stroke={1.25} style={{ opacity: 0.2, marginBottom: 12 }} />
+                    <Typography variant="body1" fontWeight={600} color="text.secondary" gutterBottom>
+                      No work orders yet
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 420, mx: 'auto' }}>
+                      Create a work order to track field tasks for this deal. Each task shows its status along the pipeline.
+                    </Typography>
+                    <Button variant="outlined" startIcon={<IconPlus size={18} />} onClick={() => navigate(`/erp/work-orders/create?dealId=${id}`)} sx={{ borderRadius: 2 }}>
+                      Create work order
+                    </Button>
+                  </Paper>
+                );
+              }
+              return wos.map((wo) => (
+                <WorkOrderPipeline
+                  key={wo.id}
+                  workOrder={wo}
+                  theme={theme}
+                  onOpen={() => navigate(`/erp/work-orders/view/${wo.id}`)}
+                />
+              ));
+            })()}
           </CardContent>
         </SectionCard>
 

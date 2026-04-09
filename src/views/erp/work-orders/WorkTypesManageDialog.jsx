@@ -84,6 +84,7 @@ const WorkTypesManageDialog = ({ open, onClose, onSaved }) => {
         name,
         displayOrder: parseInt(form.displayOrder, 10) || 0,
         isActive: form.isActive,
+        isDefault: form.isDefault,
       };
       if (editingId) {
         await apiService.updateWorkType(editingId, body);
@@ -117,7 +118,7 @@ const WorkTypesManageDialog = ({ open, onClose, onSaved }) => {
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
       <DialogTitle sx={{ fontWeight: 800, pb: 0 }}>Manage types of work</DialogTitle>
       <Typography variant="body2" color="text.secondary" sx={{ px: 3, pt: 0.5, pb: 1 }}>
-        Add types here; they appear in the work order task dropdown.
+        Add types here; they appear in the work order task dropdown. Types marked default are each added as a task on new work orders.
       </Typography>
       <DialogContent sx={{ pt: 2 }}>
         {error && (
@@ -157,7 +158,7 @@ const WorkTypesManageDialog = ({ open, onClose, onSaved }) => {
                 onChange={(e) => setForm((f) => ({ ...f, isDefault: e.target.checked }))}
               />
             }
-            label="Default task"
+            label="Default on new WO"
           />
           <Button
             variant="contained"

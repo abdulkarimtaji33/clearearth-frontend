@@ -272,14 +272,18 @@ const WorkOrderForm = () => {
 
   useEffect(() => {
     if (isEdit || defaultTaskSeeded.current || workTypes.length === 0) return;
-    const def = workTypes.find(w => w.is_default);
-    if (!def) return;
+    const defaults = workTypes.filter(w => w.is_default || w.isDefault);
+    if (defaults.length === 0) return;
     setForm(f => {
       if (f.tasks.length > 0) return f;
       defaultTaskSeeded.current = true;
       return {
         ...f,
-        tasks: [{ ...emptyTask(), workTypeId: def.id, typeOfWork: def.name || '' }],
+        tasks: defaults.map(wt => ({
+          ...emptyTask(),
+          workTypeId: wt.id,
+          typeOfWork: wt.name || '',
+        })),
       };
     });
   }, [workTypes, isEdit]);

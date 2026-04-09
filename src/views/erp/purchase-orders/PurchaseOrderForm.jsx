@@ -36,6 +36,12 @@ const initialItem = () => ({
   total: '',
 });
 
+const quotationListPath = (companyId, supplierId) => {
+  if (companyId) return '/erp/client-purchase-quotations';
+  if (supplierId) return '/erp/vendor-purchase-quotations';
+  return '/erp/client-purchase-quotations';
+};
+
 const PurchaseOrderForm = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -224,7 +230,7 @@ const PurchaseOrderForm = () => {
         await apiService.createPurchaseOrder(payload);
         setSuccess('Purchase quotation created');
       }
-      setTimeout(() => navigate('/erp/purchase-orders'), 1500);
+      setTimeout(() => navigate(quotationListPath(values.companyId, values.supplierId)), 1500);
     } catch (err) {
       setError(err.message || 'Save failed');
     }
@@ -244,7 +250,7 @@ const PurchaseOrderForm = () => {
     <PageContainer title={isEdit ? 'Edit Purchase Quotation' : 'Create Purchase Quotation'} description={isEdit ? 'Update purchase quotation; set Approved for purchase order PDF' : 'Create purchase quotation; after approval, PDF becomes a purchase order'}>
       <Box>
         <Stack direction="row" alignItems="center" spacing={2} mb={3}>
-          <Button startIcon={<IconArrowLeft />} onClick={() => navigate('/erp/purchase-orders')} size="small">
+          <Button startIcon={<IconArrowLeft />} onClick={() => navigate(quotationListPath(initialValues.companyId, initialValues.supplierId))} size="small">
             Back
           </Button>
           <Box>
@@ -520,7 +526,7 @@ const PurchaseOrderForm = () => {
                 <Button type="submit" variant="contained" size="large" sx={{ borderRadius: 2 }}>
                   {isEdit ? 'Update' : 'Create'} Purchase Quotation
                 </Button>
-                <Button variant="outlined" size="large" onClick={() => navigate('/erp/purchase-orders')} sx={{ borderRadius: 2 }}>
+                <Button variant="outlined" size="large" onClick={() => navigate(quotationListPath(values.companyId, values.supplierId))} sx={{ borderRadius: 2 }}>
                   Cancel
                 </Button>
               </Box>

@@ -55,6 +55,7 @@ import {
   IconClipboardCheck,
   IconTruckDelivery,
   IconFileInvoice,
+  IconCheck,
   IconHammer,
   IconCircleCheck,
   IconLoader2,
@@ -422,6 +423,7 @@ const DealView = () => {
   const [inspectionPopupData, setInspectionPopupData] = useState(null);
   const [inspectionPopupLoading, setInspectionPopupLoading] = useState(false);
   const [uomList, setUomList] = useState([]);
+  const [approveLoading, setApproveLoading] = useState(false);
 
   useEffect(() => {
     apiService.getAllDropdowns().then((r) => {
@@ -502,6 +504,23 @@ const DealView = () => {
       console.error(err);
     }
   }, []);
+
+  const dealStatusLower = String(deal?.status || '').toLowerCase();
+  const canApproveDeal = deal && !['approved', 'won', 'lost'].includes(dealStatusLower);
+
+  const handleApproveDeal = async () => {
+    if (!id || !deal) return;
+    try {
+      setApproveLoading(true);
+      setError('');
+      await apiService.updateDeal(id, { status: 'approved' });
+      await fetchDeal();
+    } catch (err) {
+      setError(err.message || 'Failed to approve deal');
+    } finally {
+      setApproveLoading(false);
+    }
+  };
 
   const openReportDialog = () => {
     setReportFormErrors({});
@@ -696,6 +715,19 @@ const DealView = () => {
                 </MenuItem>
               )}
             </Menu>
+            {canApproveDeal && (
+              <Button
+                variant="contained"
+                color="success"
+                size="small"
+                startIcon={approveLoading ? <CircularProgress size={14} color="inherit" /> : <IconCheck size={16} />}
+                onClick={handleApproveDeal}
+                disabled={approveLoading}
+                sx={{ borderRadius: 2, fontWeight: 600 }}
+              >
+                Approve
+              </Button>
+            )}
             <Button
               variant="contained"
               size="small"

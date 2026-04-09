@@ -67,7 +67,8 @@ const ErpMenuItems = [
         permission: 'deals.read',
         children: [
           { id: uniqueId(), title: 'Service Quotation', icon: IconPoint, href: '/erp/quotations', permission: 'deals.read' },
-          { id: uniqueId(), title: 'Purchase Quotation', icon: IconPoint, href: '/erp/purchase-orders', permission: 'deals.read' },
+          { id: uniqueId(), title: 'Client purchase quotations', icon: IconPoint, href: '/erp/client-purchase-quotations', permission: 'deals.read' },
+          { id: uniqueId(), title: 'Vendor purchase quotations', icon: IconPoint, href: '/erp/vendor-purchase-quotations', permission: 'deals.read' },
         ],
       },
       {

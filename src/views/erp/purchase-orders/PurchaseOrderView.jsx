@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
-import { IconArrowLeft, IconEdit, IconFileDownload, IconHammer, IconShoppingCart } from '@tabler/icons-react';
+import { IconArrowLeft, IconEdit, IconFileDownload, IconHammer, IconShoppingCart, IconCheck } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -19,12 +19,20 @@ const PurchaseOrderView = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const theme = useTheme();
-  const returnTo = searchParams.get('return') || '/erp/purchase-orders';
+  const returnParam = searchParams.get('return');
+  const defaultListForPo = (p) => {
+    if (!p) return '/erp/client-purchase-quotations';
+    if (p.company_id) return '/erp/client-purchase-quotations';
+    if (p.supplier_id) return '/erp/vendor-purchase-quotations';
+    return '/erp/client-purchase-quotations';
+  };
 
   const [po, setPo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [approveLoading, setApproveLoading] = useState(false);
+  const [approveError, setApproveError] = useState('');
 
   const fetchPo = useCallback(async () => {
     if (!id) return;
@@ -55,7 +63,24 @@ const PurchaseOrderView = () => {
     }
   };
 
-  const isApproved = String(po?.status || '').toLowerCase() === 'approved';
+  const handleApprovePo = async () => {
+    if (!id) return;
+    try {
+      setApproveLoading(true);
+      setApproveError('');
+      await apiService.updatePurchaseOrder(id, { status: 'approved' });
+      await fetchPo();
+    } catch (e) {
+      setApproveError(e.message || 'Failed to approve');
+    } finally {
+      setApproveLoading(false);
+    }
+  };
+
+  const poStatus = String(po?.status || '').toLowerCase();
+  const isApproved = poStatus === 'approved';
+  const canApprovePo = po && !isApproved && poStatus !== 'rejected';
+  const returnTo = returnParam || defaultListForPo(po);
   const partyLabel = po?.company_id ? 'Client' : po?.supplier_id ? 'Vendor' : '—';
   const partyName = po?.company?.company_name || po?.supplier?.company_name || '—';
 
@@ -74,7 +99,7 @@ const PurchaseOrderView = () => {
     return (
       <PageContainer title="Purchase order">
         <Alert severity="error">{error || 'Not found'}</Alert>
-        <Button sx={{ mt: 2 }} onClick={() => navigate(returnTo)}>Back to list</Button>
+        <Button sx={{ mt: 2 }} onClick={() => navigate(returnParam || '/erp/client-purchase-quotations')}>Back to list</Button>
       </PageContainer>
     );
   }
@@ -82,6 +107,9 @@ const PurchaseOrderView = () => {
   return (
     <PageContainer title="Purchase quotation">
       <Box sx={{ maxWidth: 960, mx: 'auto', px: { xs: 1, sm: 2 }, pb: 4 }}>
+        {approveError && (
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setApproveError('')}>{approveError}</Alert>
+        )}
         {/* Page header */}
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2} flexWrap="wrap" mb={3}>
           <Stack direction="row" alignItems="center" spacing={2}>
@@ -100,6 +128,18 @@ const PurchaseOrderView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap">
+            {canApprovePo && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={approveLoading ? <CircularProgress size={16} color="inherit" /> : <IconCheck size={18} />}
+                onClick={handleApprovePo}
+                disabled={approveLoading}
+                sx={{ borderRadius: 2 }}
+              >
+                Approve
+              </Button>
+            )}
             <Button variant="outlined" startIcon={<IconEdit size={18} />} onClick={() => navigate(`/erp/purchase-orders/edit/${id}`)} sx={{ borderRadius: 2 }}>
               Edit
             </Button>

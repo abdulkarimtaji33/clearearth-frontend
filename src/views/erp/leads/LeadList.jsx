@@ -75,7 +75,7 @@ const leadStatusChipColor = (status) => {
   }
 };
 
-const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany }) => {
+const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approving }) => {
   const theme = useTheme();
   const companyName = lead.company?.company_name || '';
   const initial = (companyName.trim().charAt(0) || lead.lead_number?.charAt(0) || '?').toUpperCase();
@@ -251,12 +251,25 @@ const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany }) => {
         </Box>
       ) : null}
 
+      {['new', 'contacted'].includes(String(lead.status || '').toLowerCase()) && (
+        <Button
+          variant="contained"
+          color="success"
+          fullWidth
+          startIcon={approving ? <CircularProgress size={16} color="inherit" /> : <IconCheck size={16} />}
+          onClick={() => onApprove?.(lead.id)}
+          disabled={approving}
+          sx={{ mt: 3, borderRadius: 2.5, fontWeight: 700, py: 1.25 }}
+        >
+          {approving ? 'Approving…' : 'Approve'}
+        </Button>
+      )}
       <Button
         variant="contained"
         fullWidth
         startIcon={<IconEdit size={16} />}
         onClick={onEdit}
-        sx={{ mt: 3, borderRadius: 2.5, fontWeight: 700, py: 1.25 }}
+        sx={{ mt: ['new', 'contacted'].includes(String(lead.status || '').toLowerCase()) ? 1.5 : 3, borderRadius: 2.5, fontWeight: 700, py: 1.25 }}
       >
         Edit Lead
       </Button>
@@ -298,6 +311,7 @@ const LeadList = () => {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewLoading, setViewLoading] = useState(false);
   const [viewLead, setViewLead] = useState(null);
+  const [approvingLeadId, setApprovingLeadId] = useState(null);
 
   const fetchDropdowns = useCallback(async () => {
     const results = await Promise.allSettled([
@@ -401,12 +415,21 @@ const LeadList = () => {
     setSelectedLead(null);
   };
 
-  const handleQualify = async (id) => {
+  const handleApproveLead = async (leadId) => {
     try {
-      await apiService.qualifyLead(id, {});
+      setApprovingLeadId(leadId);
+      setError('');
+      await apiService.qualifyLead(leadId, {});
+      setSuccess('Lead approved');
       fetchLeads();
+      if (viewLead?.id === leadId) {
+        const res = await apiService.getLead(leadId);
+        if (res.success) setViewLead(res.data);
+      }
     } catch (err) {
-      setError(err.message || 'Failed to qualify lead');
+      setError(err.message || 'Failed to approve lead');
+    } finally {
+      setApprovingLeadId(null);
     }
   };
 
@@ -823,15 +846,15 @@ const LeadList = () => {
             <IconEdit size={18} style={{ marginRight: 8 }} />
             Edit
           </MenuItem>
-          {selectedLead?.status === 'new' && (
+          {['new', 'contacted'].includes(String(selectedLead?.status || '').toLowerCase()) && (
             <MenuItem
               onClick={() => {
-                handleQualify(selectedLead.id);
+                handleApproveLead(selectedLead.id);
                 handleMenuClose();
               }}
             >
               <IconCheck size={18} style={{ marginRight: 8 }} />
-              Qualify
+              Approve
             </MenuItem>
           )}
           {selectedLead?.status !== 'converted' && selectedLead?.status !== 'disqualified' && (
@@ -882,6 +905,8 @@ const LeadList = () => {
                 setViewOpen(false);
                 navigate(`/erp/companies/view/${companyId}`);
               }}
+              onApprove={handleApproveLead}
+              approving={approvingLeadId === viewLead?.id}
             />
           )}
         </RecordDetailDrawer>

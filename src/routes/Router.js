@@ -29,9 +29,10 @@ const TermsForm = Loadable(lazy(() => import('../views/erp/terms/TermsForm')));
 const QuotationList = Loadable(lazy(() => import('../views/erp/quotations/QuotationList')));
 const QuotationForm = Loadable(lazy(() => import('../views/erp/quotations/QuotationForm')));
 const QuotationView = Loadable(lazy(() => import('../views/erp/quotations/QuotationView')));
-const PurchaseOrderList = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderList')));
 const PurchaseOrderForm = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderForm')));
 const PurchaseOrderView = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderView')));
+const ClientPurchaseQuotationList = Loadable(lazy(() => import('../views/erp/purchase-orders/ClientPurchaseQuotationList')));
+const VendorPurchaseQuotationList = Loadable(lazy(() => import('../views/erp/purchase-orders/VendorPurchaseQuotationList')));
 const ClientPurchaseOrderList = Loadable(lazy(() => import('../views/erp/purchase-orders/ClientPurchaseOrderList')));
 const SupplierPurchaseOrderList = Loadable(lazy(() => import('../views/erp/purchase-orders/SupplierPurchaseOrderList')));
 const RoleList = Loadable(lazy(() => import('../views/erp/roles/RoleList')));
@@ -94,7 +95,9 @@ const Router = createBrowserRouter([
       { path: '/erp/quotations/create', element: <QuotationForm /> },
       { path: '/erp/quotations/view/:id', element: <QuotationView /> },
       { path: '/erp/quotations/edit/:id', element: <QuotationForm /> },
-      { path: '/erp/purchase-orders', element: <PurchaseOrderList /> },
+      { path: '/erp/purchase-orders', element: <Navigate to="/erp/client-purchase-quotations" replace /> },
+      { path: '/erp/client-purchase-quotations', element: <ClientPurchaseQuotationList /> },
+      { path: '/erp/vendor-purchase-quotations', element: <VendorPurchaseQuotationList /> },
       { path: '/erp/purchase-orders/create', element: <PurchaseOrderForm /> },
       { path: '/erp/purchase-orders/view/:id', element: <PurchaseOrderView /> },
       { path: '/erp/purchase-orders/edit/:id', element: <PurchaseOrderForm /> },

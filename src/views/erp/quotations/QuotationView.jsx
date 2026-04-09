@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
-import { IconArrowLeft, IconEdit, IconFileDownload, IconHammer, IconReceipt } from '@tabler/icons-react';
+import { IconArrowLeft, IconEdit, IconFileDownload, IconHammer, IconReceipt, IconCheck } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -25,6 +25,8 @@ const QuotationView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [approveLoading, setApproveLoading] = useState(false);
+  const [approveError, setApproveError] = useState('');
 
   const fetchQ = useCallback(async () => {
     if (!id) return;
@@ -55,7 +57,23 @@ const QuotationView = () => {
     }
   };
 
-  const isApproved = String(q?.status || '').toLowerCase() === 'approved';
+  const qStatus = String(q?.status || '').toLowerCase();
+  const isApproved = qStatus === 'approved';
+  const canApproveQuotation = q && !isApproved && qStatus !== 'rejected';
+
+  const handleApproveQuotation = async () => {
+    if (!id) return;
+    try {
+      setApproveLoading(true);
+      setApproveError('');
+      await apiService.updateQuotation(id, { status: 'approved' });
+      await fetchQ();
+    } catch (e) {
+      setApproveError(e.message || 'Failed to approve');
+    } finally {
+      setApproveLoading(false);
+    }
+  };
   const dealItems = (q?.deal?.items || []).slice().sort((a, b) => (a.id || 0) - (b.id || 0));
   const linesSubtotal = dealItems.reduce((s, it) => s + parseFloat(it.line_total || 0), 0);
   const preparedName = q?.preparedByUser
@@ -82,6 +100,10 @@ const QuotationView = () => {
   return (
     <PageContainer title="Service quotation">
       <Box sx={{ maxWidth: 800, mx: 'auto', px: { xs: 1, sm: 2 }, pb: 4 }}>
+        {approveError && (
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setApproveError('')}>{approveError}</Alert>
+        )}
+
         {/* Page header */}
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2} flexWrap="wrap" mb={3}>
           <Stack direction="row" alignItems="center" spacing={2}>
@@ -100,6 +122,18 @@ const QuotationView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap">
+            {canApproveQuotation && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={approveLoading ? <CircularProgress size={16} color="inherit" /> : <IconCheck size={18} />}
+                onClick={handleApproveQuotation}
+                disabled={approveLoading}
+                sx={{ borderRadius: 2 }}
+              >
+                Approve
+              </Button>
+            )}
             <Button variant="outlined" startIcon={<IconEdit size={18} />} onClick={() => navigate(`/erp/quotations/edit/${id}`)} sx={{ borderRadius: 2 }}>
               Edit
             </Button>

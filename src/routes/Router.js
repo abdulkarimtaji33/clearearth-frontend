@@ -35,6 +35,7 @@ const ProformaInvoiceView = Loadable(lazy(() => import('../views/erp/proforma-in
 const TaxInvoiceList = Loadable(lazy(() => import('../views/erp/tax-invoices/TaxInvoiceList')));
 const TaxInvoiceCreate = Loadable(lazy(() => import('../views/erp/tax-invoices/TaxInvoiceCreate')));
 const TaxInvoiceView = Loadable(lazy(() => import('../views/erp/tax-invoices/TaxInvoiceView')));
+const TaxInvoiceEdit = Loadable(lazy(() => import('../views/erp/tax-invoices/TaxInvoiceEdit')));
 const AccountsWorkOrderList = Loadable(lazy(() => import('../views/erp/accounts/AccountsWorkOrderList')));
 const AccountsWorkOrderView = Loadable(lazy(() => import('../views/erp/accounts/AccountsWorkOrderView')));
 const ExpensesList = Loadable(lazy(() => import('../views/erp/accounts/ExpensesList')));
@@ -111,6 +112,7 @@ const Router = createBrowserRouter([
       { path: '/erp/tax-invoices', element: <TaxInvoiceList /> },
       { path: '/erp/tax-invoices/create/:proformaId', element: <TaxInvoiceCreate /> },
       { path: '/erp/tax-invoices/view/:id', element: <TaxInvoiceView /> },
+      { path: '/erp/tax-invoices/edit/:id', element: <TaxInvoiceEdit /> },
       { path: '/erp/accounts/expenses', element: <ExpensesList /> },
       { path: '/erp/accounts/expenses/create', element: <ExpenseCreate /> },
       { path: '/erp/accounts/work-orders', element: <AccountsWorkOrderList /> },

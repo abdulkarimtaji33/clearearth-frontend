@@ -69,7 +69,10 @@ class ApiService {
   }
 
   async get(endpoint, params = {}) {
-    const queryString = new URLSearchParams(params).toString();
+    const clean = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+    );
+    const queryString = new URLSearchParams(clean).toString();
     const url = queryString ? `${endpoint}?${queryString}` : endpoint;
     return this.request(url, { method: 'GET' });
   }
@@ -314,6 +317,91 @@ class ApiService {
 
   async deleteQuotation(id) {
     return this.delete(`/quotations/${id}`);
+  }
+
+  async getProformaPreviewFromQuotation(quotationId) {
+    return this.get(`/proforma-invoices/preview-from-quotation/${quotationId}`);
+  }
+
+  async getProformaInvoices(params) {
+    return this.get('/proforma-invoices', params);
+  }
+
+  async getProformaInvoice(id) {
+    return this.get(`/proforma-invoices/${id}`);
+  }
+
+  async createProformaInvoice(data) {
+    return this.post('/proforma-invoices', data);
+  }
+
+  async updateProformaInvoice(id, data) {
+    return this.put(`/proforma-invoices/${id}`, data);
+  }
+
+  async deleteProformaInvoice(id) {
+    return this.delete(`/proforma-invoices/${id}`);
+  }
+
+  async getTaxPreviewFromProforma(proformaInvoiceId) {
+    return this.get(`/tax-invoices/preview-from-proforma/${proformaInvoiceId}`);
+  }
+
+  async getTaxInvoices(params) {
+    return this.get('/tax-invoices', params);
+  }
+
+  async getTaxInvoice(id) {
+    return this.get(`/tax-invoices/${id}`);
+  }
+
+  async createTaxInvoice(data) {
+    return this.post('/tax-invoices', data);
+  }
+
+  async updateTaxInvoice(id, data) {
+    return this.put(`/tax-invoices/${id}`, data);
+  }
+
+  async deleteTaxInvoice(id) {
+    return this.delete(`/tax-invoices/${id}`);
+  }
+
+  async uploadTaxInvoiceAttachment(file) {
+    const url = `${this.baseURL}/upload/tax-invoice-attachment`;
+    const token = this.getAuthToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(url, { method: 'POST', body: formData, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Upload failed');
+    return data;
+  }
+
+  async getAccountsWorkOrders(params) {
+    return this.get('/accounts/work-orders', params);
+  }
+
+  async getAccountsExpenses(params) {
+    return this.get('/accounts/expenses', params);
+  }
+
+  async createAccountsExpense(data) {
+    return this.post('/accounts/expenses', data);
+  }
+
+  async getAccountsWorkOrder(id) {
+    return this.get(`/accounts/work-orders/${id}`);
+  }
+
+  async approveAccountsTaskExpense(workOrderId, taskExpenseId, data) {
+    return this.post(`/accounts/work-orders/${workOrderId}/task-expenses/${taskExpenseId}/approve`, data);
+  }
+
+  async rejectAccountsTaskExpense(workOrderId, taskExpenseId) {
+    return this.post(`/accounts/work-orders/${workOrderId}/task-expenses/${taskExpenseId}/reject`, {});
   }
 
   _filenameFromContentDisposition(disposition, fallback) {

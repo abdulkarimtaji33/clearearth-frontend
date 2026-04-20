@@ -29,6 +29,13 @@ const WO_STATUS_COLORS = {
   cancelled: 'error',
 };
 
+const expenseAccountsBadge = (ex) => {
+  const st = String(ex.accounts_status || 'pending').toLowerCase();
+  if (st === 'approved') return { label: 'Approved (Accounts)', color: 'success' };
+  if (st === 'rejected') return { label: 'Rejected (Accounts)', color: 'error' };
+  return { label: 'Pending Accounts approval', color: 'warning' };
+};
+
 const WO_STATUS_BG = (theme, status) => {
   const map = {
     draft: alpha(theme.palette.grey[500], 0.1),
@@ -219,14 +226,18 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
                 </Stack>
               )}
               {(task.expenses && task.expenses.length > 0) ? (
-                task.expenses.map((ex, exi) => (
-                  <Stack key={ex.id ?? `ex-${exi}`} direction="row" alignItems="center" spacing={0.5} sx={{ maxWidth: '100%' }}>
-                    <IconCurrencyDollar size={13} style={{ opacity: 0.45, flexShrink: 0 }} />
-                    <Typography variant="caption" color="text.secondary" noWrap title={ex.description || ''}>
-                      {ex.description ? `${ex.description}: ` : ''}AED {parseFloat(ex.amount).toLocaleString()}
-                    </Typography>
-                  </Stack>
-                ))
+                task.expenses.map((ex, exi) => {
+                  const acc = expenseAccountsBadge(ex);
+                  return (
+                    <Stack key={ex.id ?? `ex-${exi}`} direction="row" alignItems="center" spacing={0.5} flexWrap="wrap" sx={{ maxWidth: '100%', gap: 0.5 }}>
+                      <IconCurrencyDollar size={13} style={{ opacity: 0.45, flexShrink: 0 }} />
+                      <Typography variant="caption" color="text.secondary" noWrap title={ex.description || ''}>
+                        {ex.description ? `${ex.description}: ` : ''}AED {parseFloat(ex.amount).toLocaleString()}
+                      </Typography>
+                      <Chip size="small" label={acc.label} color={acc.color} sx={{ height: 20, fontSize: '0.62rem', fontWeight: 700 }} />
+                    </Stack>
+                  );
+                })
               ) : task.expense != null ? (
                 <Stack direction="row" alignItems="center" spacing={0.5}>
                   <IconCurrencyDollar size={13} style={{ opacity: 0.45 }} />

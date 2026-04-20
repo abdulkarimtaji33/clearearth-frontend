@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
-import { IconArrowLeft, IconEdit, IconFileDownload, IconHammer, IconReceipt, IconCheck } from '@tabler/icons-react';
+import { IconArrowLeft, IconEdit, IconFileDownload, IconHammer, IconReceipt, IconCheck, IconFileInvoice } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -134,6 +134,9 @@ const QuotationView = () => {
                 Approve
               </Button>
             )}
+            <Button variant="outlined" color="secondary" startIcon={<IconFileInvoice size={18} />} onClick={() => navigate(`/erp/proforma-invoices/create/${id}?return=${encodeURIComponent(returnTo)}`)} sx={{ borderRadius: 2 }}>
+              Create proforma invoice
+            </Button>
             <Button variant="outlined" startIcon={<IconEdit size={18} />} onClick={() => navigate(`/erp/quotations/edit/${id}`)} sx={{ borderRadius: 2 }}>
               Edit
             </Button>

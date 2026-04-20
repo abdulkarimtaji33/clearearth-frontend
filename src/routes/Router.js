@@ -29,6 +29,16 @@ const TermsForm = Loadable(lazy(() => import('../views/erp/terms/TermsForm')));
 const QuotationList = Loadable(lazy(() => import('../views/erp/quotations/QuotationList')));
 const QuotationForm = Loadable(lazy(() => import('../views/erp/quotations/QuotationForm')));
 const QuotationView = Loadable(lazy(() => import('../views/erp/quotations/QuotationView')));
+const ProformaInvoiceList = Loadable(lazy(() => import('../views/erp/proforma-invoices/ProformaInvoiceList')));
+const ProformaInvoiceCreate = Loadable(lazy(() => import('../views/erp/proforma-invoices/ProformaInvoiceCreate')));
+const ProformaInvoiceView = Loadable(lazy(() => import('../views/erp/proforma-invoices/ProformaInvoiceView')));
+const TaxInvoiceList = Loadable(lazy(() => import('../views/erp/tax-invoices/TaxInvoiceList')));
+const TaxInvoiceCreate = Loadable(lazy(() => import('../views/erp/tax-invoices/TaxInvoiceCreate')));
+const TaxInvoiceView = Loadable(lazy(() => import('../views/erp/tax-invoices/TaxInvoiceView')));
+const AccountsWorkOrderList = Loadable(lazy(() => import('../views/erp/accounts/AccountsWorkOrderList')));
+const AccountsWorkOrderView = Loadable(lazy(() => import('../views/erp/accounts/AccountsWorkOrderView')));
+const ExpensesList = Loadable(lazy(() => import('../views/erp/accounts/ExpensesList')));
+const ExpenseCreate = Loadable(lazy(() => import('../views/erp/accounts/ExpenseCreate')));
 const PurchaseOrderForm = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderForm')));
 const PurchaseOrderView = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderView')));
 const ClientPurchaseQuotationList = Loadable(lazy(() => import('../views/erp/purchase-orders/ClientPurchaseQuotationList')));
@@ -95,6 +105,16 @@ const Router = createBrowserRouter([
       { path: '/erp/quotations/create', element: <QuotationForm /> },
       { path: '/erp/quotations/view/:id', element: <QuotationView /> },
       { path: '/erp/quotations/edit/:id', element: <QuotationForm /> },
+      { path: '/erp/proforma-invoices', element: <ProformaInvoiceList /> },
+      { path: '/erp/proforma-invoices/create/:quotationId', element: <ProformaInvoiceCreate /> },
+      { path: '/erp/proforma-invoices/view/:id', element: <ProformaInvoiceView /> },
+      { path: '/erp/tax-invoices', element: <TaxInvoiceList /> },
+      { path: '/erp/tax-invoices/create/:proformaId', element: <TaxInvoiceCreate /> },
+      { path: '/erp/tax-invoices/view/:id', element: <TaxInvoiceView /> },
+      { path: '/erp/accounts/expenses', element: <ExpensesList /> },
+      { path: '/erp/accounts/expenses/create', element: <ExpenseCreate /> },
+      { path: '/erp/accounts/work-orders', element: <AccountsWorkOrderList /> },
+      { path: '/erp/accounts/work-orders/view/:id', element: <AccountsWorkOrderView /> },
       { path: '/erp/purchase-orders', element: <Navigate to="/erp/client-purchase-quotations" replace /> },
       { path: '/erp/client-purchase-quotations', element: <ClientPurchaseQuotationList /> },
       { path: '/erp/vendor-purchase-quotations', element: <VendorPurchaseQuotationList /> },

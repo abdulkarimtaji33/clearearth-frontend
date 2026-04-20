@@ -14,6 +14,8 @@ import {
   IconPoint,
   IconLayoutDashboard,
   IconHammer,
+  IconFileInvoice,
+  IconWallet,
 } from '@tabler/icons-react';
 
 const ErpMenuItems = [
@@ -84,6 +86,38 @@ const ErpMenuItems = [
         ],
       },
     ],
+  },
+  {
+    navlabel: true,
+    subheader: 'Accounts',
+  },
+  {
+    id: uniqueId(),
+    title: 'Proforma invoices',
+    icon: IconFileInvoice,
+    href: '/erp/proforma-invoices',
+    permission: 'deals.read',
+  },
+  {
+    id: uniqueId(),
+    title: 'Tax invoices',
+    icon: IconReceipt,
+    href: '/erp/tax-invoices',
+    permission: 'deals.read',
+  },
+  {
+    id: uniqueId(),
+    title: 'Posted expenses',
+    icon: IconWallet,
+    href: '/erp/accounts/expenses',
+    permission: 'deals.read',
+  },
+  {
+    id: uniqueId(),
+    title: 'Work orders (Accounts)',
+    icon: IconClipboardCheck,
+    href: '/erp/accounts/work-orders',
+    permission: 'deals.read',
   },
   {
     navlabel: true,

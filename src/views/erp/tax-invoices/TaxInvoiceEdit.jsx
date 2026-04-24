@@ -11,6 +11,13 @@ import {
   Alert,
   Link,
   InputAdornment,
+  Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router';
@@ -43,6 +50,7 @@ const TaxInvoiceEdit = () => {
   const [referenceNo, setReferenceNo] = useState('');
   const [remarks, setRemarks] = useState('');
   const [file, setFile] = useState(null);
+  const [editableItems, setEditableItems] = useState([]);
 
   const fetchRow = useCallback(async () => {
     if (!id) return;
@@ -60,6 +68,13 @@ const TaxInvoiceEdit = () => {
         setPaymentMethod(r.payment_method || '');
         setReferenceNo(r.reference_no || '');
         setRemarks(r.remarks || '');
+        setEditableItems((r.items || []).map(it => ({
+          id: it.id,
+          name: it.productService?.name || it.description || `Item ${it.id}`,
+          quantity: String(parseFloat(it.quantity) || 1),
+          unitPrice: parseFloat(it.unit_price) || 0,
+          unitOfMeasure: it.unit_of_measure || '',
+        })));
       } else setError('Not found');
     } catch (e) {
       setError(e.message || 'Failed to load');
@@ -89,6 +104,7 @@ const TaxInvoiceEdit = () => {
         referenceNo: referenceNo || null,
         remarks: remarks || null,
         ...(attachmentPath !== undefined ? { attachmentPath } : {}),
+        items: editableItems.map(it => ({ id: it.id, quantity: parseFloat(it.quantity) || 1 })),
       });
       navigate(`/erp/tax-invoices/view/${id}`);
     } catch (e) {
@@ -139,6 +155,89 @@ const TaxInvoiceEdit = () => {
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+
+        {/* Editable line items */}
+        {editableItems.length > 0 && (
+          <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', mb: 2 }}>
+            <Box sx={{ px: 2.5, py: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.04), borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="subtitle2" fontWeight={700} color="text.secondary" textTransform="uppercase" fontSize="0.72rem" letterSpacing={0.8}>
+                Line Items — edit quantities (amounts recalculate automatically)
+              </Typography>
+            </Box>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: alpha(theme.palette.grey[500], 0.04) }}>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Service / Product</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>UOM</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Unit Price</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary', width: 120 }}>Qty</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Line Total</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {editableItems.map((item, idx) => {
+                    const qty = parseFloat(item.quantity) || 0;
+                    const lineTotal = qty * item.unitPrice;
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell sx={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.name}</TableCell>
+                        <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{item.unitOfMeasure || '—'}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: '0.85rem' }}>{cur} {item.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell align="center">
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const updated = [...editableItems];
+                              updated[idx] = { ...updated[idx], quantity: e.target.value };
+                              setEditableItems(updated);
+                            }}
+                            inputProps={{ min: 0, step: 0.01 }}
+                            sx={{ width: 90, '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                          />
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                          {cur} {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <Box sx={{ px: 2.5, py: 1.5, borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end' }}>
+              <Box sx={{ minWidth: 240 }}>
+                {(() => {
+                  const newSub = editableItems.reduce((s, it) => s + (parseFloat(it.quantity) || 0) * it.unitPrice, 0);
+                  const vatPct = parseFloat(row?.vat_percentage) || 0;
+                  const newVat = (newSub * vatPct) / 100;
+                  const newTotal = newSub + newVat;
+                  return (
+                    <Stack spacing={0.5}>
+                      <Stack direction="row" justifyContent="space-between">
+                        <Typography variant="caption" color="text.secondary">Subtotal:</Typography>
+                        <Typography variant="caption" fontWeight={600}>{cur} {newSub.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Typography>
+                      </Stack>
+                      {vatPct > 0 && (
+                        <Stack direction="row" justifyContent="space-between">
+                          <Typography variant="caption" color="text.secondary">VAT ({vatPct}%):</Typography>
+                          <Typography variant="caption" fontWeight={600}>{cur} {newVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Typography>
+                        </Stack>
+                      )}
+                      <Divider />
+                      <Stack direction="row" justifyContent="space-between">
+                        <Typography variant="body2" fontWeight={700}>Total:</Typography>
+                        <Typography variant="body2" fontWeight={700} color="primary.main">{cur} {newTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Typography>
+                      </Stack>
+                    </Stack>
+                  );
+                })()}
+              </Box>
+            </Box>
+          </Paper>
+        )}
 
         <Paper variant="outlined" sx={{ borderRadius: 3, p: 3 }}>
           <Stack spacing={3}>

@@ -26,7 +26,8 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
 import { useDropzone } from 'react-dropzone';
-import { IconArrowLeft, IconPlus, IconTrash, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconTrash, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription, IconInfoCircle } from '@tabler/icons-react';
+import Tooltip from '@mui/material/Tooltip';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
@@ -174,6 +175,7 @@ const DealForm = () => {
     customInspection: false,
     trakheesInspection: false,
     dubaiMunicipalityInspection: false,
+    isRcmApplicable: false,
     notes: '',
   });
 
@@ -296,6 +298,7 @@ const DealForm = () => {
           customInspection: d.custom_inspection || false,
           trakheesInspection: d.trakhees_inspection || false,
           dubaiMunicipalityInspection: d.dubai_municipality_inspection || false,
+          isRcmApplicable: d.is_rcm_applicable || false,
           notes: d.notes || '',
         });
         
@@ -1022,7 +1025,12 @@ const DealForm = () => {
                       label="Deal Type"
                       name="dealType"
                       value={values.dealType || ''}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        if (e.target.value !== 'offer_to_purchase') {
+                          setFieldValue('isRcmApplicable', false);
+                        }
+                      }}
                       onBlur={handleBlur}
                       error={touched.dealType && Boolean(errors.dealType)}
                       helperText={touched.dealType ? errors.dealType : ' '}
@@ -1033,6 +1041,33 @@ const DealForm = () => {
                       <MenuItem value="offer_to_purchase">Offer to Purchase</MenuItem>
                       <MenuItem value="free_of_charge">Free of Charge</MenuItem>
                     </TextField>
+
+                    {values.dealType === 'offer_to_purchase' && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={values.isRcmApplicable || false}
+                              onChange={(e) => setFieldValue('isRcmApplicable', e.target.checked)}
+                              name="isRcmApplicable"
+                            />
+                          }
+                          label="Is RCM (Reverse Charge Mechanism) applicable?"
+                          sx={{ m: 0 }}
+                        />
+                        <Tooltip title="If RCM applies, VAT is paid directly to the government by the buyer. VAT will NOT be included in the purchase quotation, purchase bill, or any related documents." arrow>
+                          <IconInfoCircle size={18} style={{ opacity: 0.6, cursor: 'help' }} />
+                        </Tooltip>
+                      </Box>
+                    )}
+
+                    {values.isRcmApplicable && values.dealType === 'offer_to_purchase' && (
+                      <Box sx={{ bgcolor: 'warning.lighter', border: '1px solid', borderColor: 'warning.main', borderRadius: 2, p: 2 }}>
+                        <Typography variant="body2" color="warning.dark" fontWeight={600}>
+                          RCM Applicable: VAT will NOT be included in purchase quotations or bills. VAT is to be paid directly to the government.
+                        </Typography>
+                      </Box>
+                    )}
 
                     {values.dealType === 'offer_to_charge' && (
                       <>
@@ -1331,7 +1366,7 @@ const DealForm = () => {
                   {/* Totals Summary */}
                   {lineItems.length > 0 && (
                     <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                      <Box sx={{ width: 350 }}>
+                      <Box sx={{ width: 380 }}>
                         <Stack spacing={2}>
                           <Stack direction="row" justifyContent="space-between">
                             <Typography variant="body1">Subtotal:</Typography>
@@ -1340,7 +1375,9 @@ const DealForm = () => {
                             </Typography>
                           </Stack>
                           <Stack direction="row" justifyContent="space-between" alignItems="center">
-                            <Typography variant="body1">VAT:</Typography>
+                            <Typography variant="body1" color={values.isRcmApplicable ? 'text.disabled' : 'text.primary'}>
+                              VAT {values.isRcmApplicable ? '(excluded — RCM)' : ''}:
+                            </Typography>
                             <Stack direction="row" spacing={1} alignItems="center">
                               <TextField
                                 size="small"
@@ -1351,22 +1388,28 @@ const DealForm = () => {
                                   handleChange(e);
                                   const newVat = (subtotal * parseFloat(e.target.value || 0)) / 100;
                                   setVatAmount(newVat);
-                                  setTotal(subtotal + newVat);
+                                  setTotal(subtotal + (values.isRcmApplicable ? 0 : newVat));
                                 }}
+                                disabled={values.isRcmApplicable}
                                 inputProps={{ min: 0, max: 100, step: 0.1 }}
                                 sx={{ width: 80, '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                               />
                               <Typography variant="body2">%</Typography>
-                              <Typography variant="body1" fontWeight={600}>
-                                = {values.currency} {vatAmount.toFixed(2)}
+                              <Typography variant="body1" fontWeight={600} color={values.isRcmApplicable ? 'text.disabled' : 'text.primary'}>
+                                = {values.currency} {values.isRcmApplicable ? '0.00' : vatAmount.toFixed(2)}
                               </Typography>
                             </Stack>
                           </Stack>
+                          {values.isRcmApplicable && (
+                            <Typography variant="caption" color="warning.dark" sx={{ fontStyle: 'italic' }}>
+                              VAT ({values.vatPercentage}% = {values.currency} {vatAmount.toFixed(2)}) is recorded for government payment — not included in purchase documents.
+                            </Typography>
+                          )}
                           <Divider />
                           <Stack direction="row" justifyContent="space-between">
                             <Typography variant="h5" fontWeight={700}>Total:</Typography>
                             <Typography variant="h5" fontWeight={700} color="primary.main">
-                              {values.currency} {total.toFixed(2)}
+                              {values.currency} {values.isRcmApplicable ? subtotal.toFixed(2) : total.toFixed(2)}
                             </Typography>
                           </Stack>
                         </Stack>

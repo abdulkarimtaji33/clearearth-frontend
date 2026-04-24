@@ -468,33 +468,39 @@ const ProformaInvoiceCreate = () => {
             <Typography variant="body2" color="text.secondary">
               Subtotal (sum of lines): <strong>{currency} {linesSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
             </Typography>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
               <TextField
                 label="VAT %"
                 size="small"
                 value={vatPercentage}
-                onChange={(e) => setVatPercentage(e.target.value)}
+                onChange={(e) => {
+                  const pct = e.target.value;
+                  setVatPercentage(pct);
+                  const sub = items.reduce((s, r) => s + num(r.lineTotal), 0);
+                  const v = Number(((sub * num(pct)) / 100).toFixed(2));
+                  setVatAmount(v);
+                  setTotal(Number((sub + v).toFixed(2)));
+                }}
+                inputProps={{ min: 0, max: 100, step: 0.1 }}
                 sx={{ width: 120 }}
               />
-              <Button variant="outlined" size="small" onClick={applyVatFromPercent} sx={{ borderRadius: 2 }}>
-                Apply % to VAT
-              </Button>
+              <TextField
+                label="VAT amount"
+                size="small"
+                value={vatAmount}
+                onChange={(e) => { setVatAmount(e.target.value); }}
+                onBlur={syncTotalFromParts}
+                sx={{ width: 160 }}
+                helperText="Auto-calculated from %"
+              />
+              <TextField
+                label="Total"
+                size="small"
+                value={total}
+                onChange={(e) => setTotal(e.target.value)}
+                sx={{ width: 160 }}
+              />
             </Stack>
-            <TextField
-              label="VAT amount"
-              size="small"
-              value={vatAmount}
-              onChange={(e) => { setVatAmount(e.target.value); }}
-              onBlur={syncTotalFromParts}
-              sx={{ width: 200 }}
-            />
-            <TextField
-              label="Total"
-              size="small"
-              value={total}
-              onChange={(e) => setTotal(e.target.value)}
-              sx={{ width: 200 }}
-            />
           </Stack>
           <Divider sx={{ my: 2 }} />
           <TextField

@@ -12,11 +12,16 @@ import { IconArrowLeft, IconPlus, IconX, IconBuilding } from '@tabler/icons-reac
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
+const PHONE_REGEX = /^\+?[0-9\s\-().]{7,20}$/;
+
 const validationSchema = Yup.object({
   firstName: Yup.string().trim().required('First name is required'),
   contactType: Yup.string().oneOf(['clients', 'vendors']).required('Contact type is required'),
   lastName: Yup.string().trim().nullable().transform(v => v || ''),
-  phone: Yup.string().trim().required('Phone is required'),
+  phone: Yup.string()
+    .trim()
+    .required('Phone is required')
+    .matches(PHONE_REGEX, 'Enter a valid phone number (7–20 digits, may include +, spaces, dashes)'),
   email: Yup.string().email('Invalid email').nullable().transform(v => v || null),
 });
 
@@ -268,10 +273,12 @@ const ContactForm = () => {
                       <Grid size={{ xs: 12, md: 6 }}>
                         <TextField
                           fullWidth required label="Phone" name="phone"
+                          placeholder="+971 50 000 0000"
                           value={values.phone} onChange={handleChange} onBlur={handleBlur}
                           error={touched.phone && Boolean(errors.phone)}
-                          helperText={touched.phone ? errors.phone : ' '}
+                          helperText={touched.phone ? errors.phone : 'e.g. +971 50 000 0000'}
                           sx={tfSx}
+                          inputProps={{ maxLength: 20 }}
                         />
                       </Grid>
                       <Grid size={{ xs: 12, md: 6 }}>

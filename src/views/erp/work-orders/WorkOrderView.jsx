@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Button, Stack, Chip, CircularProgress, Alert,
   Paper, Divider, Avatar, Tooltip, IconButton, LinearProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router';
@@ -16,6 +18,7 @@ import {
   IconArrowLeft, IconEdit, IconHammer, IconCalendar, IconUser,
   IconCurrencyDollar, IconClock, IconGripVertical, IconLock,
   IconAlertCircle, IconCircleCheck, IconNote, IconCheck, IconX,
+  IconFileReport, IconPrinter, IconReceipt,
 } from '@tabler/icons-react';
 import { TextField, InputAdornment } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
@@ -362,6 +365,8 @@ const WorkOrderView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reordering, setReordering] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [dealQuotationId, setDealQuotationId] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -374,6 +379,15 @@ const WorkOrderView = () => {
       if (res.success) {
         setWo(res.data);
         setTasks(res.data.tasks || []);
+        // For OTC deals, find linked quotation so we can offer tax invoice creation
+        const deal = res.data.deal;
+        if (deal?.deal_type === 'offer_to_charge' && deal?.id) {
+          try {
+            const qRes = await apiService.getQuotations({ dealId: deal.id, pageSize: 1 });
+            const quotations = Array.isArray(qRes.data) ? qRes.data : qRes.data?.items || [];
+            if (quotations.length > 0) setDealQuotationId(quotations[0].id);
+          } catch { /* no quotation yet */ }
+        }
       }
     } catch (err) {
       setError(err.message || 'Failed to load work order');
@@ -503,14 +517,38 @@ const WorkOrderView = () => {
               )}
             </Box>
           </Stack>
-          <Button
-            variant="outlined"
-            startIcon={<IconEdit size={16} />}
-            onClick={() => navigate(`/erp/work-orders/edit/${wo.id}`)}
-            sx={{ borderRadius: 2, fontWeight: 600 }}
-          >
-            Edit
-          </Button>
+          <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+            {wo.status === 'completed' && wo.deal?.deal_type === 'offer_to_charge' && dealQuotationId && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<IconReceipt size={16} />}
+                onClick={() => navigate(`/erp/proforma-invoices/create/${dealQuotationId}?return=/erp/work-orders/view/${wo.id}`)}
+                sx={{ borderRadius: 2, fontWeight: 600 }}
+              >
+                Create Tax Invoice
+              </Button>
+            )}
+            {wo.status === 'completed' && (
+              <Button
+                variant="outlined"
+                color="success"
+                startIcon={<IconFileReport size={16} />}
+                onClick={() => setReportOpen(true)}
+                sx={{ borderRadius: 2, fontWeight: 600 }}
+              >
+                Completion Report
+              </Button>
+            )}
+            <Button
+              variant="outlined"
+              startIcon={<IconEdit size={16} />}
+              onClick={() => navigate(`/erp/work-orders/edit/${wo.id}`)}
+              sx={{ borderRadius: 2, fontWeight: 600 }}
+            >
+              Edit
+            </Button>
+          </Stack>
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -672,6 +710,154 @@ const WorkOrderView = () => {
           </Box>
         )}
       </Box>
+
+      {/* ── Work Completion Report Dialog ── */}
+      <Dialog open={reportOpen} onClose={() => setReportOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ pb: 1, pt: 3, px: 3 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconFileReport size={20} />
+              </Box>
+              <Box>
+                <Typography variant="h5" fontWeight={800}>Work Completion Report</Typography>
+                <Typography variant="caption" color="text.secondary">Generated on {new Date().toLocaleDateString('en-AE', { day: 'numeric', month: 'long', year: 'numeric' })}</Typography>
+              </Box>
+            </Stack>
+            <IconButton size="small" onClick={() => window.print()} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
+              <IconPrinter size={18} />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ px: 3 }} id="work-completion-report-content">
+          <Divider sx={{ mb: 3 }} />
+
+          {/* Deal & Work Order Details */}
+          <Paper variant="outlined" sx={{ borderRadius: 2, p: 2.5, mb: 2 }}>
+            <Typography variant="subtitle2" fontWeight={700} color="primary.main" mb={1.5} textTransform="uppercase" fontSize="0.72rem" letterSpacing={0.8}>
+              Work Order Details
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>Work Order</Typography>
+                <Typography variant="body2" fontWeight={600}>{wo.title || `#${wo.id}`}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>Status</Typography>
+                <Typography variant="body2" fontWeight={600} sx={{ color: 'success.main', textTransform: 'capitalize' }}>{wo.status?.replace(/_/g, ' ')}</Typography>
+              </Box>
+              {wo.deal && (
+                <>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>Deal</Typography>
+                    <Typography variant="body2">{wo.deal.deal_number} — {wo.deal.title}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>Deal Type</Typography>
+                    <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>{wo.deal.deal_type?.replace(/_/g, ' ')}</Typography>
+                  </Box>
+                  {wo.deal.company && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>Client</Typography>
+                      <Typography variant="body2">{wo.deal.company.company_name}</Typography>
+                    </Box>
+                  )}
+                  {wo.deal.supplier && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>Supplier</Typography>
+                      <Typography variant="body2">{wo.deal.supplier.company_name}</Typography>
+                    </Box>
+                  )}
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>Total Value</Typography>
+                    <Typography variant="body2" fontWeight={700}>{wo.deal.currency || 'AED'} {parseFloat(wo.deal.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Typography>
+                  </Box>
+                </>
+              )}
+              <Box>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>Completed Date</Typography>
+                <Typography variant="body2">{new Date().toLocaleDateString('en-AE')}</Typography>
+              </Box>
+            </Box>
+          </Paper>
+
+          {/* Tasks Summary */}
+          <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', mb: 2 }}>
+            <Box sx={{ px: 2.5, py: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.04), borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="subtitle2" fontWeight={700} color="text.secondary" textTransform="uppercase" fontSize="0.72rem" letterSpacing={0.8}>
+                Tasks Performed ({tasks.length})
+              </Typography>
+            </Box>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: alpha(theme.palette.grey[500], 0.04) }}>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>#</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Task</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Notes</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Expense (AED)</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {tasks.map((task, idx) => {
+                    const exp = task.expenses?.length
+                      ? task.expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0)
+                      : (task.expense != null ? parseFloat(task.expense) : 0);
+                    return (
+                      <TableRow key={task.id ?? idx}>
+                        <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{idx + 1}</TableCell>
+                        <TableCell sx={{ fontSize: '0.85rem', fontWeight: 600 }}>{task.type_of_work || task.workType?.name || `Task ${idx + 1}`}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={task.status?.replace(/_/g, ' ')}
+                            size="small"
+                            color={task.status === 'completed' ? 'success' : task.status === 'in_progress' ? 'primary' : 'default'}
+                            sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }}
+                          />
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary', maxWidth: 200 }}>{task.notes || '—'}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: '0.85rem', fontWeight: exp > 0 ? 600 : 400 }}>
+                          {exp > 0 ? exp.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '—'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {totalExpense > 0 && (
+                    <TableRow sx={{ bgcolor: alpha(theme.palette.success.main, 0.05) }}>
+                      <TableCell colSpan={4} sx={{ fontWeight: 700, fontSize: '0.85rem' }}>Total Expenses</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.85rem', color: 'success.main' }}>
+                        {totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+
+          {wo.notes && (
+            <Paper variant="outlined" sx={{ borderRadius: 2, p: 2.5 }}>
+              <Typography variant="subtitle2" fontWeight={700} color="text.secondary" mb={1} textTransform="uppercase" fontSize="0.72rem" letterSpacing={0.8}>
+                Work Order Notes
+              </Typography>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{wo.notes}</Typography>
+            </Paper>
+          )}
+
+          <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.disabled">
+              This report was generated automatically upon work order completion. All tasks and expenses listed above are recorded in the system.
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
+          <Button onClick={() => setReportOpen(false)} variant="outlined" sx={{ borderRadius: 2 }}>Close</Button>
+          <Button variant="contained" color="success" startIcon={<IconPrinter size={16} />} onClick={() => window.print()} sx={{ borderRadius: 2, fontWeight: 600 }}>
+            Print Report
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 };

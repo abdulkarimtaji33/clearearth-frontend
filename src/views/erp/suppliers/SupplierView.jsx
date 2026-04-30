@@ -13,6 +13,14 @@ import {
   Avatar,
   Paper,
   Collapse,
+  Tabs,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router';
@@ -111,6 +119,7 @@ const SupplierView = () => {
   const [error, setError] = useState('');
   const [supplier, setSupplier] = useState(null);
   const [docsOpen, setDocsOpen] = useState(true);
+  const [tab, setTab] = useState(0);
 
   const fetchSupplier = useCallback(async () => {
     try {
@@ -144,6 +153,8 @@ const SupplierView = () => {
   const hasVat = !!(supplier.vat_certificate_file_path || supplier.vat_certificate_trn);
   const hasBank = !!(supplier.bank_details_file_path || supplier.bank_name || supplier.bank_iban);
   const goEdit = () => navigate(`/erp/suppliers/edit/${id}`);
+  const fin = supplier.finance || {};
+  const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const vendorRoleChip = (role) => {
     if (role === 'downstream') return <Chip label="Downstream" size="small" variant="outlined" color="secondary" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700 }} />;
@@ -189,6 +200,15 @@ const SupplierView = () => {
           </Box>
         </Paper>
 
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Tab label="Overview" />
+          <Tab label="Purchase orders" />
+          <Tab label="Expenses" />
+          <Tab label="Payables" />
+        </Tabs>
+
+        {tab === 0 && (
+        <>
         {/* ── Notes ── */}
         {supplier.notes && (
           <Card elevation={0} sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', mb: 2.5 }}>
@@ -320,6 +340,79 @@ const SupplierView = () => {
               </Grid>
             )}
           </Grid>
+        )}
+        </>
+        )}
+
+        {tab === 1 && (
+          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>PO</TableCell>
+                  <TableCell>Date</TableCell>
+                  <TableCell>Deal</TableCell>
+                  <TableCell align="right">Total</TableCell>
+                  <TableCell align="right">Balance</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {(fin.purchaseOrders || []).length === 0 ? (
+                  <TableRow><TableCell colSpan={6}>No approved purchase orders</TableCell></TableRow>
+                ) : fin.purchaseOrders.map((po) => (
+                  <TableRow key={po.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/purchase-orders/view/${po.id}`)}>
+                    <TableCell>#{po.id}</TableCell>
+                    <TableCell>{po.po_date || '—'}</TableCell>
+                    <TableCell>{po.deal ? `${po.deal.deal_number || ''} ${po.deal.title || ''}`.trim() : '—'}</TableCell>
+                    <TableCell align="right">{po.currency || 'AED'} {fmt(po.po_total)}</TableCell>
+                    <TableCell align="right">{po.currency || 'AED'} {fmt(po.balance_due)}</TableCell>
+                    <TableCell><Chip size="small" label={po.payment_status} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+
+        {tab === 2 && (
+          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Date</TableCell>
+                  <TableCell>Category</TableCell>
+                  <TableCell align="right">Amount</TableCell>
+                  <TableCell>Paid to</TableCell>
+                  <TableCell>Pay status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {(fin.expenses || []).length === 0 ? (
+                  <TableRow><TableCell colSpan={5}>No linked expenses</TableCell></TableRow>
+                ) : fin.expenses.map((ex) => (
+                  <TableRow key={ex.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate('/erp/accounts/expenses')}>
+                    <TableCell>{ex.expense_date || '—'}</TableCell>
+                    <TableCell>{String(ex.category || '').replace(/_/g, ' ')}</TableCell>
+                    <TableCell align="right">{fmt(ex.amount)}</TableCell>
+                    <TableCell>{ex.paid_to || '—'}</TableCell>
+                    <TableCell><Chip size="small" label={ex.payment_status || '—'} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+
+        {tab === 3 && (
+          <Stack spacing={2}>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+              <Typography variant="body2" color="text.secondary">Outstanding on approved POs</Typography>
+              <Typography variant="h5" fontWeight={800} color="warning.main">AED {fmt(fin.payablesOutstanding)}</Typography>
+            </Paper>
+            <Typography variant="caption" color="text.secondary">Open balances by purchase order (same as Purchase orders tab).</Typography>
+            <Button variant="outlined" size="small" onClick={() => navigate('/erp/payables')} sx={{ alignSelf: 'flex-start', borderRadius: 2 }}>Payables register</Button>
+          </Stack>
         )}
       </Box>
     </PageContainer>

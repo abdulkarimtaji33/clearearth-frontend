@@ -40,29 +40,45 @@ const ExpenseCreate = () => {
   const [paidTo, setPaidTo] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [notes, setNotes] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('unpaid');
+  const [paidAmount, setPaidAmount] = useState('');
+  const [paidAt, setPaidAt] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     const amt = parseFloat(String(amount).replace(/,/g, ''));
-    if (!Number.isFinite(amt) || amt < 0) {
-      setError('Enter a valid amount.');
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setError('Enter a valid amount greater than zero.');
       return;
     }
     if (!expenseDate) {
       setError('Expense date is required.');
       return;
     }
+    if (paymentStatus === 'partial') {
+      const p = parseFloat(String(paidAmount).replace(/,/g, ''));
+      if (!Number.isFinite(p) || p <= 0 || p >= amt) {
+        setError('Partial: enter paid amount greater than 0 and less than total.');
+        return;
+      }
+    }
     try {
       setSaving(true);
-      const res = await apiService.createAccountsExpense({
+      const payload = {
         category,
         amount: amt,
         expenseDate,
         paidTo: paidTo.trim() || undefined,
         paymentMethod: paymentMethod.trim() || undefined,
         notes: notes.trim() || undefined,
-      });
+        paymentStatus,
+      };
+      if (paymentStatus === 'partial') {
+        payload.paidAmount = parseFloat(String(paidAmount).replace(/,/g, ''));
+      }
+      if (paidAt) payload.paidAt = paidAt;
+      const res = await apiService.createAccountsExpense(payload);
       if (res.success === false) throw new Error(res.message || 'Failed to create expense');
       navigate('/erp/accounts/expenses');
     } catch (err) {
@@ -167,6 +183,44 @@ const ExpenseCreate = () => {
                 onChange={(e) => setPaymentMethod(e.target.value)}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
+              <FormControl fullWidth size="small">
+                <InputLabel>Settlement</InputLabel>
+                <Select
+                  value={paymentStatus}
+                  label="Settlement"
+                  onChange={(e) => setPaymentStatus(e.target.value)}
+                  sx={{ borderRadius: 2 }}
+                >
+                  <MenuItem value="unpaid">Unpaid</MenuItem>
+                  <MenuItem value="partial">Partially paid</MenuItem>
+                  <MenuItem value="paid">Paid in full</MenuItem>
+                </Select>
+              </FormControl>
+              {paymentStatus === 'partial' && (
+                <TextField
+                  required
+                  fullWidth
+                  size="small"
+                  type="number"
+                  inputProps={{ min: 0, step: '0.01' }}
+                  label="Amount already paid (AED)"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(e.target.value)}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              )}
+              {(paymentStatus === 'paid' || paymentStatus === 'partial') && (
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  label="Payment date (optional)"
+                  InputLabelProps={{ shrink: true }}
+                  value={paidAt}
+                  onChange={(e) => setPaidAt(e.target.value)}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              )}
               <TextField
                 fullWidth
                 size="small"

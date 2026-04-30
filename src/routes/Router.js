@@ -40,6 +40,10 @@ const AccountsWorkOrderList = Loadable(lazy(() => import('../views/erp/accounts/
 const AccountsWorkOrderView = Loadable(lazy(() => import('../views/erp/accounts/AccountsWorkOrderView')));
 const ExpensesList = Loadable(lazy(() => import('../views/erp/accounts/ExpensesList')));
 const ExpenseCreate = Loadable(lazy(() => import('../views/erp/accounts/ExpenseCreate')));
+const ReceivablesList = Loadable(lazy(() => import('../views/erp/receivables/ReceivablesList')));
+const AgingSummaryView = Loadable(lazy(() => import('../views/erp/receivables/AgingSummaryView')));
+const PayablesList = Loadable(lazy(() => import('../views/erp/payables/PayablesList')));
+const PayablesAgingSummaryView = Loadable(lazy(() => import('../views/erp/payables/PayablesAgingSummaryView')));
 const PurchaseOrderForm = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderForm')));
 const PurchaseOrderView = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderView')));
 const ClientPurchaseQuotationList = Loadable(lazy(() => import('../views/erp/purchase-orders/ClientPurchaseQuotationList')));
@@ -117,6 +121,10 @@ const Router = createBrowserRouter([
       { path: '/erp/accounts/expenses/create', element: <ExpenseCreate /> },
       { path: '/erp/accounts/work-orders', element: <AccountsWorkOrderList /> },
       { path: '/erp/accounts/work-orders/view/:id', element: <AccountsWorkOrderView /> },
+      { path: '/erp/receivables', element: <ReceivablesList /> },
+      { path: '/erp/receivables/aging', element: <AgingSummaryView /> },
+      { path: '/erp/payables', element: <PayablesList /> },
+      { path: '/erp/payables/aging', element: <PayablesAgingSummaryView /> },
       { path: '/erp/purchase-orders', element: <Navigate to="/erp/client-purchase-quotations" replace /> },
       { path: '/erp/client-purchase-quotations', element: <ClientPurchaseQuotationList /> },
       { path: '/erp/vendor-purchase-quotations', element: <VendorPurchaseQuotationList /> },

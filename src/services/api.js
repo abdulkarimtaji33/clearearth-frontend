@@ -91,6 +91,13 @@ class ApiService {
     });
   }
 
+  async patch(endpoint, data) {
+    return this.request(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   async delete(endpoint) {
     return this.request(endpoint, {
       method: 'DELETE',
@@ -390,6 +397,34 @@ class ApiService {
 
   async createAccountsExpense(data) {
     return this.post('/accounts/expenses', data);
+  }
+
+  async patchAccountsExpensePayment(id, data) {
+    return this.patch(`/accounts/expenses/${id}/payment`, data);
+  }
+
+  async getReceivables(params) {
+    return this.get('/receivables', params);
+  }
+
+  async postReceivablePayment(id, data) {
+    return this.post(`/receivables/${id}/payment`, data);
+  }
+
+  async getReceivablesAgingSummary(params) {
+    return this.get('/receivables/aging-summary', params);
+  }
+
+  async getPayables(params) {
+    return this.get('/payables', params);
+  }
+
+  async postPayablePayment(id, data) {
+    return this.post(`/payables/${id}/payment`, data);
+  }
+
+  async getPayablesAgingSummary(params) {
+    return this.get('/payables/aging-summary', params);
   }
 
   async getAccountsWorkOrder(id) {

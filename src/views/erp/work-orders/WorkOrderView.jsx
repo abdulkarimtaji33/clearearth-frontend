@@ -18,7 +18,7 @@ import {
   IconArrowLeft, IconEdit, IconHammer, IconCalendar, IconUser,
   IconCurrencyDollar, IconClock, IconGripVertical, IconLock,
   IconAlertCircle, IconCircleCheck, IconNote, IconCheck, IconX,
-  IconFileReport, IconPrinter, IconReceipt,
+  IconFileReport, IconPrinter, IconReceipt, IconFileInvoice,
 } from '@tabler/icons-react';
 import { TextField, InputAdornment } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
@@ -367,6 +367,8 @@ const WorkOrderView = () => {
   const [reordering, setReordering] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [dealQuotationId, setDealQuotationId] = useState(null);
+  const [dealProformaId, setDealProformaId] = useState(null);
+  const [dealTaxInvoiceId, setDealTaxInvoiceId] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -379,14 +381,35 @@ const WorkOrderView = () => {
       if (res.success) {
         setWo(res.data);
         setTasks(res.data.tasks || []);
-        // For OTC deals, find linked quotation so we can offer tax invoice creation
+        setDealQuotationId(null);
+        setDealProformaId(null);
+        setDealTaxInvoiceId(null);
         const deal = res.data.deal;
-        if (deal?.deal_type === 'offer_to_charge' && deal?.id) {
+        if (deal?.id) {
           try {
-            const qRes = await apiService.getQuotations({ dealId: deal.id, pageSize: 1 });
+            // Fetch quotations scoped to this deal, newest first
+            const qRes = await apiService.getQuotations({ dealId: deal.id, pageSize: 100, sortBy: 'created_at', sortDir: 'desc' });
             const quotations = Array.isArray(qRes.data) ? qRes.data : qRes.data?.items || [];
-            if (quotations.length > 0) setDealQuotationId(quotations[0].id);
-          } catch { /* no quotation yet */ }
+            if (quotations.length > 0) {
+              // Use the most recent (first) quotation for the deal
+              const qid = quotations[0].id;
+              setDealQuotationId(qid);
+              // Scope proforma lookup to this deal so we never pick up another deal's invoice
+              const pfRes = await apiService.getProformaInvoices({ dealId: deal.id, pageSize: 100 });
+              const pfs = Array.isArray(pfRes.data) ? pfRes.data : pfRes.data?.items || [];
+              const match = pfs.find(
+                (p) => p.quotation_id === qid || p.quotation?.id === qid,
+              );
+              if (match?.id) {
+                setDealProformaId(match.id);
+                try {
+                  const detail = await apiService.getProformaInvoice(match.id);
+                  const ti = detail?.data?.taxInvoice;
+                  if (ti?.id) setDealTaxInvoiceId(ti.id);
+                } catch { /* ignore */ }
+              }
+            }
+          } catch { /* no quotation / proforma */ }
         }
       }
     } catch (err) {
@@ -518,15 +541,37 @@ const WorkOrderView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-            {wo.status === 'completed' && wo.deal?.deal_type === 'offer_to_charge' && dealQuotationId && (
+            {wo.status === 'completed' && dealQuotationId && !dealProformaId && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<IconFileInvoice size={16} />}
+                onClick={() => navigate(`/erp/proforma-invoices/create/${dealQuotationId}?return=/erp/work-orders/view/${wo.id}`)}
+                sx={{ borderRadius: 2, fontWeight: 600 }}
+              >
+                Create Proforma Invoice
+              </Button>
+            )}
+            {wo.status === 'completed' && dealProformaId && !dealTaxInvoiceId && (
               <Button
                 variant="contained"
                 color="primary"
                 startIcon={<IconReceipt size={16} />}
-                onClick={() => navigate(`/erp/proforma-invoices/create/${dealQuotationId}?return=/erp/work-orders/view/${wo.id}`)}
+                onClick={() => navigate(`/erp/tax-invoices/create/${dealProformaId}?return=/erp/work-orders/view/${wo.id}`)}
                 sx={{ borderRadius: 2, fontWeight: 600 }}
               >
                 Create Tax Invoice
+              </Button>
+            )}
+            {wo.status === 'completed' && dealTaxInvoiceId && (
+              <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<IconReceipt size={16} />}
+                onClick={() => navigate(`/erp/tax-invoices/view/${dealTaxInvoiceId}`)}
+                sx={{ borderRadius: 2, fontWeight: 600 }}
+              >
+                View Tax Invoice
               </Button>
             )}
             {wo.status === 'completed' && (

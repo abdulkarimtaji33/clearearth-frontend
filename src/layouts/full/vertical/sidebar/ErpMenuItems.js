@@ -16,6 +16,8 @@ import {
   IconHammer,
   IconFileInvoice,
   IconWallet,
+  IconCoin,
+  IconTruckDelivery,
 } from '@tabler/icons-react';
 
 const ErpMenuItems = [
@@ -103,6 +105,20 @@ const ErpMenuItems = [
     title: 'Tax invoices',
     icon: IconReceipt,
     href: '/erp/tax-invoices',
+    permission: 'deals.read',
+  },
+  {
+    id: uniqueId(),
+    title: 'Receivables',
+    icon: IconCoin,
+    href: '/erp/receivables',
+    permission: 'deals.read',
+  },
+  {
+    id: uniqueId(),
+    title: 'Payables',
+    icon: IconTruckDelivery,
+    href: '/erp/payables',
     permission: 'deals.read',
   },
   {

@@ -14,6 +14,14 @@ import {
   Paper,
   Collapse,
   Divider,
+  Tabs,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router';
@@ -119,6 +127,7 @@ const CompanyView = () => {
   const [error, setError] = useState('');
   const [company, setCompany] = useState(null);
   const [docsOpen, setDocsOpen] = useState(true);
+  const [tab, setTab] = useState(0);
 
   const fetchCompany = useCallback(async () => {
     try {
@@ -152,6 +161,8 @@ const CompanyView = () => {
   const hasVat = !!(company.vat_certificate_file_path || company.vat_certificate_trn);
   const hasBank = !!(company.bank_details_file_path || company.bank_name || company.bank_iban);
   const goEdit = () => navigate(`/erp/companies/edit/${id}`);
+  const fin = company.finance || {};
+  const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <PageContainer title={company.company_name} description="Company profile">
@@ -190,6 +201,15 @@ const CompanyView = () => {
           </Box>
         </Paper>
 
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Tab label="Overview" />
+          <Tab label="Invoices" />
+          <Tab label="Receivables" />
+          <Tab label="Work orders" />
+        </Tabs>
+
+        {tab === 0 && (
+        <>
         {/* ── Notes ── */}
         {company.notes && (
           <Card elevation={0} sx={{ borderRadius: 2.5, border: '1px solid', borderColor: 'divider', mb: 2.5 }}>
@@ -318,6 +338,87 @@ const CompanyView = () => {
               </Grid>
             )}
           </Grid>
+        )}
+        </>
+        )}
+
+        {tab === 1 && (
+          <Stack spacing={2}>
+            <Typography variant="subtitle2" fontWeight={800} color="text.secondary">Quotations</Typography>
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table size="small">
+                <TableHead><TableRow><TableCell>ID</TableCell><TableCell>Date</TableCell><TableCell>Status</TableCell><TableCell align="right">Amount</TableCell></TableRow></TableHead>
+                <TableBody>
+                  {(fin.quotations || []).length === 0 ? <TableRow><TableCell colSpan={4}>No quotations</TableCell></TableRow> : fin.quotations.map((q) => (
+                    <TableRow key={q.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/quotations/view/${q.id}`)}>
+                      <TableCell>{q.id}</TableCell><TableCell>{q.quotation_date}</TableCell><TableCell>{q.status}</TableCell><TableCell align="right">{q.currency || 'AED'} {fmt(q.quotation_amount)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <Typography variant="subtitle2" fontWeight={800} color="text.secondary">Proforma invoices</Typography>
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table size="small">
+                <TableHead><TableRow><TableCell>#</TableCell><TableCell>Date</TableCell><TableCell>Tax</TableCell><TableCell align="right">Total</TableCell></TableRow></TableHead>
+                <TableBody>
+                  {(fin.proformaInvoices || []).length === 0 ? <TableRow><TableCell colSpan={4}>No proforma invoices</TableCell></TableRow> : fin.proformaInvoices.map((p) => (
+                    <TableRow key={p.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/proforma-invoices/view/${p.id}`)}>
+                      <TableCell>{p.proforma_number}</TableCell><TableCell>{p.invoice_date}</TableCell><TableCell>{p.taxInvoice ? <Chip size="small" label={p.taxInvoice.tax_invoice_number} onClick={(e) => { e.stopPropagation(); navigate(`/erp/tax-invoices/view/${p.taxInvoice.id}`); }} /> : '—'}</TableCell><TableCell align="right">{fmt(p.total)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Stack>
+        )}
+
+        {tab === 2 && (
+          <Stack spacing={2}>
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+              <Typography variant="body2" color="text.secondary">Total outstanding (unpaid / partial tax invoices)</Typography>
+              <Typography variant="h5" fontWeight={800} color="warning.main">AED {fmt(fin.receivablesOutstanding)}</Typography>
+            </Paper>
+            <Grid container spacing={1}>
+              {[
+                ['0–30 days', fin.receivablesAging?.current],
+                ['31–60', fin.receivablesAging?.bucket_31_60],
+                ['61–90', fin.receivablesAging?.bucket_61_90],
+                ['90+', fin.receivablesAging?.bucket_over_90],
+              ].map(([label, val]) => (
+                <Grid key={label} size={{ xs: 6, sm: 3 }}>
+                  <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography fontWeight={700}>AED {fmt(val)}</Typography></Paper>
+                </Grid>
+              ))}
+            </Grid>
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+              <Table size="small">
+                <TableHead><TableRow><TableCell>Invoice</TableCell><TableCell>Date</TableCell><TableCell align="right">Balance</TableCell><TableCell>Status</TableCell></TableRow></TableHead>
+                <TableBody>
+                  {(fin.taxInvoices || []).length === 0 ? <TableRow><TableCell colSpan={4}>No open receivables</TableCell></TableRow> : fin.taxInvoices.map((t) => (
+                    <TableRow key={t.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/tax-invoices/view/${t.id}`)}>
+                      <TableCell>{t.tax_invoice_number}</TableCell><TableCell>{t.invoice_date}</TableCell><TableCell align="right">{t.currency || 'AED'} {fmt(t.balance_due)}</TableCell><TableCell><Chip size="small" label={t.payment_status} /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Stack>
+        )}
+
+        {tab === 3 && (
+          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+            <Table size="small">
+              <TableHead><TableRow><TableCell>WO</TableCell><TableCell>Title</TableCell><TableCell>Status</TableCell></TableRow></TableHead>
+              <TableBody>
+                {(fin.workOrders || []).length === 0 ? <TableRow><TableCell colSpan={3}>No work orders</TableCell></TableRow> : fin.workOrders.map((w) => (
+                  <TableRow key={w.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/work-orders/view/${w.id}`)}>
+                    <TableCell>#{w.id}</TableCell><TableCell>{w.title || '—'}</TableCell><TableCell><Chip size="small" label={w.status} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         )}
       </Box>
     </PageContainer>

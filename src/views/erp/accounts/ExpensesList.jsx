@@ -22,6 +22,10 @@ import {
   MenuItem,
   Chip,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconSearch, IconWallet, IconPlus } from '@tabler/icons-react';
@@ -53,6 +57,8 @@ const linkLabel = (ex) => {
 const fmtMoney = (n) =>
   Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const PAY_STATUS_COLOR = { unpaid: 'warning', partial: 'info', paid: 'success' };
+
 const ExpensesList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -66,6 +72,13 @@ const ExpensesList = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('');
+  const [payOpen, setPayOpen] = useState(false);
+  const [payRow, setPayRow] = useState(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [payPaidAt, setPayPaidAt] = useState('');
+  const [payMethod, setPayMethod] = useState('');
+  const [paySaving, setPaySaving] = useState(false);
 
   const fetchRows = useCallback(async () => {
     try {
@@ -78,6 +91,7 @@ const ExpensesList = () => {
       };
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
+      if (paymentStatus) params.paymentStatus = paymentStatus;
       const res = await apiService.getAccountsExpenses(params);
       const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
       if (res.success !== false) {
@@ -89,7 +103,47 @@ const ExpensesList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, category, dateFrom, dateTo]);
+  }, [page, rowsPerPage, search, category, dateFrom, dateTo, paymentStatus]);
+
+  const [payDialogError, setPayDialogError] = useState('');
+
+  const openPayDialog = (ex) => {
+    const total = parseFloat(ex.amount) || 0;
+    const paid = parseFloat(ex.paid_amount) || 0;
+    const due = Math.max(0, total - paid);
+    setPayRow(ex);
+    setPayAmount(due > 0 ? due.toFixed(2) : '');
+    setPayPaidAt(new Date().toISOString().slice(0, 10));
+    setPayMethod(ex.payment_method || '');
+    setPayDialogError('');
+    setPayOpen(true);
+  };
+
+  const submitPay = async () => {
+    if (!payRow) return;
+    const amt = parseFloat(String(payAmount).replace(/,/g, ''));
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setPayDialogError('Enter a valid amount greater than zero.');
+      return;
+    }
+    try {
+      setPaySaving(true);
+      setPayDialogError('');
+      await apiService.patchAccountsExpensePayment(payRow.id, {
+        amount: amt,
+        paidAt: payPaidAt || undefined,
+        paymentMethod: payMethod.trim() || undefined,
+      });
+      setPayOpen(false);
+      setPayRow(null);
+      setError('');
+      fetchRows();
+    } catch (err) {
+      setPayDialogError(err.message || 'Payment update failed');
+    } finally {
+      setPaySaving(false);
+    }
+  };
 
   useEffect(() => {
     fetchRows();
@@ -187,6 +241,23 @@ const ExpensesList = () => {
                   ))}
                 </Select>
               </FormControl>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel>Pay status</InputLabel>
+                <Select
+                  value={paymentStatus}
+                  label="Pay status"
+                  onChange={(e) => {
+                    setPaymentStatus(e.target.value);
+                    setPage(0);
+                  }}
+                  sx={{ borderRadius: 2 }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="unpaid">Unpaid</MenuItem>
+                  <MenuItem value="partial">Partial</MenuItem>
+                  <MenuItem value="paid">Paid</MenuItem>
+                </Select>
+              </FormControl>
             </Stack>
             <Box sx={{ mt: 2 }}>
               <ListDateRangeFilter
@@ -216,10 +287,10 @@ const ExpensesList = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.success.main, 0.06) }}>
-                    {['Date', 'Category', 'Amount (AED)', 'Paid to', 'Payment', 'Work order', 'Deal', 'Link', ''].map((h, i) => (
+                    {['Date', 'Category', 'Amount (AED)', 'Settlement', 'Paid to', 'Method', 'Work order', 'Deal', 'Link', ''].map((h, i) => (
                       <TableCell
-                        key={h}
-                        align={i === 2 || i === 8 ? 'right' : 'left'}
+                        key={h || 'actions'}
+                        align={i === 2 || i === 9 ? 'right' : 'left'}
                         sx={{
                           fontWeight: 700,
                           color: 'text.secondary',
@@ -236,13 +307,13 @@ const ExpensesList = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={9} align="center" sx={{ py: 8 }}>
+                      <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
                         <CircularProgress />
                       </TableCell>
                     </TableRow>
                   ) : rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} align="center" sx={{ py: 8 }}>
+                      <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
                         <IconWallet size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
                         <Typography variant="body2" color="text.secondary" display="block" gutterBottom>
                           No posted expenses yet.
@@ -279,6 +350,10 @@ const ExpensesList = () => {
                       const woTitle = wo?.title || (wo?.id ? `WO #${wo.id}` : null);
                       const displayWo = woTitle || (ex.reference === 'manual' ? 'Manual' : '—');
                       const canOpenWo = Boolean(wo?.id);
+                      const ps = ex.payment_status || 'unpaid';
+                      const totalAmt = parseFloat(ex.amount) || 0;
+                      const paidAmt = parseFloat(ex.paid_amount) || 0;
+                      const canPay = ps === 'unpaid' || ps === 'partial';
                       return (
                         <TableRow
                           key={ex.id}
@@ -304,6 +379,21 @@ const ExpensesList = () => {
                             <Typography variant="body2" fontWeight={700}>
                               {fmtMoney(ex.amount)}
                             </Typography>
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                              <Chip
+                                size="small"
+                                label={ps}
+                                color={PAY_STATUS_COLOR[ps] || 'default'}
+                                sx={{ fontWeight: 700, textTransform: 'capitalize' }}
+                              />
+                              {ps === 'partial' && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {fmtMoney(paidAmt)} / {fmtMoney(totalAmt)}
+                                </Typography>
+                              )}
+                            </Stack>
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" color="text.secondary">
@@ -331,21 +421,34 @@ const ExpensesList = () => {
                             </Typography>
                           </TableCell>
                           <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                            {canOpenWo ? (
-                              <Typography
-                                variant="caption"
-                                color="primary"
-                                fontWeight={700}
-                                sx={{ cursor: 'pointer' }}
-                                onClick={() => navigate(`/erp/accounts/work-orders/view/${wo.id}`)}
-                              >
-                                Open
-                              </Typography>
-                            ) : (
-                              <Typography variant="caption" color="text.disabled">
-                                —
-                              </Typography>
-                            )}
+                            <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" alignItems="center">
+                              {canPay && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="success"
+                                  onClick={() => openPayDialog(ex)}
+                                  sx={{ borderRadius: 1.5 }}
+                                >
+                                  Pay
+                                </Button>
+                              )}
+                              {canOpenWo ? (
+                                <Typography
+                                  variant="caption"
+                                  color="primary"
+                                  fontWeight={700}
+                                  sx={{ cursor: 'pointer' }}
+                                  onClick={() => navigate(`/erp/accounts/work-orders/view/${wo.id}`)}
+                                >
+                                  Open
+                                </Typography>
+                              ) : (
+                                <Typography variant="caption" color="text.disabled">
+                                  —
+                                </Typography>
+                              )}
+                            </Stack>
                           </TableCell>
                         </TableRow>
                       );
@@ -370,6 +473,55 @@ const ExpensesList = () => {
           </CardContent>
         </Card>
       </Box>
+      <Dialog open={payOpen} onClose={() => !paySaving && (setPayOpen(false), setPayDialogError(''))} PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle fontWeight={800}>
+          Record payment
+          {payRow && (
+            <Typography variant="body2" color="text.secondary" fontWeight={400}>
+              Expense #{payRow.id} — balance{' '}
+              <strong>AED {fmtMoney(Math.max(0, (parseFloat(payRow.amount) || 0) - (parseFloat(payRow.paid_amount) || 0)))}</strong>
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1, minWidth: 320 }}>
+            {payDialogError && <Alert severity="error" onClose={() => setPayDialogError('')}>{payDialogError}</Alert>}
+            <TextField
+              size="small"
+              label="Amount (AED)"
+              type="number"
+              inputProps={{ min: 0.01, step: '0.01' }}
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+              fullWidth
+            />
+            <TextField
+              size="small"
+              label="Paid on"
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              value={payPaidAt}
+              onChange={(e) => setPayPaidAt(e.target.value)}
+              fullWidth
+            />
+            <TextField
+              size="small"
+              label="Payment method"
+              value={payMethod}
+              onChange={(e) => setPayMethod(e.target.value)}
+              fullWidth
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => { setPayOpen(false); setPayDialogError(''); }} disabled={paySaving}>
+            Cancel
+          </Button>
+          <Button variant="contained" color="success" onClick={submitPay} disabled={paySaving}>
+            {paySaving ? 'Saving…' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 };

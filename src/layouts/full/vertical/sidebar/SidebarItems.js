@@ -22,15 +22,24 @@ const SidebarItems = () => {
   const pathDirect = pathname;
   const pathWithoutLastPart = pathname.slice(0, pathname.lastIndexOf('/'));
   const { isSidebarHover, isCollapse, isMobileSidebar, setIsMobileSidebar } = useContext(CustomizerContext);
-  const { hasPermission, hasAdminDashboardAccess } = useAuth();
+  const { hasPermission, hasAdminDashboardAccess, user } = useAuth();
+  const userRole = user?.role?.name || null;
 
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up('lg'));
   const hideMenu = lgUp ? isCollapse == "mini-sidebar" && !isSidebarHover : '';
 
+  const isRoleAllowed = (item) => {
+    if (item.excludeRoles?.includes(userRole)) return false;
+    if (item.includeRoles && !item.includeRoles.includes(userRole)) return false;
+    return true;
+  };
+
   const filteredItems = Menuitems.filter((item, index) => {
+    if (!isRoleAllowed(item)) return false;
     if (item.adminDashboardOnly && !hasAdminDashboardAccess()) return false;
     if (item.children) {
-      const childPerms = collectLeafPermissions(item.children);
+      const visibleChildren = item.children.filter((c) => isRoleAllowed(c));
+      const childPerms = collectLeafPermissions(visibleChildren);
       if (childPerms.length) return childPerms.some((p) => hasPermission(p));
       return true;
     }
@@ -38,6 +47,7 @@ const SidebarItems = () => {
     if (item.subheader) {
       const hasVisibleSibling = Menuitems.slice(index + 1).some((next) => {
         if (next.subheader) return false;
+        if (!isRoleAllowed(next)) return false;
         return !next.permission || hasPermission(next.permission);
       });
       return hasVisibleSibling;

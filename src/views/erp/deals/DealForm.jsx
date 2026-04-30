@@ -418,16 +418,11 @@ const DealForm = () => {
           description: lead.notes || '',
         }));
         
-        if (lead.product_service_id) {
-          setLineItems([{
-            productServiceId: lead.product_service_id,
-            productName: lead.productService?.name || '',
-            quantity: 1,
-            unitOfMeasure: lead.productService?.unit_of_measure || '',
-            unitPrice: lead.estimated_value || 0,
-            lineTotal: lead.estimated_value || 0,
-          }]);
-        }
+        // Do not auto-populate line items from the lead — the lead's
+        // product/estimated_value are indicative only. The user must explicitly
+        // add the items they want in this deal. Auto-populating caused a ghost
+        // duplicate item because the blank placeholder was invisible until
+        // products loaded, so users added their own item on top.
       }
     } catch (err) {
       console.error('Failed to load lead:', err);

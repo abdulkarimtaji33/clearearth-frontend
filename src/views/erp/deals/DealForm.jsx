@@ -435,17 +435,16 @@ const DealForm = () => {
   }, []);
 
   useEffect(() => {
-    fetchAllData();
+    const urlParams = new URLSearchParams(window.location.search);
+    const leadId = urlParams.get('leadId');
+    // fetchAllData must finish first so products are loaded before fetchLeadData
+    // sets lineItems — otherwise the prefilled product shows as blank and the
+    // user thinks the form is empty and adds a duplicate item.
+    fetchAllData().then(() => {
+      if (!isEdit && leadId) fetchLeadData(leadId);
+    });
     fetchDropdowns();
-    if (isEdit) {
-      fetchDeal();
-    } else {
-      const urlParams = new URLSearchParams(window.location.search);
-      const leadId = urlParams.get('leadId');
-      if (leadId) {
-        fetchLeadData(leadId);
-      }
-    }
+    if (isEdit) fetchDeal();
   }, [isEdit, fetchAllData, fetchDropdowns, fetchDeal, fetchLeadData]);
 
   // Recalculate totals when line items or VAT changes

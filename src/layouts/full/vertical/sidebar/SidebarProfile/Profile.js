@@ -65,7 +65,11 @@ export const Profile = () => {
           </Box>
         </>
       ) : (
-        ''
+        <Tooltip title="Logout" placement="top">
+          <IconButton color="primary" onClick={handleLogout} aria-label="logout" size="small" sx={{ mx: 'auto' }}>
+            <IconPower size="20" />
+          </IconButton>
+        </Tooltip>
       )}
     </Box>
   );

@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
 import React from 'react';
 import apiService from '../services/api';
+import { getUserRole, normalizePermissions, collectPermissionsFromUserPayload } from '../utils/authHelpers';
 
 export const AuthContext = createContext(undefined);
 
@@ -21,9 +22,11 @@ export const AuthProvider = ({ children }) => {
 
       const response = await apiService.getCurrentUser();
       if (response.success && response.data) {
-        setUser(response.data.user || response.data);
-        setTenant(response.data.tenant);
-        setPermissions(response.data.permissions || []);
+        const data = response.data;
+        const userPayload = data.user || data;
+        setUser(userPayload);
+        setTenant(data.tenant ?? userPayload.tenant);
+        setPermissions(collectPermissionsFromUserPayload(data));
         setIsAuthenticated(true);
         // Cache tenant logo so Logo.js can read it without an extra API call
         const logo = response.data.tenant?.logo;
@@ -52,7 +55,7 @@ export const AuthProvider = ({ children }) => {
         const userData = data.user || data;
         setUser(userData);
         setTenant(data.tenant);
-        setPermissions(userData.permissions ?? data.permissions ?? []);
+        setPermissions(collectPermissionsFromUserPayload(data));
         setIsAuthenticated(true);
         await loadUser();
         return response;
@@ -71,7 +74,7 @@ export const AuthProvider = ({ children }) => {
         const userData = data.user || data;
         setUser(userData);
         setTenant(data.tenant);
-        setPermissions(userData.permissions ?? data.permissions ?? []);
+        setPermissions(collectPermissionsFromUserPayload(data));
         setIsAuthenticated(true);
         await loadUser();
         return response;
@@ -95,29 +98,41 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const effectivePermissions = useCallback(() => {
+    const fromState = normalizePermissions(permissions);
+    if (fromState.length) return fromState;
+    return collectPermissionsFromUserPayload(user);
+  }, [permissions, user]);
+
   const hasPermission = (permission) => {
     if (!user) return false;
-    const roleName = user.role?.name ?? user.role;
+    const roleName = getUserRole(user);
     if (roleName === 'super_admin') return true;
-    return permissions.includes(permission);
+    const perms = effectivePermissions();
+    if (perms.includes(permission)) return true;
+    // accounts role: menu uses accounting.read; grant if any accounting.* assigned
+    if (roleName === 'accounts' && permission?.startsWith('accounting.')) {
+      return perms.some((p) => p.startsWith('accounting.'));
+    }
+    return false;
   };
 
   const hasAnyPermission = (permissionList) => {
     if (!user) return false;
-    const roleName = user.role?.name ?? user.role;
+    const roleName = getUserRole(user);
     if (roleName === 'super_admin') return true;
-    return permissionList.some((permission) => permissions.includes(permission));
+    const perms = effectivePermissions();
+    return permissionList.some((p) => perms.includes(p) || hasPermission(p));
   };
 
   const hasRole = (role) => {
     if (!user) return false;
-    const roleName = user.role?.name ?? user.role;
-    return roleName === role;
+    return getUserRole(user) === role;
   };
 
   const hasAdminDashboardAccess = useCallback(() => {
     if (!user) return false;
-    const roleName = user.role?.name ?? user.role;
+    const roleName = getUserRole(user);
     return ['admin', 'tenant_admin', 'super_admin'].includes(roleName);
   }, [user]);
 

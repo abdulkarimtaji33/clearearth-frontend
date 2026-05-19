@@ -18,15 +18,24 @@ import {
   IconWallet,
   IconCoin,
   IconTruckDelivery,
+  IconBook,
+  IconList,
+  IconScale,
+  IconReportMoney,
+  IconBuildingBank,
+  IconCashBanknote,
+  IconChartBar,
+  IconCalendar,
+  IconCalculator,
 } from '@tabler/icons-react';
 
 // Roles that should only see their designated section (Operations or Accounts).
-// Items tagged with `excludeRoles` will be hidden for those roles.
 const SECTION_RESTRICTED_ROLES = ['operations_manager', 'accounts'];
 const ACCOUNTS_ONLY_ROLES = ['accounts'];
 const OPERATIONS_ONLY_ROLES = ['operations_manager'];
 
 const ErpMenuItems = [
+  // ─── CRM ────────────────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'CRM',
@@ -102,11 +111,14 @@ const ErpMenuItems = [
       },
     ],
   },
+
+  // ─── Accounts (collapsible dropdown) ────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'Accounts',
     excludeRoles: OPERATIONS_ONLY_ROLES,
   },
+  // Standalone "Deals" link for accounts-only role (no CRM section for them)
   {
     id: uniqueId(),
     title: 'Deals',
@@ -115,54 +127,46 @@ const ErpMenuItems = [
     permission: 'deals.read',
     includeRoles: ACCOUNTS_ONLY_ROLES,
   },
+  // Main Accounts collapsible — visible to everyone except operations_manager
   {
     id: uniqueId(),
-    title: 'Proforma invoices',
-    icon: IconFileInvoice,
-    href: '/erp/proforma-invoices',
-    permission: 'deals.read',
-    excludeRoles: OPERATIONS_ONLY_ROLES,
-  },
-  {
-    id: uniqueId(),
-    title: 'Tax invoices',
-    icon: IconReceipt,
+    title: 'Accounts',
+    icon: IconCalculator,
     href: '/erp/tax-invoices',
-    permission: 'deals.read',
+    permission: 'accounting.read',
     excludeRoles: OPERATIONS_ONLY_ROLES,
+    children: [
+      // ── Invoicing & Payments ─────────────────────────────────────────────
+      { id: uniqueId(), title: 'Proforma Invoices', icon: IconFileInvoice, href: '/erp/proforma-invoices', permission: 'accounting.read' },
+      { id: uniqueId(), title: 'Tax Invoices', icon: IconReceipt, href: '/erp/tax-invoices', permission: 'accounting.read' },
+      { id: uniqueId(), title: 'Receivables', icon: IconCoin, href: '/erp/receivables', permission: 'accounting.read' },
+      { id: uniqueId(), title: 'Payables', icon: IconTruckDelivery, href: '/erp/payables', permission: 'accounting.read' },
+      { id: uniqueId(), title: 'Expenses', icon: IconWallet, href: '/erp/accounts/expenses', permission: 'accounting.read' },
+      { id: uniqueId(), title: 'Work Orders (Accounts)', icon: IconClipboardCheck, href: '/erp/accounts/work-orders', permission: 'accounting.read' },
+      // ── General Ledger ───────────────────────────────────────────────────
+      { id: uniqueId(), title: 'Chart of Accounts', icon: IconList, href: '/erp/chart-of-accounts', permission: 'accounting.read' },
+      { id: uniqueId(), title: 'Journal', icon: IconBook, href: '/erp/journal', permission: 'accounting.read' },
+      // ── Financial Reports ────────────────────────────────────────────────
+      {
+        id: uniqueId(),
+        title: 'Financial Reports',
+        icon: IconReportMoney,
+        href: '/erp/reports/trial-balance',
+        permission: 'accounting.read',
+        children: [
+          { id: uniqueId(), title: 'Trial Balance', icon: IconScale, href: '/erp/reports/trial-balance', permission: 'accounting.read' },
+          { id: uniqueId(), title: 'General Ledger', icon: IconBook, href: '/erp/reports/general-ledger', permission: 'accounting.read' },
+          { id: uniqueId(), title: 'Income Statement', icon: IconReportMoney, href: '/erp/reports/income-statement', permission: 'accounting.read' },
+          { id: uniqueId(), title: 'Balance Sheet', icon: IconBuildingBank, href: '/erp/reports/balance-sheet', permission: 'accounting.read' },
+          { id: uniqueId(), title: 'Cash Flow', icon: IconCashBanknote, href: '/erp/reports/cash-flow', permission: 'accounting.read' },
+          { id: uniqueId(), title: 'Changes in Equity', icon: IconChartBar, href: '/erp/reports/changes-in-equity', permission: 'accounting.read' },
+          { id: uniqueId(), title: 'VAT Report', icon: IconReceipt, href: '/erp/reports/vat-report', permission: 'accounting.read' },
+        ],
+      },
+    ],
   },
-  {
-    id: uniqueId(),
-    title: 'Receivables',
-    icon: IconCoin,
-    href: '/erp/receivables',
-    permission: 'deals.read',
-    excludeRoles: OPERATIONS_ONLY_ROLES,
-  },
-  {
-    id: uniqueId(),
-    title: 'Payables',
-    icon: IconTruckDelivery,
-    href: '/erp/payables',
-    permission: 'deals.read',
-    excludeRoles: OPERATIONS_ONLY_ROLES,
-  },
-  {
-    id: uniqueId(),
-    title: 'Posted expenses',
-    icon: IconWallet,
-    href: '/erp/accounts/expenses',
-    permission: 'deals.read',
-    excludeRoles: OPERATIONS_ONLY_ROLES,
-  },
-  {
-    id: uniqueId(),
-    title: 'Work orders (Accounts)',
-    icon: IconClipboardCheck,
-    href: '/erp/accounts/work-orders',
-    permission: 'deals.read',
-    excludeRoles: OPERATIONS_ONLY_ROLES,
-  },
+
+  // ─── Operations ─────────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'Operations',
@@ -184,6 +188,8 @@ const ErpMenuItems = [
     permission: 'deals.read',
     excludeRoles: ACCOUNTS_ONLY_ROLES,
   },
+
+  // ─── Others ─────────────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'Others',
@@ -205,6 +211,8 @@ const ErpMenuItems = [
     permission: 'deals.read',
     excludeRoles: SECTION_RESTRICTED_ROLES,
   },
+
+  // ─── Inspections ────────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'Inspections',
@@ -218,6 +226,8 @@ const ErpMenuItems = [
     permission: 'inspection_requests.read',
     excludeRoles: SECTION_RESTRICTED_ROLES,
   },
+
+  // ─── Administration ─────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'Administration',
@@ -246,6 +256,14 @@ const ErpMenuItems = [
     href: '/erp/settings/company',
     permission: 'users.read',
     excludeRoles: SECTION_RESTRICTED_ROLES,
+  },
+  {
+    id: uniqueId(),
+    title: 'Fiscal Years',
+    icon: IconCalendar,
+    href: '/erp/settings/fiscal-years',
+    permission: 'accounting.read',
+    excludeRoles: OPERATIONS_ONLY_ROLES,
   },
 ];
 

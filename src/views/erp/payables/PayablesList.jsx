@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
+import { extractListData } from '../../../utils/reportApi';
 
 const PAYMENT_COLOR = { unpaid: 'warning', partial: 'info', paid: 'success' };
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -42,8 +43,7 @@ const PayablesList = () => {
       if (dateTo) params.dateTo = dateTo;
       if (paymentStatus) params.paymentStatus = paymentStatus;
       const res = await apiService.getPayables(params);
-      const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
-      setRows(list);
+      setRows(extractListData(res));
       setTotalCount(res.pagination?.totalItems ?? 0);
     } catch (err) {
       setError(err.message || 'Failed to load payables');

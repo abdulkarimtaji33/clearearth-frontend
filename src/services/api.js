@@ -69,8 +69,9 @@ class ApiService {
   }
 
   async get(endpoint, params = {}) {
+    const safeParams = params && typeof params === 'object' && !Array.isArray(params) ? params : {};
     const clean = Object.fromEntries(
-      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+      Object.entries(safeParams).filter(([, v]) => v !== undefined && v !== null && v !== '')
     );
     const queryString = new URLSearchParams(clean).toString();
     const url = queryString ? `${endpoint}?${queryString}` : endpoint;
@@ -737,6 +738,38 @@ class ApiService {
   async deleteRole(id) {
     return this.delete(`/roles/${id}`);
   }
+
+  // ─── Fiscal Years ────────────────────────────────────────────────────────────
+  async getFiscalYears() { return this.get('/fiscal-years'); }
+  async createFiscalYear(data) { return this.post('/fiscal-years', data); }
+  async closeFiscalYear(id) { return this.post(`/fiscal-years/${id}/close`); }
+  async getFiscalYearPeriods(fyId) { return this.get(`/fiscal-years/${fyId}/periods`); }
+  async closePeriod(fyId, periodId) { return this.post(`/fiscal-years/${fyId}/periods/${periodId}/close`); }
+  async reopenPeriod(fyId, periodId) { return this.post(`/fiscal-years/${fyId}/periods/${periodId}/reopen`); }
+
+  // ─── Chart of Accounts ───────────────────────────────────────────────────────
+  async getChartOfAccounts(params) { return this.get('/chart-of-accounts', params); }
+  async getChartOfAccount(id) { return this.get(`/chart-of-accounts/${id}`); }
+  async createChartOfAccount(data) { return this.post('/chart-of-accounts', data); }
+  async updateChartOfAccount(id, data) { return this.put(`/chart-of-accounts/${id}`, data); }
+  async deleteChartOfAccount(id) { return this.delete(`/chart-of-accounts/${id}`); }
+  async seedChartOfAccounts() { return this.post('/chart-of-accounts/seed'); }
+
+  // ─── Journal ─────────────────────────────────────────────────────────────────
+  async getJournalEntries(params) { return this.get('/journal', params); }
+  async getJournalEntry(id) { return this.get(`/journal/${id}`); }
+  async createJournalEntry(data) { return this.post('/journal', data); }
+  async postOpeningBalances(data) { return this.post('/journal/opening-balances', data); }
+  async voidJournalEntry(id) { return this.post(`/journal/${id}/void`); }
+
+  // ─── Financial Reports ────────────────────────────────────────────────────────
+  async getTrialBalance(params) { return this.get('/reports/trial-balance', params); }
+  async getGeneralLedger(params) { return this.get('/reports/general-ledger', params); }
+  async getIncomeStatement(params) { return this.get('/reports/income-statement', params); }
+  async getBalanceSheet(params) { return this.get('/reports/balance-sheet', params); }
+  async getCashFlowStatement(params) { return this.get('/reports/cash-flow', params); }
+  async getChangesInEquity(params) { return this.get('/reports/changes-in-equity', params); }
+  async getVatReport(params) { return this.get('/reports/vat-report', params); }
 }
 
 const apiService = new ApiService();

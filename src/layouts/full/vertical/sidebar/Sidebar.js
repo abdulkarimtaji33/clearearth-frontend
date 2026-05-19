@@ -43,9 +43,6 @@ const Sidebar = () => {
         sx={{
           width: toggleWidth,
           flexShrink: 0,
-          ...(isCollapse == "mini-sidebar" && {
-            position: 'absolute',
-          }),
         }}
       >
         {/* ------------------------------------------- */}

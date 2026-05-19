@@ -9,6 +9,7 @@ import { CustomizerContext } from 'src/context/CustomizerContext';
 // custom imports
 import NavItem from '../NavItem';
 import { useAuth } from 'src/context/AuthContext';
+import { getUserRole } from 'src/utils/authHelpers';
 
 // plugins
 import { IconChevronDown, IconChevronUp } from '@tabler/icons';
@@ -39,7 +40,14 @@ function branchHasVisibleItem(items, hasPermission, hasAdminDashboardAccess) {
 // FC Component For Dropdown Menu
 const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hideMenu }) => {
   const { isBorderRadius } = useContext(CustomizerContext);
-  const { hasPermission, hasAdminDashboardAccess } = useAuth();
+  const { hasPermission, hasAdminDashboardAccess, user } = useAuth();
+  const userRole = getUserRole(user);
+
+  const isRoleAllowed = (item) => {
+    if (item.excludeRoles?.includes(userRole)) return false;
+    if (item.includeRoles && !item.includeRoles.includes(userRole)) return false;
+    return true;
+  };
 
   const Icon = menu.icon;
   const theme = useTheme();
@@ -82,6 +90,7 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hi
   }));
   // If Menu has Children - filter by permission
   const visibleChildren = (menu.children || []).filter((item) => {
+    if (!isRoleAllowed(item)) return false;
     if (item.adminDashboardOnly && !hasAdminDashboardAccess()) return false;
     if (item.children?.length) return branchHasVisibleItem(item.children, hasPermission, hasAdminDashboardAccess);
     return !item.permission || hasPermission(item.permission);

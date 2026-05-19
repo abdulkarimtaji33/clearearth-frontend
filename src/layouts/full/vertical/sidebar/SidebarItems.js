@@ -1,9 +1,10 @@
 import React, { useContext } from 'react';
 import Menuitems from './MenuItems';
 import { useLocation } from 'react-router';
-import { Box, List, useMediaQuery } from '@mui/material';
+import { Box, List, useMediaQuery, CircularProgress } from '@mui/material';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { useAuth } from 'src/context/AuthContext';
+import { getUserRole } from 'src/utils/authHelpers';
 
 import NavItem from './NavItem';
 import NavCollapse from './NavCollapse';
@@ -22,8 +23,8 @@ const SidebarItems = () => {
   const pathDirect = pathname;
   const pathWithoutLastPart = pathname.slice(0, pathname.lastIndexOf('/'));
   const { isSidebarHover, isCollapse, isMobileSidebar, setIsMobileSidebar } = useContext(CustomizerContext);
-  const { hasPermission, hasAdminDashboardAccess, user } = useAuth();
-  const userRole = user?.role?.name || null;
+  const { hasPermission, hasAdminDashboardAccess, user, loading: authLoading } = useAuth();
+  const userRole = getUserRole(user);
 
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up('lg'));
   const hideMenu = lgUp ? isCollapse == "mini-sidebar" && !isSidebarHover : '';
@@ -54,6 +55,14 @@ const SidebarItems = () => {
     }
     return true;
   });
+
+  if (authLoading) {
+    return (
+      <Box sx={{ px: 3, py: 2, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress size={22} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ px: 3 }}>

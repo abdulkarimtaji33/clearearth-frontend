@@ -60,6 +60,19 @@ const WorkOrderList = Loadable(lazy(() => import('../views/erp/work-orders/WorkO
 const WorkOrderForm = Loadable(lazy(() => import('../views/erp/work-orders/WorkOrderForm')));
 const WorkOrderView = Loadable(lazy(() => import('../views/erp/work-orders/WorkOrderView')));
 const CompanySettings = Loadable(lazy(() => import('../views/erp/settings/CompanySettings')));
+const FiscalYearManager = Loadable(lazy(() => import('../views/erp/reports/FiscalYearManager')));
+const ChartOfAccountsList = Loadable(lazy(() => import('../views/erp/reports/ChartOfAccountsList')));
+const OpeningBalancesForm = Loadable(lazy(() => import('../views/erp/reports/OpeningBalancesForm')));
+const JournalList = Loadable(lazy(() => import('../views/erp/reports/JournalList')));
+const JournalEntryView = Loadable(lazy(() => import('../views/erp/reports/JournalEntryView')));
+const JournalEntryCreate = Loadable(lazy(() => import('../views/erp/reports/JournalEntryCreate')));
+const GeneralLedgerView = Loadable(lazy(() => import('../views/erp/reports/GeneralLedgerView')));
+const TrialBalanceView = Loadable(lazy(() => import('../views/erp/reports/TrialBalanceView')));
+const IncomeStatementView = Loadable(lazy(() => import('../views/erp/reports/IncomeStatementView')));
+const BalanceSheetView = Loadable(lazy(() => import('../views/erp/reports/BalanceSheetView')));
+const CashFlowView = Loadable(lazy(() => import('../views/erp/reports/CashFlowView')));
+const ChangesInEquityView = Loadable(lazy(() => import('../views/erp/reports/ChangesInEquityView')));
+const VatReportView = Loadable(lazy(() => import('../views/erp/reports/VatReportView')));
 
 // authentication
 const Login = Loadable(lazy(() => import('../views/authentication/auth1/Login')));
@@ -146,6 +159,19 @@ const Router = createBrowserRouter([
       { path: '/erp/work-orders/edit/:id', element: <WorkOrderForm /> },
       { path: '/erp/work-orders/view/:id', element: <WorkOrderView /> },
       { path: '/erp/settings/company', element: <CompanySettings /> },
+      { path: '/erp/settings/fiscal-years', element: <FiscalYearManager /> },
+      { path: '/erp/chart-of-accounts', element: <ChartOfAccountsList /> },
+      { path: '/erp/journal', element: <JournalList /> },
+      { path: '/erp/journal/opening-balances', element: <OpeningBalancesForm /> },
+      { path: '/erp/journal/create', element: <JournalEntryCreate /> },
+      { path: '/erp/journal/view/:id', element: <JournalEntryView /> },
+      { path: '/erp/reports/general-ledger', element: <GeneralLedgerView /> },
+      { path: '/erp/reports/trial-balance', element: <TrialBalanceView /> },
+      { path: '/erp/reports/income-statement', element: <IncomeStatementView /> },
+      { path: '/erp/reports/balance-sheet', element: <BalanceSheetView /> },
+      { path: '/erp/reports/cash-flow', element: <CashFlowView /> },
+      { path: '/erp/reports/changes-in-equity', element: <ChangesInEquityView /> },
+      { path: '/erp/reports/vat-report', element: <VatReportView /> },
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],
   },

@@ -1,6 +1,5 @@
-import { styled, Container, Box, useTheme } from '@mui/material';
+import { styled, Container, Box } from '@mui/material';
 import { CustomizerContext } from 'src/context/CustomizerContext';
-import config from 'src/context/config';
 import { useContext } from 'react';
 import { Outlet } from 'react-router';
 import Header from './vertical/header/Header';
@@ -29,11 +28,7 @@ const PageWrapper = styled('div')(() => ({
 }));
 
 const FullLayout = () => {
-  const { activeLayout, isLayout, activeMode, isCollapse } = useContext(CustomizerContext);
-
-
-  const theme = useTheme();
-  const MiniSidebarWidth = config.miniSidebarWidth;
+  const { activeLayout, isLayout, activeMode } = useContext(CustomizerContext);
 
   return (
     <>
@@ -51,9 +46,9 @@ const FullLayout = () => {
         <PageWrapper
           className="page-wrapper"
           sx={{
-            ...(isCollapse === "mini-sidebar" && {
-              [theme.breakpoints.up('lg')]: { ml: `${MiniSidebarWidth}px` },
-            }),
+            flexGrow: 1,
+            minWidth: 0,
+            width: 'auto',
           }}
         >
           {/* ------------------------------------------- */}

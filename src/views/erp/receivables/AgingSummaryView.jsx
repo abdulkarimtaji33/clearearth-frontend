@@ -8,6 +8,7 @@ import { IconArrowLeft, IconChartHistogram } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { asArray } from '../../../utils/reportApi';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -84,9 +85,9 @@ const AgingSummaryView = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {(data?.byClient || []).length === 0 ? (
+              {asArray(data?.byClient).length === 0 ? (
                 <TableRow><TableCell colSpan={6} align="center" sx={{ py: 4 }}><Typography color="text.secondary">{error ? 'Could not load data' : 'No open receivables'}</Typography></TableCell></TableRow>
-              ) : data.byClient.map((row) => (
+              ) : asArray(data?.byClient).map((row) => (
                 <TableRow key={row.companyId || row.companyName}>
                   <TableCell>{row.companyName}</TableCell>
                   <TableCell align="right">{fmt(row.total)}</TableCell>

@@ -33,6 +33,8 @@ import {
 const SECTION_RESTRICTED_ROLES = ['operations_manager', 'accounts'];
 const ACCOUNTS_ONLY_ROLES = ['accounts'];
 const OPERATIONS_ONLY_ROLES = ['operations_manager'];
+/** Sales users only see items under the CRM sidebar heading. */
+const CRM_ONLY_ROLES = ['sales'];
 
 const ErpMenuItems = [
   // ─── CRM ────────────────────────────────────────────────────────────────────
@@ -116,7 +118,7 @@ const ErpMenuItems = [
   {
     navlabel: true,
     subheader: 'Accounts',
-    excludeRoles: OPERATIONS_ONLY_ROLES,
+    excludeRoles: [...OPERATIONS_ONLY_ROLES, ...CRM_ONLY_ROLES],
   },
   // Standalone "Deals" link for accounts-only role (no CRM section for them)
   {
@@ -134,7 +136,7 @@ const ErpMenuItems = [
     icon: IconCalculator,
     href: '/erp/tax-invoices',
     permission: 'accounting.read',
-    excludeRoles: OPERATIONS_ONLY_ROLES,
+    excludeRoles: [...OPERATIONS_ONLY_ROLES, ...CRM_ONLY_ROLES],
     children: [
       // ── Invoicing & Payments ─────────────────────────────────────────────
       { id: uniqueId(), title: 'Proforma Invoices', icon: IconFileInvoice, href: '/erp/proforma-invoices', permission: 'accounting.read' },
@@ -170,7 +172,7 @@ const ErpMenuItems = [
   {
     navlabel: true,
     subheader: 'Operations',
-    excludeRoles: ACCOUNTS_ONLY_ROLES,
+    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -186,14 +188,14 @@ const ErpMenuItems = [
     icon: IconHammer,
     href: '/erp/work-orders',
     permission: 'deals.read',
-    excludeRoles: ACCOUNTS_ONLY_ROLES,
+    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES],
   },
 
   // ─── Others ─────────────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'Others',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -201,7 +203,7 @@ const ErpMenuItems = [
     icon: IconPackage,
     href: '/erp/products',
     permission: 'products.read',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -209,14 +211,14 @@ const ErpMenuItems = [
     icon: IconFileText,
     href: '/erp/terms',
     permission: 'deals.read',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
   },
 
   // ─── Inspections ────────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'Inspections',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -224,14 +226,14 @@ const ErpMenuItems = [
     icon: IconClipboardCheck,
     href: '/erp/inspection-requests',
     permission: 'inspection_requests.read',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
   },
 
   // ─── Administration ─────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'Administration',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -239,7 +241,7 @@ const ErpMenuItems = [
     icon: IconShield,
     href: '/erp/roles',
     permission: 'roles.read',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -247,7 +249,7 @@ const ErpMenuItems = [
     icon: IconUsers,
     href: '/erp/users',
     permission: 'users.read',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -255,7 +257,7 @@ const ErpMenuItems = [
     icon: IconSettings,
     href: '/erp/settings/company',
     permission: 'users.read',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -263,7 +265,7 @@ const ErpMenuItems = [
     icon: IconCalendar,
     href: '/erp/settings/fiscal-years',
     permission: 'accounting.read',
-    excludeRoles: OPERATIONS_ONLY_ROLES,
+    excludeRoles: [...OPERATIONS_ONLY_ROLES, ...CRM_ONLY_ROLES],
   },
 ];
 

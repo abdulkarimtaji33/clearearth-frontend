@@ -66,6 +66,8 @@ import PageContainer from '../../../components/container/PageContainer';
 import InspectionRequestDetail from '../../../components/erp/InspectionRequestDetail';
 import apiService from '../../../services/api';
 import config from 'src/context/config';
+import { useAuth } from '../../../context/AuthContext';
+import { getUserRole } from '../../../utils/authHelpers';
 
 const getStatusColor = (status) => {
   const colors = {
@@ -194,7 +196,7 @@ const taskStatusMeta = (status) => {
   return { label: 'Not started', color: 'default', Icon: IconCircle };
 };
 
-const WorkOrderPipeline = ({ workOrder, theme, onOpen }) => {
+const WorkOrderPipeline = ({ workOrder, theme, onOpen, showWorkOrderActions = true }) => {
   const tasks = [...(workOrder.tasks || [])].sort((a, b) => (a.id || 0) - (b.id || 0));
   const title = workOrder.title?.trim() || `Work order #${workOrder.id}`;
   const done = tasks.filter((t) => String(t.status).toLowerCase() === 'completed').length;
@@ -229,9 +231,11 @@ const WorkOrderPipeline = ({ workOrder, theme, onOpen }) => {
             )}
           </Stack>
         </Box>
-        <Button variant="contained" size="small" onClick={onOpen} sx={{ borderRadius: 2, alignSelf: { xs: 'stretch', sm: 'center' }, whiteSpace: 'nowrap' }}>
-          Open work order
-        </Button>
+        {showWorkOrderActions && (
+          <Button variant="contained" size="small" onClick={onOpen} sx={{ borderRadius: 2, alignSelf: { xs: 'stretch', sm: 'center' }, whiteSpace: 'nowrap' }}>
+            Open work order
+          </Button>
+        )}
       </Stack>
 
       {tasks.length > 0 && (
@@ -391,6 +395,8 @@ const DealView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
+  const { user } = useAuth();
+  const showWorkOrderActions = getUserRole(user) !== 'sales';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deal, setDeal] = useState(null);
@@ -988,15 +994,17 @@ const DealView = () => {
               title="Field work progress"
               subtitle="Work order tasks in sequence — pickup, processing, delivery, and more"
               action={
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<IconPlus size={16} />}
-                  onClick={() => navigate(`/erp/work-orders/create?dealId=${id}`)}
-                  sx={{ borderRadius: 2 }}
-                >
-                  New work order
-                </Button>
+                showWorkOrderActions ? (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<IconPlus size={16} />}
+                    onClick={() => navigate(`/erp/work-orders/create?dealId=${id}`)}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    New work order
+                  </Button>
+                ) : null
               }
             />
             <Divider sx={{ mb: 2.5 }} />
@@ -1014,9 +1022,11 @@ const DealView = () => {
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 420, mx: 'auto' }}>
                       Create a work order to track field tasks for this deal. Each task shows its status along the pipeline.
                     </Typography>
-                    <Button variant="outlined" startIcon={<IconPlus size={18} />} onClick={() => navigate(`/erp/work-orders/create?dealId=${id}`)} sx={{ borderRadius: 2 }}>
-                      Create work order
-                    </Button>
+                    {showWorkOrderActions && (
+                      <Button variant="outlined" startIcon={<IconPlus size={18} />} onClick={() => navigate(`/erp/work-orders/create?dealId=${id}`)} sx={{ borderRadius: 2 }}>
+                        Create work order
+                      </Button>
+                    )}
                   </Paper>
                 );
               }
@@ -1025,6 +1035,7 @@ const DealView = () => {
                   key={wo.id}
                   workOrder={wo}
                   theme={theme}
+                  showWorkOrderActions={showWorkOrderActions}
                   onOpen={() => navigate(`/erp/work-orders/view/${wo.id}`)}
                 />
               ));

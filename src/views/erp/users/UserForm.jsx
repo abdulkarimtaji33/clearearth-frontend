@@ -22,10 +22,13 @@ import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconUsers } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const UserForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canChangePassword = hasPermission('users.update');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -37,6 +40,7 @@ const UserForm = () => {
     phone: '',
     roleId: null,
     password: '',
+    confirmPassword: '',
     status: 'active',
   });
 
@@ -64,6 +68,7 @@ const UserForm = () => {
           phone: u.phone || '',
           roleId: u.role_id ?? u.role?.id ?? null,
           password: '',
+          confirmPassword: '',
           status: u.status || 'active',
         });
       }
@@ -84,7 +89,26 @@ const UserForm = () => {
     lastName: Yup.string().trim().required('Last name is required'),
     email: Yup.string().email('Valid email required').required('Email is required'),
     roleId: Yup.number().nullable().required('Role is required'),
-    ...(isEdit ? {} : { password: Yup.string().min(8, 'Min 8 characters').required('Password is required') }),
+    ...(isEdit
+      ? {
+          password: Yup.string().test(
+            'min-if-set',
+            'Min 8 characters',
+            (val) => !val || val.length >= 8,
+          ),
+          confirmPassword: Yup.string().when('password', {
+            is: (p) => Boolean(p),
+            then: (schema) =>
+              schema.required('Confirm password').oneOf([Yup.ref('password')], 'Passwords must match'),
+            otherwise: (schema) => schema,
+          }),
+        }
+      : {
+          password: Yup.string().min(8, 'Min 8 characters').required('Password is required'),
+          confirmPassword: Yup.string()
+            .oneOf([Yup.ref('password')], 'Passwords must match')
+            .required('Confirm password'),
+        }),
   });
 
   const handleSubmit = async (values) => {
@@ -101,7 +125,10 @@ const UserForm = () => {
       if (!isEdit) payload.password = values.password;
       if (isEdit) {
         await apiService.updateUser(id, payload);
-        setSuccess('User updated');
+        if (canChangePassword && values.password) {
+          await apiService.changeUserPassword(id, values.password);
+        }
+        setSuccess(values.password ? 'User and password updated' : 'User updated');
       } else {
         await apiService.createUser(payload);
         setSuccess('User created');
@@ -218,20 +245,37 @@ const UserForm = () => {
                       isOptionEqualToValue={(a, b) => a?.id === b?.id}
                       sx={{ maxWidth: 400 }}
                     />
-                    {!isEdit && (
-                      <TextField
-                        fullWidth
-                        label="Password"
-                        name="password"
-                        type="password"
-                        value={values.password}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={touched.password && Boolean(errors.password)}
-                        helperText={touched.password && errors.password}
-                        placeholder="Min 8 characters"
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 400 }}
-                      />
+                    {(!isEdit || canChangePassword) && (
+                      <Stack spacing={3} sx={{ maxWidth: 400 }}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          {isEdit ? 'Set new password (optional)' : 'Password'}
+                        </Typography>
+                        <TextField
+                          fullWidth
+                          label={isEdit ? 'New password' : 'Password'}
+                          name="password"
+                          type="password"
+                          value={values.password}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          error={touched.password && Boolean(errors.password)}
+                          helperText={touched.password && errors.password}
+                          placeholder="Min 8 characters"
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                        <TextField
+                          fullWidth
+                          label="Confirm password"
+                          name="confirmPassword"
+                          type="password"
+                          value={values.confirmPassword}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          error={touched.confirmPassword && Boolean(errors.confirmPassword)}
+                          helperText={touched.confirmPassword && errors.confirmPassword}
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                      </Stack>
                     )}
                     {isEdit && (
                       <FormControl sx={{ maxWidth: 200 }}>

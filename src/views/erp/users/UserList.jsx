@@ -30,14 +30,17 @@ import {
   InputLabel,
   Select,
 } from '@mui/material';
-import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconUsers } from '@tabler/icons-react';
+import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconLock } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const UserList = () => {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canUpdateUsers = hasPermission('users.update');
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +55,10 @@ const UserList = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -112,6 +119,43 @@ const UserList = () => {
       fetchUsers();
     } catch (err) {
       setError(err.message || 'Delete failed');
+    }
+  };
+
+  const openPasswordDialog = () => {
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordDialogOpen(true);
+    setAnchorEl(null);
+  };
+
+  const closePasswordDialog = () => {
+    setPasswordDialogOpen(false);
+    setNewPassword('');
+    setConfirmPassword('');
+    setSelectedUser(null);
+  };
+
+  const handleChangePassword = async () => {
+    if (!selectedUser) return;
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    try {
+      setPasswordSaving(true);
+      setError('');
+      await apiService.changeUserPassword(selectedUser.id, newPassword);
+      setSuccess('Password updated');
+      closePasswordDialog();
+    } catch (err) {
+      setError(err.message || 'Failed to update password');
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -279,6 +323,12 @@ const UserList = () => {
             <IconEdit size={18} style={{ marginRight: 8 }} />
             Edit
           </MenuItem>
+          {canUpdateUsers && (
+            <MenuItem onClick={openPasswordDialog}>
+              <IconLock size={18} style={{ marginRight: 8 }} />
+              Change password
+            </MenuItem>
+          )}
           <MenuItem
             onClick={() => {
               setDeleteDialogOpen(true);
@@ -289,6 +339,39 @@ const UserList = () => {
             Delete
           </MenuItem>
         </Menu>
+
+        <Dialog open={passwordDialogOpen} onClose={closePasswordDialog} maxWidth="xs" fullWidth>
+          <DialogTitle>Change password</DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ mb: 2 }}>
+              Set a new password for {[selectedUser?.first_name, selectedUser?.last_name].filter(Boolean).join(' ') || selectedUser?.email}.
+            </DialogContentText>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <TextField
+                fullWidth
+                label="New password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+              <TextField
+                fullWidth
+                label="Confirm password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={closePasswordDialog} disabled={passwordSaving}>Cancel</Button>
+            <Button onClick={handleChangePassword} variant="contained" disabled={passwordSaving}>
+              {passwordSaving ? 'Saving…' : 'Update password'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
           <DialogTitle>Delete User</DialogTitle>

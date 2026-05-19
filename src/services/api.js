@@ -651,6 +651,10 @@ class ApiService {
     return this.put(`/users/${id}`, data);
   }
 
+  async changeUserPassword(id, password) {
+    return this.put(`/users/${id}/password`, { password });
+  }
+
   async deleteUser(id) {
     return this.delete(`/users/${id}`);
   }

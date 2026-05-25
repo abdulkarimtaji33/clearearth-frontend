@@ -23,14 +23,6 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import WorkTypesManageDialog from './WorkTypesManageDialog';
 import TaskStatusSegments from './TaskStatusSegments';
-import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
-import {
-  PAID_TO_OPTIONS,
-  PAID_TO_STORAGE_KEY,
-  loadStoredOptions,
-  saveStoredOptions,
-  mergeSelectOptions,
-} from '../../../constants/expenseFormOptions';
 
 const WO_STATUS_OPTIONS = ['draft', 'in_progress', 'completed', 'cancelled'];
 const DURATION_UNITS = ['minutes', 'hours', 'days'];
@@ -45,7 +37,7 @@ const STATUS_COLOR = {
 const emptyTask = () => ({
   workTypeId: null,
   typeOfWork: '',
-  expenses: [{ description: '', amount: '', paidTo: 'Operations', evidencePath: '', evidenceFileName: '' }],
+  expenses: [{ description: '', amount: '', evidencePath: '', evidenceFileName: '' }],
   durationValue: '',
   durationUnit: 'hours',
   startDate: '',
@@ -179,15 +171,6 @@ const WorkOrderForm = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTaskIdx, setDrawerTaskIdx] = useState(null);
   const [drawerTask, setDrawerTask] = useState(null);
-  const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
-
-  const addCustomPaidTo = useCallback((v) => {
-    setCustomPaidTo((prev) => {
-      const next = prev.includes(v) ? prev : [...prev, v];
-      saveStoredOptions(PAID_TO_STORAGE_KEY, next);
-      return next;
-    });
-  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -259,11 +242,10 @@ const WorkOrderForm = () => {
               ? t.expenses.map(e => ({
                 description: e.description || '',
                 amount: e.amount != null ? String(e.amount) : '',
-                paidTo: e.paid_to || 'Operations',
                 evidencePath: e.evidence_path || '',
                 evidenceFileName: e.evidence_file_name || '',
               }))
-              : (t.expense != null ? [{ description: '', amount: String(t.expense), paidTo: 'Operations' }] : [{ description: '', amount: '', paidTo: 'Operations' }]);
+              : (t.expense != null ? [{ description: '', amount: String(t.expense) }] : [{ description: '', amount: '' }]);
             return {
               workTypeId: t.work_type_id || null,
               typeOfWork: t.type_of_work || t.workType?.name || '',
@@ -337,13 +319,13 @@ const WorkOrderForm = () => {
   };
 
   const addDrawerExpenseRow = () => {
-    setDrawerTask(t => ({ ...t, expenses: [...(t.expenses || []), { description: '', amount: '', paidTo: 'Operations', evidencePath: '', evidenceFileName: '' }] }));
+    setDrawerTask(t => ({ ...t, expenses: [...(t.expenses || []), { description: '', amount: '', evidencePath: '', evidenceFileName: '' }] }));
   };
 
   const removeDrawerExpenseRow = (idx) => {
     setDrawerTask(t => {
       const expenses = (t.expenses || []).filter((_, i) => i !== idx);
-      return { ...t, expenses: expenses.length ? expenses : [{ description: '', amount: '', paidTo: 'Operations', evidencePath: '', evidenceFileName: '' }] };
+      return { ...t, expenses: expenses.length ? expenses : [{ description: '', amount: '', evidencePath: '', evidenceFileName: '' }] };
     });
   };
 
@@ -405,7 +387,6 @@ const WorkOrderForm = () => {
               .map(e => ({
                 description: e.description?.trim() || null,
                 amount: parseFloat(e.amount),
-                paidTo: e.paidTo?.trim() || 'Operations',
                 evidencePath: e.evidencePath || null,
                 evidenceFileName: e.evidenceFileName || null,
               })),
@@ -721,55 +702,42 @@ const WorkOrderForm = () => {
                         Expenses (one or more lines)
                       </Typography>
                       <Stack spacing={1.5}>
-                        {(drawerTask.expenses || [{ description: '', amount: '', paidTo: 'Operations' }]).map((row, ei) => (
-                          <Stack key={ei} spacing={1} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                label="Description"
-                                value={row.description}
-                                onChange={e => setDrawerExpenseRow(ei, 'description', e.target.value)}
-                                placeholder="Optional"
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                              />
-                              <TextField
-                                size="small"
-                                label="Amount"
-                                type="number"
-                                value={row.amount}
-                                onChange={e => setDrawerExpenseRow(ei, 'amount', e.target.value)}
-                                inputProps={{ min: 0, step: '0.01' }}
-                                InputProps={{ startAdornment: <InputAdornment position="start">AED</InputAdornment> }}
-                                sx={{ minWidth: { sm: 160 }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                              />
-                              <Button
-                                component="label"
-                                size="small"
-                                variant={row.evidencePath ? 'contained' : 'outlined'}
-                                color={row.evidencePath ? 'success' : 'inherit'}
-                                sx={{ borderRadius: 2, mt: { sm: 0.5 }, whiteSpace: 'nowrap' }}
-                              >
-                                {row.evidenceFileName ? row.evidenceFileName.slice(0, 12) + (row.evidenceFileName.length > 12 ? '…' : '') : 'Evidence'}
-                                <input type="file" hidden accept="image/*,.pdf" onChange={e => { if (e.target.files?.[0]) uploadExpenseEvidence(ei, e.target.files[0]); e.target.value = ''; }} />
-                              </Button>
-                              {(drawerTask.expenses || []).length > 1 && (
-                                <IconButton size="small" color="error" onClick={() => removeDrawerExpenseRow(ei)} sx={{ mt: { sm: 0.5 } }}>
-                                  <IconTrash size={16} />
-                                </IconButton>
-                              )}
-                            </Stack>
-                            <SelectWithAddNew
-                              label="Paid to"
-                              value={row.paidTo || 'Operations'}
-                              onChange={(v) => setDrawerExpenseRow(ei, 'paidTo', v)}
-                              options={mergeSelectOptions(PAID_TO_OPTIONS, customPaidTo, row.paidTo)}
-                              allowEmpty={false}
-                              addDialogTitle="Add payee"
-                              addDialogDescription="Add a new payee name for this and future expenses"
-                              addFieldLabel="Payee name"
-                              onOptionAdded={addCustomPaidTo}
+                        {(drawerTask.expenses || [{ description: '', amount: '' }]).map((row, ei) => (
+                          <Stack key={ei} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-start' }}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="Description"
+                              value={row.description}
+                              onChange={e => setDrawerExpenseRow(ei, 'description', e.target.value)}
+                              placeholder="Optional"
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
+                            <TextField
+                              size="small"
+                              label="Amount"
+                              type="number"
+                              value={row.amount}
+                              onChange={e => setDrawerExpenseRow(ei, 'amount', e.target.value)}
+                              inputProps={{ min: 0, step: '0.01' }}
+                              InputProps={{ startAdornment: <InputAdornment position="start">AED</InputAdornment> }}
+                              sx={{ minWidth: { sm: 160 }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                            />
+                            <Button
+                              component="label"
+                              size="small"
+                              variant={row.evidencePath ? 'contained' : 'outlined'}
+                              color={row.evidencePath ? 'success' : 'inherit'}
+                              sx={{ borderRadius: 2, mt: { sm: 0.5 }, whiteSpace: 'nowrap' }}
+                            >
+                              {row.evidenceFileName ? row.evidenceFileName.slice(0, 12) + (row.evidenceFileName.length > 12 ? '…' : '') : 'Evidence'}
+                              <input type="file" hidden accept="image/*,.pdf" onChange={e => { if (e.target.files?.[0]) uploadExpenseEvidence(ei, e.target.files[0]); e.target.value = ''; }} />
+                            </Button>
+                            {(drawerTask.expenses || []).length > 1 && (
+                              <IconButton size="small" color="error" onClick={() => removeDrawerExpenseRow(ei)} sx={{ mt: { sm: 0.5 } }}>
+                                <IconTrash size={16} />
+                              </IconButton>
+                            )}
                           </Stack>
                         ))}
                         <Button size="small" startIcon={<IconPlus size={14} />} onClick={addDrawerExpenseRow} sx={{ alignSelf: 'flex-start', borderRadius: 2 }}>

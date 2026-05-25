@@ -41,6 +41,7 @@ import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const STATUS_CONFIG = {
   new:            { label: 'New',            color: 'default' },
@@ -186,6 +187,8 @@ const InlineStatusPicker = ({ deal, onUpdated, onError }) => {
 const DealList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { hasPermission } = useAuth();
+  const canEditDeals = hasPermission('deals.update');
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -304,9 +307,11 @@ const DealList = () => {
               {totalItems > 0 ? `${totalItems} deal${totalItems !== 1 ? 's' : ''} total` : 'Manage all business deals'}
             </Typography>
           </Box>
-          <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/deals/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
-            New Deal
-          </Button>
+          {canEditDeals && (
+            <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/deals/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
+              New Deal
+            </Button>
+          )}
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -487,12 +492,16 @@ const DealList = () => {
         <MenuItemMui onClick={() => { navigate(`/erp/deals/view/${selectedDeal?.id}`); setAnchorEl(null); }}>
           <IconEye size={16} style={{ marginRight: 10 }} /> View
         </MenuItemMui>
-        <MenuItemMui onClick={() => { navigate(`/erp/deals/edit/${selectedDeal?.id}`); setAnchorEl(null); }}>
-          <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
-        </MenuItemMui>
-        <MenuItemMui onClick={() => { setDealToDelete(selectedDeal); setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
-          <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
-        </MenuItemMui>
+        {canEditDeals && (
+          <>
+            <MenuItemMui onClick={() => { navigate(`/erp/deals/edit/${selectedDeal?.id}`); setAnchorEl(null); }}>
+              <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
+            </MenuItemMui>
+            <MenuItemMui onClick={() => { setDealToDelete(selectedDeal); setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
+              <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
+            </MenuItemMui>
+          </>
+        )}
       </Menu>
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} PaperProps={{ sx: { borderRadius: 3 } }}>

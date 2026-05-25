@@ -48,6 +48,9 @@ const PurchaseOrderForm = () => {
   const navigate = useNavigate();
   const supplierIdFromUrl = searchParams.get('supplierId') ? parseInt(searchParams.get('supplierId'), 10) : null;
   const dealIdFromUrl = searchParams.get('dealId') ? parseInt(searchParams.get('dealId'), 10) : null;
+  const workOrderIdFromUrl = searchParams.get('workOrderId') ? parseInt(searchParams.get('workOrderId'), 10) : null;
+  const billFromUrl = searchParams.get('bill') === '1';
+  const [isBillMode, setIsBillMode] = useState(billFromUrl);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -97,6 +100,7 @@ const PurchaseOrderForm = () => {
       const res = await apiService.getPurchaseOrder(id);
       if (res.success) {
         const po = res.data;
+        setIsBillMode(po.document_type === 'bill' || billFromUrl);
         setInitialValues({
           dealId: po.deal_id || null,
           companyId: po.company_id || null,
@@ -166,15 +170,26 @@ const PurchaseOrderForm = () => {
     }
   }, [applyDealPreFill]);
 
+  }, [id, billFromUrl]);
+
   useEffect(() => {
     fetchData();
     if (isEdit) fetchPO();
     else if (dealIdFromUrl) {
       fetchDealForPreFill(dealIdFromUrl, supplierIdFromUrl ?? undefined);
+      if (billFromUrl) {
+        setIsBillMode(true);
+        setInitialValues((prev) => ({
+          ...prev,
+          supplierId: supplierIdFromUrl || prev.supplierId,
+          companyId: null,
+          status: 'approved',
+        }));
+      }
     } else if (supplierIdFromUrl) {
       setInitialValues((prev) => ({ ...prev, supplierId: supplierIdFromUrl, companyId: null, status: 'approved' }));
     }
-  }, [fetchData, isEdit, fetchPO, supplierIdFromUrl, dealIdFromUrl, fetchDealForPreFill]);
+  }, [fetchData, isEdit, fetchPO, supplierIdFromUrl, dealIdFromUrl, billFromUrl, fetchDealForPreFill]);
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
@@ -215,6 +230,8 @@ const PurchaseOrderForm = () => {
         expectedDelivery: values.expectedDelivery || null,
         status: values.status || (values.supplierId ? 'approved' : 'draft'),
         termsAndConditionsIds: values.termsAndConditionsIds,
+        documentType: isBillMode ? 'bill' : 'quotation',
+        workOrderId: workOrderIdFromUrl || null,
         items: items.map((it) => ({
           productServiceId: it.productServiceId,
           itemDescription: it.itemDescription || null,
@@ -225,12 +242,13 @@ const PurchaseOrderForm = () => {
       };
       if (isEdit) {
         await apiService.updatePurchaseOrder(id, payload);
-        setSuccess('Purchase quotation updated');
+        setSuccess(isBillMode ? 'Purchase bill updated' : 'Purchase quotation updated');
       } else {
         await apiService.createPurchaseOrder(payload);
-        setSuccess('Purchase quotation created');
+        setSuccess(isBillMode ? 'Purchase bill created' : 'Purchase quotation created');
       }
-      setTimeout(() => navigate(quotationListPath(values.companyId, values.supplierId)), 1500);
+      const listPath = isBillMode ? '/erp/supplier-purchase-orders' : quotationListPath(values.companyId, values.supplierId);
+      setTimeout(() => navigate(listPath), 1500);
     } catch (err) {
       setError(err.message || 'Save failed');
     }
@@ -246,19 +264,26 @@ const PurchaseOrderForm = () => {
     );
   }
 
+  const pageTitle = isBillMode
+    ? (isEdit ? 'Edit Purchase Bill' : 'Create Purchase Bill')
+    : (isEdit ? 'Edit Purchase Quotation' : 'Create Purchase Quotation');
+  const pageDesc = isBillMode
+    ? 'Adjust quantities on the vendor purchase bill; totals recalculate automatically'
+    : (isEdit ? 'Set status to Approved to download a purchase order PDF' : 'After approval, download PDF is a purchase order');
+
   return (
-    <PageContainer title={isEdit ? 'Edit Purchase Quotation' : 'Create Purchase Quotation'} description={isEdit ? 'Update purchase quotation; set Approved for purchase order PDF' : 'Create purchase quotation; after approval, PDF becomes a purchase order'}>
+    <PageContainer title={pageTitle} description={pageDesc}>
       <Box>
         <Stack direction="row" alignItems="center" spacing={2} mb={3}>
-          <Button startIcon={<IconArrowLeft />} onClick={() => navigate(quotationListPath(initialValues.companyId, initialValues.supplierId))} size="small">
+          <Button startIcon={<IconArrowLeft />} onClick={() => navigate(isBillMode ? '/erp/supplier-purchase-orders' : quotationListPath(initialValues.companyId, initialValues.supplierId))} size="small">
             Back
           </Button>
           <Box>
             <Typography variant="h4" fontWeight={700}>
-              {isEdit ? 'Edit Purchase Quotation' : 'Create Purchase Quotation'}
+              {pageTitle}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {isEdit ? 'Set status to Approved to download a purchase order PDF' : 'After approval, download PDF is a purchase order'}
+              {pageDesc}
             </Typography>
           </Box>
         </Stack>
@@ -284,7 +309,7 @@ const PurchaseOrderForm = () => {
             <form onSubmit={handleSubmit}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-                  <Typography variant="h5" fontWeight={600} mb={3}>Purchase Quotation Details</Typography>
+                  <Typography variant="h5" fontWeight={600} mb={3}>{isBillMode ? 'Purchase Bill Details' : 'Purchase Quotation Details'}</Typography>
                   <Divider sx={{ mb: 3 }} />
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -297,6 +322,7 @@ const PurchaseOrderForm = () => {
                         setFieldValue('dealId', v?.id || null);
                         if (v?.id) fetchDealForPreFill(v.id);
                       }}
+                      disabled={isBillMode}
                       renderInput={(params) => (
                         <TextField {...params} label="Link to Deal (Optional)" placeholder="Select deal to copy items & terms..." sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                       )}
@@ -313,6 +339,7 @@ const PurchaseOrderForm = () => {
                         setFieldValue('supplierId', null);
                         setFieldValue('status', 'draft');
                       }}
+                      disabled={isBillMode}
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -336,6 +363,7 @@ const PurchaseOrderForm = () => {
                         setFieldValue('companyId', null);
                         setFieldValue('status', v?.id ? 'approved' : 'draft');
                       }}
+                      disabled={isBillMode}
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -371,29 +399,31 @@ const PurchaseOrderForm = () => {
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
 
-                    <TextField
-                      fullWidth
-                      select
-                      label="Status (Required)"
-                      name="status"
-                      value={values.status || 'draft'}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      required
-                      error={touched.status && Boolean(errors.status)}
-                      helperText={(touched.status && errors.status) || 'Approved → PDF is a purchase order'}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
-                    >
-                      {(dropdowns.purchaseOrderStatus?.length ? dropdowns.purchaseOrderStatus : [
-                        { id: 1, value: 'draft', display_name: 'Draft' },
-                        { id: 2, value: 'sent', display_name: 'Sent' },
-                        { id: 3, value: 'approved', display_name: 'Approved' },
-                        { id: 4, value: 'rejected', display_name: 'Rejected' },
-                      ]).map((s) => (
-                        <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
-                      ))}
-                    </TextField>
+                    {!isBillMode && (
+                      <TextField
+                        fullWidth
+                        select
+                        label="Status (Required)"
+                        name="status"
+                        value={values.status || 'draft'}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        required
+                        error={touched.status && Boolean(errors.status)}
+                        helperText={(touched.status && errors.status) || 'Approved → PDF is a purchase order'}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
+                      >
+                        {(dropdowns.purchaseOrderStatus?.length ? dropdowns.purchaseOrderStatus : [
+                          { id: 1, value: 'draft', display_name: 'Draft' },
+                          { id: 2, value: 'sent', display_name: 'Sent' },
+                          { id: 3, value: 'approved', display_name: 'Approved' },
+                          { id: 4, value: 'rejected', display_name: 'Rejected' },
+                        ]).map((s) => (
+                          <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
+                        ))}
+                      </TextField>
+                    )}
                   </Box>
                 </CardContent>
               </Card>
@@ -402,9 +432,11 @@ const PurchaseOrderForm = () => {
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                     <Typography variant="h5" fontWeight={600}>Items</Typography>
-                    <Button startIcon={<IconPlus />} variant="outlined" size="small" onClick={() => setItems([...items, initialItem()])} sx={{ borderRadius: 2 }}>
-                      Add Item
-                    </Button>
+                    {!isBillMode && (
+                      <Button startIcon={<IconPlus />} variant="outlined" size="small" onClick={() => setItems([...items, initialItem()])} sx={{ borderRadius: 2 }}>
+                        Add Item
+                      </Button>
+                    )}
                   </Box>
                   <Divider sx={{ mb: 3 }} />
 
@@ -430,6 +462,7 @@ const PurchaseOrderForm = () => {
                                 getOptionLabel={(opt) => opt.name || ''}
                                 value={products.find((p) => p.id === row.productServiceId) || null}
                                 onChange={(_, v) => handleProductSelect(idx, v)}
+                                disabled={isBillMode}
                                 renderInput={(params) => <TextField {...params} placeholder="Select item" />}
                                 isOptionEqualToValue={(a, b) => a?.id === b?.id}
                                 sx={{ minWidth: 200 }}
@@ -442,6 +475,7 @@ const PurchaseOrderForm = () => {
                                 placeholder="Description"
                                 value={row.itemDescription}
                                 onChange={(e) => handleItemChange(idx, 'itemDescription', e.target.value)}
+                                disabled={isBillMode}
                                 sx={{ minWidth: 180 }}
                               />
                             </TableCell>
@@ -463,6 +497,7 @@ const PurchaseOrderForm = () => {
                                 placeholder="Price"
                                 value={row.price}
                                 onChange={(e) => handleItemChange(idx, 'price', e.target.value)}
+                                disabled={isBillMode}
                                 sx={{ width: 100 }}
                                 inputProps={{ min: 0, step: 0.01 }}
                               />
@@ -474,14 +509,17 @@ const PurchaseOrderForm = () => {
                                 placeholder="Total"
                                 value={row.total}
                                 onChange={(e) => handleItemChange(idx, 'total', e.target.value)}
+                                disabled={isBillMode}
                                 sx={{ width: 100 }}
                                 inputProps={{ min: 0 }}
                               />
                             </TableCell>
                             <TableCell>
-                              <IconButton size="small" onClick={() => setItems(items.filter((_, i) => i !== idx))} color="error" disabled={items.length <= 1}>
-                                <IconTrash size={18} />
-                              </IconButton>
+                              {!isBillMode && (
+                                <IconButton size="small" onClick={() => setItems(items.filter((_, i) => i !== idx))} color="error" disabled={items.length <= 1}>
+                                  <IconTrash size={18} />
+                                </IconButton>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}

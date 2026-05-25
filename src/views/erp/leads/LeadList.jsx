@@ -62,6 +62,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import RecordDetailDrawer from '../../../components/erp/RecordDetailDrawer';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const leadStatusChipColor = (status) => {
   switch (status?.toLowerCase()) {
@@ -75,7 +76,7 @@ const leadStatusChipColor = (status) => {
   }
 };
 
-const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approving }) => {
+const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approving, canApproveLead }) => {
   const theme = useTheme();
   const companyName = lead.company?.company_name || '';
   const initial = (companyName.trim().charAt(0) || lead.lead_number?.charAt(0) || '?').toUpperCase();
@@ -251,7 +252,7 @@ const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approvi
         </Box>
       ) : null}
 
-      {['new', 'contacted'].includes(String(lead.status || '').toLowerCase()) && (
+      {canApproveLead && ['new', 'contacted'].includes(String(lead.status || '').toLowerCase()) && (
         <Button
           variant="contained"
           color="success"
@@ -280,6 +281,8 @@ const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approvi
 const LeadList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { hasPermission } = useAuth();
+  const canApproveLead = hasPermission('leads.approve') || hasPermission('leads.update');
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -846,7 +849,7 @@ const LeadList = () => {
             <IconEdit size={18} style={{ marginRight: 8 }} />
             Edit
           </MenuItem>
-          {['new', 'contacted'].includes(String(selectedLead?.status || '').toLowerCase()) && (
+          {canApproveLead && ['new', 'contacted'].includes(String(selectedLead?.status || '').toLowerCase()) && (
             <MenuItem
               onClick={() => {
                 handleApproveLead(selectedLead.id);
@@ -906,6 +909,7 @@ const LeadList = () => {
                 navigate(`/erp/companies/view/${companyId}`);
               }}
               onApprove={handleApproveLead}
+              canApproveLead={canApproveLead}
               approving={approvingLeadId === viewLead?.id}
             />
           )}

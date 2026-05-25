@@ -121,9 +121,10 @@ const canAssignDeals = (roleName) =>
 const DealForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const roleName = user?.role?.name ?? user?.role;
   const showAssignedTo = canAssignDeals(roleName);
+  const canEditDeals = hasPermission('deals.update');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -224,6 +225,13 @@ const DealForm = () => {
   const [wdsAttachments, setWdsAttachments] = useState([]);
 
   const isEdit = Boolean(id);
+
+  useEffect(() => {
+    if (!canEditDeals) {
+      if (isEdit && id) navigate(`/erp/deals/view/${id}`, { replace: true });
+      else navigate('/erp/deals', { replace: true });
+    }
+  }, [canEditDeals, isEdit, id, navigate]);
 
   const fetchAllData = useCallback(async () => {
     const results = await Promise.allSettled([
@@ -644,6 +652,8 @@ const DealForm = () => {
       setSubmitting(false);
     }
   };
+
+  if (!canEditDeals) return null;
 
   if (loading && isEdit) {
     return (

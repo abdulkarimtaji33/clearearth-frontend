@@ -395,8 +395,9 @@ const DealView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const showWorkOrderActions = getUserRole(user) !== 'sales';
+  const canEditDeals = hasPermission('deals.update');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deal, setDeal] = useState(null);
@@ -512,7 +513,7 @@ const DealView = () => {
   }, []);
 
   const dealStatusLower = String(deal?.status || '').toLowerCase();
-  const canApproveDeal = deal && !['approved', 'won', 'lost'].includes(dealStatusLower);
+  const canApproveDeal = canEditDeals && deal && !['approved', 'won', 'lost'].includes(dealStatusLower);
 
   const handleApproveDeal = async () => {
     if (!id || !deal) return;
@@ -734,15 +735,17 @@ const DealView = () => {
                 Approve
               </Button>
             )}
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<IconEdit size={16} />}
-              onClick={() => navigate(`/erp/deals/edit/${id}`)}
-              sx={{ borderRadius: 2, fontWeight: 600 }}
-            >
-              Edit Deal
-            </Button>
+            {canEditDeals && (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<IconEdit size={16} />}
+                onClick={() => navigate(`/erp/deals/edit/${id}`)}
+                sx={{ borderRadius: 2, fontWeight: 600 }}
+              >
+                Edit Deal
+              </Button>
+            )}
           </Stack>
         </Stack>
 
@@ -1182,9 +1185,11 @@ const DealView = () => {
                       View report
                     </Button>
                   )}
-                  <Button variant="contained" size="small" startIcon={<IconPlus size={16} />} onClick={openReportDialog} sx={{ borderRadius: 2 }}>
-                    {deal.inspectionReport ? 'Edit report' : 'Add report'}
-                  </Button>
+                  {canEditDeals && (
+                    <Button variant="contained" size="small" startIcon={<IconPlus size={16} />} onClick={openReportDialog} sx={{ borderRadius: 2 }}>
+                      {deal.inspectionReport ? 'Edit report' : 'Add report'}
+                    </Button>
+                  )}
                 </Stack>
               }
             />

@@ -18,7 +18,7 @@ import {
   IconArrowLeft, IconEdit, IconHammer, IconCalendar, IconUser,
   IconCurrencyDollar, IconClock, IconGripVertical, IconLock,
   IconAlertCircle, IconCircleCheck, IconNote, IconCheck, IconX,
-  IconFileReport, IconPrinter, IconReceipt, IconFileInvoice,
+  IconFileReport, IconPrinter, IconReceipt, IconFileInvoice, IconShoppingCart,
 } from '@tabler/icons-react';
 import { TextField, InputAdornment } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
@@ -487,6 +487,9 @@ const WorkOrderView = () => {
 
   const completedCount = tasks.filter(t => t.status === 'completed').length;
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+  const purchaseBill = wo.purchase_bill || wo.purchaseBill;
+  const isOtpDeal = wo.deal?.deal_type === 'offer_to_purchase';
+  const vendorSupplierId = wo.deal?.downstream_partner_supplier_id || wo.deal?.supplier_id;
   const taskExpenseTotal = (t) => {
     if (t.expenses?.length) return t.expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
     return t.expense != null ? parseFloat(t.expense) : 0;
@@ -572,6 +575,23 @@ const WorkOrderView = () => {
                 sx={{ borderRadius: 2, fontWeight: 600 }}
               >
                 View Tax Invoice
+              </Button>
+            )}
+            {wo.status === 'completed' && isOtpDeal && vendorSupplierId && (
+              <Button
+                variant={purchaseBill ? 'outlined' : 'contained'}
+                color="secondary"
+                startIcon={<IconShoppingCart size={16} />}
+                onClick={() => {
+                  if (purchaseBill?.id) {
+                    navigate(`/erp/purchase-orders/edit/${purchaseBill.id}?bill=1`);
+                  } else {
+                    navigate(`/erp/purchase-orders/create?dealId=${wo.deal_id}&supplierId=${vendorSupplierId}&workOrderId=${wo.id}&bill=1`);
+                  }
+                }}
+                sx={{ borderRadius: 2, fontWeight: 600 }}
+              >
+                {purchaseBill ? 'Edit Purchase Bill' : 'Create Purchase Bill'}
               </Button>
             )}
             {wo.status === 'completed' && (

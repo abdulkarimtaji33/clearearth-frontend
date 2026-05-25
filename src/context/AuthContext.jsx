@@ -114,6 +114,12 @@ export const AuthProvider = ({ children }) => {
     if (roleName === 'accounts' && permission?.startsWith('accounting.')) {
       return perms.some((p) => p.startsWith('accounting.'));
     }
+    if (roleName === 'accounts' && permission?.startsWith('reports.')) {
+      return perms.some((p) => p.startsWith('reports.'));
+    }
+    if (roleName === 'operations_manager' && permission?.startsWith('operations.')) {
+      return perms.some((p) => p.startsWith('operations.'));
+    }
     return false;
   };
 

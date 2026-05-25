@@ -43,7 +43,7 @@ const PayablesList = () => {
       if (dateTo) params.dateTo = dateTo;
       if (paymentStatus) params.paymentStatus = paymentStatus;
       const res = await apiService.getPayables(params);
-      setRows(extractListData(res));
+      setRows(Array.isArray(res.data) ? res.data : extractListData(res));
       setTotalCount(res.pagination?.totalItems ?? 0);
     } catch (err) {
       setError(err.message || 'Failed to load payables');

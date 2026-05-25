@@ -129,7 +129,7 @@ const PurchaseOrderForm = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, billFromUrl]);
 
   const applyDealPreFill = useCallback((deal, supplierIdOverride) => {
     if (!deal) return;
@@ -169,8 +169,6 @@ const PurchaseOrderForm = () => {
       console.error(err);
     }
   }, [applyDealPreFill]);
-
-  }, [id, billFromUrl]);
 
   useEffect(() => {
     fetchData();

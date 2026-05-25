@@ -20,7 +20,13 @@ export function asArray(value) {
 
 /** Paginated / wrapped list from API responses (receivables, invoices, etc.). */
 export function extractListData(res) {
-  return asArray(res?.data?.rows ?? res?.data?.items ?? res?.data?.entries ?? res?.data);
+  const d = res?.data;
+  // Use Array.isArray guards to avoid hitting Array.prototype built-ins
+  // (e.g. Array.prototype.entries is a function, not an array of rows)
+  if (Array.isArray(d?.rows)) return d.rows;
+  if (Array.isArray(d?.items)) return d.items;
+  if (Array.isArray(d?.entries)) return d.entries;
+  return asArray(d);
 }
 
 export function paginatedTotal(res, fallback = 0) {

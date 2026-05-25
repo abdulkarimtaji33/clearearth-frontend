@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -17,7 +17,17 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router';
 import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
 import apiService from '../../../services/api';
+import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
+import {
+  PAID_TO_OPTIONS,
+  PAID_TO_STORAGE_KEY,
+  PAYMENT_METHOD_STORAGE_KEY,
+  loadStoredOptions,
+  saveStoredOptions,
+  mergeSelectOptions,
+} from '../../../constants/expenseFormOptions';
 
 const CATEGORIES = [
   { value: 'travel', label: 'Travel' },
@@ -43,6 +53,34 @@ const ExpenseCreate = () => {
   const [paymentStatus, setPaymentStatus] = useState('unpaid');
   const [paidAmount, setPaidAmount] = useState('');
   const [paidAt, setPaidAt] = useState('');
+  const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
+  const [customPaymentMethods, setCustomPaymentMethods] = useState(() => loadStoredOptions(PAYMENT_METHOD_STORAGE_KEY));
+
+  const paidToOptions = useMemo(
+    () => mergeSelectOptions(PAID_TO_OPTIONS, customPaidTo, paidTo),
+    [customPaidTo, paidTo]
+  );
+
+  const paymentMethodOptions = useMemo(
+    () => mergeSelectOptions(PAYMENT_METHOD_OPTIONS, customPaymentMethods, paymentMethod),
+    [customPaymentMethods, paymentMethod]
+  );
+
+  const addCustomPaidTo = useCallback((v) => {
+    setCustomPaidTo((prev) => {
+      const next = prev.includes(v) ? prev : [...prev, v];
+      saveStoredOptions(PAID_TO_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const addCustomPaymentMethod = useCallback((v) => {
+    setCustomPaymentMethods((prev) => {
+      const next = prev.includes(v) ? prev : [...prev, v];
+      saveStoredOptions(PAYMENT_METHOD_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -167,21 +205,25 @@ const ExpenseCreate = () => {
                 onChange={(e) => setExpenseDate(e.target.value)}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
-              <TextField
-                fullWidth
-                size="small"
+              <SelectWithAddNew
                 label="Paid to"
                 value={paidTo}
-                onChange={(e) => setPaidTo(e.target.value)}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                onChange={setPaidTo}
+                options={paidToOptions}
+                addDialogTitle="Add payee"
+                addDialogDescription="Add a new payee name for this and future expenses"
+                addFieldLabel="Payee name"
+                onOptionAdded={addCustomPaidTo}
               />
-              <TextField
-                fullWidth
-                size="small"
+              <SelectWithAddNew
                 label="Payment method"
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                onChange={setPaymentMethod}
+                options={paymentMethodOptions}
+                addDialogTitle="Add payment method"
+                addDialogDescription="Add a custom payment method for this and future expenses"
+                addFieldLabel="Payment method"
+                onOptionAdded={addCustomPaymentMethod}
               />
               <FormControl fullWidth size="small">
                 <InputLabel>Settlement</InputLabel>

@@ -75,7 +75,13 @@ const INSPECTION_STATUS_CONFIG = {
 
 const getInspectionBadge = (deal) => {
   if (!deal.inspection_required) return null;
-  const req = deal.inspectionRequest;
+  const req = deal.inspectionRequest || deal.inspection_request;
+  const report = deal.inspectionReport || deal.inspection_report;
+
+  if (report?.id) {
+    return INSPECTION_STATUS_CONFIG.report_submitted;
+  }
+
   if (!req) return { label: 'Pending Inspection', color: 'warning' };
 
   const responseStatus = req.response_status || 'pending';

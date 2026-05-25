@@ -495,6 +495,26 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
               <CardContent sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <Stack spacing={2.5} sx={{ flex: 1 }}>
 
+                  {/* response status */}
+                  {(request.response_status === 'rejected' || request.response_status === 'accepted') && (
+                    <Box>
+                      <SmallLabel>Response</SmallLabel>
+                      <Chip
+                        size="small"
+                        label={request.response_status === 'rejected' ? 'Rejected' : 'Accepted'}
+                        color={request.response_status === 'rejected' ? 'error' : 'success'}
+                        sx={{ fontWeight: 700, mt: 0.25 }}
+                      />
+                    </Box>
+                  )}
+
+                  {request.response_status === 'rejected' && request.rejection_reason && (
+                    <Alert severity="error" sx={{ borderRadius: 2 }}>
+                      <Typography variant="caption" fontWeight={700} display="block" mb={0.5}>Rejection reason</Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{request.rejection_reason}</Typography>
+                    </Alert>
+                  )}
+
                   {/* deal */}
                   <Box>
                     <SmallLabel>Deal</SmallLabel>

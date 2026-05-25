@@ -1140,6 +1140,22 @@ const DealView = () => {
                 <>
                   <Divider sx={{ my: 2.5 }} />
                   <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>Inspection Request</Typography>
+                  {(deal.inspectionRequest.response_status === 'rejected' || deal.inspectionRequest.response_status === 'accepted') && (
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" mb={1.5}>
+                      <Chip
+                        size="small"
+                        label={deal.inspectionRequest.response_status === 'rejected' ? 'Rejected' : 'Accepted'}
+                        color={deal.inspectionRequest.response_status === 'rejected' ? 'error' : 'success'}
+                        sx={{ fontWeight: 700 }}
+                      />
+                    </Stack>
+                  )}
+                  {deal.inspectionRequest.response_status === 'rejected' && deal.inspectionRequest.rejection_reason && (
+                    <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                      <Typography variant="subtitle2" fontWeight={700} gutterBottom>Rejection reason</Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{deal.inspectionRequest.rejection_reason}</Typography>
+                    </Alert>
+                  )}
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Material type" value={deal.inspectionRequest.materialType?.display_name} /></Grid>
                     <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Location" value={deal.inspectionRequest.location} /></Grid>

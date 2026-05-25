@@ -20,14 +20,22 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  MenuItem,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router';
 import { IconArrowLeft, IconHammer, IconCheck, IconX, IconClipboardList } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
 import apiService from '../../../services/api';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
+import {
+  PAID_TO_OPTIONS,
+  PAID_TO_STORAGE_KEY,
+  PAYMENT_METHOD_STORAGE_KEY,
+  loadStoredOptions,
+  saveStoredOptions,
+  mergeSelectOptions,
+} from '../../../constants/expenseFormOptions';
 
 const WO_STATUS_COLORS = {
   draft: 'default',
@@ -64,9 +72,38 @@ const AccountsWorkOrderView = () => {
   const [form, setForm] = useState({
     amount: '',
     expenseDate: '',
+    paidTo: 'Operations',
     paymentMethod: 'Bank transfer',
     notes: '',
   });
+  const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
+  const [customPaymentMethods, setCustomPaymentMethods] = useState(() => loadStoredOptions(PAYMENT_METHOD_STORAGE_KEY));
+
+  const paidToOptions = useMemo(
+    () => mergeSelectOptions(PAID_TO_OPTIONS, customPaidTo, form.paidTo),
+    [customPaidTo, form.paidTo]
+  );
+
+  const paymentMethodOptions = useMemo(
+    () => mergeSelectOptions(PAYMENT_METHOD_OPTIONS, customPaymentMethods, form.paymentMethod),
+    [customPaymentMethods, form.paymentMethod]
+  );
+
+  const addCustomPaidTo = useCallback((v) => {
+    setCustomPaidTo((prev) => {
+      const next = prev.includes(v) ? prev : [...prev, v];
+      saveStoredOptions(PAID_TO_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const addCustomPaymentMethod = useCallback((v) => {
+    setCustomPaymentMethods((prev) => {
+      const next = prev.includes(v) ? prev : [...prev, v];
+      saveStoredOptions(PAYMENT_METHOD_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
 
   const fetchWo = useCallback(async () => {
     if (!id) return;
@@ -116,6 +153,7 @@ const AccountsWorkOrderView = () => {
     setForm({
       amount: String(ex.amount ?? ''),
       expenseDate: new Date().toISOString().slice(0, 10),
+      paidTo: 'Operations',
       paymentMethod: 'Bank transfer',
       notes: notesParts.join(' · '),
     });
@@ -130,6 +168,7 @@ const AccountsWorkOrderView = () => {
       await apiService.approveAccountsTaskExpense(wo.id, approveCtx.ex.id, {
         amount: num(form.amount),
         expenseDate: form.expenseDate,
+        paidTo: form.paidTo.trim() || undefined,
         paymentMethod: form.paymentMethod || null,
         notes: form.notes || null,
       });
@@ -332,35 +371,37 @@ const AccountsWorkOrderView = () => {
           <DialogTitle fontWeight={700}>Approve expense</DialogTitle>
           <DialogContent>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-              Ledger category, payee, and work order link are set automatically. Adjust amount, date, or payment details if needed.
+              Ledger category and work order link are set automatically. Adjust payee, amount, date, or payment details if needed.
             </Typography>
             {wo && (
               <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
                 <Chip size="small" label="Category: Work orders" color="primary" variant="outlined" sx={{ fontWeight: 700 }} />
-                <Chip size="small" label="Paid to: Operations" color="primary" variant="outlined" sx={{ fontWeight: 700 }} />
                 <Chip size="small" label={`WO #${wo.id}`} variant="outlined" sx={{ fontWeight: 700 }} />
               </Stack>
             )}
             <Stack spacing={2} sx={{ mt: 0 }}>
               <TextField label="Amount (AED)" size="small" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} fullWidth />
               <TextField label="Expense date" type="date" size="small" value={form.expenseDate} onChange={(e) => setForm((f) => ({ ...f, expenseDate: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
-              <TextField
-                select
+              <SelectWithAddNew
+                label="Paid to"
+                value={form.paidTo}
+                onChange={(v) => setForm((f) => ({ ...f, paidTo: v }))}
+                options={paidToOptions}
+                addDialogTitle="Add payee"
+                addDialogDescription="Add a new payee name for this and future expenses"
+                addFieldLabel="Payee name"
+                onOptionAdded={addCustomPaidTo}
+              />
+              <SelectWithAddNew
                 label="Payment method"
-                size="small"
-                value={form.paymentMethod || ''}
-                onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))}
-                fullWidth
-              >
-                <MenuItem value="">
-                  <em>Not set</em>
-                </MenuItem>
-                {PAYMENT_METHOD_OPTIONS.map((o) => (
-                  <MenuItem key={o.value} value={o.value}>
-                    {o.label}
-                  </MenuItem>
-                ))}
-              </TextField>
+                value={form.paymentMethod}
+                onChange={(v) => setForm((f) => ({ ...f, paymentMethod: v }))}
+                options={paymentMethodOptions}
+                addDialogTitle="Add payment method"
+                addDialogDescription="Add a custom payment method for this and future expenses"
+                addFieldLabel="Payment method"
+                onOptionAdded={addCustomPaymentMethod}
+              />
               <TextField label="Notes" size="small" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} multiline minRows={2} fullWidth placeholder="Context is prefilled; edit if needed." />
             </Stack>
           </DialogContent>

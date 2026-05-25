@@ -257,7 +257,16 @@ const InspectionRequestList = () => {
                         <TableCell>
                           {(() => {
                             const cfg = RESPONSE_CONFIG[req.response_status || 'pending'] || RESPONSE_CONFIG.pending;
-                            return <Chip size="small" label={cfg.label} color={cfg.color} sx={{ fontWeight: 600, fontSize: '0.7rem' }} />;
+                            return (
+                              <Box>
+                                <Chip size="small" label={cfg.label} color={cfg.color} sx={{ fontWeight: 600, fontSize: '0.7rem' }} />
+                                {req.response_status === 'rejected' && req.rejection_reason && (
+                                  <Typography variant="caption" color="error.main" display="block" mt={0.5} sx={{ maxWidth: 220, whiteSpace: 'pre-wrap' }}>
+                                    {req.rejection_reason}
+                                  </Typography>
+                                )}
+                              </Box>
+                            );
                           })()}
                         </TableCell>
                         <TableCell>

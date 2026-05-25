@@ -66,13 +66,38 @@ const PAYMENT_CONFIG = {
   paid:    { label: 'Paid',     color: 'success' },
 };
 
+const INSPECTION_STATUS_CONFIG = {
+  request_submitted:    { label: 'Request Submitted',    color: 'default' },
+  team_assigned:        { label: 'Team Assigned',        color: 'info' },
+  inspection_completed: { label: 'Inspection Completed', color: 'warning' },
+  report_submitted:     { label: 'Report Submitted',     color: 'success' },
+};
+
 const getInspectionBadge = (deal) => {
   if (!deal.inspection_required) return null;
   const req = deal.inspectionRequest;
-  const completed = req?.status === 'inspection_completed' || req?.status === 'report_submitted';
-  if (completed) return { label: 'Inspection Completed', color: 'success' };
-  if (req) return { label: 'Pending Inspection', color: 'warning' };
-  return { label: 'Pending Inspection', color: 'warning' };
+  if (!req) return { label: 'Pending Inspection', color: 'warning' };
+
+  const responseStatus = req.response_status || 'pending';
+
+  if (responseStatus === 'rejected') {
+    return { label: 'Rejected', color: 'error' };
+  }
+
+  if (req.status === 'report_submitted' || req.status === 'inspection_completed') {
+    return INSPECTION_STATUS_CONFIG[req.status];
+  }
+
+  if (responseStatus === 'accepted') {
+    if (req.status === 'team_assigned') return INSPECTION_STATUS_CONFIG.team_assigned;
+    return { label: 'Accepted', color: 'success' };
+  }
+
+  if (req.status && INSPECTION_STATUS_CONFIG[req.status]) {
+    return INSPECTION_STATUS_CONFIG[req.status];
+  }
+
+  return { label: 'Pending Review', color: 'warning' };
 };
 
 const StatusChip = ({ value, config }) => {

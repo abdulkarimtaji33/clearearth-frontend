@@ -153,7 +153,7 @@ const AccountsWorkOrderView = () => {
     setForm({
       amount: String(ex.amount ?? ''),
       expenseDate: new Date().toISOString().slice(0, 10),
-      paidTo: 'Operations',
+      paidTo: ex.paid_to || 'Operations',
       paymentMethod: 'Bank transfer',
       notes: notesParts.join(' · '),
     });
@@ -301,6 +301,7 @@ const AccountsWorkOrderView = () => {
                   <TableHead>
                     <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
                       <TableCell sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Description</TableCell>
+                      <TableCell sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Paid to</TableCell>
                       <TableCell align="right" sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Amount</TableCell>
                       <TableCell sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Evidence</TableCell>
                       <TableCell sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Accounts</TableCell>
@@ -315,6 +316,7 @@ const AccountsWorkOrderView = () => {
                       return (
                         <TableRow key={ex.id}>
                           <TableCell>{ex.description || '—'}</TableCell>
+                          <TableCell>{ex.paid_to || 'Operations'}</TableCell>
                           <TableCell align="right">{num(ex.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell>
                             {ex.evidence_path ? (

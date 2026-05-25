@@ -302,6 +302,33 @@ class ApiService {
     });
   }
 
+  async updateInspectionRequestPriority(id, priority) {
+    return this.request(`/inspection-requests/${id}/priority`, {
+      method: 'PATCH',
+      body: JSON.stringify({ priority }),
+    });
+  }
+
+  async acceptInspectionRequest(id) {
+    return this.post(`/inspection-requests/${id}/accept`, {});
+  }
+
+  async rejectInspectionRequest(id, reason) {
+    return this.post(`/inspection-requests/${id}/reject`, { reason });
+  }
+
+  async getNotifications(params) {
+    return this.get('/notifications', params);
+  }
+
+  async markNotificationRead(id) {
+    return this.request(`/notifications/${id}/read`, { method: 'PATCH' });
+  }
+
+  async markAllNotificationsRead() {
+    return this.request('/notifications/read-all', { method: 'PATCH' });
+  }
+
   async getInspectors() {
     return this.get('/users/inspectors');
   }
@@ -436,8 +463,8 @@ class ApiService {
     return this.post(`/accounts/work-orders/${workOrderId}/task-expenses/${taskExpenseId}/approve`, data);
   }
 
-  async rejectAccountsTaskExpense(workOrderId, taskExpenseId) {
-    return this.post(`/accounts/work-orders/${workOrderId}/task-expenses/${taskExpenseId}/reject`, {});
+  async rejectAccountsTaskExpense(workOrderId, taskExpenseId, reason) {
+    return this.post(`/accounts/work-orders/${workOrderId}/task-expenses/${taskExpenseId}/reject`, { reason });
   }
 
   _filenameFromContentDisposition(disposition, fallback) {
@@ -581,6 +608,19 @@ class ApiService {
 
   async uploadInspectionDocument(file) {
     const url = `${this.baseURL}/upload/inspection-document`;
+    const token = this.getAuthToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(url, { method: 'POST', body: formData, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Upload failed');
+    return data;
+  }
+
+  async uploadExpenseEvidence(file) {
+    const url = `${this.baseURL}/upload/expense-evidence`;
     const token = this.getAuthToken();
     const formData = new FormData();
     formData.append('file', file);

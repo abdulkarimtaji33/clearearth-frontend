@@ -22,9 +22,15 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconFileReport, IconClipboardCheck } from '@tabler/icons-react';
+import { IconSearch, IconFileReport, IconClipboardCheck, IconEye, IconCheck, IconX } from '@tabler/icons-react';
 import { useNavigate, Link } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -37,12 +43,26 @@ const INSPECTION_STATUS_CONFIG = {
   report_submitted:     { label: 'Report Submitted',    color: 'success' },
 };
 
+const PRIORITY_CONFIG = {
+  critical: { label: 'Critical', color: 'error' },
+  high:     { label: 'High',     color: 'warning' },
+  medium:   { label: 'Medium',   color: 'info' },
+  low:      { label: 'Low',      color: 'default' },
+};
+
+const RESPONSE_CONFIG = {
+  pending:  { label: 'Pending',  color: 'warning' },
+  accepted: { label: 'Accepted', color: 'success' },
+  rejected: { label: 'Rejected', color: 'error' },
+};
+
 const InspectionRequestList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
@@ -50,6 +70,10 @@ const InspectionRequestList = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState('');
+  const [rejectDialog, setRejectDialog] = useState({ open: false, req: null });
+  const [rejectReason, setRejectReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(null);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -58,6 +82,7 @@ const InspectionRequestList = () => {
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
       if (statusFilter) params.status = statusFilter;
+      if (priorityFilter) params.priority = priorityFilter;
       const response = await apiService.getInspectionRequests(params);
       if (response.success) {
         setRequests(Array.isArray(response.data) ? response.data : []);
@@ -68,9 +93,51 @@ const InspectionRequestList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, dateFrom, dateTo, statusFilter]);
+  }, [page, rowsPerPage, search, dateFrom, dateTo, statusFilter, priorityFilter]);
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
+
+  const handleAccept = async (req, e) => {
+    e?.stopPropagation();
+    try {
+      setActionLoading(req.id);
+      setError('');
+      await apiService.acceptInspectionRequest(req.id);
+      setSuccess('Inspection request accepted');
+      fetchRequests();
+    } catch (err) {
+      setError(err.message || 'Failed to accept request');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!rejectDialog.req || !rejectReason.trim()) return;
+    try {
+      setActionLoading(rejectDialog.req.id);
+      setError('');
+      await apiService.rejectInspectionRequest(rejectDialog.req.id, rejectReason.trim());
+      setSuccess('Inspection request rejected — reason shared with sales user');
+      setRejectDialog({ open: false, req: null });
+      setRejectReason('');
+      fetchRequests();
+    } catch (err) {
+      setError(err.message || 'Failed to reject request');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handlePriorityChange = async (req, priority, e) => {
+    e?.stopPropagation();
+    try {
+      await apiService.updateInspectionRequestPriority(req.id, priority);
+      fetchRequests();
+    } catch (err) {
+      setError(err.message || 'Failed to update priority');
+    }
+  };
 
   return (
     <PageContainer title="Inspection Requests" description="View inspection requests and add reports">
@@ -90,6 +157,7 @@ const InspectionRequestList = () => {
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
           <Box sx={{ p: 2.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.background.default, 0.6) }}>
@@ -102,11 +170,20 @@ const InspectionRequestList = () => {
                 InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={16} /></InputAdornment>, sx: { borderRadius: 2 } }}
                 sx={{ minWidth: 220, flex: 1 }}
               />
-              <FormControl size="small" sx={{ minWidth: 180 }}>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
                 <InputLabel>Stage</InputLabel>
                 <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }} label="Stage" sx={{ borderRadius: 2 }}>
                   <MenuItem value="">All stages</MenuItem>
                   {Object.entries(INSPECTION_STATUS_CONFIG).map(([v, c]) => (
+                    <MenuItem key={v} value={v}>{c.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 140 }}>
+                <InputLabel>Priority</InputLabel>
+                <Select value={priorityFilter} onChange={e => { setPriorityFilter(e.target.value); setPage(0); }} label="Priority" sx={{ borderRadius: 2 }}>
+                  <MenuItem value="">All</MenuItem>
+                  {Object.entries(PRIORITY_CONFIG).map(([v, c]) => (
                     <MenuItem key={v} value={v}>{c.label}</MenuItem>
                   ))}
                 </Select>
@@ -122,31 +199,29 @@ const InspectionRequestList = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.success.main, 0.04) }}>
-                    {['Deal', 'Client', 'Material', 'Stage', 'Requested By', ''].map((h, i) => (
-                      <TableCell key={i} align={i === 5 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                    {['Deal', 'Client', 'Material', 'Priority', 'Stage', 'Response', 'Requested By', 'Actions'].map((h, i) => (
+                      <TableCell key={i} align={i === 7 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {loading ? (
-                    <TableRow><TableCell colSpan={6} align="center" sx={{ py: 8 }}><CircularProgress /></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} align="center" sx={{ py: 8 }}><CircularProgress /></TableCell></TableRow>
                   ) : requests.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
-
+                      <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
                         <IconClipboardCheck size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
                         <Typography variant="body2" color="text.secondary">No inspection requests found</Typography>
                       </TableCell>
                     </TableRow>
                   ) : (
                     requests.map(req => (
-                      <TableRow key={req.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.02) } }} onClick={() => navigate(`/erp/inspection-requests/${req.id}`)}>
+                      <TableRow key={req.id} hover sx={{ '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.02) } }}>
                         <TableCell>
                           {req.deal?.id ? (
                             <Typography
                               component={Link}
                               to={`/erp/deals/view/${req.deal.id}`}
-                              onClick={(e) => e.stopPropagation()}
                               variant="body2"
                               fontWeight={700}
                               color="primary.main"
@@ -161,9 +236,27 @@ const InspectionRequestList = () => {
                         </TableCell>
                         <TableCell><Typography variant="body2">{req.deal?.company?.company_name || req.deal?.supplier?.company_name || '—'}</Typography></TableCell>
                         <TableCell><Typography variant="body2">{req.materialType?.display_name || '—'}</Typography></TableCell>
+                        <TableCell onClick={e => e.stopPropagation()}>
+                          <Select
+                            size="small"
+                            value={req.priority || 'medium'}
+                            onChange={e => handlePriorityChange(req, e.target.value, e)}
+                            sx={{ minWidth: 100, fontSize: '0.75rem', borderRadius: 2 }}
+                          >
+                            {Object.entries(PRIORITY_CONFIG).map(([v, c]) => (
+                              <MenuItem key={v} value={v}>{c.label}</MenuItem>
+                            ))}
+                          </Select>
+                        </TableCell>
                         <TableCell>
                           {(() => {
                             const cfg = INSPECTION_STATUS_CONFIG[req.status] || { label: req.status || 'Request Submitted', color: 'default' };
+                            return <Chip size="small" label={cfg.label} color={cfg.color} sx={{ fontWeight: 600, fontSize: '0.7rem' }} />;
+                          })()}
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            const cfg = RESPONSE_CONFIG[req.response_status || 'pending'] || RESPONSE_CONFIG.pending;
                             return <Chip size="small" label={cfg.label} color={cfg.color} sx={{ fontWeight: 600, fontSize: '0.7rem' }} />;
                           })()}
                         </TableCell>
@@ -173,9 +266,32 @@ const InspectionRequestList = () => {
                           </Typography>
                         </TableCell>
                         <TableCell align="right" onClick={e => e.stopPropagation()}>
-                          <Button size="small" variant={req.deal?.inspectionReport ? 'outlined' : 'contained'} startIcon={req.deal?.inspectionReport ? <IconFileReport size={14} /> : null} onClick={() => navigate(`/erp/inspection-requests/${req.id}`)} sx={{ borderRadius: 2 }}>
-                            {req.deal?.inspectionReport ? 'View Report' : 'Open'}
-                          </Button>
+                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                            <Tooltip title="View">
+                              <IconButton size="small" onClick={() => navigate(`/erp/inspection-requests/${req.id}`)}>
+                                <IconEye size={16} />
+                              </IconButton>
+                            </Tooltip>
+                            {req.response_status !== 'accepted' && req.response_status !== 'rejected' && (
+                              <>
+                                <Tooltip title="Accept">
+                                  <IconButton size="small" color="success" disabled={actionLoading === req.id} onClick={e => handleAccept(req, e)}>
+                                    <IconCheck size={16} />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Reject">
+                                  <IconButton size="small" color="error" disabled={actionLoading === req.id} onClick={e => { e.stopPropagation(); setRejectDialog({ open: true, req }); setRejectReason(''); }}>
+                                    <IconX size={16} />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
+                            {req.deal?.inspectionReport && (
+                              <Button size="small" variant="outlined" startIcon={<IconFileReport size={14} />} onClick={() => navigate(`/erp/inspection-requests/${req.id}`)} sx={{ borderRadius: 2, ml: 0.5 }}>
+                                Report
+                              </Button>
+                            )}
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     ))
@@ -197,6 +313,30 @@ const InspectionRequestList = () => {
           </CardContent>
         </Card>
       </Box>
+
+      <Dialog open={rejectDialog.open} onClose={() => setRejectDialog({ open: false, req: null })} maxWidth="sm" fullWidth>
+        <DialogTitle>Reject Inspection Request</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            Provide a reason — this will be shared with the sales user who submitted the request.
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            minRows={3}
+            label="Rejection reason"
+            value={rejectReason}
+            onChange={e => setRejectReason(e.target.value)}
+            required
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectDialog({ open: false, req: null })}>Cancel</Button>
+          <Button variant="contained" color="error" disabled={!rejectReason.trim() || actionLoading} onClick={handleRejectSubmit}>
+            Reject
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 };

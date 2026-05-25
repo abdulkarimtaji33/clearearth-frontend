@@ -864,6 +864,45 @@ const DealView = () => {
                 {deal.notes && <InfoRow label="Notes" value={deal.notes} />}
                 <InfoRow label="Created" value={new Date(deal.created_at).toLocaleString()} />
                 <InfoRow label="Updated" value={new Date(deal.updated_at).toLocaleString()} />
+
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>Invoice Details</Typography>
+                {(() => {
+                  const proformas = deal.proformaInvoices || [];
+                  const taxInvoices = proformas.map(p => p.taxInvoice).filter(Boolean);
+                  if (taxInvoices.length === 0 && proformas.length === 0) {
+                    return (
+                      <Typography variant="body2" color="error.main" fontWeight={700}>
+                        Invoice creation is pending
+                      </Typography>
+                    );
+                  }
+                  const primary = taxInvoices[0] || null;
+                  const proforma = proformas[0] || null;
+                  if (primary) {
+                    return (
+                      <>
+                        <InfoRow label="Invoice number" value={primary.tax_invoice_number} />
+                        <InfoRow label="Invoice amount" value={`${primary.currency || deal.currency || 'AED'} ${Number(primary.total || 0).toFixed(2)}`} />
+                        <InfoRow label="Payment status" value={
+                          <Chip label={(primary.payment_status || 'unpaid').replace(/_/g, ' ').toUpperCase()} color={getPaymentStatusColor(primary.payment_status)} size="small" sx={{ fontWeight: 700 }} />
+                        } />
+                        {primary.paid_amount != null && (
+                          <InfoRow label="Paid amount" value={`${primary.currency || deal.currency || 'AED'} ${Number(primary.paid_amount || 0).toFixed(2)}`} />
+                        )}
+                      </>
+                    );
+                  }
+                  return (
+                    <>
+                      <InfoRow label="Proforma number" value={proforma.proforma_number} />
+                      <InfoRow label="Proforma amount" value={`${proforma.currency || deal.currency || 'AED'} ${Number(proforma.total || 0).toFixed(2)}`} />
+                      <Typography variant="body2" color="error.main" fontWeight={700} mt={1}>
+                        Tax invoice creation is pending
+                      </Typography>
+                    </>
+                  );
+                })()}
               </Grid>
 
               {/* Related Entities */}

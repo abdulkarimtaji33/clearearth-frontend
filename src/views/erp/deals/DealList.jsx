@@ -65,6 +65,15 @@ const PAYMENT_CONFIG = {
   paid:    { label: 'Paid',     color: 'success' },
 };
 
+const getInspectionBadge = (deal) => {
+  if (!deal.inspection_required) return null;
+  const req = deal.inspectionRequest;
+  const completed = req?.status === 'inspection_completed' || req?.status === 'report_submitted';
+  if (completed) return { label: 'Inspection Completed', color: 'success' };
+  if (req) return { label: 'Pending Inspection', color: 'warning' };
+  return { label: 'Pending Inspection', color: 'warning' };
+};
+
 const StatusChip = ({ value, config }) => {
   const cfg = config[value] || { label: value || '—', color: 'default' };
   return <Chip label={cfg.label} size="small" color={cfg.color} sx={{ fontWeight: 600, textTransform: 'capitalize' }} />;
@@ -387,6 +396,7 @@ const DealList = () => {
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Company</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }} align="right">Total (AED)</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Inspection</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Payment</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Actions</TableCell>
                 </TableRow>
@@ -395,14 +405,14 @@ const DealList = () => {
                 {loading ? (
                   [...Array(5)].map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={6} sx={{ py: 2 }}>
+                      <TableCell colSpan={7} sx={{ py: 2 }}>
                         <Box sx={{ height: 20, bgcolor: 'action.hover', borderRadius: 1, animation: 'pulse 1.5s ease-in-out infinite', '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } } }} />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : deals.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
                       <Box sx={{ color: 'text.disabled' }}>
                         <IconBriefcase size={40} style={{ marginBottom: 8, opacity: 0.3 }} />
                         <Typography variant="body2" color="text.secondary">No deals found</Typography>
@@ -436,6 +446,14 @@ const DealList = () => {
                       </TableCell>
                       <TableCell onClick={e => e.stopPropagation()}>
                         <InlineStatusPicker deal={deal} onUpdated={handleStatusUpdated} onError={setError} />
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const badge = getInspectionBadge(deal);
+                          return badge
+                            ? <Chip label={badge.label} size="small" color={badge.color} sx={{ fontWeight: 600, fontSize: '0.7rem' }} />
+                            : <Typography variant="caption" color="text.disabled">—</Typography>;
+                        })()}
                       </TableCell>
                       <TableCell>
                         <StatusChip value={deal.payment_status} config={PAYMENT_CONFIG} />

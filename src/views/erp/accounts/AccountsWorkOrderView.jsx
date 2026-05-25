@@ -57,6 +57,9 @@ const AccountsWorkOrderView = () => {
   const [success, setSuccess] = useState('');
   const [approveOpen, setApproveOpen] = useState(false);
   const [approveCtx, setApproveCtx] = useState(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectCtx, setRejectCtx] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     amount: '',
@@ -141,18 +144,28 @@ const AccountsWorkOrderView = () => {
     }
   };
 
-  const handleReject = async (task, ex) => {
+  const openReject = (task, ex) => {
     const st = (ex.accounts_status || 'pending').toLowerCase();
     if (st !== 'pending') return;
-    if (!window.confirm('Reject this expense line?')) return;
-    if (!wo) return;
+    setRejectCtx({ task, ex });
+    setRejectReason('');
+    setRejectOpen(true);
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!rejectCtx || !wo || !rejectReason.trim()) return;
     try {
+      setSaving(true);
       setError('');
-      await apiService.rejectAccountsTaskExpense(wo.id, ex.id);
+      await apiService.rejectAccountsTaskExpense(wo.id, rejectCtx.ex.id, rejectReason.trim());
       setSuccess('Expense rejected');
+      setRejectOpen(false);
+      setRejectCtx(null);
       await fetchWo();
     } catch (e) {
       setError(e.message || 'Reject failed');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -250,6 +263,7 @@ const AccountsWorkOrderView = () => {
                     <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
                       <TableCell sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Description</TableCell>
                       <TableCell align="right" sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Amount</TableCell>
+                      <TableCell sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Evidence</TableCell>
                       <TableCell sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Accounts</TableCell>
                       <TableCell sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Ledger</TableCell>
                       <TableCell align="right" sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>Actions</TableCell>
@@ -264,7 +278,19 @@ const AccountsWorkOrderView = () => {
                           <TableCell>{ex.description || '—'}</TableCell>
                           <TableCell align="right">{num(ex.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell>
+                            {ex.evidence_path ? (
+                              <Button size="small" href={apiService.getUploadUrl(ex.evidence_path)} target="_blank" rel="noopener">
+                                {ex.evidence_file_name || 'View'}
+                              </Button>
+                            ) : (
+                              <Typography variant="caption" color="text.disabled">—</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             <Chip size="small" label={meta.label} color={meta.color} sx={{ fontWeight: 700 }} />
+                            {st === 'rejected' && ex.rejection_reason && (
+                              <Typography variant="caption" color="error.main" display="block" mt={0.5}>{ex.rejection_reason}</Typography>
+                            )}
                           </TableCell>
                           <TableCell>
                             {ex.ledgerExpense ? (
@@ -286,7 +312,7 @@ const AccountsWorkOrderView = () => {
                                 <IconButton size="small" color="success" title="Approve" onClick={() => openApprove(task, ex)}>
                                   <IconCheck size={18} />
                                 </IconButton>
-                                <IconButton size="small" color="error" title="Reject" onClick={() => handleReject(task, ex)}>
+                                <IconButton size="small" color="error" title="Reject" onClick={() => openReject(task, ex)}>
                                   <IconX size={18} />
                                 </IconButton>
                               </Stack>
@@ -342,6 +368,29 @@ const AccountsWorkOrderView = () => {
             <Button onClick={() => setApproveOpen(false)} disabled={saving}>Cancel</Button>
             <Button variant="contained" onClick={handleApproveSubmit} disabled={saving}>
               {saving ? <CircularProgress size={20} /> : 'Approve & post to ledger'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog open={rejectOpen} onClose={() => !saving && setRejectOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+          <DialogTitle fontWeight={700}>Reject expense</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              Provide a reason for rejecting this expense line.
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              minRows={3}
+              label="Rejection reason"
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setRejectOpen(false)} disabled={saving}>Cancel</Button>
+            <Button variant="contained" color="error" onClick={handleRejectSubmit} disabled={saving || !rejectReason.trim()}>
+              {saving ? <CircularProgress size={20} /> : 'Reject'}
             </Button>
           </DialogActions>
         </Dialog>

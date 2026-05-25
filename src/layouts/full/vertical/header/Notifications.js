@@ -1,55 +1,100 @@
-import { useState } from 'react';
-import { Link } from 'react-router';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import {
   IconButton,
   Box,
   Badge,
   Menu,
   MenuItem,
-  Avatar,
   Typography,
   Button,
   Chip,
+  CircularProgress,
 } from '@mui/material';
-import * as dropdownData from './data';
 import Scrollbar from 'src/components/custom-scroll/Scrollbar';
-
 import { IconBellRinging } from '@tabler/icons';
 import { Stack } from '@mui/system';
+import apiService from 'src/services/api';
+
+const entityLink = (n) => {
+  if (n.entity_type === 'deal' && n.entity_id) return `/erp/deals/view/${n.entity_id}`;
+  if (n.entity_type === 'inspection_request' && n.entity_id) return `/erp/inspection-requests/${n.entity_id}`;
+  return null;
+};
 
 const Notifications = () => {
+  const navigate = useNavigate();
   const [anchorEl2, setAnchorEl2] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await apiService.getNotifications({ limit: 20 });
+      if (res.success) {
+        setNotifications(res.data?.notifications || []);
+        setUnreadCount(res.data?.unreadCount || 0);
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
 
   const handleClick2 = (event) => {
     setAnchorEl2(event.currentTarget);
+    fetchNotifications();
   };
 
   const handleClose2 = () => {
     setAnchorEl2(null);
   };
 
+  const handleNotificationClick = async (n) => {
+    if (!n.is_read) {
+      try {
+        await apiService.markNotificationRead(n.id);
+        setUnreadCount(c => Math.max(0, c - 1));
+        setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
+      } catch { /* ignore */ }
+    }
+    const link = entityLink(n);
+    handleClose2();
+    if (link) navigate(link);
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await apiService.markAllNotificationsRead();
+      setUnreadCount(0);
+      setNotifications(prev => prev.map(x => ({ ...x, is_read: true })));
+    } catch { /* ignore */ }
+  };
+
   return (
     <Box>
       <IconButton
         size="large"
-        aria-label="show 11 new notifications"
+        aria-label="notifications"
         color="inherit"
         aria-controls="msgs-menu"
         aria-haspopup="true"
-        sx={{
-          ...(anchorEl2 && {
-            color: 'primary.main',
-          }),
-        }}
+        sx={{ ...(anchorEl2 && { color: 'primary.main' }) }}
         onClick={handleClick2}
       >
-        <Badge variant="dot" color="primary">
+        <Badge badgeContent={unreadCount} color="primary" max={99}>
           <IconBellRinging size="21" stroke="1.5" />
         </Badge>
       </IconButton>
-      {/* ------------------------------------------- */}
-      {/* Message Dropdown */}
-      {/* ------------------------------------------- */}
       <Menu
         id="msgs-menu"
         anchorEl={anchorEl2}
@@ -58,63 +103,49 @@ const Notifications = () => {
         onClose={handleClose2}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        sx={{
-          '& .MuiMenu-paper': {
-            width: '360px',
-            maxWidth: 'calc(100vw - 32px)',
-          },
-        }}
+        sx={{ '& .MuiMenu-paper': { width: '360px', maxWidth: 'calc(100vw - 32px)' } }}
       >
         <Stack direction="row" py={2} px={4} justifyContent="space-between" alignItems="center">
           <Typography variant="h6">Notifications</Typography>
-          <Chip label="5 new" color="primary" size="small" />
+          {unreadCount > 0 && (
+            <Chip label={`${unreadCount} new`} color="primary" size="small" onClick={handleMarkAllRead} sx={{ cursor: 'pointer' }} />
+          )}
         </Stack>
         <Scrollbar sx={{ height: '385px' }}>
-          {dropdownData.notifications.map((notification, index) => (
-            <Box key={index}>
-              <MenuItem sx={{ py: 2, px: 4 }}>
-                <Stack direction="row" spacing={2}>
-                  <Avatar
-                    src={notification.avatar}
-                    alt={notification.avatar}
-                    sx={{
-                      width: 48,
-                      height: 48,
-                    }}
-                  />
+          {loading && notifications.length === 0 ? (
+            <Box py={4} display="flex" justifyContent="center"><CircularProgress size={24} /></Box>
+          ) : notifications.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" px={4} py={2}>No notifications</Typography>
+          ) : (
+            notifications.map((notification) => (
+              <Box key={notification.id}>
+                <MenuItem
+                  sx={{ py: 2, px: 4, bgcolor: notification.is_read ? 'transparent' : 'action.hover' }}
+                  onClick={() => handleNotificationClick(notification)}
+                >
                   <Box>
-                    <Typography
-                      variant="subtitle2"
-                      color="textPrimary"
-                      fontWeight={600}
-                      noWrap
-                      sx={{
-                        width: '240px',
-                      }}
-                    >
+                    <Typography variant="subtitle2" color="textPrimary" fontWeight={600} sx={{ width: '280px' }}>
                       {notification.title}
                     </Typography>
-                    <Typography
-                      color="textSecondary"
-                      variant="subtitle2"
-                      sx={{
-                        width: '240px',
-                      }}
-                      noWrap
-                    >
-                      {notification.subtitle}
+                    <Typography color="textSecondary" variant="caption" sx={{ width: '280px', display: 'block', mt: 0.5 }}>
+                      {notification.message}
+                    </Typography>
+                    <Typography variant="caption" color="text.disabled" display="block" mt={0.5}>
+                      {notification.created_at ? new Date(notification.created_at).toLocaleString() : ''}
                     </Typography>
                   </Box>
-                </Stack>
-              </MenuItem>
-            </Box>
-          ))}
+                </MenuItem>
+              </Box>
+            ))
+          )}
         </Scrollbar>
-        <Box p={3} pb={1}>
-          <Button to="/apps/email" variant="outlined" component={Link} color="primary" fullWidth>
-            See all Notifications
-          </Button>
-        </Box>
+        {unreadCount > 0 && (
+          <Box p={2} pb={1}>
+            <Button variant="outlined" color="primary" fullWidth onClick={handleMarkAllRead}>
+              Mark all as read
+            </Button>
+          </Box>
+        )}
       </Menu>
     </Box>
   );

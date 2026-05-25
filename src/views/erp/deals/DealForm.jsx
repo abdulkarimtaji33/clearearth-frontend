@@ -204,6 +204,7 @@ const DealForm = () => {
     supportingDocuments: '',
     requestedBy: null,
     notes: '',
+    priority: 'medium',
   });
   const [wdsDetails, setWdsDetails] = useState({
     refNo: '',
@@ -365,6 +366,7 @@ const DealForm = () => {
             supportingDocuments: i.supporting_documents || '',
             requestedBy: i.requested_by || null,
             notes: i.notes || '',
+            priority: i.priority || 'medium',
           });
         } else {
           setInspectionDetails({
@@ -417,12 +419,19 @@ const DealForm = () => {
           title: `Deal from Lead ${lead.lead_number}`,
           description: lead.notes || '',
         }));
-        
-        // Do not auto-populate line items from the lead — the lead's
-        // product/estimated_value are indicative only. The user must explicitly
-        // add the items they want in this deal. Auto-populating caused a ghost
-        // duplicate item because the blank placeholder was invisible until
-        // products loaded, so users added their own item on top.
+
+        const ps = lead.productService;
+        if (lead.product_service_id && ps) {
+          const unitPrice = ps.price != null ? parseFloat(ps.price) : (lead.estimated_value ? parseFloat(lead.estimated_value) : 0);
+          setLineItems([{
+            productServiceId: lead.product_service_id,
+            productName: ps.name || '',
+            quantity: 1,
+            unitOfMeasure: ps.unit_of_measure || '',
+            unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
+            lineTotal: (Number.isFinite(unitPrice) ? unitPrice : 0).toFixed(2),
+          }]);
+        }
       }
     } catch (err) {
       console.error('Failed to load lead:', err);
@@ -1778,6 +1787,19 @@ const DealForm = () => {
           <DialogTitle>Inspection Request</DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 4 }}>
+              <TextField
+                fullWidth
+                select
+                label="Priority"
+                value={inspectionDetails.priority || 'medium'}
+                onChange={(e) => setInspectionDetails({ ...inspectionDetails, priority: e.target.value })}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              >
+                <MenuItem value="critical">Critical</MenuItem>
+                <MenuItem value="high">High</MenuItem>
+                <MenuItem value="medium">Medium</MenuItem>
+                <MenuItem value="low">Low</MenuItem>
+              </TextField>
               <Autocomplete
                 fullWidth
                 options={materialTypes}

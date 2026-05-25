@@ -37,7 +37,7 @@ const STATUS_COLOR = {
 const emptyTask = () => ({
   workTypeId: null,
   typeOfWork: '',
-  expenses: [{ description: '', amount: '' }],
+  expenses: [{ description: '', amount: '', evidencePath: '', evidenceFileName: '' }],
   durationValue: '',
   durationUnit: 'hours',
   startDate: '',
@@ -239,7 +239,12 @@ const WorkOrderForm = () => {
           tasks: (wo.tasks || []).map(t => {
             const dur = parseDuration(t.estimated_duration);
             const expRows = (t.expenses && t.expenses.length > 0)
-              ? t.expenses.map(e => ({ description: e.description || '', amount: e.amount != null ? String(e.amount) : '' }))
+              ? t.expenses.map(e => ({
+                description: e.description || '',
+                amount: e.amount != null ? String(e.amount) : '',
+                evidencePath: e.evidence_path || '',
+                evidenceFileName: e.evidence_file_name || '',
+              }))
               : (t.expense != null ? [{ description: '', amount: String(t.expense) }] : [{ description: '', amount: '' }]);
             return {
               workTypeId: t.work_type_id || null,
@@ -307,21 +312,34 @@ const WorkOrderForm = () => {
 
   const setDrawerExpenseRow = (idx, field, value) => {
     setDrawerTask(t => {
-      const expenses = [...(t.expenses || [{ description: '', amount: '' }])];
+      const expenses = [...(t.expenses || [{ description: '', amount: '', evidencePath: '', evidenceFileName: '' }])];
       expenses[idx] = { ...expenses[idx], [field]: value };
       return { ...t, expenses };
     });
   };
 
   const addDrawerExpenseRow = () => {
-    setDrawerTask(t => ({ ...t, expenses: [...(t.expenses || []), { description: '', amount: '' }] }));
+    setDrawerTask(t => ({ ...t, expenses: [...(t.expenses || []), { description: '', amount: '', evidencePath: '', evidenceFileName: '' }] }));
   };
 
   const removeDrawerExpenseRow = (idx) => {
     setDrawerTask(t => {
       const expenses = (t.expenses || []).filter((_, i) => i !== idx);
-      return { ...t, expenses: expenses.length ? expenses : [{ description: '', amount: '' }] };
+      return { ...t, expenses: expenses.length ? expenses : [{ description: '', amount: '', evidencePath: '', evidenceFileName: '' }] };
     });
+  };
+
+  const uploadExpenseEvidence = async (ei, file) => {
+    if (!file) return;
+    try {
+      const res = await apiService.uploadExpenseEvidence(file);
+      if (res.success) {
+        setDrawerExpenseRow(ei, 'evidencePath', res.data.path);
+        setDrawerExpenseRow(ei, 'evidenceFileName', res.data.fileName || file.name);
+      }
+    } catch (err) {
+      setError(err.message || 'Evidence upload failed');
+    }
   };
 
   const setDrawerWorkType = (workTypeId) => {
@@ -369,6 +387,8 @@ const WorkOrderForm = () => {
               .map(e => ({
                 description: e.description?.trim() || null,
                 amount: parseFloat(e.amount),
+                evidencePath: e.evidencePath || null,
+                evidenceFileName: e.evidenceFileName || null,
               })),
             estimatedDuration: t.durationValue ? `${t.durationValue} ${t.durationUnit}` : null,
             startDate: t.startDate || null,
@@ -703,6 +723,16 @@ const WorkOrderForm = () => {
                               InputProps={{ startAdornment: <InputAdornment position="start">AED</InputAdornment> }}
                               sx={{ minWidth: { sm: 160 }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
+                            <Button
+                              component="label"
+                              size="small"
+                              variant={row.evidencePath ? 'contained' : 'outlined'}
+                              color={row.evidencePath ? 'success' : 'inherit'}
+                              sx={{ borderRadius: 2, mt: { sm: 0.5 }, whiteSpace: 'nowrap' }}
+                            >
+                              {row.evidenceFileName ? row.evidenceFileName.slice(0, 12) + (row.evidenceFileName.length > 12 ? '…' : '') : 'Evidence'}
+                              <input type="file" hidden accept="image/*,.pdf" onChange={e => { if (e.target.files?.[0]) uploadExpenseEvidence(ei, e.target.files[0]); e.target.value = ''; }} />
+                            </Button>
                             {(drawerTask.expenses || []).length > 1 && (
                               <IconButton size="small" color="error" onClick={() => removeDrawerExpenseRow(ei)} sx={{ mt: { sm: 0.5 } }}>
                                 <IconTrash size={16} />

@@ -244,13 +244,20 @@ const GrnView = () => {
                   <Grid item xs={12} sm={6} md={4}>
                     <RefItem icon={IconBuilding} label="Lead">
                       <Typography variant="body2" fontWeight={700}>
-                        {lead.company_name || lead.contact_name || '—'}
+                        {lead.company?.company_name
+                          || [lead.contact?.first_name, lead.contact?.last_name].filter(Boolean).join(' ')
+                          || lead.lead_number
+                          || '—'}
                       </Typography>
-                      {lead.contact_name && lead.company_name && (
-                        <Typography variant="caption" color="text.secondary">{lead.contact_name}</Typography>
+                      {lead.contact && lead.company?.company_name && (
+                        <Typography variant="caption" color="text.secondary">
+                          {[lead.contact.first_name, lead.contact.last_name].filter(Boolean).join(' ')}
+                        </Typography>
                       )}
-                      {lead.phone && (
-                        <Typography variant="caption" color="text.secondary" display="block">{lead.phone}</Typography>
+                      {(lead.phone || lead.contact?.phone) && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {lead.phone || lead.contact?.phone}
+                        </Typography>
                       )}
                     </RefItem>
                   </Grid>

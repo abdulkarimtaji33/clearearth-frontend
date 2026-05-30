@@ -5,11 +5,12 @@ import {
   DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconTruckDelivery, IconChartHistogram } from '@tabler/icons-react';
+import { IconSearch, IconTruckDelivery, IconChartHistogram, IconHistory } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
+import PaymentHistoryDialog from '../../../components/erp/PaymentHistoryDialog';
 import apiService from '../../../services/api';
 import { extractListData } from '../../../utils/reportApi';
 import { resolveDefaultPaymentAccountId } from '../../../constants/paymentAccounts';
@@ -49,6 +50,8 @@ const PayablesList = () => {
   const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
   const [paySaving, setPaySaving] = useState(false);
   const [payDialogError, setPayDialogError] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyRow, setHistoryRow] = useState(null);
 
   const fetchRows = useCallback(async () => {
     try {
@@ -197,7 +200,14 @@ const PayablesList = () => {
                     <TableCell align="right"><Typography fontWeight={800} color="secondary.dark">AED {fmt(r.balance_due)}</Typography></TableCell>
                     <TableCell><Chip size="small" label={r.payment_status} color={PAYMENT_COLOR[r.payment_status] || 'default'} sx={{ fontWeight: 700, textTransform: 'capitalize' }} /></TableCell>
                     <TableCell>{r.days_open ?? '—'}</TableCell>
-                    <TableCell align="right"><Button size="small" variant="contained" color="secondary" onClick={() => openPay(r)} sx={{ borderRadius: 2 }}>Pay</Button></TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                        {(parseFloat(r.paid_amount) || 0) > 0 && (
+                          <Button size="small" variant="outlined" startIcon={<IconHistory size={14} />} onClick={() => { setHistoryRow(r); setHistoryOpen(true); }} sx={{ borderRadius: 2 }}>History</Button>
+                        )}
+                        <Button size="small" variant="contained" color="secondary" onClick={() => openPay(r)} sx={{ borderRadius: 2 }}>Pay</Button>
+                      </Stack>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -241,6 +251,14 @@ const PayablesList = () => {
           <Button variant="contained" color="secondary" onClick={submitPay} disabled={paySaving}>{paySaving ? 'Saving…' : 'Save payment'}</Button>
         </DialogActions>
       </Dialog>
+
+      <PaymentHistoryDialog
+        open={historyOpen}
+        onClose={() => { setHistoryOpen(false); setHistoryRow(null); }}
+        sourceType="payable"
+        sourceId={historyRow?.id}
+        title={historyRow ? `PO #${historyRow.id}` : ''}
+      />
     </PageContainer>
   );
 };

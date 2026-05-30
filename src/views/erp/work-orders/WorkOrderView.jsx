@@ -918,6 +918,9 @@ const WorkOrderView = () => {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
           <Button onClick={() => setReportOpen(false)} variant="outlined" sx={{ borderRadius: 2 }}>Close</Button>
+          <Button variant="outlined" color="primary" onClick={() => { setReportOpen(false); navigate(`/erp/grn/create?workOrderId=${wo.id}`); }} sx={{ borderRadius: 2, fontWeight: 600 }}>
+            Create GRN
+          </Button>
           <Button variant="contained" color="success" startIcon={<IconPrinter size={16} />} onClick={() => window.print()} sx={{ borderRadius: 2, fontWeight: 600 }}>
             Print Report
           </Button>

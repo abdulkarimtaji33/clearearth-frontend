@@ -1106,6 +1106,21 @@ const DealView = () => {
               )}
             </Grid>
 
+            <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5} mt={1}>Collection details</Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <InfoRow label="Collection location" value={
+                  deal.pickup_location ? (
+                    <Button size="small" href={deal.pickup_location} target="_blank" rel="noopener noreferrer" sx={{ textTransform: 'none', p: 0, minWidth: 0 }}>
+                      Open in Maps
+                    </Button>
+                  ) : '—'
+                } />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Contact name" value={deal.pickup_contact_name} /></Grid>
+              <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Contact number" value={deal.pickup_contact_number} /></Grid>
+            </Grid>
+
             {deal.wds_required && deal.wdsDetails && (
                 <>
                   <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>WDS Details</Typography>

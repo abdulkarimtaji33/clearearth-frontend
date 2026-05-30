@@ -5,11 +5,12 @@ import {
   DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconCoin, IconChartHistogram } from '@tabler/icons-react';
+import { IconSearch, IconCoin, IconChartHistogram, IconHistory } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
+import PaymentHistoryDialog from '../../../components/erp/PaymentHistoryDialog';
 import apiService from '../../../services/api';
 import { extractListData } from '../../../utils/reportApi';
 import { resolveDefaultPaymentAccountId } from '../../../constants/paymentAccounts';
@@ -49,6 +50,8 @@ const ReceivablesList = () => {
   const [payRef, setPayRef] = useState('');
   const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paySaving, setPaySaving] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyRow, setHistoryRow] = useState(null);
 
   const fetchRows = useCallback(async () => {
     try {
@@ -207,9 +210,16 @@ const ReceivablesList = () => {
                       <TableCell><Chip size="small" label={r.payment_status} color={PAYMENT_COLOR[r.payment_status] || 'default'} sx={{ fontWeight: 700, textTransform: 'capitalize' }} /></TableCell>
                       <TableCell>{r.days_open ?? '—'}</TableCell>
                       <TableCell align="right">
-                        {parseFloat(r.balance_due) > 0.005 && (
-                          <Button size="small" variant="contained" color="warning" onClick={() => openPay(r)} sx={{ borderRadius: 2 }}>Record payment</Button>
-                        )}
+                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                          {(parseFloat(r.paid_amount) || 0) > 0 && (
+                            <Button size="small" variant="outlined" startIcon={<IconHistory size={14} />} onClick={() => { setHistoryRow(r); setHistoryOpen(true); }} sx={{ borderRadius: 2 }}>
+                              History
+                            </Button>
+                          )}
+                          {parseFloat(r.balance_due) > 0.005 && (
+                            <Button size="small" variant="contained" color="warning" onClick={() => openPay(r)} sx={{ borderRadius: 2 }}>Record payment</Button>
+                          )}
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   );
@@ -256,6 +266,15 @@ const ReceivablesList = () => {
           <Button variant="contained" color="warning" onClick={submitPay} disabled={paySaving}>{paySaving ? 'Saving…' : 'Save receipt'}</Button>
         </DialogActions>
       </Dialog>
+
+      <PaymentHistoryDialog
+        open={historyOpen}
+        onClose={() => { setHistoryOpen(false); setHistoryRow(null); }}
+        sourceType="receivable"
+        sourceId={historyRow?.id}
+        title={historyRow?.tax_invoice_number}
+        currency={historyRow?.currency || 'AED'}
+      />
     </PageContainer>
   );
 };

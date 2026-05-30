@@ -35,22 +35,28 @@ const ACCOUNTS_ONLY_ROLES = ['accounts'];
 const OPERATIONS_ONLY_ROLES = ['operations_manager'];
 /** Sales users only see items under the CRM sidebar heading. */
 const CRM_ONLY_ROLES = ['sales'];
+const DRIVER_ONLY_ROLES = ['driver'];
 
 const ErpMenuItems = [
   // ─── CRM ────────────────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'CRM',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),
     title: 'Dashboard',
     icon: IconLayoutDashboard,
     href: '/erp/dashboard',
-    permission: 'leads.read',
-    adminDashboardOnly: true,
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
+  },
+  {
+    id: uniqueId(),
+    title: 'Dashboard',
+    icon: IconLayoutDashboard,
+    href: '/erp/dashboard',
+    includeRoles: DRIVER_ONLY_ROLES,
   },
   {
     id: uniqueId(),
@@ -58,7 +64,7 @@ const ErpMenuItems = [
     icon: IconAddressBook,
     href: '/erp/contacts',
     permission: 'contacts.read',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
     children: [
       { id: uniqueId(), title: 'Contacts', icon: IconPoint, href: '/erp/contacts', permission: 'contacts.read', excludeRoles: SECTION_RESTRICTED_ROLES },
       { id: uniqueId(), title: 'Clients', icon: IconPoint, href: '/erp/companies', permission: 'companies.read', excludeRoles: SECTION_RESTRICTED_ROLES },
@@ -71,7 +77,7 @@ const ErpMenuItems = [
     icon: IconBriefcase,
     href: '/erp/leads',
     permission: 'leads.read',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
     children: [
       { id: uniqueId(), title: 'Leads', icon: IconPoint, href: '/erp/leads', permission: 'leads.read', excludeRoles: SECTION_RESTRICTED_ROLES },
       { id: uniqueId(), title: 'Deals', icon: IconPoint, href: '/erp/deals', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
@@ -83,7 +89,7 @@ const ErpMenuItems = [
     icon: IconReceipt,
     href: '/erp/quotations',
     permission: 'deals.read',
-    excludeRoles: SECTION_RESTRICTED_ROLES,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
     children: [
       {
         id: uniqueId(),
@@ -91,7 +97,7 @@ const ErpMenuItems = [
         icon: IconFileText,
         href: '/erp/quotations',
         permission: 'deals.read',
-        excludeRoles: SECTION_RESTRICTED_ROLES,
+        excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
         children: [
           { id: uniqueId(), title: 'Service Quotation', icon: IconPoint, href: '/erp/quotations', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
           { id: uniqueId(), title: 'Client purchase quotations', icon: IconPoint, href: '/erp/client-purchase-quotations', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
@@ -104,7 +110,7 @@ const ErpMenuItems = [
         icon: IconShoppingCart,
         href: '/erp/service-orders',
         permission: 'deals.read',
-        excludeRoles: SECTION_RESTRICTED_ROLES,
+        excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
         children: [
           { id: uniqueId(), title: 'Clients Service Orders', icon: IconPoint, href: '/erp/service-orders', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
           { id: uniqueId(), title: 'Clients Purchase Orders', icon: IconPoint, href: '/erp/client-purchase-orders', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
@@ -184,6 +190,14 @@ const ErpMenuItems = [
   },
   {
     id: uniqueId(),
+    title: 'GRN',
+    icon: IconPackage,
+    href: '/erp/grn',
+    permission: 'deals.read',
+    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES],
+  },
+  {
+    id: uniqueId(),
     title: 'Work Orders',
     icon: IconHammer,
     href: '/erp/work-orders',
@@ -195,7 +209,7 @@ const ErpMenuItems = [
   {
     navlabel: true,
     subheader: 'Others',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -203,7 +217,7 @@ const ErpMenuItems = [
     icon: IconPackage,
     href: '/erp/products',
     permission: 'products.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -211,14 +225,14 @@ const ErpMenuItems = [
     icon: IconFileText,
     href: '/erp/terms',
     permission: 'deals.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
 
   // ─── Inspections ────────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'Inspections',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -226,14 +240,14 @@ const ErpMenuItems = [
     icon: IconClipboardCheck,
     href: '/erp/inspection-requests',
     permission: 'inspection_requests.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
 
   // ─── Administration ─────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'Administration',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -241,7 +255,7 @@ const ErpMenuItems = [
     icon: IconShield,
     href: '/erp/roles',
     permission: 'roles.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -249,7 +263,7 @@ const ErpMenuItems = [
     icon: IconUsers,
     href: '/erp/users',
     permission: 'users.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -257,7 +271,7 @@ const ErpMenuItems = [
     icon: IconSettings,
     href: '/erp/settings/company',
     permission: 'users.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),

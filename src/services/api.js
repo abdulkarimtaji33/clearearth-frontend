@@ -431,12 +431,20 @@ class ApiService {
     return this.patch(`/accounts/expenses/${id}/payment`, data);
   }
 
+  async getExpensePayments(id) {
+    return this.get(`/accounts/expenses/${id}/payments`);
+  }
+
   async getReceivables(params) {
     return this.get('/receivables', params);
   }
 
   async postReceivablePayment(id, data) {
     return this.post(`/receivables/${id}/payment`, data);
+  }
+
+  async getReceivablePayments(id) {
+    return this.get(`/receivables/${id}/payments`);
   }
 
   async getReceivablesAgingSummary(params) {
@@ -449,6 +457,10 @@ class ApiService {
 
   async postPayablePayment(id, data) {
     return this.post(`/payables/${id}/payment`, data);
+  }
+
+  async getPayablePayments(id) {
+    return this.get(`/payables/${id}/payments`);
   }
 
   async getPayablesAgingSummary(params) {
@@ -769,6 +781,38 @@ class ApiService {
 
   async deleteWorkType(id) {
     return this.delete(`/work-types/${id}`);
+  }
+
+  async getGrns(params) {
+    return this.get('/grn', params);
+  }
+
+  async getGrn(id) {
+    return this.get(`/grn/${id}`);
+  }
+
+  async createGrn(data) {
+    return this.post('/grn', data);
+  }
+
+  async updateGrn(id, data) {
+    return this.patch(`/grn/${id}`, data);
+  }
+
+  async approveGrn(id) {
+    return this.post(`/grn/${id}/approve`);
+  }
+
+  async getDashboardOverview() {
+    return this.get('/dashboard/overview');
+  }
+
+  async getDriverPickups() {
+    return this.get('/driver/pickups');
+  }
+
+  async completeDriverPickup(taskId) {
+    return this.post(`/driver/pickups/${taskId}/complete`);
   }
 
   async assignRolePermissions(roleId, permissionIds) {

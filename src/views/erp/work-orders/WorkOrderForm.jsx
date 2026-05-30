@@ -806,12 +806,14 @@ const WorkOrderForm = () => {
                   </Typography>
                   <Stack spacing={2}>
                     <Autocomplete
-                      options={users}
+                      options={/pickup/i.test(drawerTask.typeOfWork || '') || /pickup/i.test(workTypes.find(wt => wt.id === drawerTask.workTypeId)?.name || '')
+                        ? users.filter(u => u.role?.name === 'driver')
+                        : users}
                       getOptionLabel={u => `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || ''}
                       value={users.find(u => u.id === drawerTask.assignedTo) || null}
                       onChange={(_, v) => setDrawerField('assignedTo', v?.id || null)}
                       renderInput={params => (
-                        <TextField {...params} label="Assigned to" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                        <TextField {...params} label={/pickup/i.test(drawerTask.typeOfWork || '') ? 'Assign driver' : 'Assigned to'} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                       )}
                     />
                     <Box>

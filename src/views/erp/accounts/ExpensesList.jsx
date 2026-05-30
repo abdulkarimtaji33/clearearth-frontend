@@ -28,11 +28,12 @@ import {
   DialogActions,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconWallet, IconPlus } from '@tabler/icons-react';
+import { IconSearch, IconWallet, IconPlus, IconHistory } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
+import PaymentHistoryDialog from '../../../components/erp/PaymentHistoryDialog';
 import apiService from '../../../services/api';
 import { resolveDefaultPaymentAccountId } from '../../../constants/paymentAccounts';
 
@@ -83,6 +84,8 @@ const ExpensesList = () => {
   const [payAccountId, setPayAccountId] = useState('');
   const [paymentAccounts, setPaymentAccounts] = useState([]);
   const [paySaving, setPaySaving] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyRow, setHistoryRow] = useState(null);
 
   const fetchRows = useCallback(async () => {
     try {
@@ -442,6 +445,17 @@ const ExpensesList = () => {
                           </TableCell>
                           <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                             <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" alignItems="center">
+                              {(parseFloat(paidAmt) || 0) > 0 && (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  startIcon={<IconHistory size={14} />}
+                                  onClick={() => { setHistoryRow(ex); setHistoryOpen(true); }}
+                                  sx={{ borderRadius: 1.5 }}
+                                >
+                                  History
+                                </Button>
+                              )}
                               {canPay && (
                                 <Button
                                   size="small"
@@ -537,6 +551,14 @@ const ExpensesList = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <PaymentHistoryDialog
+        open={historyOpen}
+        onClose={() => { setHistoryOpen(false); setHistoryRow(null); }}
+        sourceType="expense"
+        sourceId={historyRow?.id}
+        title={historyRow ? `${historyRow.category} — ${fmtMoney(historyRow.amount)}` : ''}
+      />
     </PageContainer>
   );
 };

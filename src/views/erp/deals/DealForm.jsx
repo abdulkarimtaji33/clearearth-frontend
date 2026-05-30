@@ -178,6 +178,9 @@ const DealForm = () => {
     dubaiMunicipalityInspection: false,
     isRcmApplicable: false,
     notes: '',
+    pickupLocation: '',
+    pickupContactName: '',
+    pickupContactNumber: '',
   });
 
   const [wdsDialogOpen, setWdsDialogOpen] = useState(false);
@@ -309,6 +312,9 @@ const DealForm = () => {
           dubaiMunicipalityInspection: d.dubai_municipality_inspection || false,
           isRcmApplicable: d.is_rcm_applicable || false,
           notes: d.notes || '',
+          pickupLocation: d.pickup_location || '',
+          pickupContactName: d.pickup_contact_name || '',
+          pickupContactNumber: d.pickup_contact_number || '',
         });
         
         const defaultWds = {
@@ -1140,6 +1146,13 @@ const DealForm = () => {
                             <MenuItem value="Main Land">Main Land</MenuItem>
                             <MenuItem value="Free Zone">Free Zone</MenuItem>
                           </TextField>
+                        </Box>
+
+                        <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 2, mb: 1 }}>Collection details (for pickup)</Typography>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mb: 2 }}>
+                          <TextField fullWidth label="Google Maps link" name="pickupLocation" value={values.pickupLocation || ''} onChange={handleChange} placeholder="https://maps.google.com/..." sx={{ gridColumn: { sm: '1 / -1' }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                          <TextField fullWidth label="Contact name" name="pickupContactName" value={values.pickupContactName || ''} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                          <TextField fullWidth label="Contact number" name="pickupContactNumber" value={values.pickupContactNumber || ''} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                         </Box>
 
                         <Box>

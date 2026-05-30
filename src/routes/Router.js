@@ -8,7 +8,7 @@ const FullLayout = Loadable(lazy(() => import('../layouts/full/FullLayout')));
 const BlankLayout = Loadable(lazy(() => import('../layouts/blank/BlankLayout')));
 
 /* ****ERP Pages***** */
-const Dashboard = Loadable(lazy(() => import('../views/erp/Dashboard')));
+const Dashboard = Loadable(lazy(() => import('../views/erp/dashboard/DashboardRouter')));
 const ContactList = Loadable(lazy(() => import('../views/erp/contacts/ContactList')));
 const ContactForm = Loadable(lazy(() => import('../views/erp/contacts/ContactForm')));
 const CompanyList = Loadable(lazy(() => import('../views/erp/companies/CompanyList')));
@@ -67,6 +67,9 @@ const JournalList = Loadable(lazy(() => import('../views/erp/reports/JournalList
 const JournalEntryView = Loadable(lazy(() => import('../views/erp/reports/JournalEntryView')));
 const JournalEntryCreate = Loadable(lazy(() => import('../views/erp/reports/JournalEntryCreate')));
 const GeneralLedgerView = Loadable(lazy(() => import('../views/erp/reports/GeneralLedgerView')));
+const GrnList = Loadable(lazy(() => import('../views/erp/grn/GrnList')));
+const GrnForm = Loadable(lazy(() => import('../views/erp/grn/GrnForm')));
+const GrnView = Loadable(lazy(() => import('../views/erp/grn/GrnView')));
 const TrialBalanceView = Loadable(lazy(() => import('../views/erp/reports/TrialBalanceView')));
 const IncomeStatementView = Loadable(lazy(() => import('../views/erp/reports/IncomeStatementView')));
 const BalanceSheetView = Loadable(lazy(() => import('../views/erp/reports/BalanceSheetView')));
@@ -158,6 +161,9 @@ const Router = createBrowserRouter([
       { path: '/erp/work-orders/create', element: <WorkOrderForm /> },
       { path: '/erp/work-orders/edit/:id', element: <WorkOrderForm /> },
       { path: '/erp/work-orders/view/:id', element: <WorkOrderView /> },
+      { path: '/erp/grn', element: <GrnList /> },
+      { path: '/erp/grn/create', element: <GrnForm /> },
+      { path: '/erp/grn/view/:id', element: <GrnView /> },
       { path: '/erp/settings/company', element: <CompanySettings /> },
       { path: '/erp/settings/fiscal-years', element: <FiscalYearManager /> },
       { path: '/erp/chart-of-accounts', element: <ChartOfAccountsList /> },

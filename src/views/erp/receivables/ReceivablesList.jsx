@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Box, Card, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TablePagination, TextField, InputAdornment, CircularProgress, Alert, Stack, Chip, Dialog,
@@ -9,8 +9,17 @@ import { IconSearch, IconCoin, IconChartHistogram } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
+import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
 import apiService from '../../../services/api';
 import { extractListData } from '../../../utils/reportApi';
+import { resolveDefaultPaymentAccountId } from '../../../constants/paymentAccounts';
+import {
+  RECEIVED_FROM_OPTIONS,
+  RECEIVED_FROM_STORAGE_KEY,
+  loadStoredOptions,
+  saveStoredOptions,
+  mergeSelectOptions,
+} from '../../../constants/expenseFormOptions';
 
 const PAYMENT_COLOR = { unpaid: 'warning', partial: 'info', paid: 'success' };
 
@@ -32,7 +41,11 @@ const ReceivablesList = () => {
   const [payOpen, setPayOpen] = useState(false);
   const [payRow, setPayRow] = useState(null);
   const [payAmount, setPayAmount] = useState('');
-  const [payMethod, setPayMethod] = useState('');
+  const [payMethod, setPayMethod] = useState('Bank transfer');
+  const [payAccountId, setPayAccountId] = useState('');
+  const [paymentAccounts, setPaymentAccounts] = useState([]);
+  const [receivedFrom, setReceivedFrom] = useState('');
+  const [customReceivedFrom, setCustomReceivedFrom] = useState(() => loadStoredOptions(RECEIVED_FROM_STORAGE_KEY));
   const [payRef, setPayRef] = useState('');
   const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paySaving, setPaySaving] = useState(false);
@@ -56,11 +69,41 @@ const ReceivablesList = () => {
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
 
+  useEffect(() => {
+    apiService.getChartOfAccounts({}).then((res) => {
+      if (res.success) {
+        const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
+        setPaymentAccounts(list.filter((a) => !a.is_group && a.is_active));
+      }
+    });
+  }, []);
+
+  const receivedFromOptions = useMemo(
+    () => mergeSelectOptions(RECEIVED_FROM_OPTIONS, customReceivedFrom, receivedFrom),
+    [customReceivedFrom, receivedFrom]
+  );
+
+  const defaultPayAccountId = useMemo(
+    () => resolveDefaultPaymentAccountId(paymentAccounts, payMethod),
+    [paymentAccounts, payMethod]
+  );
+
+  const addCustomReceivedFrom = useCallback((v) => {
+    setCustomReceivedFrom((prev) => {
+      const next = prev.includes(v) ? prev : [...prev, v];
+      saveStoredOptions(RECEIVED_FROM_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
   const openPay = (r) => {
     setPayRow(r);
     const due = parseFloat(r.balance_due) || 0;
     setPayAmount(String(due > 0 ? due.toFixed(2) : ''));
-    setPayMethod(r.payment_method || '');
+    setPayMethod(r.payment_method || 'Bank transfer');
+    setPayAccountId(resolveDefaultPaymentAccountId(paymentAccounts, r.payment_method || 'Bank transfer'));
+    const client = r.proformaInvoice?.deal?.company?.company_name || r.proformaInvoice?.deal?.title || '';
+    setReceivedFrom(client);
     setPayRef(r.reference_no || '');
     setPayDate(new Date().toISOString().slice(0, 10));
     setPayOpen(true);
@@ -81,6 +124,8 @@ const ReceivablesList = () => {
       await apiService.postReceivablePayment(payRow.id, {
         amount: amt,
         paymentMethod: payMethod || undefined,
+        paymentAccountId: payAccountId ? parseInt(payAccountId, 10) : undefined,
+        receivedFrom: receivedFrom || undefined,
         referenceNo: payRef || undefined,
         paymentDate: payDate || undefined,
       });
@@ -189,10 +234,21 @@ const ReceivablesList = () => {
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1, minWidth: 320 }}>
             {payDialogError && <Alert severity="error" onClose={() => setPayDialogError('')}>{payDialogError}</Alert>}
-            <TextField size="small" label={`Amount (${payRow?.currency || 'AED'})`} type="number" inputProps={{ min: 0.01, step: '0.01' }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} fullWidth />
-            <TextField size="small" label="Payment method" value={payMethod} onChange={(e) => setPayMethod(e.target.value)} fullWidth />
-            <TextField size="small" label="Reference / cheque no." value={payRef} onChange={(e) => setPayRef(e.target.value)} fullWidth />
-            <TextField size="small" label="Payment date" type="date" InputLabelProps={{ shrink: true }} value={payDate} onChange={(e) => setPayDate(e.target.value)} fullWidth />
+            <TextField size="small" label={`Amount (${payRow?.currency || 'AED'})`} type="number" inputProps={{ min: 0.01, step: '0.01' }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+            <PaymentRecordingFields
+              paymentMethod={payMethod}
+              onPaymentMethodChange={setPayMethod}
+              paymentAccountId={payAccountId || defaultPayAccountId}
+              onPaymentAccountChange={setPayAccountId}
+              accounts={paymentAccounts}
+              showReceivedFrom
+              receivedFrom={receivedFrom}
+              onReceivedFromChange={setReceivedFrom}
+              receivedFromOptions={receivedFromOptions}
+              onReceivedFromAdded={addCustomReceivedFrom}
+            />
+            <TextField size="small" label="Reference / cheque no." value={payRef} onChange={(e) => setPayRef(e.target.value)} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+            <TextField size="small" label="Payment date" type="date" InputLabelProps={{ shrink: true }} value={payDate} onChange={(e) => setPayDate(e.target.value)} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

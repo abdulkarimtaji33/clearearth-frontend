@@ -124,6 +124,22 @@ const JournalEntryView = () => {
               <Typography variant="caption" color="text.secondary">Created By</Typography>
               <Typography fontWeight={600}>{entry?.createdByUser?.name || entry?.created_by}</Typography>
             </Box>
+            {(entry?.paid_to || entry?.received_from) && (
+              <>
+                {entry?.paid_to && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Paid to</Typography>
+                    <Chip size="small" label={entry.paid_to} variant="outlined" sx={{ mt: 0.5, fontWeight: 600 }} />
+                  </Box>
+                )}
+                {entry?.received_from && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Received from</Typography>
+                    <Chip size="small" label={entry.received_from} color="success" variant="outlined" sx={{ mt: 0.5, fontWeight: 600 }} />
+                  </Box>
+                )}
+              </>
+            )}
           </Stack>
         </Paper>
 

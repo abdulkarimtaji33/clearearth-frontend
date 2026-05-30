@@ -1,15 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Alert, TextField, MenuItem,
-  IconButton, Checkbox, FormControlLabel,
+  IconButton, Checkbox, FormControlLabel, Divider,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconArrowLeft, IconPlus, IconTrash, IconBook2 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
 import apiService from '../../../services/api';
 import { asArray } from '../../../utils/reportApi';
+import {
+  PAID_TO_OPTIONS,
+  PAID_TO_STORAGE_KEY,
+  RECEIVED_FROM_OPTIONS,
+  RECEIVED_FROM_STORAGE_KEY,
+  loadStoredOptions,
+  saveStoredOptions,
+  mergeSelectOptions,
+} from '../../../constants/expenseFormOptions';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const EMPTY_LINE = { accountId: '', debit: '', credit: '', description: '' };
@@ -22,13 +32,42 @@ const JournalEntryCreate = () => {
   const [error, setError] = useState('');
   const [entryDate, setEntryDate] = useState('');
   const [description, setDescription] = useState('');
+  const [paidTo, setPaidTo] = useState('');
+  const [receivedFrom, setReceivedFrom] = useState('');
   const [autoReverse, setAutoReverse] = useState(false);
   const [reverseDate, setReverseDate] = useState('');
   const [lines, setLines] = useState([{ ...EMPTY_LINE }, { ...EMPTY_LINE }]);
+  const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
+  const [customReceivedFrom, setCustomReceivedFrom] = useState(() => loadStoredOptions(RECEIVED_FROM_STORAGE_KEY));
 
   useEffect(() => {
     apiService.getChartOfAccounts({}).then((res) => {
       if (res.success) setAccounts(asArray(res.data).filter((a) => !a.is_group && a.is_active));
+    });
+  }, []);
+
+  const paidToOptions = useMemo(
+    () => mergeSelectOptions(PAID_TO_OPTIONS, customPaidTo, paidTo),
+    [customPaidTo, paidTo]
+  );
+  const receivedFromOptions = useMemo(
+    () => mergeSelectOptions(RECEIVED_FROM_OPTIONS, customReceivedFrom, receivedFrom),
+    [customReceivedFrom, receivedFrom]
+  );
+
+  const addCustomPaidTo = useCallback((v) => {
+    setCustomPaidTo((prev) => {
+      const next = prev.includes(v) ? prev : [...prev, v];
+      saveStoredOptions(PAID_TO_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const addCustomReceivedFrom = useCallback((v) => {
+    setCustomReceivedFrom((prev) => {
+      const next = prev.includes(v) ? prev : [...prev, v];
+      saveStoredOptions(RECEIVED_FROM_STORAGE_KEY, next);
+      return next;
     });
   }, []);
 
@@ -53,6 +92,8 @@ const JournalEntryCreate = () => {
       const payload = {
         entryDate,
         description,
+        paidTo: paidTo || undefined,
+        receivedFrom: receivedFrom || undefined,
         autoReverse,
         reverseDate: autoReverse ? reverseDate : undefined,
         lines: validLines.map((l) => ({
@@ -83,15 +124,48 @@ const JournalEntryCreate = () => {
         <Typography variant="h4" fontWeight={800}>New Journal Entry</Typography>
       </Stack>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
       <Stack spacing={2}>
         <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5 }}>
+          <Typography variant="subtitle2" fontWeight={800} mb={2}>Entry details</Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap">
             <TextField label="Entry Date" type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 200 }} required />
-            <TextField label="Description / Memo" value={description} onChange={(e) => setDescription(e.target.value)} sx={{ flex: 1, minWidth: 300 }} required />
+            <TextField label="Description / Memo" value={description} onChange={(e) => setDescription(e.target.value)} sx={{ flex: 1, minWidth: 280 }} required />
           </Stack>
-          <Stack direction="row" spacing={2} mt={1.5} alignItems="center">
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="caption" color="text.secondary" display="block" mb={1.5}>
+            Optional counterparty tags — shown in General Ledger and searchable there
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Box sx={{ flex: 1 }}>
+              <SelectWithAddNew
+                label="Paid to"
+                value={paidTo}
+                onChange={setPaidTo}
+                options={paidToOptions}
+                allowEmpty
+                emptyLabel="None — outbound payment"
+                addDialogTitle="Add payee"
+                addFieldLabel="Payee name"
+                onOptionAdded={addCustomPaidTo}
+              />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <SelectWithAddNew
+                label="Received from"
+                value={receivedFrom}
+                onChange={setReceivedFrom}
+                options={receivedFromOptions}
+                allowEmpty
+                emptyLabel="None — inbound receipt"
+                addDialogTitle="Add payer"
+                addFieldLabel="Payer name"
+                onOptionAdded={addCustomReceivedFrom}
+              />
+            </Box>
+          </Stack>
+          <Stack direction="row" spacing={2} mt={2} alignItems="center">
             <FormControlLabel
               control={<Checkbox checked={autoReverse} onChange={(e) => setAutoReverse(e.target.checked)} />}
               label="Auto-reverse this entry"
@@ -159,8 +233,8 @@ const JournalEntryCreate = () => {
           </TableContainer>
           <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
             {isBalanced && totalDebit > 0
-              ? <Alert severity="success" sx={{ py: 0.5 }}>Balanced — Debits = Credits = AED {fmt(totalDebit)}</Alert>
-              : <Alert severity={totalDebit > 0 || totalCredit > 0 ? 'error' : 'info'} sx={{ py: 0.5 }}>
+              ? <Alert severity="success" sx={{ py: 0.5, borderRadius: 2 }}>Balanced — Debits = Credits = AED {fmt(totalDebit)}</Alert>
+              : <Alert severity={totalDebit > 0 || totalCredit > 0 ? 'error' : 'info'} sx={{ py: 0.5, borderRadius: 2 }}>
                   {totalDebit === 0 && totalCredit === 0 ? 'Enter amounts above' : `Out of balance by AED ${fmt(diff)}`}
                 </Alert>}
           </Box>

@@ -10,6 +10,16 @@ export const PAID_TO_OPTIONS = [
 
 export const PAID_TO_STORAGE_KEY = 'clearearth_expense_paid_to_custom';
 export const PAYMENT_METHOD_STORAGE_KEY = 'clearearth_expense_payment_method_custom';
+export const RECEIVED_FROM_STORAGE_KEY = 'clearearth_received_from_custom';
+
+/** Default payer options for receipts and journal entries */
+export const RECEIVED_FROM_OPTIONS = [
+  { value: 'Client', label: 'Client' },
+  { value: 'Customer', label: 'Customer' },
+  { value: 'Government / authority', label: 'Government / authority' },
+  { value: 'Partner', label: 'Partner' },
+  { value: 'Other', label: 'Other' },
+];
 
 export function loadStoredOptions(storageKey) {
   try {

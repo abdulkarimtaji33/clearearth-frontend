@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Box, Card, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TablePagination, TextField, InputAdornment, CircularProgress, Alert, Stack, Chip, Dialog,
@@ -9,8 +9,17 @@ import { IconSearch, IconTruckDelivery, IconChartHistogram } from '@tabler/icons
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
+import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
 import apiService from '../../../services/api';
 import { extractListData } from '../../../utils/reportApi';
+import { resolveDefaultPaymentAccountId } from '../../../constants/paymentAccounts';
+import {
+  PAID_TO_OPTIONS,
+  PAID_TO_STORAGE_KEY,
+  loadStoredOptions,
+  saveStoredOptions,
+  mergeSelectOptions,
+} from '../../../constants/expenseFormOptions';
 
 const PAYMENT_COLOR = { unpaid: 'warning', partial: 'info', paid: 'success' };
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -32,6 +41,12 @@ const PayablesList = () => {
   const [payRow, setPayRow] = useState(null);
   const [payAmount, setPayAmount] = useState('');
   const [payDue, setPayDue] = useState('');
+  const [payMethod, setPayMethod] = useState('Bank transfer');
+  const [payAccountId, setPayAccountId] = useState('');
+  const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [paidTo, setPaidTo] = useState('');
+  const [paymentAccounts, setPaymentAccounts] = useState([]);
+  const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
   const [paySaving, setPaySaving] = useState(false);
   const [payDialogError, setPayDialogError] = useState('');
 
@@ -54,11 +69,42 @@ const PayablesList = () => {
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
 
+  useEffect(() => {
+    apiService.getChartOfAccounts({}).then((res) => {
+      if (res.success) {
+        const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
+        setPaymentAccounts(list.filter((a) => !a.is_group && a.is_active));
+      }
+    });
+  }, []);
+
+  const paidToOptions = useMemo(
+    () => mergeSelectOptions(PAID_TO_OPTIONS, customPaidTo, paidTo),
+    [customPaidTo, paidTo]
+  );
+
+  const defaultPayAccountId = useMemo(
+    () => resolveDefaultPaymentAccountId(paymentAccounts, payMethod),
+    [paymentAccounts, payMethod]
+  );
+
+  const addCustomPaidTo = useCallback((v) => {
+    setCustomPaidTo((prev) => {
+      const next = prev.includes(v) ? prev : [...prev, v];
+      saveStoredOptions(PAID_TO_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
   const openPay = (r) => {
     setPayRow(r);
     const due = parseFloat(r.balance_due) || 0;
     setPayAmount(String(due > 0 ? due.toFixed(2) : ''));
     setPayDue(r.due_date || '');
+    setPayMethod('Bank transfer');
+    setPayAccountId(resolveDefaultPaymentAccountId(paymentAccounts, 'Bank transfer'));
+    setPaidTo(r.party_name || 'Supplier');
+    setPayDate(new Date().toISOString().slice(0, 10));
     setPayDialogError('');
     setPayOpen(true);
   };
@@ -76,6 +122,10 @@ const PayablesList = () => {
       await apiService.postPayablePayment(payRow.id, {
         amount: amt,
         dueDate: payDue || undefined,
+        paymentMethod: payMethod || undefined,
+        paymentAccountId: payAccountId ? parseInt(payAccountId, 10) : undefined,
+        paymentDate: payDate || undefined,
+        paidTo: paidTo || undefined,
       });
       setPayOpen(false);
       setPayRow(null);
@@ -169,8 +219,21 @@ const PayablesList = () => {
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1, minWidth: 320 }}>
             {payDialogError && <Alert severity="error" onClose={() => setPayDialogError('')}>{payDialogError}</Alert>}
-            <TextField size="small" label="Amount (AED)" type="number" inputProps={{ min: 0.01, step: '0.01' }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} fullWidth />
-            <TextField size="small" label="Update due date (optional)" type="date" InputLabelProps={{ shrink: true }} helperText="Only fill to change the due date on the PO" value={payDue || ''} onChange={(e) => setPayDue(e.target.value)} fullWidth />
+            <TextField size="small" label="Amount (AED)" type="number" inputProps={{ min: 0.01, step: '0.01' }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+            <PaymentRecordingFields
+              paymentMethod={payMethod}
+              onPaymentMethodChange={setPayMethod}
+              paymentAccountId={payAccountId || defaultPayAccountId}
+              onPaymentAccountChange={setPayAccountId}
+              accounts={paymentAccounts}
+              showPaidTo
+              paidTo={paidTo}
+              onPaidToChange={setPaidTo}
+              paidToOptions={paidToOptions}
+              onPaidToAdded={addCustomPaidTo}
+            />
+            <TextField size="small" label="Payment date" type="date" InputLabelProps={{ shrink: true }} value={payDate} onChange={(e) => setPayDate(e.target.value)} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+            <TextField size="small" label="Update due date (optional)" type="date" InputLabelProps={{ shrink: true }} helperText="Only fill to change the due date on the PO" value={payDue || ''} onChange={(e) => setPayDue(e.target.value)} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

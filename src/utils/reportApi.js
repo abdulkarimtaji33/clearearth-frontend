@@ -59,6 +59,7 @@ export function normalizeGeneralLedger(raw) {
   if (!raw) return null;
   const lines = asArray(raw.entries ?? raw.lines);
   return {
+    viewAll: raw.view_all ?? raw.viewAll ?? false,
     account: raw.account,
     openingBalance: raw.opening_balance ?? raw.openingBalance ?? 0,
     closingBalance: raw.closing_balance ?? raw.closingBalance,
@@ -67,6 +68,10 @@ export function normalizeGeneralLedger(raw) {
       line_id: l.line_id ?? l.id,
       journal_entry_id: l.journal_entry_id ?? l.entry_id,
       description: l.description ?? l.line_desc ?? l.entry_desc,
+      account_name: l.account_name ?? l.account?.name,
+      account_code: l.account_code ?? l.account?.code,
+      paid_to: l.paid_to ?? null,
+      received_from: l.received_from ?? null,
     })),
     total: raw.total ?? lines.length,
     date_from: raw.date_from,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -32,7 +32,9 @@ import { IconSearch, IconWallet, IconPlus } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
+import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
 import apiService from '../../../services/api';
+import { resolveDefaultPaymentAccountId } from '../../../constants/paymentAccounts';
 
 const CATEGORY_FILTER = [
   { value: '', label: 'All categories' },
@@ -77,7 +79,9 @@ const ExpensesList = () => {
   const [payRow, setPayRow] = useState(null);
   const [payAmount, setPayAmount] = useState('');
   const [payPaidAt, setPayPaidAt] = useState('');
-  const [payMethod, setPayMethod] = useState('');
+  const [payMethod, setPayMethod] = useState('Bank transfer');
+  const [payAccountId, setPayAccountId] = useState('');
+  const [paymentAccounts, setPaymentAccounts] = useState([]);
   const [paySaving, setPaySaving] = useState(false);
 
   const fetchRows = useCallback(async () => {
@@ -105,6 +109,20 @@ const ExpensesList = () => {
     }
   }, [page, rowsPerPage, search, category, dateFrom, dateTo, paymentStatus]);
 
+  useEffect(() => {
+    apiService.getChartOfAccounts({}).then((res) => {
+      if (res.success) {
+        const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
+        setPaymentAccounts(list.filter((a) => !a.is_group && a.is_active));
+      }
+    });
+  }, []);
+
+  const defaultPayAccountId = useMemo(
+    () => resolveDefaultPaymentAccountId(paymentAccounts, payMethod),
+    [paymentAccounts, payMethod]
+  );
+
   const [payDialogError, setPayDialogError] = useState('');
 
   const openPayDialog = (ex) => {
@@ -114,7 +132,8 @@ const ExpensesList = () => {
     setPayRow(ex);
     setPayAmount(due > 0 ? due.toFixed(2) : '');
     setPayPaidAt(new Date().toISOString().slice(0, 10));
-    setPayMethod(ex.payment_method || '');
+    setPayMethod(ex.payment_method || 'Bank transfer');
+    setPayAccountId(resolveDefaultPaymentAccountId(paymentAccounts, ex.payment_method || 'Bank transfer'));
     setPayDialogError('');
     setPayOpen(true);
   };
@@ -133,6 +152,7 @@ const ExpensesList = () => {
         amount: amt,
         paidAt: payPaidAt || undefined,
         paymentMethod: payMethod.trim() || undefined,
+        paymentAccountId: payAccountId ? parseInt(payAccountId, 10) : undefined,
       });
       setPayOpen(false);
       setPayRow(null);
@@ -494,22 +514,17 @@ const ExpensesList = () => {
               value={payAmount}
               onChange={(e) => setPayAmount(e.target.value)}
               fullWidth
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
-            <TextField
-              size="small"
-              label="Paid on"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={payPaidAt}
-              onChange={(e) => setPayPaidAt(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              size="small"
-              label="Payment method"
-              value={payMethod}
-              onChange={(e) => setPayMethod(e.target.value)}
-              fullWidth
+            <PaymentRecordingFields
+              paymentMethod={payMethod}
+              onPaymentMethodChange={setPayMethod}
+              paymentAccountId={payAccountId || defaultPayAccountId}
+              onPaymentAccountChange={setPayAccountId}
+              accounts={paymentAccounts}
+              showPaidOn
+              paidOn={payPaidAt}
+              onPaidOnChange={setPayPaidAt}
             />
           </Stack>
         </DialogContent>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Grid, Typography } from '@mui/material';
-import KpiCard from '../shared/KpiCard';
-import ActionableList from '../shared/ActionableList';
+import KpiCard from './shared/KpiCard';
+import ActionableList from './shared/ActionableList';
 
 const AccountsDashboard = ({ data }) => (
   <Box>

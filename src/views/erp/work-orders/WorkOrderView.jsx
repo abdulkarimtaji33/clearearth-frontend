@@ -19,7 +19,7 @@ import {
   IconCurrencyDollar, IconClock, IconGripVertical, IconLock,
   IconAlertCircle, IconCircleCheck, IconNote, IconCheck, IconX,
   IconFileReport, IconPrinter, IconReceipt, IconFileInvoice, IconShoppingCart,
-  IconMapPin, IconPhone,
+  IconMapPin, IconPhone, IconPackage,
 } from '@tabler/icons-react';
 import { TextField, InputAdornment } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
@@ -367,6 +367,7 @@ const WorkOrderView = () => {
   const [error, setError] = useState('');
   const [reordering, setReordering] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [markingComplete, setMarkingComplete] = useState(false);
   const [dealQuotationId, setDealQuotationId] = useState(null);
   const [dealProformaId, setDealProformaId] = useState(null);
   const [dealTaxInvoiceId, setDealTaxInvoiceId] = useState(null);
@@ -468,6 +469,19 @@ const WorkOrderView = () => {
     }
   };
 
+  const markComplete = async () => {
+    try {
+      setMarkingComplete(true);
+      setError('');
+      await apiService.updateWorkOrder(id, { status: 'completed' });
+      await fetchWorkOrder();
+    } catch (err) {
+      setError(err.message || 'Failed to mark complete');
+    } finally {
+      setMarkingComplete(false);
+    }
+  };
+
   if (loading) {
     return (
       <PageContainer title="Work Order">
@@ -488,6 +502,7 @@ const WorkOrderView = () => {
 
   const completedCount = tasks.filter(t => t.status === 'completed').length;
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+  const allTasksDone = tasks.length > 0 && completedCount === tasks.length;
   const purchaseBill = wo.purchase_bill || wo.purchaseBill;
   const isOtpDeal = wo.deal?.deal_type === 'offer_to_purchase';
   const vendorSupplierId = wo.deal?.downstream_partner_supplier_id || wo.deal?.supplier_id;
@@ -604,6 +619,33 @@ const WorkOrderView = () => {
                 sx={{ borderRadius: 2, fontWeight: 600 }}
               >
                 Completion Report
+              </Button>
+            )}
+            {wo.status !== 'completed' && wo.status !== 'cancelled' && (
+              <Tooltip title={!allTasksDone ? 'Complete all tasks before marking work order as completed' : ''}>
+                <span>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    disabled={!allTasksDone || markingComplete}
+                    startIcon={markingComplete ? <CircularProgress size={16} color="inherit" /> : <IconCircleCheck size={16} />}
+                    onClick={markComplete}
+                    sx={{ borderRadius: 2, fontWeight: 700 }}
+                  >
+                    {markingComplete ? 'Completing…' : 'Mark as Complete'}
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
+            {wo.status === 'completed' && (
+              <Button
+                variant="contained"
+                color="warning"
+                startIcon={<IconPackage size={16} />}
+                onClick={() => navigate(`/erp/grn/create?workOrderId=${wo.id}`)}
+                sx={{ borderRadius: 2, fontWeight: 700, color: 'white' }}
+              >
+                Create GRN
               </Button>
             )}
             <Button

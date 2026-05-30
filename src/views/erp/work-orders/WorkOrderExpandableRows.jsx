@@ -12,6 +12,9 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  Popover,
+  CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import {
@@ -21,6 +24,7 @@ import {
   IconEdit,
   IconTrash,
   IconEye,
+  IconCheck,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import apiService from '../../../services/api';
@@ -31,6 +35,89 @@ export const WO_STATUS_COLORS = {
   in_progress: 'primary',
   completed: 'success',
   cancelled: 'error',
+};
+
+const WO_STATUS_LABELS = {
+  draft: 'Draft',
+  in_progress: 'In Progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
+const WO_STATUSES = ['draft', 'in_progress', 'completed', 'cancelled'];
+
+export const WoStatusChip = ({ wo, onUpdated, onError }) => {
+  const theme = useTheme();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const allTasksDone = wo.tasks && wo.tasks.length > 0 &&
+    wo.tasks.every(t => t.status === 'completed');
+  const hasIncompleteTasks = wo.tasks && wo.tasks.some(t => t.status !== 'completed');
+
+  const handleSelect = async (status) => {
+    setAnchorEl(null);
+    if (status === wo.status) return;
+    setSaving(true);
+    try {
+      await apiService.updateWorkOrder(wo.id, { status });
+      onUpdated?.(wo.id, status);
+    } catch (err) {
+      onError?.(err.message || 'Failed to update status');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <Chip
+        label={saving ? <CircularProgress size={12} color="inherit" /> : WO_STATUS_LABELS[wo.status] || wo.status}
+        size="small"
+        color={WO_STATUS_COLORS[wo.status] || 'default'}
+        onClick={(e) => { e.stopPropagation(); setAnchorEl(e.currentTarget); }}
+        sx={{ fontWeight: 700, fontSize: '0.7rem', cursor: 'pointer', '&:hover': { opacity: 0.85 } }}
+      />
+      <Popover
+        open={Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={() => setAnchorEl(null)}
+        onClick={(e) => e.stopPropagation()}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        PaperProps={{ sx: { borderRadius: 2, minWidth: 180, py: 0.5, boxShadow: theme.shadows[8] } }}
+      >
+        {WO_STATUSES.map((s) => {
+          const isCompleted = s === 'completed';
+          const disabled = isCompleted && hasIncompleteTasks;
+          return (
+            <Tooltip
+              key={s}
+              title={disabled ? 'Complete all tasks before marking work order as completed' : ''}
+              placement="right"
+            >
+              <span>
+                <MenuItem
+                  onClick={() => !disabled && handleSelect(s)}
+                  selected={s === wo.status}
+                  disabled={disabled}
+                  sx={{ fontSize: '0.85rem', py: 0.75, gap: 1 }}
+                >
+                  <Chip
+                    label={WO_STATUS_LABELS[s]}
+                    size="small"
+                    color={WO_STATUS_COLORS[s] || 'default'}
+                    sx={{ fontWeight: 600, pointerEvents: 'none', minWidth: 100 }}
+                  />
+                  {s === wo.status && <IconCheck size={14} style={{ marginLeft: 'auto', opacity: 0.6 }} />}
+                </MenuItem>
+              </span>
+            </Tooltip>
+          );
+        })}
+      </Popover>
+    </>
+  );
 };
 
 export const TaskStatusRowControl = ({ taskId, workOrderId, currentStatus, onUpdated }) => {
@@ -67,6 +154,8 @@ export const TaskStatusRowControl = ({ taskId, workOrderId, currentStatus, onUpd
 export const WorkOrderRow = ({
   wo,
   onDelete,
+  onStatusUpdated,
+  onError,
   showDealSubtext = true,
   showViewDealInMenu = true,
 }) => {
@@ -104,13 +193,8 @@ export const WorkOrderRow = ({
             </Typography>
           )}
         </TableCell>
-        <TableCell>
-          <Chip
-            label={wo.status?.replace(/_/g, ' ')}
-            size="small"
-            color={WO_STATUS_COLORS[wo.status] || 'default'}
-            sx={{ fontWeight: 700, fontSize: '0.7rem' }}
-          />
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <WoStatusChip wo={wo} onUpdated={onStatusUpdated} onError={onError} />
         </TableCell>
         <TableCell>
           <Stack direction="row" spacing={0.5} alignItems="center">

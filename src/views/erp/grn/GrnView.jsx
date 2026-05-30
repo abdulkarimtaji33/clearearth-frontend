@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell, TableHead, TableRow,
-  Chip, Alert, CircularProgress,
+  Chip, Alert, CircularProgress, Grid,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconArrowLeft, IconCheck, IconPackage, IconEdit, IconSend } from '@tabler/icons-react';
+import {
+  IconArrowLeft, IconCheck, IconPackage, IconEdit, IconSend,
+  IconBriefcase, IconUser, IconHammer, IconReceipt, IconBuilding,
+} from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -191,6 +194,138 @@ const GrnView = () => {
       </Paper>
 
       {error && <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }}>{error}</Alert>}
+
+      {/* References panel */}
+      {(grn.deal || grn.workOrder) && (() => {
+        const deal = grn.deal;
+        const lead = deal?.lead;
+        const salesPerson = deal?.assignedUser;
+        const taxInvoice = deal?.proformaInvoices?.find(p => p.taxInvoice)?.taxInvoice;
+        const proforma = deal?.proformaInvoices?.[0];
+
+        const RefItem = ({ icon: Icon, label, children }) => (
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.25 }}>
+              <Icon size={15} color={theme.palette.primary.main} />
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase" letterSpacing={0.5} display="block">{label}</Typography>
+              <Box>{children}</Box>
+            </Box>
+          </Box>
+        );
+
+        return (
+          <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', mb: 2.5 }}>
+            <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
+              <Typography variant="subtitle2" fontWeight={800}>References</Typography>
+            </Box>
+            <Box sx={{ p: 2.5 }}>
+              <Grid container spacing={2.5}>
+                {deal && (
+                  <Grid item xs={12} sm={6} md={4}>
+                    <RefItem icon={IconBriefcase} label="Deal">
+                      <Typography
+                        variant="body2"
+                        fontWeight={700}
+                        color="primary.main"
+                        sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                        onClick={() => navigate(`/erp/deals/view/${deal.id}`)}
+                      >
+                        {deal.deal_number} — {deal.title}
+                      </Typography>
+                      {deal.status && (
+                        <Chip label={deal.status} size="small" sx={{ mt: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
+                      )}
+                    </RefItem>
+                  </Grid>
+                )}
+                {lead && (
+                  <Grid item xs={12} sm={6} md={4}>
+                    <RefItem icon={IconBuilding} label="Lead">
+                      <Typography variant="body2" fontWeight={700}>
+                        {lead.company_name || lead.contact_name || '—'}
+                      </Typography>
+                      {lead.contact_name && lead.company_name && (
+                        <Typography variant="caption" color="text.secondary">{lead.contact_name}</Typography>
+                      )}
+                      {lead.phone && (
+                        <Typography variant="caption" color="text.secondary" display="block">{lead.phone}</Typography>
+                      )}
+                    </RefItem>
+                  </Grid>
+                )}
+                {salesPerson && (
+                  <Grid item xs={12} sm={6} md={4}>
+                    <RefItem icon={IconUser} label="Sales person">
+                      <Typography variant="body2" fontWeight={700}>
+                        {[salesPerson.first_name, salesPerson.last_name].filter(Boolean).join(' ') || salesPerson.email}
+                      </Typography>
+                    </RefItem>
+                  </Grid>
+                )}
+                {grn.workOrder && (
+                  <Grid item xs={12} sm={6} md={4}>
+                    <RefItem icon={IconHammer} label="Work order">
+                      <Typography
+                        variant="body2"
+                        fontWeight={700}
+                        color="primary.main"
+                        sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                        onClick={() => navigate(`/erp/work-orders/view/${grn.work_order_id}`)}
+                      >
+                        {grn.workOrder.title || `Work Order #${grn.work_order_id}`}
+                      </Typography>
+                      <Chip
+                        label={grn.workOrder.status?.replace(/_/g, ' ')}
+                        size="small"
+                        color={grn.workOrder.status === 'completed' ? 'success' : 'default'}
+                        sx={{ mt: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }}
+                      />
+                    </RefItem>
+                  </Grid>
+                )}
+                {taxInvoice && (
+                  <Grid item xs={12} sm={6} md={4}>
+                    <RefItem icon={IconReceipt} label="Tax invoice">
+                      <Typography
+                        variant="body2"
+                        fontWeight={700}
+                        color="primary.main"
+                        sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                        onClick={() => navigate(`/erp/tax-invoices/view/${taxInvoice.id}`)}
+                      >
+                        {taxInvoice.tax_invoice_number}
+                      </Typography>
+                      <Chip
+                        label={taxInvoice.payment_status}
+                        size="small"
+                        color={taxInvoice.payment_status === 'paid' ? 'success' : taxInvoice.payment_status === 'partial' ? 'warning' : 'default'}
+                        sx={{ mt: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }}
+                      />
+                    </RefItem>
+                  </Grid>
+                )}
+                {!taxInvoice && proforma && (
+                  <Grid item xs={12} sm={6} md={4}>
+                    <RefItem icon={IconReceipt} label="Proforma invoice">
+                      <Typography
+                        variant="body2"
+                        fontWeight={700}
+                        color="primary.main"
+                        sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                        onClick={() => navigate(`/erp/proforma-invoices/view/${proforma.id}`)}
+                      >
+                        {proforma.proforma_number}
+                      </Typography>
+                    </RefItem>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+          </Paper>
+        );
+      })()}
 
       {grn.notes && (
         <Paper variant="outlined" sx={{ p: 2.5, mb: 2.5, borderRadius: 3 }}>

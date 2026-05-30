@@ -4,7 +4,7 @@ import {
   Alert, CircularProgress, Divider, Chip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconPlus, IconTrash, IconArrowLeft, IconUpload, IconPackage, IconX } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconArrowLeft, IconUpload, IconPackage, IconX, IconHammer } from '@tabler/icons-react';
 import { useNavigate, useSearchParams, useParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -28,6 +28,7 @@ const GrnForm = () => {
   const [saving, setSaving] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(isEdit);
   const [error, setError] = useState('');
+  const [woTitle, setWoTitle] = useState('');
 
   useEffect(() => {
     apiService.getMaterialTypes().then((res) => {
@@ -36,7 +37,12 @@ const GrnForm = () => {
     apiService.getAllDropdowns().then((res) => {
       if (res?.success) setUnitsOfMeasure(res.data?.units_of_measure || []);
     }).catch(() => {});
-  }, []);
+    if (workOrderId) {
+      apiService.getWorkOrder(workOrderId).then((res) => {
+        if (res?.success) setWoTitle(res.data?.title || `Work Order #${workOrderId}`);
+      }).catch(() => {});
+    }
+  }, [workOrderId]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -151,7 +157,7 @@ const GrnForm = () => {
         Back
       </Button>
 
-      <Stack direction="row" alignItems="center" spacing={2} mb={3.5}>
+      <Stack direction="row" alignItems="center" spacing={2} mb={workOrderId ? 1.5 : 3.5}>
         <Box
           sx={{
             width: 46,
@@ -167,13 +173,27 @@ const GrnForm = () => {
         </Box>
         <Box>
           <Typography variant="h4" fontWeight={800}>
-            {isEdit ? 'Edit GRN' : `Create GRN${workOrderId ? ` — WO #${workOrderId}` : ''}`}
+            {isEdit ? 'Edit GRN' : 'Create GRN'}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {isEdit ? 'Update items for this goods received note' : 'Record goods received for this work order'}
+            {isEdit ? 'Update items for this goods received note' : 'Record goods received'}
           </Typography>
         </Box>
       </Stack>
+
+      {workOrderId && !isEdit && (
+        <Paper
+          variant="outlined"
+          sx={{ px: 2.5, py: 1.5, mb: 3, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.04), borderColor: alpha(theme.palette.success.main, 0.25) }}
+        >
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <IconHammer size={16} color={theme.palette.success.main} />
+            <Typography variant="body2" fontWeight={600} color="success.dark">
+              From work order: <strong>{woTitle || `WO #${workOrderId}`}</strong>
+            </Typography>
+          </Stack>
+        </Paper>
+      )}
 
       {error && <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }}>{error}</Alert>}
 

@@ -78,6 +78,10 @@ const WorkOrderList = () => {
     }
   };
 
+  const handleStatusUpdated = (woId, newStatus) => {
+    setWorkOrders(prev => prev.map(w => w.id === woId ? { ...w, status: newStatus } : w));
+  };
+
   return (
     <PageContainer title="Work Orders" description="Manage work orders">
       <Box>
@@ -143,7 +147,15 @@ const WorkOrderList = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    workOrders.map(wo => <WorkOrderRow key={wo.id} wo={wo} onDelete={handleDelete} />)
+                    workOrders.map(wo => (
+                      <WorkOrderRow
+                        key={wo.id}
+                        wo={wo}
+                        onDelete={handleDelete}
+                        onStatusUpdated={handleStatusUpdated}
+                        onError={(msg) => setError(msg)}
+                      />
+                    ))
                   )}
                 </TableBody>
               </Table>

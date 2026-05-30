@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box, Typography, Button, Stack, Chip, CircularProgress, Alert,
   Paper, Divider, Avatar, Tooltip, IconButton, LinearProgress,
@@ -19,9 +19,9 @@ import {
   IconCurrencyDollar, IconClock, IconGripVertical, IconLock,
   IconAlertCircle, IconCircleCheck, IconNote, IconCheck, IconX,
   IconFileReport, IconPrinter, IconReceipt, IconFileInvoice, IconShoppingCart,
-  IconMapPin, IconPhone, IconPackage,
+  IconMapPin, IconPhone, IconPackage, IconTruckDelivery,
 } from '@tabler/icons-react';
-import { TextField, InputAdornment } from '@mui/material';
+import { TextField, InputAdornment, Autocomplete } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
@@ -61,7 +61,9 @@ const isTaskUnlocked = (tasks, idx) => {
 
 // ─── Sortable task card ───────────────────────────────────────────────────────
 
-const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNoteUpdated }) => {
+const isPickupTask = (task) => /pickup/i.test(task.type_of_work || task.workType?.name || '');
+
+const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNoteUpdated, onAssignDriver }) => {
   const theme = useTheme();
   const unlocked = isTaskUnlocked(tasks, idx);
   const statusColor = taskStatusColor(theme, task.status);
@@ -315,6 +317,24 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
               </Box>
             )}
 
+            {/* Assign to driver button for Pickup tasks */}
+            {isPickupTask(task) && onAssignDriver && (
+              <Box sx={{ mt: 1.5 }}>
+                <Button
+                  size="small"
+                  variant={task.assignedUser ? 'outlined' : 'contained'}
+                  color="primary"
+                  startIcon={<IconTruckDelivery size={15} />}
+                  onClick={e => { e.stopPropagation(); onAssignDriver(task); }}
+                  sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.75rem', py: 0.5 }}
+                >
+                  {task.assignedUser
+                    ? `Driver: ${[task.assignedUser.first_name, task.assignedUser.last_name].filter(Boolean).join(' ')}`
+                    : 'Assign to driver'}
+                </Button>
+              </Box>
+            )}
+
             {/* Unlock hint when locked */}
             {!unlocked && (
               <Box
@@ -371,6 +391,19 @@ const WorkOrderView = () => {
   const [dealQuotationId, setDealQuotationId] = useState(null);
   const [dealProformaId, setDealProformaId] = useState(null);
   const [dealTaxInvoiceId, setDealTaxInvoiceId] = useState(null);
+
+  // Driver assignment dialog
+  const [drivers, setDrivers] = useState([]);
+  const [assignDialogTask, setAssignDialogTask] = useState(null);
+  const [assignDriverId, setAssignDriverId] = useState(null);
+  const [assigning, setAssigning] = useState(false);
+  const [assignError, setAssignError] = useState('');
+  // Collection details sub-dialog
+  const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
+  const [collectionFields, setCollectionFields] = useState({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' });
+  const [collectionSaving, setCollectionSaving] = useState(false);
+  const [collectionError, setCollectionError] = useState('');
+  const pendingAssignDriverId = useRef(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -466,6 +499,102 @@ const WorkOrderView = () => {
       console.error('Failed to persist task order', err);
     } finally {
       setReordering(false);
+    }
+  };
+
+  // Fetch drivers once when the component mounts
+  useEffect(() => {
+    apiService.getAssignees().then(res => {
+      if (res?.success) {
+        const all = Array.isArray(res.data) ? res.data : [];
+        setDrivers(all.filter(u => u.role?.name === 'driver'));
+      }
+    }).catch(() => {});
+  }, []);
+
+  const collectionComplete = () =>
+    !!(wo?.deal?.pickup_location || wo?.deal?.pickup_contact_name || wo?.deal?.pickup_contact_number);
+
+  const openAssignDialog = (task) => {
+    setAssignDialogTask(task);
+    setAssignDriverId(task.assigned_to || null);
+    setAssignError('');
+  };
+
+  const closeAssignDialog = () => {
+    setAssignDialogTask(null);
+    setAssignDriverId(null);
+    setAssignError('');
+  };
+
+  const handleAssignDriverSelect = (selectedUser) => {
+    if (!selectedUser) { setAssignDriverId(null); return; }
+    if (!collectionComplete()) {
+      pendingAssignDriverId.current = selectedUser.id;
+      setCollectionFields({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' });
+      setCollectionError('');
+      setCollectionDialogOpen(true);
+    } else {
+      setAssignDriverId(selectedUser.id);
+    }
+  };
+
+  const saveCollectionDetails = async () => {
+    if (!collectionFields.pickup_location && !collectionFields.pickup_contact_name && !collectionFields.pickup_contact_number) {
+      setCollectionError('Fill in at least one collection detail before assigning a driver');
+      return;
+    }
+    if (!wo?.deal_id) {
+      setCollectionError('No deal linked to this work order');
+      return;
+    }
+    try {
+      setCollectionSaving(true);
+      setCollectionError('');
+      await apiService.updateDeal(wo.deal_id, {
+        pickupLocation: collectionFields.pickup_location,
+        pickupContactName: collectionFields.pickup_contact_name,
+        pickupContactNumber: collectionFields.pickup_contact_number,
+      });
+      // Update local wo.deal so collectionComplete() returns true
+      setWo(prev => ({
+        ...prev,
+        deal: {
+          ...prev.deal,
+          pickup_location: collectionFields.pickup_location,
+          pickup_contact_name: collectionFields.pickup_contact_name,
+          pickup_contact_number: collectionFields.pickup_contact_number,
+        },
+      }));
+      setAssignDriverId(pendingAssignDriverId.current);
+      pendingAssignDriverId.current = null;
+      setCollectionDialogOpen(false);
+    } catch (err) {
+      setCollectionError(err.message || 'Failed to save collection details');
+    } finally {
+      setCollectionSaving(false);
+    }
+  };
+
+  const confirmAssignDriver = async () => {
+    if (!assignDialogTask) return;
+    if (assignDriverId && !collectionComplete()) {
+      setAssignError('Collection details are required before assigning a driver.');
+      return;
+    }
+    try {
+      setAssigning(true);
+      setAssignError('');
+      const res = await apiService.updateWorkOrderTaskAssignment(wo.id, assignDialogTask.id, assignDriverId);
+      if (res?.success) {
+        const updatedTask = res.data;
+        setTasks(prev => prev.map(t => t.id === assignDialogTask.id ? { ...t, assigned_to: updatedTask.assigned_to, assignedUser: updatedTask.assignedUser } : t));
+      }
+      closeAssignDialog();
+    } catch (err) {
+      setAssignError(err.message || 'Failed to assign driver');
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -863,6 +992,7 @@ const WorkOrderView = () => {
                         workOrderId={wo.id}
                         onStatusUpdated={handleStatusUpdated}
                         onNoteUpdated={handleNoteUpdated}
+                        onAssignDriver={isPickupTask(task) ? openAssignDialog : null}
                       />
                     ))}
                   </Stack>
@@ -884,6 +1014,110 @@ const WorkOrderView = () => {
           </Box>
         )}
       </Box>
+
+      {/* ── Assign Driver Dialog ── */}
+      <Dialog open={Boolean(assignDialogTask)} onClose={closeAssignDialog} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ pb: 1, pt: 2.5, px: 3 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <IconTruckDelivery size={18} />
+            </Box>
+            <Box>
+              <Typography variant="h6" fontWeight={700}>Assign to driver</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {assignDialogTask?.type_of_work || assignDialogTask?.workType?.name || 'Pickup task'}
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pb: 1 }}>
+          {assignError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{assignError}</Alert>}
+          {!collectionComplete() && (
+            <Alert
+              severity="warning"
+              sx={{ mb: 2, borderRadius: 2 }}
+              action={
+                <Button size="small" color="warning" onClick={() => { setCollectionFields({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' }); setCollectionError(''); setCollectionDialogOpen(true); }}>
+                  Add now
+                </Button>
+              }
+            >
+              No collection details on this deal. Add them first so the driver sees pickup info.
+            </Alert>
+          )}
+          <Autocomplete
+            options={drivers}
+            getOptionLabel={u => `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || ''}
+            value={drivers.find(u => u.id === assignDriverId) || null}
+            onChange={(_, user) => handleAssignDriverSelect(user)}
+            renderInput={params => (
+              <TextField {...params} label="Select driver" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+            )}
+          />
+          {assignDriverId && collectionComplete() && (
+            <Alert severity="success" sx={{ mt: 2, borderRadius: 2 }}>
+              Collection details are set — driver will see location and contact info.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5 }}>
+          <Button onClick={closeAssignDialog} variant="outlined" sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button
+            onClick={confirmAssignDriver}
+            variant="contained"
+            disabled={assigning}
+            startIcon={assigning ? <CircularProgress size={14} color="inherit" /> : <IconCheck size={16} />}
+            sx={{ borderRadius: 2, fontWeight: 600 }}
+          >
+            {assigning ? 'Saving…' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Collection Details Sub-Dialog ── */}
+      <Dialog open={collectionDialogOpen} onClose={() => setCollectionDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ pb: 1, pt: 2.5, px: 3 }}>
+          <Typography variant="h6" fontWeight={700}>Add collection details</Typography>
+          <Typography variant="caption" color="text.secondary">Required before assigning a driver</Typography>
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pb: 1 }}>
+          {collectionError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{collectionError}</Alert>}
+          <Stack spacing={2} mt={0.5}>
+            <TextField
+              fullWidth label="Google Maps link"
+              value={collectionFields.pickup_location}
+              onChange={e => setCollectionFields(f => ({ ...f, pickup_location: e.target.value }))}
+              placeholder="https://maps.google.com/…"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+            <TextField
+              fullWidth label="Contact name"
+              value={collectionFields.pickup_contact_name}
+              onChange={e => setCollectionFields(f => ({ ...f, pickup_contact_name: e.target.value }))}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+            <TextField
+              fullWidth label="Contact number"
+              value={collectionFields.pickup_contact_number}
+              onChange={e => setCollectionFields(f => ({ ...f, pickup_contact_number: e.target.value }))}
+              placeholder="+971 50 000 0000"
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5 }}>
+          <Button onClick={() => setCollectionDialogOpen(false)} variant="outlined" sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button
+            onClick={saveCollectionDetails}
+            variant="contained"
+            disabled={collectionSaving}
+            startIcon={collectionSaving ? <CircularProgress size={14} color="inherit" /> : <IconCheck size={16} />}
+            sx={{ borderRadius: 2, fontWeight: 600 }}
+          >
+            {collectionSaving ? 'Saving…' : 'Save & Continue'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── Work Completion Report Dialog ── */}
       <Dialog open={reportOpen} onClose={() => setReportOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>

@@ -36,7 +36,11 @@ const STATUS_COLOR = {
   blocked: 'error',
 };
 
+let _cidCounter = 0;
+const newCid = () => `cid-${Date.now()}-${++_cidCounter}`;
+
 const emptyTask = () => ({
+  _cid: newCid(),
   workTypeId: null,
   typeOfWork: '',
   expenses: [{ description: '', amount: '', evidencePath: '', evidenceFileName: '' }],
@@ -65,7 +69,7 @@ const taskHasBillableContent = (t) => {
 };
 
 const SortableTaskRow = ({ task, idx, theme, getTaskLabel, getAssigneeName, STATUS_COLOR, openDrawer, removeTask }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `task-${idx}` });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._cid });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -190,10 +194,12 @@ const WorkOrderForm = () => {
   const handleDragEnd = (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIdx = parseInt(active.id.replace('task-', ''), 10);
-    const newIdx = parseInt(over.id.replace('task-', ''), 10);
-    if (isNaN(oldIdx) || isNaN(newIdx)) return;
-    setForm(f => ({ ...f, tasks: arrayMove(f.tasks, oldIdx, newIdx) }));
+    setForm(f => {
+      const oldIdx = f.tasks.findIndex(t => t._cid === active.id);
+      const newIdx = f.tasks.findIndex(t => t._cid === over.id);
+      if (oldIdx === -1 || newIdx === -1) return f;
+      return { ...f, tasks: arrayMove(f.tasks, oldIdx, newIdx) };
+    });
   };
 
   const [form, setForm] = useState({
@@ -262,6 +268,7 @@ const WorkOrderForm = () => {
               }))
               : (t.expense != null ? [{ description: '', amount: String(t.expense) }] : [{ description: '', amount: '' }]);
             return {
+              _cid: `db-${t.id}`,
               id: t.id,
               workTypeId: t.work_type_id || null,
               typeOfWork: t.type_of_work || t.workType?.name || '',
@@ -654,7 +661,7 @@ const WorkOrderForm = () => {
             </Box>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={form.tasks.map((_, i) => `task-${i}`)} strategy={verticalListSortingStrategy}>
+              <SortableContext items={form.tasks.map(t => t._cid)} strategy={verticalListSortingStrategy}>
                 <TableContainer>
                   <Table size="small">
                     <TableHead>
@@ -672,7 +679,7 @@ const WorkOrderForm = () => {
                     <TableBody>
                       {form.tasks.map((task, idx) => (
                         <SortableTaskRow
-                          key={idx}
+                          key={task._cid}
                           task={task}
                           idx={idx}
                           theme={theme}

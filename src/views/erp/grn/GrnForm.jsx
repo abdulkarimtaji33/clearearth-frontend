@@ -80,21 +80,30 @@ const GrnForm = () => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
   };
 
+  const MAX_FILE_MB = 20;
+  const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
+
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+    const oversized = files.filter(f => f.size > MAX_FILE_BYTES);
+    if (oversized.length) {
+      setError(`File(s) exceed the ${MAX_FILE_MB} MB limit: ${oversized.map(f => f.name).join(', ')}`);
+      e.target.value = '';
+      return;
+    }
     setUploading(true);
     try {
       const uploaded = [];
       for (const file of files) {
         const res = await apiService.uploadDealImage(file);
         if (res?.success && res.data?.url) {
-          uploaded.push({ imageUrl: res.data.url, originalName: file.name });
+          uploaded.push({ imageUrl: res.data.url, originalName: file.name, isPdf: file.type === 'application/pdf' });
         }
       }
       setImages((prev) => [...prev, ...uploaded]);
     } catch (err) {
-      setError(err.message || 'Image upload failed');
+      setError(err.message || 'File upload failed');
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -343,57 +352,71 @@ const GrnForm = () => {
       <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', mb: 3 }}>
         <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
           <Typography variant="subtitle2" fontWeight={800}>
-            Photos
+            Attachments
           </Typography>
         </Box>
         <Box sx={{ p: 2.5 }}>
-          <Button
-            component="label"
-            variant="outlined"
-            startIcon={uploading ? <CircularProgress size={16} /> : <IconUpload size={16} />}
-            disabled={uploading}
-            sx={{ borderRadius: 2, mb: images.length > 0 ? 2 : 0 }}
-          >
-            {uploading ? 'Uploading…' : 'Upload images'}
-            <input type="file" hidden multiple accept="image/*" onChange={handleImageUpload} />
-          </Button>
+          <Stack direction="row" alignItems="center" spacing={2} mb={images.length > 0 ? 2 : 0}>
+            <Button
+              component="label"
+              variant="outlined"
+              startIcon={uploading ? <CircularProgress size={16} /> : <IconUpload size={16} />}
+              disabled={uploading}
+              sx={{ borderRadius: 2 }}
+            >
+              {uploading ? 'Uploading…' : 'Upload files'}
+              <input type="file" hidden multiple accept="image/*,application/pdf" onChange={handleImageUpload} />
+            </Button>
+            <Typography variant="caption" color="text.disabled">Images &amp; PDFs — max {MAX_FILE_MB} MB each</Typography>
+          </Stack>
           {images.length > 0 && (
             <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
-              {images.map((img, i) => (
-                <Box key={i} sx={{ position: 'relative' }}>
-                  <Box
-                    component="img"
-                    src={img.imageUrl}
-                    alt={img.originalName}
-                    sx={{
-                      width: 90,
-                      height: 90,
-                      objectFit: 'cover',
-                      borderRadius: 2,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      display: 'block',
-                    }}
-                  />
-                  <IconButton
-                    size="small"
-                    onClick={() => setImages((p) => p.filter((_, j) => j !== i))}
-                    sx={{
-                      position: 'absolute',
-                      top: -6,
-                      right: -6,
-                      bgcolor: 'background.paper',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      width: 22,
-                      height: 22,
-                      '&:hover': { bgcolor: 'error.light', color: 'white' },
-                    }}
-                  >
-                    <IconX size={12} />
-                  </IconButton>
-                </Box>
-              ))}
+              {images.map((img, i) => {
+                const isPdf = img.isPdf || img.imageUrl?.toLowerCase().endsWith('.pdf');
+                return (
+                  <Box key={i} sx={{ position: 'relative' }}>
+                    {isPdf ? (
+                      <Box
+                        component="a"
+                        href={img.imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{
+                          width: 90, height: 90, borderRadius: 2,
+                          border: '1px solid', borderColor: 'divider',
+                          display: 'flex', flexDirection: 'column',
+                          alignItems: 'center', justifyContent: 'center',
+                          bgcolor: 'action.hover', textDecoration: 'none',
+                          '&:hover': { borderColor: 'primary.main' },
+                        }}
+                      >
+                        <Typography fontSize="1.8rem">📄</Typography>
+                        <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 80, px: 0.5, fontSize: '0.6rem' }}>
+                          {img.originalName || 'PDF'}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Box
+                        component="img"
+                        src={img.imageUrl}
+                        alt={img.originalName}
+                        sx={{ width: 90, height: 90, objectFit: 'cover', borderRadius: 2, border: '1px solid', borderColor: 'divider', display: 'block' }}
+                      />
+                    )}
+                    <IconButton
+                      size="small"
+                      onClick={() => setImages((p) => p.filter((_, j) => j !== i))}
+                      sx={{
+                        position: 'absolute', top: -6, right: -6,
+                        bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
+                        width: 22, height: 22, '&:hover': { bgcolor: 'error.light', color: 'white' },
+                      }}
+                    >
+                      <IconX size={12} />
+                    </IconButton>
+                  </Box>
+                );
+              })}
             </Stack>
           )}
         </Box>

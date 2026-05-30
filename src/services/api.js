@@ -771,6 +771,13 @@ class ApiService {
     });
   }
 
+  async updateWorkOrderTaskAssignment(workOrderId, taskId, assignedTo) {
+    return this.request(`/work-orders/${workOrderId}/tasks/${taskId}/assign`, {
+      method: 'PATCH',
+      body: JSON.stringify({ assignedTo }),
+    });
+  }
+
   async getWorkTypes(params) {
     return this.get('/work-types', params);
   }

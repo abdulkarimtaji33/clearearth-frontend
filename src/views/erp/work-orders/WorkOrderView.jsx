@@ -19,6 +19,7 @@ import {
   IconCurrencyDollar, IconClock, IconGripVertical, IconLock,
   IconAlertCircle, IconCircleCheck, IconNote, IconCheck, IconX,
   IconFileReport, IconPrinter, IconReceipt, IconFileInvoice, IconShoppingCart,
+  IconMapPin, IconPhone,
 } from '@tabler/icons-react';
 import { TextField, InputAdornment } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
@@ -663,6 +664,72 @@ const WorkOrderView = () => {
             </Paper>
           ))}
         </Stack>
+
+        {/* ── Collection details banner ── */}
+        {wo.deal && (wo.deal.pickup_location || wo.deal.pickup_contact_name || wo.deal.pickup_contact_number) ? (
+          <Paper
+            variant="outlined"
+            sx={{ borderRadius: 2.5, px: 2.5, py: 2, mb: 3, bgcolor: alpha(theme.palette.info.main, 0.04), borderColor: alpha(theme.palette.info.main, 0.25) }}
+          >
+            <Typography variant="caption" fontWeight={700} textTransform="uppercase" letterSpacing={0.8} color="info.main" display="block" mb={1.25}>
+              Collection details (driver)
+            </Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} flexWrap="wrap">
+              {wo.deal.pickup_location && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="info"
+                  startIcon={<IconMapPin size={16} />}
+                  href={wo.deal.pickup_location}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+                >
+                  Open on Maps
+                </Button>
+              )}
+              {wo.deal.pickup_contact_name && (
+                <Typography variant="body2" fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <IconUser size={15} style={{ opacity: 0.6 }} /> {wo.deal.pickup_contact_name}
+                </Typography>
+              )}
+              {wo.deal.pickup_contact_number && (
+                <Typography
+                  component="a"
+                  href={`tel:${wo.deal.pickup_contact_number}`}
+                  variant="body2"
+                  fontWeight={600}
+                  color="info.main"
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                >
+                  <IconPhone size={15} /> {wo.deal.pickup_contact_number}
+                </Typography>
+              )}
+            </Stack>
+          </Paper>
+        ) : wo.deal ? (
+          <Paper
+            variant="outlined"
+            sx={{ borderRadius: 2.5, px: 2.5, py: 1.5, mb: 3, bgcolor: alpha(theme.palette.warning.main, 0.04), borderColor: alpha(theme.palette.warning.main, 0.3) }}
+          >
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <IconAlertCircle size={16} color={theme.palette.warning.main} />
+              <Typography variant="body2" color="warning.dark">
+                No collection details on this deal — the driver will not see a Maps link or contact info.{' '}
+                <Typography
+                  component="span"
+                  variant="body2"
+                  color="primary.main"
+                  sx={{ cursor: 'pointer', textDecoration: 'underline', fontWeight: 600 }}
+                  onClick={() => navigate(`/erp/deals/edit/${wo.deal_id}`)}
+                >
+                  Add them now
+                </Typography>
+              </Typography>
+            </Stack>
+          </Paper>
+        ) : null}
 
         {/* ── Progress bar ── */}
         {tasks.length > 0 && (

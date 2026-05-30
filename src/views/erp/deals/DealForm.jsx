@@ -1148,13 +1148,6 @@ const DealForm = () => {
                           </TextField>
                         </Box>
 
-                        <Typography variant="subtitle2" fontWeight={700} sx={{ mt: 2, mb: 1 }}>Collection details (for pickup)</Typography>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mb: 2 }}>
-                          <TextField fullWidth label="Google Maps link" name="pickupLocation" value={values.pickupLocation || ''} onChange={handleChange} placeholder="https://maps.google.com/..." sx={{ gridColumn: { sm: '1 / -1' }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
-                          <TextField fullWidth label="Contact name" name="pickupContactName" value={values.pickupContactName || ''} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
-                          <TextField fullWidth label="Contact number" name="pickupContactNumber" value={values.pickupContactNumber || ''} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
-                        </Box>
-
                         <Box>
                           <FormControlLabel
                             control={
@@ -1219,6 +1212,51 @@ const DealForm = () => {
                         )}
                       </>
                     )}
+
+                    {/* Collection details — always visible for all deal types */}
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        bgcolor: 'action.hover',
+                      }}
+                    >
+                      <Typography variant="subtitle2" fontWeight={700} mb={1.5}>
+                        Collection details (for driver pickup)
+                      </Typography>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                        <TextField
+                          fullWidth
+                          label="Google Maps link"
+                          name="pickupLocation"
+                          value={values.pickupLocation || ''}
+                          onChange={handleChange}
+                          placeholder="https://maps.google.com/..."
+                          helperText="Paste the Maps URL for the pickup location"
+                          sx={{ gridColumn: { sm: '1 / -1' }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                        <TextField
+                          fullWidth
+                          label="Contact name"
+                          name="pickupContactName"
+                          value={values.pickupContactName || ''}
+                          onChange={handleChange}
+                          placeholder="Name of the person at the site"
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                        <TextField
+                          fullWidth
+                          label="Contact number"
+                          name="pickupContactNumber"
+                          value={values.pickupContactNumber || ''}
+                          onChange={handleChange}
+                          placeholder="+971 50 000 0000"
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                      </Box>
+                    </Box>
 
                     <Box>
                       <FormControlLabel

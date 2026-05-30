@@ -819,6 +819,10 @@ class ApiService {
     return this.get('/driver/pickups');
   }
 
+  async startDriverPickup(taskId) {
+    return this.post(`/driver/pickups/${taskId}/start`);
+  }
+
   async completeDriverPickup(taskId) {
     return this.post(`/driver/pickups/${taskId}/complete`);
   }

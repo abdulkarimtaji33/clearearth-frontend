@@ -170,7 +170,7 @@ const ErpMenuItems = [
   {
     navlabel: true,
     subheader: 'Operations',
-    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -186,7 +186,7 @@ const ErpMenuItems = [
     icon: IconPackage,
     href: '/erp/grn',
     permission: 'deals.read',
-    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -194,7 +194,7 @@ const ErpMenuItems = [
     icon: IconHammer,
     href: '/erp/work-orders',
     permission: 'deals.read',
-    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
 
   // ─── Others ─────────────────────────────────────────────────────────────────
@@ -271,7 +271,7 @@ const ErpMenuItems = [
     icon: IconCalendar,
     href: '/erp/settings/fiscal-years',
     permission: 'accounting.read',
-    excludeRoles: [...OPERATIONS_ONLY_ROLES, ...CRM_ONLY_ROLES],
+    excludeRoles: [...OPERATIONS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
 ];
 

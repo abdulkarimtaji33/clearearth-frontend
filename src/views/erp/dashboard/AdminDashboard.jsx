@@ -16,10 +16,10 @@ const GREETING = () => {
 };
 
 const KPI_ICONS = {
-  'Revenue this month': IconTrendingUp,
+  'Revenue (paid) this month': IconTrendingUp,
   'Outstanding AR': IconCurrencyDollar,
   'Outstanding AP': IconClock,
-  'Cash position': IconBuildingBank,
+  'Open deals': IconBuildingBank,
 };
 
 const AdminDashboard = ({ data }) => {

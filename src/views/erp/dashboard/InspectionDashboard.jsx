@@ -69,7 +69,7 @@ const InspectionDashboard = ({ data }) => {
 
       <Grid container spacing={2.5} mb={3.5}>
         {(data.kpis || []).map((k) => (
-          <Grid key={k.label} size={{ xs: 12, sm: 4 }}>
+          <Grid key={k.label} size={{ xs: 6, sm: 3 }}>
             <KpiCard {...k} color={k.highlight ? 'error' : 'primary'} highlight={k.highlight} />
           </Grid>
         ))}
@@ -77,7 +77,7 @@ const InspectionDashboard = ({ data }) => {
 
       <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
         <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Typography fontWeight={800}>Open requests</Typography>
+          <Typography fontWeight={800}>Team queue — open requests</Typography>
         </Box>
         <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />}>
           {(data.actionables || []).length === 0 ? (

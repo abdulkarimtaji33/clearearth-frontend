@@ -4,22 +4,30 @@ import {
   Chip, Alert, CircularProgress,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconArrowLeft, IconCheck, IconPackage } from '@tabler/icons-react';
+import { IconArrowLeft, IconCheck, IconPackage, IconEdit, IconSend } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
+import { getUserRole } from '../../../utils/authHelpers';
 
 const STATUS_COLOR = { draft: 'default', submitted: 'info', approved: 'success' };
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+const APPROVER_ROLES = ['admin', 'tenant_admin', 'operations_manager'];
 
 const GrnView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
+  const { user } = useAuth();
+  const roleName = getUserRole(user);
+  const canApprove = APPROVER_ROLES.includes(roleName);
   const [grn, setGrn] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [approving, setApproving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const load = async () => {
     try {
@@ -46,6 +54,20 @@ const GrnView = () => {
       setError(e.message);
     } finally {
       setApproving(false);
+    }
+  };
+
+  const submitForApproval = async () => {
+    try {
+      setSubmitting(true);
+      setError('');
+      const res = await apiService.updateGrn(id, { status: 'submitted' });
+      if (res.success) setGrn(res.data);
+      else setError(res.message || 'Failed to submit');
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -129,18 +151,42 @@ const GrnView = () => {
               </Stack>
             </Box>
           </Stack>
-          {grn.status !== 'approved' && (
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={approving ? <CircularProgress size={16} color="inherit" /> : <IconCheck size={18} />}
-              onClick={approve}
-              disabled={approving}
-              sx={{ borderRadius: 2.5, px: 2.5 }}
-            >
-              {approving ? 'Approving…' : 'Approve & update inventory'}
-            </Button>
-          )}
+          <Stack direction="row" spacing={1.5} flexWrap="wrap">
+            {grn.status === 'draft' && (
+              <Button
+                variant="outlined"
+                startIcon={<IconEdit size={16} />}
+                onClick={() => navigate(`/erp/grn/edit/${grn.id}`)}
+                sx={{ borderRadius: 2.5 }}
+              >
+                Edit
+              </Button>
+            )}
+            {grn.status === 'draft' && (
+              <Button
+                variant="outlined"
+                color="info"
+                startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <IconSend size={16} />}
+                onClick={submitForApproval}
+                disabled={submitting}
+                sx={{ borderRadius: 2.5 }}
+              >
+                {submitting ? 'Submitting…' : 'Submit for approval'}
+              </Button>
+            )}
+            {grn.status !== 'approved' && canApprove && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={approving ? <CircularProgress size={16} color="inherit" /> : <IconCheck size={18} />}
+                onClick={approve}
+                disabled={approving}
+                sx={{ borderRadius: 2.5, px: 2.5 }}
+              >
+                {approving ? 'Approving…' : 'Approve & update inventory'}
+              </Button>
+            )}
+          </Stack>
         </Stack>
       </Paper>
 

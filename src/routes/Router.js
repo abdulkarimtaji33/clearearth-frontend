@@ -163,6 +163,7 @@ const Router = createBrowserRouter([
       { path: '/erp/work-orders/view/:id', element: <WorkOrderView /> },
       { path: '/erp/grn', element: <GrnList /> },
       { path: '/erp/grn/create', element: <GrnForm /> },
+      { path: '/erp/grn/edit/:id', element: <GrnForm /> },
       { path: '/erp/grn/view/:id', element: <GrnView /> },
       { path: '/erp/settings/company', element: <CompanySettings /> },
       { path: '/erp/settings/fiscal-years', element: <FiscalYearManager /> },

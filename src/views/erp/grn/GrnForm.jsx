@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconPlus, IconTrash, IconArrowLeft, IconUpload, IconPackage, IconX } from '@tabler/icons-react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams, useParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -14,22 +14,61 @@ const emptyItem = () => ({ itemName: '', materialTypeId: '', quantity: '', unitO
 const GrnForm = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { id: editId } = useParams();
   const [searchParams] = useSearchParams();
   const workOrderId = searchParams.get('workOrderId') || '';
+  const isEdit = Boolean(editId);
 
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState([emptyItem()]);
   const [materialTypes, setMaterialTypes] = useState([]);
+  const [unitsOfMeasure, setUnitsOfMeasure] = useState([]);
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(isEdit);
   const [error, setError] = useState('');
 
   useEffect(() => {
     apiService.getMaterialTypes().then((res) => {
       if (res?.success) setMaterialTypes(Array.isArray(res.data) ? res.data : []);
     }).catch(() => {});
+    apiService.getAllDropdowns().then((res) => {
+      if (res?.success) setUnitsOfMeasure(res.data?.units_of_measure || []);
+    }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!isEdit) return;
+    (async () => {
+      try {
+        setLoadingExisting(true);
+        const res = await apiService.getGrn(editId);
+        if (res.success && res.data) {
+          const g = res.data;
+          setNotes(g.notes || '');
+          setItems(
+            (g.items || []).length
+              ? g.items.map((it) => ({
+                  itemName: it.item_name || '',
+                  materialTypeId: it.material_type_id ? String(it.material_type_id) : '',
+                  quantity: String(it.quantity || ''),
+                  unitOfMeasure: it.unit_of_measure || 'kg',
+                  notes: it.notes || '',
+                }))
+              : [emptyItem()]
+          );
+          setImages((g.images || []).map((img) => ({ imageUrl: img.image_url, originalName: img.original_name })));
+        } else {
+          setError(res.message || 'GRN not found');
+        }
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoadingExisting(false);
+      }
+    })();
+  }, [editId, isEdit]);
 
   const updateItem = (idx, field, value) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
@@ -62,23 +101,31 @@ const GrnForm = () => {
       setError('Add at least one item with name and quantity');
       return;
     }
+    const payload = {
+      notes,
+      items: validItems.map((it) => ({
+        itemName: it.itemName.trim(),
+        materialTypeId: it.materialTypeId ? parseInt(it.materialTypeId, 10) : undefined,
+        quantity: parseFloat(it.quantity),
+        unitOfMeasure: it.unitOfMeasure || 'kg',
+        notes: it.notes || undefined,
+      })),
+      images,
+    };
     try {
       setSaving(true);
       setError('');
-      const res = await apiService.createGrn({
-        workOrderId: workOrderId ? parseInt(workOrderId, 10) : undefined,
-        notes,
-        items: validItems.map((it) => ({
-          itemName: it.itemName.trim(),
-          materialTypeId: it.materialTypeId ? parseInt(it.materialTypeId, 10) : undefined,
-          quantity: parseFloat(it.quantity),
-          unitOfMeasure: it.unitOfMeasure || 'kg',
-          notes: it.notes || undefined,
-        })),
-        images,
-      });
+      let res;
+      if (isEdit) {
+        res = await apiService.updateGrn(editId, payload);
+      } else {
+        res = await apiService.createGrn({
+          ...payload,
+          workOrderId: workOrderId ? parseInt(workOrderId, 10) : undefined,
+        });
+      }
       if (res.success) navigate(`/erp/grn/view/${res.data.id}`);
-      else setError(res.message || 'Failed to create GRN');
+      else setError(res.message || `Failed to ${isEdit ? 'update' : 'create'} GRN`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -86,8 +133,16 @@ const GrnForm = () => {
     }
   };
 
+  if (loadingExisting) {
+    return (
+      <PageContainer title="GRN">
+        <Box display="flex" justifyContent="center" py={12}><CircularProgress /></Box>
+      </PageContainer>
+    );
+  }
+
   return (
-    <PageContainer title="Create GRN" description="Record goods received">
+    <PageContainer title={isEdit ? 'Edit GRN' : 'Create GRN'} description="Record goods received">
       <Button
         startIcon={<IconArrowLeft size={16} />}
         onClick={() => navigate(-1)}
@@ -112,10 +167,10 @@ const GrnForm = () => {
         </Box>
         <Box>
           <Typography variant="h4" fontWeight={800}>
-            Create GRN{workOrderId ? ` — WO #${workOrderId}` : ''}
+            {isEdit ? 'Edit GRN' : `Create GRN${workOrderId ? ` — WO #${workOrderId}` : ''}`}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Record goods received for this work order
+            {isEdit ? 'Update items for this goods received note' : 'Record goods received for this work order'}
           </Typography>
         </Box>
       </Stack>
@@ -227,12 +282,21 @@ const GrnForm = () => {
                     inputProps={{ min: 0, step: 'any' }}
                   />
                   <TextField
+                    select
                     size="small"
                     label="UOM"
                     value={it.unitOfMeasure}
                     onChange={(e) => updateItem(idx, 'unitOfMeasure', e.target.value)}
-                    sx={{ width: 90 }}
-                  />
+                    sx={{ width: 110 }}
+                  >
+                    {unitsOfMeasure.length > 0
+                      ? unitsOfMeasure.map((u) => (
+                          <MenuItem key={u.id} value={u.value}>{u.display_name}</MenuItem>
+                        ))
+                      : ['kg', 'ton', 'liter', 'm3', 'pcs', 'bag', 'drum'].map((u) => (
+                          <MenuItem key={u} value={u}>{u}</MenuItem>
+                        ))}
+                  </TextField>
                   <IconButton
                     color="error"
                     size="small"

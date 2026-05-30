@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack, Typography,
-  CircularProgress, Alert, Box, Divider, Chip,
+  CircularProgress, Alert, Box, Chip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconHistory } from '@tabler/icons-react';
+import { IconHistory, IconCoin } from '@tabler/icons-react';
 import apiService from '../../services/api';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -45,73 +45,192 @@ const PaymentHistoryDialog = ({ open, onClose, sourceType, sourceId, title, curr
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-      <DialogTitle sx={{ pb: 1 }}>
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <IconHistory size={20} />
-          <Box>
-            <Typography fontWeight={800}>Payment history</Typography>
-            {title && <Typography variant="body2" color="text.secondary">{title}</Typography>}
+      <DialogTitle sx={{ pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 2,
+              bgcolor: alpha(theme.palette.primary.main, 0.1),
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <IconHistory size={18} color={theme.palette.primary.main} />
           </Box>
+          <Box>
+            <Typography fontWeight={800} lineHeight={1.2}>
+              Payment history
+            </Typography>
+            {title && (
+              <Typography variant="body2" color="text.secondary">
+                {title}
+              </Typography>
+            )}
+          </Box>
+          {rows.length > 0 && (
+            <Chip
+              size="small"
+              label={`${rows.length} payment${rows.length !== 1 ? 's' : ''}`}
+              sx={{ ml: 'auto', fontWeight: 700 }}
+            />
+          )}
         </Stack>
       </DialogTitle>
-      <DialogContent dividers>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      <DialogContent sx={{ p: 0 }}>
+        {error && (
+          <Box p={2.5}>
+            <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>
+          </Box>
+        )}
         {loading ? (
-          <Box display="flex" justifyContent="center" py={4}><CircularProgress size={28} /></Box>
+          <Box display="flex" justifyContent="center" py={6}>
+            <CircularProgress size={28} />
+          </Box>
         ) : rows.length === 0 ? (
-          <Typography color="text.secondary" textAlign="center" py={4}>No payments recorded yet</Typography>
+          <Box py={6} textAlign="center">
+            <IconCoin size={36} color={theme.palette.text.disabled} />
+            <Typography color="text.secondary" mt={1.5} fontWeight={600}>
+              No payments recorded yet
+            </Typography>
+            <Typography variant="body2" color="text.disabled" mt={0.5}>
+              Payments will appear here as they're recorded
+            </Typography>
+          </Box>
         ) : (
-          <Stack spacing={0}>
+          <Box>
             {rows.map((r, idx) => (
-              <Box key={r.id}>
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" py={1.5}>
-                  <Box>
-                    <Stack direction="row" alignItems="center" spacing={1} mb={0.5}>
-                      <Chip size="small" label={`#${idx + 1}`} sx={{ height: 20, fontWeight: 700, fontSize: '0.65rem' }} />
-                      <Typography variant="body2" fontWeight={700}>{r.paid_at || '—'}</Typography>
-                    </Stack>
-                    {r.payment_method && (
-                      <Typography variant="caption" color="text.secondary" display="block">{r.payment_method}</Typography>
-                    )}
-                    {r.paymentAccount && (
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        {r.paymentAccount.code} — {r.paymentAccount.name}
-                      </Typography>
-                    )}
-                    {r.reference_no && (
-                      <Typography variant="caption" color="text.secondary" display="block">Ref: {r.reference_no}</Typography>
-                    )}
-                    {r.received_from && (
-                      <Typography variant="caption" color="success.main" display="block">From: {r.received_from}</Typography>
-                    )}
-                    {r.paid_to && (
-                      <Typography variant="caption" color="warning.main" display="block">To: {r.paid_to}</Typography>
-                    )}
-                    {r.createdByUser && (
-                      <Typography variant="caption" color="text.disabled" display="block">
-                        Recorded by {r.createdByUser.first_name} {r.createdByUser.last_name}
-                      </Typography>
-                    )}
-                  </Box>
-                  <Typography fontWeight={800} sx={{ fontFamily: 'monospace', color: 'primary.main' }}>
-                    {currency} {fmt(r.amount)}
-                  </Typography>
-                </Stack>
-                {idx < rows.length - 1 && <Divider />}
+              <Box
+                key={r.id}
+                sx={{
+                  px: 2.5,
+                  py: 2,
+                  borderBottom: idx < rows.length - 1 ? '1px solid' : 'none',
+                  borderColor: 'divider',
+                  display: 'flex',
+                  gap: 2,
+                  '&:hover': { bgcolor: 'action.hover' },
+                  transition: 'background 0.14s',
+                }}
+              >
+                {/* Timeline dot */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 0.5 }}>
+                  <Box
+                    sx={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      bgcolor: theme.palette.primary.main,
+                      border: '2px solid',
+                      borderColor: alpha(theme.palette.primary.main, 0.25),
+                      flexShrink: 0,
+                    }}
+                  />
+                  {idx < rows.length - 1 && (
+                    <Box
+                      sx={{
+                        width: 2,
+                        flex: 1,
+                        minHeight: 24,
+                        bgcolor: alpha(theme.palette.primary.main, 0.15),
+                        mt: 0.5,
+                        borderRadius: 1,
+                      }}
+                    />
+                  )}
+                </Box>
+
+                {/* Content */}
+                <Box flex={1}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                    <Box>
+                      <Stack direction="row" spacing={1} alignItems="center" mb={0.25}>
+                        <Chip
+                          size="small"
+                          label={`#${idx + 1}`}
+                          sx={{ height: 18, fontWeight: 700, fontSize: '0.62rem', bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}
+                        />
+                        <Typography variant="body2" fontWeight={700}>
+                          {r.paid_at ? new Date(r.paid_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                        </Typography>
+                      </Stack>
+                      {r.payment_method && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {r.payment_method}
+                        </Typography>
+                      )}
+                      {r.paymentAccount && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {r.paymentAccount.code} — {r.paymentAccount.name}
+                        </Typography>
+                      )}
+                      {r.reference_no && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Ref: {r.reference_no}
+                        </Typography>
+                      )}
+                      {r.received_from && (
+                        <Typography variant="caption" color="success.main" display="block" fontWeight={600}>
+                          From: {r.received_from}
+                        </Typography>
+                      )}
+                      {r.paid_to && (
+                        <Typography variant="caption" color="warning.dark" display="block" fontWeight={600}>
+                          To: {r.paid_to}
+                        </Typography>
+                      )}
+                      {r.createdByUser && (
+                        <Typography variant="caption" color="text.disabled" display="block" mt={0.25}>
+                          Recorded by {r.createdByUser.first_name} {r.createdByUser.last_name}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Typography
+                      fontWeight={800}
+                      sx={{ fontFamily: 'monospace', color: 'primary.main', fontSize: '1rem', flexShrink: 0, ml: 1 }}
+                    >
+                      {currency} {fmt(r.amount)}
+                    </Typography>
+                  </Stack>
+                </Box>
               </Box>
             ))}
-            <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.06) }}>
-              <Stack direction="row" justifyContent="space-between">
-                <Typography variant="body2" fontWeight={700}>Total recorded</Typography>
-                <Typography fontWeight={800} sx={{ fontFamily: 'monospace' }}>{currency} {fmt(totalPaid)}</Typography>
+
+            {/* Total */}
+            <Box
+              sx={{
+                px: 2.5,
+                py: 2,
+                bgcolor: alpha(theme.palette.primary.main, 0.05),
+                borderTop: '2px solid',
+                borderColor: alpha(theme.palette.primary.main, 0.15),
+              }}
+            >
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Box>
+                  <Typography variant="body2" fontWeight={700}>
+                    Total recorded
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {rows.length} payment{rows.length !== 1 ? 's' : ''}
+                  </Typography>
+                </Box>
+                <Typography fontWeight={800} sx={{ fontFamily: 'monospace', fontSize: '1.1rem', color: 'primary.main' }}>
+                  {currency} {fmt(totalPaid)}
+                </Typography>
               </Stack>
-              <Typography variant="caption" color="text.secondary">{rows.length} payment{rows.length !== 1 ? 's' : ''}</Typography>
             </Box>
-          </Stack>
+          </Box>
         )}
       </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} sx={{ borderRadius: 2 }}>Close</Button>
+
+      <DialogActions sx={{ px: 2.5, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Button onClick={onClose} sx={{ borderRadius: 2 }}>
+          Close
+        </Button>
       </DialogActions>
     </Dialog>
   );

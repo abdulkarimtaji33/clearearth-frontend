@@ -21,6 +21,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 import WorkTypesManageDialog from './WorkTypesManageDialog';
 import TaskStatusSegments from './TaskStatusSegments';
 
@@ -158,6 +159,7 @@ const WorkOrderForm = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isEdit = Boolean(id);
+  const { hasPermission } = useAuth();
 
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -195,10 +197,14 @@ const WorkOrderForm = () => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await apiService.getUsers({ pageSize: 500 });
-      if (res.success) setUsers(Array.isArray(res.data) ? res.data : res.data?.items || []);
+      const res = hasPermission('users.read')
+        ? await apiService.getUsers({ pageSize: 500 })
+        : await apiService.getAssignees();
+      if (res.success) {
+        setUsers(Array.isArray(res.data) ? res.data : res.data?.items || []);
+      }
     } catch (err) { console.error(err); }
-  }, []);
+  }, [hasPermission]);
 
   const fetchDeals = useCallback(async () => {
     try {

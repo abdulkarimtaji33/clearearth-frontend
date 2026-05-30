@@ -38,25 +38,17 @@ const CRM_ONLY_ROLES = ['sales'];
 const DRIVER_ONLY_ROLES = ['driver'];
 
 const ErpMenuItems = [
+  {
+    id: uniqueId(),
+    title: 'Dashboard',
+    icon: IconLayoutDashboard,
+    href: '/erp/dashboard',
+  },
   // ─── CRM ────────────────────────────────────────────────────────────────────
   {
     navlabel: true,
     subheader: 'CRM',
     excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Dashboard',
-    icon: IconLayoutDashboard,
-    href: '/erp/dashboard',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Dashboard',
-    icon: IconLayoutDashboard,
-    href: '/erp/dashboard',
-    includeRoles: DRIVER_ONLY_ROLES,
   },
   {
     id: uniqueId(),

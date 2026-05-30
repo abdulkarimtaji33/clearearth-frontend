@@ -691,6 +691,14 @@ class ApiService {
     return this.get('/users', params);
   }
 
+  async getAssignees() {
+    return this.get('/users/assignees');
+  }
+
+  async getDrivers() {
+    return this.get('/users/drivers');
+  }
+
   async getUser(id) {
     return this.get(`/users/${id}`);
   }

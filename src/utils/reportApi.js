@@ -34,7 +34,7 @@ export function paginatedTotal(res, fallback = 0) {
 
 export function normalizeJournalListResponse(res) {
   return {
-    entries: asArray(res?.data?.entries ?? res?.data),
+    entries: extractListData(res),
     total: paginatedTotal(res, 0),
   };
 }

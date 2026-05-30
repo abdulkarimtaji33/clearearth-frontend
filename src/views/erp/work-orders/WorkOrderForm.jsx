@@ -253,6 +253,7 @@ const WorkOrderForm = () => {
               }))
               : (t.expense != null ? [{ description: '', amount: String(t.expense) }] : [{ description: '', amount: '' }]);
             return {
+              id: t.id,
               workTypeId: t.work_type_id || null,
               typeOfWork: t.type_of_work || t.workType?.name || '',
               expenses: expRows,
@@ -386,6 +387,7 @@ const WorkOrderForm = () => {
         tasks: form.tasks
           .filter(t => taskHasBillableContent(t))
           .map(t => ({
+            id: t.id || undefined,
             workTypeId: t.workTypeId || null,
             typeOfWork: t.workTypeId ? null : (t.typeOfWork || null),
             expenses: (t.expenses || [])

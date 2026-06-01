@@ -46,7 +46,7 @@ const STATUS_COLOR = {
   approved:     'success',
   rejected:     'error',
   // legacy
-  draft:        'default',
+  new:        'default',
   pending:      'warning',
   cancelled:    'error',
 };

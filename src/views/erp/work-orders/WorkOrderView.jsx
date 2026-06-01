@@ -28,7 +28,7 @@ import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
 
 const WO_STATUS_COLORS = {
-  draft: 'default',
+  new: 'default',
   in_progress: 'primary',
   completed: 'success',
   cancelled: 'error',
@@ -43,7 +43,7 @@ const expenseAccountsBadge = (ex) => {
 
 const WO_STATUS_BG = (theme, status) => {
   const map = {
-    draft: alpha(theme.palette.grey[500], 0.1),
+    new: alpha(theme.palette.grey[500], 0.1),
     in_progress: alpha(theme.palette.primary.main, 0.08),
     completed: alpha(theme.palette.success.main, 0.08),
     cancelled: alpha(theme.palette.error.main, 0.08),
@@ -787,10 +787,10 @@ const WorkOrderView = () => {
                 variant="contained"
                 color="warning"
                 startIcon={<IconPackage size={16} />}
-                onClick={() => navigate(linkedGrn ? `/erp/grn/${linkedGrn.status === 'draft' ? 'edit' : 'view'}/${linkedGrn.id}` : `/erp/grn/create?workOrderId=${wo.id}`)}
+                onClick={() => navigate(linkedGrn ? `/erp/grn/${linkedGrn.status === 'new' ? 'edit' : 'view'}/${linkedGrn.id}` : `/erp/grn/create?workOrderId=${wo.id}`)}
                 sx={{ borderRadius: 2, fontWeight: 700, color: 'white' }}
               >
-                {linkedGrn ? (linkedGrn.status === 'draft' ? 'Edit GRN' : 'View GRN') : 'Open GRN'}
+                {linkedGrn ? (linkedGrn.status === 'new' ? 'Edit GRN' : 'View GRN') : 'Open GRN'}
               </Button>
             )}
             <Button
@@ -1361,8 +1361,8 @@ const WorkOrderView = () => {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
           <Button onClick={() => setReportOpen(false)} variant="outlined" sx={{ borderRadius: 2 }}>Close</Button>
-          <Button variant="outlined" color="primary" onClick={() => { setReportOpen(false); navigate(linkedGrn ? `/erp/grn/${linkedGrn.status === 'draft' ? 'edit' : 'view'}/${linkedGrn.id}` : `/erp/grn/create?workOrderId=${wo.id}`); }} sx={{ borderRadius: 2, fontWeight: 600 }}>
-            {linkedGrn ? (linkedGrn.status === 'draft' ? 'Edit GRN' : 'View GRN') : 'Open GRN'}
+          <Button variant="outlined" color="primary" onClick={() => { setReportOpen(false); navigate(linkedGrn ? `/erp/grn/${linkedGrn.status === 'new' ? 'edit' : 'view'}/${linkedGrn.id}` : `/erp/grn/create?workOrderId=${wo.id}`); }} sx={{ borderRadius: 2, fontWeight: 600 }}>
+            {linkedGrn ? (linkedGrn.status === 'new' ? 'Edit GRN' : 'View GRN') : 'Open GRN'}
           </Button>
           <Button variant="contained" color="success" startIcon={<IconPrinter size={16} />} onClick={() => window.print()} sx={{ borderRadius: 2, fontWeight: 600 }}>
             Print Report

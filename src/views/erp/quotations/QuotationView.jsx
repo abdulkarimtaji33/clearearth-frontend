@@ -11,7 +11,7 @@ import apiService from '../../../services/api';
 
 const STATUS_COLOR = {
   new: 'default', sent: 'info', under_review: 'warning', revised: 'primary', approved: 'success', rejected: 'error',
-  draft: 'default', pending: 'warning', cancelled: 'error',
+  new: 'default', pending: 'warning', cancelled: 'error',
 };
 
 const QuotationView = () => {

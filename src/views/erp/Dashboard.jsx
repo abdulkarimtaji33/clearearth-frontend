@@ -37,7 +37,7 @@ import { useAuth } from '../../context/AuthContext';
 const ADMIN_ROLES = ['admin', 'tenant_admin', 'super_admin'];
 
 const STATUS_COLORS = {
-  draft: 'default', pending: 'warning', approved: 'info',
+  new: 'default', pending: 'warning', approved: 'info',
   in_progress: 'primary', completed: 'success', cancelled: 'error',
   new: 'info', qualified: 'primary', disqualified: 'error', converted: 'success',
 };
@@ -140,7 +140,7 @@ const Dashboard = () => {
     const totalDealValue = deals.reduce((s, d) => s + parseFloat(d.total || 0), 0);
     const dealByStatus = {};
     const leadByStatus = {};
-    deals.forEach(d => { const k = d.status || 'draft'; dealByStatus[k] = (dealByStatus[k] || 0) + 1; });
+    deals.forEach(d => { const k = d.status || 'new'; dealByStatus[k] = (dealByStatus[k] || 0) + 1; });
     leads.forEach(l => { const k = l.status || 'new'; leadByStatus[k] = (leadByStatus[k] || 0) + 1; });
     return { dealCount: deals.length, totalDealValue, dealByStatus, leadByStatus };
   }, [leads, deals]);

@@ -26,7 +26,7 @@ import { useAuth } from '../../../context/AuthContext';
 import WorkTypesManageDialog from './WorkTypesManageDialog';
 import TaskStatusSegments from './TaskStatusSegments';
 
-const WO_STATUS_OPTIONS = ['draft', 'in_progress', 'completed', 'cancelled'];
+const WO_STATUS_OPTIONS = ['new', 'in_progress', 'completed', 'cancelled'];
 const DURATION_UNITS = ['minutes', 'hours', 'days'];
 
 const STATUS_COLOR = {
@@ -206,7 +206,7 @@ const WorkOrderForm = () => {
     dealId: searchParams.get('dealId') ? parseInt(searchParams.get('dealId'), 10) : null,
     title: '',
     notes: '',
-    status: 'draft',
+    status: 'new',
     tasks: [],
   });
 
@@ -256,7 +256,7 @@ const WorkOrderForm = () => {
           dealId: wo.deal_id || null,
           title: wo.title || '',
           notes: wo.notes || '',
-          status: wo.status || 'draft',
+          status: wo.status || 'new',
           tasks: (wo.tasks || []).map(t => {
             const dur = parseDuration(t.estimated_duration);
             const expRows = (t.expenses && t.expenses.length > 0)

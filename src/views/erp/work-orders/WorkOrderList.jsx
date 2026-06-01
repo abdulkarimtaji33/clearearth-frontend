@@ -31,7 +31,7 @@ import { WorkOrderRow } from './WorkOrderExpandableRows';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
-  { value: 'draft', label: 'Draft' },
+  { value: 'new', label: 'New' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },

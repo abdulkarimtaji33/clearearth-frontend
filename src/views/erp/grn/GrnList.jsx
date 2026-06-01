@@ -10,7 +10,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { getClientLabel, getContactDetails, getSalesPerson } from './grnDisplayHelpers';
 
-const STATUS_COLOR = { draft: 'default', submitted: 'info', approved: 'success' };
+const STATUS_COLOR = { new: 'default', submitted: 'info', approved: 'success' };
 
 const GrnList = () => {
   const navigate = useNavigate();
@@ -88,7 +88,7 @@ const GrnList = () => {
             sx={{ width: 200 }}
           >
             <MenuItem value="">All statuses</MenuItem>
-            <MenuItem value="draft">Draft</MenuItem>
+            <MenuItem value="new">New</MenuItem>
             <MenuItem value="submitted">Submitted</MenuItem>
             <MenuItem value="approved">Approved</MenuItem>
           </TextField>

@@ -45,7 +45,7 @@ const QuotationForm = () => {
     preparedBy: null,
     quotationDate: new Date().toISOString().split('T')[0],
     quotationAmount: '',
-    status: 'draft',
+    status: 'new',
     remarks: '',
   });
 
@@ -77,7 +77,7 @@ const QuotationForm = () => {
           preparedBy: q.prepared_by || null,
           quotationDate: q.quotation_date || new Date().toISOString().split('T')[0],
           quotationAmount: String(q.quotation_amount ?? ''),
-          status: q.status || 'draft',
+          status: q.status || 'new',
           remarks: q.remarks || '',
         });
       }
@@ -237,7 +237,7 @@ const QuotationForm = () => {
                       select
                       label="Status (Required)"
                       name="status"
-                      value={values.status || 'draft'}
+                      value={values.status || 'new'}
                       onChange={handleChange}
                       onBlur={handleBlur}
                       error={touched.status && Boolean(errors.status)}
@@ -247,7 +247,7 @@ const QuotationForm = () => {
                       SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
                     >
                       {(dropdowns.quotationStatus?.length ? dropdowns.quotationStatus : [
-                        { id: 1, value: 'draft', display_name: 'Draft' },
+                        { id: 1, value: 'new', display_name: 'New' },
                         { id: 2, value: 'sent', display_name: 'Sent' },
                         { id: 3, value: 'approved', display_name: 'Approved' },
                         { id: 4, value: 'rejected', display_name: 'Rejected' },

@@ -67,7 +67,7 @@ const PurchaseOrderForm = () => {
     supplierId: supplierIdFromUrl || null,
     poDate: new Date().toISOString().split('T')[0],
     expectedDelivery: '',
-    status: supplierIdFromUrl ? 'approved' : 'draft',
+    status: supplierIdFromUrl ? 'approved' : 'new',
     termsAndConditionsIds: [],
   });
 
@@ -107,7 +107,7 @@ const PurchaseOrderForm = () => {
           supplierId: po.supplier_id || null,
           poDate: po.po_date || new Date().toISOString().split('T')[0],
           expectedDelivery: po.expected_delivery || '',
-          status: po.status || 'draft',
+          status: po.status || 'new',
           termsAndConditionsIds: (po.terms || []).map((t) => t.id),
         });
         if (po.items && po.items.length > 0) {
@@ -226,7 +226,7 @@ const PurchaseOrderForm = () => {
         supplierId: values.supplierId || null,
         poDate: values.poDate,
         expectedDelivery: values.expectedDelivery || null,
-        status: values.status || (values.supplierId ? 'approved' : 'draft'),
+        status: values.status || (values.supplierId ? 'approved' : 'new'),
         termsAndConditionsIds: values.termsAndConditionsIds,
         documentType: isBillMode ? 'bill' : 'quotation',
         workOrderId: workOrderIdFromUrl || null,
@@ -335,7 +335,7 @@ const PurchaseOrderForm = () => {
                       onChange={(_, v) => {
                         setFieldValue('companyId', v?.id || null);
                         setFieldValue('supplierId', null);
-                        setFieldValue('status', 'draft');
+                        setFieldValue('status', 'new');
                       }}
                       disabled={isBillMode}
                       renderInput={(params) => (
@@ -359,7 +359,7 @@ const PurchaseOrderForm = () => {
                       onChange={(_, v) => {
                         setFieldValue('supplierId', v?.id || null);
                         setFieldValue('companyId', null);
-                        setFieldValue('status', v?.id ? 'approved' : 'draft');
+                        setFieldValue('status', v?.id ? 'approved' : 'new');
                       }}
                       disabled={isBillMode}
                       renderInput={(params) => (
@@ -403,7 +403,7 @@ const PurchaseOrderForm = () => {
                         select
                         label="Status (Required)"
                         name="status"
-                        value={values.status || 'draft'}
+                        value={values.status || 'new'}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         required
@@ -413,7 +413,7 @@ const PurchaseOrderForm = () => {
                         SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
                       >
                         {(dropdowns.purchaseOrderStatus?.length ? dropdowns.purchaseOrderStatus : [
-                          { id: 1, value: 'draft', display_name: 'Draft' },
+                          { id: 1, value: 'new', display_name: 'New' },
                           { id: 2, value: 'sent', display_name: 'Sent' },
                           { id: 3, value: 'approved', display_name: 'Approved' },
                           { id: 4, value: 'rejected', display_name: 'Rejected' },

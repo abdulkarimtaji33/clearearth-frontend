@@ -38,7 +38,7 @@ import {
 } from '../../../constants/expenseFormOptions';
 
 const WO_STATUS_COLORS = {
-  draft: 'default',
+  new: 'default',
   in_progress: 'primary',
   completed: 'success',
   cancelled: 'error',

@@ -31,20 +31,20 @@ import apiService from '../../../services/api';
 import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
 
 export const WO_STATUS_COLORS = {
-  draft: 'default',
+  new: 'default',
   in_progress: 'primary',
   completed: 'success',
   cancelled: 'error',
 };
 
 const WO_STATUS_LABELS = {
-  draft: 'Draft',
+  new: 'New',
   in_progress: 'In Progress',
   completed: 'Completed',
   cancelled: 'Cancelled',
 };
 
-const WO_STATUSES = ['draft', 'in_progress', 'completed', 'cancelled'];
+const WO_STATUSES = ['new', 'in_progress', 'completed', 'cancelled'];
 
 export const WoStatusChip = ({ wo, onUpdated, onError }) => {
   const theme = useTheme();

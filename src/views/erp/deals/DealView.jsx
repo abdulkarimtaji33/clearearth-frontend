@@ -78,7 +78,6 @@ const getStatusColor = (status) => {
     won: 'success',
     lost: 'error',
     // legacy
-    draft: 'default',
     pending: 'warning',
     in_progress: 'primary',
     completed: 'success',
@@ -186,7 +185,7 @@ const NAV_ITEMS = [
   { id: 'sec-quotations', label: 'Quotations', icon: IconFileInvoice },
 ];
 
-const WO_HEADER_STATUS_COLOR = { draft: 'default', in_progress: 'info', completed: 'success', cancelled: 'error' };
+const WO_HEADER_STATUS_COLOR = { new: 'default', in_progress: 'info', completed: 'success', cancelled: 'error' };
 
 const taskStatusMeta = (status) => {
   const s = String(status || 'not_started').toLowerCase();

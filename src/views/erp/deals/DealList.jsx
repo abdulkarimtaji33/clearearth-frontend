@@ -51,7 +51,6 @@ const STATUS_CONFIG = {
   won:            { label: 'Won',            color: 'success' },
   lost:           { label: 'Lost',           color: 'error' },
   // legacy
-  draft:          { label: 'Draft',          color: 'default' },
   pending:        { label: 'Pending',        color: 'warning' },
   in_progress:    { label: 'In Progress',    color: 'primary' },
   completed:      { label: 'Completed',      color: 'success' },

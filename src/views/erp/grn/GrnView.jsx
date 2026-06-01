@@ -15,7 +15,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { getUserRole } from '../../../utils/authHelpers';
 import GrnEvidenceThumbs from './GrnEvidenceThumbs';
 
-const STATUS_COLOR = { draft: 'default', submitted: 'info', approved: 'success' };
+const STATUS_COLOR = { new: 'default', submitted: 'info', approved: 'success' };
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
 const APPROVER_ROLES = ['admin', 'tenant_admin', 'operations_manager'];
@@ -156,7 +156,7 @@ const GrnView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1.5} flexWrap="wrap">
-            {grn.status === 'draft' && (
+            {grn.status === 'new' && (
               <Button
                 variant="outlined"
                 startIcon={<IconEdit size={16} />}
@@ -166,7 +166,7 @@ const GrnView = () => {
                 Edit
               </Button>
             )}
-            {grn.status === 'draft' && (
+            {grn.status === 'new' && (
               <Button
                 variant="outlined"
                 color="info"

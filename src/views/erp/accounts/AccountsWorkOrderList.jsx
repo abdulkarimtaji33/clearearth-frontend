@@ -33,14 +33,14 @@ import apiService from '../../../services/api';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
-  { value: 'draft', label: 'Draft' },
+  { value: 'new', label: 'New' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
 const WO_STATUS_COLORS = {
-  draft: 'default',
+  new: 'default',
   in_progress: 'primary',
   completed: 'success',
   cancelled: 'error',

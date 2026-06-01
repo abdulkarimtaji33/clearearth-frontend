@@ -19,11 +19,12 @@ import {
   IconCurrencyDollar, IconClock, IconGripVertical, IconLock,
   IconAlertCircle, IconCircleCheck, IconNote, IconCheck, IconX,
   IconFileReport, IconPrinter, IconReceipt, IconFileInvoice, IconShoppingCart,
-  IconMapPin, IconPhone, IconPackage, IconTruckDelivery,
+  IconMapPin, IconPhone, IconPackage, IconTruckDelivery, IconShare, IconCopy,
 } from '@tabler/icons-react';
 import { TextField, InputAdornment, Autocomplete } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
 
 const WO_STATUS_COLORS = {
@@ -391,6 +392,7 @@ const WorkOrderView = () => {
   const [dealQuotationId, setDealQuotationId] = useState(null);
   const [dealProformaId, setDealProformaId] = useState(null);
   const [dealTaxInvoiceId, setDealTaxInvoiceId] = useState(null);
+  const [linkedGrn, setLinkedGrn] = useState(null);
 
   // Driver assignment dialog
   const [drivers, setDrivers] = useState([]);
@@ -401,8 +403,14 @@ const WorkOrderView = () => {
   // Collection details sub-dialog
   const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
   const [collectionFields, setCollectionFields] = useState({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' });
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [collectionSaving, setCollectionSaving] = useState(false);
   const [collectionError, setCollectionError] = useState('');
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareError, setShareError] = useState('');
+  const [shareCopied, setShareCopied] = useState(false);
   const pendingAssignDriverId = useRef(null);
 
   const sensors = useSensors(
@@ -419,6 +427,14 @@ const WorkOrderView = () => {
         setDealQuotationId(null);
         setDealProformaId(null);
         setDealTaxInvoiceId(null);
+        setLinkedGrn(null);
+        if (res.data.status === 'completed') {
+          try {
+            const grnRes = await apiService.getGrns({ workOrderId: id, pageSize: 1 });
+            const grnRow = Array.isArray(grnRes.data) ? grnRes.data[0] : null;
+            if (grnRow?.id) setLinkedGrn(grnRow);
+          } catch { /* ignore */ }
+        }
         const deal = res.data.deal;
         if (deal?.id) {
           try {
@@ -771,10 +787,10 @@ const WorkOrderView = () => {
                 variant="contained"
                 color="warning"
                 startIcon={<IconPackage size={16} />}
-                onClick={() => navigate(`/erp/grn/create?workOrderId=${wo.id}`)}
+                onClick={() => navigate(linkedGrn ? `/erp/grn/${linkedGrn.status === 'draft' ? 'edit' : 'view'}/${linkedGrn.id}` : `/erp/grn/create?workOrderId=${wo.id}`)}
                 sx={{ borderRadius: 2, fontWeight: 700, color: 'white' }}
               >
-                Create GRN
+                {linkedGrn ? (linkedGrn.status === 'draft' ? 'Edit GRN' : 'View GRN') : 'Open GRN'}
               </Button>
             )}
             <Button
@@ -1083,12 +1099,38 @@ const WorkOrderView = () => {
         <DialogContent sx={{ px: 3, pb: 1 }}>
           {collectionError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{collectionError}</Alert>}
           <Stack spacing={2} mt={0.5}>
-            <TextField
-              fullWidth label="Google Maps link"
-              value={collectionFields.pickup_location}
-              onChange={e => setCollectionFields(f => ({ ...f, pickup_location: e.target.value }))}
-              placeholder="https://maps.google.com/…"
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            <Box
+              onClick={() => setLocationPickerOpen(true)}
+              sx={{
+                display: 'flex', alignItems: 'center', gap: 1, p: 1.5,
+                border: '1px solid', borderColor: collectionFields.pickup_location ? 'primary.main' : 'divider',
+                borderRadius: 2, bgcolor: 'background.paper', cursor: 'pointer',
+                '&:hover': { borderColor: 'primary.main' },
+              }}
+            >
+              <IconMapPin size={20} color={collectionFields.pickup_location ? undefined : '#9e9e9e'} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                {collectionFields.pickup_location ? (
+                  <Typography variant="body2" noWrap>{collectionFields.pickup_location}</Typography>
+                ) : (
+                  <Typography variant="body2" color="text.disabled">Click to select pickup location on map</Typography>
+                )}
+              </Box>
+              <Button
+                size="small"
+                variant={collectionFields.pickup_location ? 'outlined' : 'contained'}
+                onClick={(e) => { e.stopPropagation(); setLocationPickerOpen(true); }}
+                sx={{ borderRadius: 2, whiteSpace: 'nowrap', flexShrink: 0 }}
+                startIcon={<IconMapPin size={15} />}
+              >
+                {collectionFields.pickup_location ? 'Change' : 'Pick on Map'}
+              </Button>
+            </Box>
+            <LocationPickerDialog
+              open={locationPickerOpen}
+              onClose={() => setLocationPickerOpen(false)}
+              initialValue={collectionFields.pickup_location}
+              onConfirm={(url) => setCollectionFields(f => ({ ...f, pickup_location: url }))}
             />
             <TextField
               fullWidth label="Contact name"
@@ -1105,7 +1147,28 @@ const WorkOrderView = () => {
             />
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1.5, flexWrap: 'wrap', gap: 1 }}>
+          <Button
+            startIcon={<IconShare size={16} />}
+            onClick={async () => {
+              if (!wo?.deal_id) return;
+              setShareError('');
+              setShareUrl('');
+              setShareDialogOpen(true);
+              setShareLoading(true);
+              try {
+                const res = await apiService.generateLocationShareToken(wo.deal_id);
+                setShareUrl(res.shareUrl);
+              } catch (e) {
+                setShareError(e.message || 'Failed to generate link');
+              } finally {
+                setShareLoading(false);
+              }
+            }}
+            sx={{ borderRadius: 2, mr: 'auto' }}
+          >
+            Share with client
+          </Button>
           <Button onClick={() => setCollectionDialogOpen(false)} variant="outlined" sx={{ borderRadius: 2 }}>Cancel</Button>
           <Button
             onClick={saveCollectionDetails}
@@ -1116,6 +1179,43 @@ const WorkOrderView = () => {
           >
             {collectionSaving ? 'Saving…' : 'Save & Continue'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Share Location Link Dialog ── */}
+      <Dialog open={shareDialogOpen} onClose={() => { setShareDialogOpen(false); setShareCopied(false); }} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h6" fontWeight={700}>Client Location Link</Typography>
+        </DialogTitle>
+        <DialogContent sx={{ pb: 1 }}>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            Send this link to your client. They open it, drop a pin on their location, and it updates automatically. Expires in <strong>7 days</strong>.
+          </Typography>
+          {shareLoading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={28} /></Box>
+          )}
+          {shareError && <Alert severity="error" sx={{ borderRadius: 2 }}>{shareError}</Alert>}
+          {shareUrl && (
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', p: 1.5, bgcolor: 'action.hover', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="body2" sx={{ flex: 1, wordBreak: 'break-all', fontSize: '0.78rem' }}>{shareUrl}</Typography>
+              <Tooltip title={shareCopied ? 'Copied!' : 'Copy'}>
+                <IconButton size="small" onClick={() => { navigator.clipboard.writeText(shareUrl); setShareCopied(true); setTimeout(() => setShareCopied(false), 2500); }}>
+                  {shareCopied ? <IconCheck size={16} color="green" /> : <IconCopy size={16} />}
+                </IconButton>
+              </Tooltip>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+          <Button onClick={() => { setShareDialogOpen(false); setShareCopied(false); }} sx={{ borderRadius: 2 }}>Close</Button>
+          {shareUrl && (
+            <Button variant="contained" startIcon={shareCopied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+              onClick={() => { navigator.clipboard.writeText(shareUrl); setShareCopied(true); setTimeout(() => setShareCopied(false), 2500); }}
+              sx={{ borderRadius: 2 }}
+            >
+              {shareCopied ? 'Copied!' : 'Copy Link'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
@@ -1261,8 +1361,8 @@ const WorkOrderView = () => {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
           <Button onClick={() => setReportOpen(false)} variant="outlined" sx={{ borderRadius: 2 }}>Close</Button>
-          <Button variant="outlined" color="primary" onClick={() => { setReportOpen(false); navigate(`/erp/grn/create?workOrderId=${wo.id}`); }} sx={{ borderRadius: 2, fontWeight: 600 }}>
-            Create GRN
+          <Button variant="outlined" color="primary" onClick={() => { setReportOpen(false); navigate(linkedGrn ? `/erp/grn/${linkedGrn.status === 'draft' ? 'edit' : 'view'}/${linkedGrn.id}` : `/erp/grn/create?workOrderId=${wo.id}`); }} sx={{ borderRadius: 2, fontWeight: 600 }}>
+            {linkedGrn ? (linkedGrn.status === 'draft' ? 'Edit GRN' : 'View GRN') : 'Open GRN'}
           </Button>
           <Button variant="contained" color="success" startIcon={<IconPrinter size={16} />} onClick={() => window.print()} sx={{ borderRadius: 2, fontWeight: 600 }}>
             Print Report

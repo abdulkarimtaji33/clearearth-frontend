@@ -13,6 +13,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { getUserRole } from '../../../utils/authHelpers';
+import GrnEvidenceThumbs from './GrnEvidenceThumbs';
 
 const STATUS_COLOR = { draft: 'default', submitted: 'info', approved: 'success' };
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
@@ -268,6 +269,11 @@ const GrnView = () => {
                       <Typography variant="body2" fontWeight={700}>
                         {[salesPerson.first_name, salesPerson.last_name].filter(Boolean).join(' ') || salesPerson.email}
                       </Typography>
+                      {salesPerson.phone && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {salesPerson.phone}
+                        </Typography>
+                      )}
                     </RefItem>
                   </Grid>
                 )}
@@ -354,7 +360,7 @@ const GrnView = () => {
         <Table size="small">
           <TableHead>
             <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
-              {['#', 'Product', 'Material type', 'Quantity', 'UOM', 'Notes'].map((h) => (
+              {['#', 'Product', 'Material type', 'Quantity', 'UOM', 'Notes', 'Evidence'].map((h) => (
                 <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: 0.4 }}>
                   {h}
                 </TableCell>
@@ -384,38 +390,25 @@ const GrnView = () => {
                     {it.notes || '—'}
                   </Typography>
                 </TableCell>
+                <TableCell>
+                  {(it.images || []).length > 0 ? (
+                    <GrnEvidenceThumbs
+                      images={(it.images || []).map((img) => ({
+                        id: img.id,
+                        imageUrl: img.image_url,
+                        originalName: img.original_name,
+                      }))}
+                      size={48}
+                    />
+                  ) : (
+                    <Typography variant="caption" color="text.disabled">—</Typography>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </Paper>
-
-      {(grn.images || []).length > 0 && (
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-          <Typography variant="subtitle2" fontWeight={700} mb={1.5}>
-            Photos ({grn.images.length})
-          </Typography>
-          <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
-            {grn.images.map((img) => (
-              <Box
-                key={img.id}
-                component="a"
-                href={img.image_url}
-                target="_blank"
-                rel="noreferrer"
-                sx={{ display: 'block', borderRadius: 2, overflow: 'hidden', transition: 'opacity 0.15s', '&:hover': { opacity: 0.85 } }}
-              >
-                <Box
-                  component="img"
-                  src={img.image_url}
-                  alt={img.original_name}
-                  sx={{ width: 110, height: 110, objectFit: 'cover', display: 'block' }}
-                />
-              </Box>
-            ))}
-          </Stack>
-        </Paper>
-      )}
 
       {grn.status === 'approved' && grn.approved_at && (
         <Typography variant="caption" color="text.secondary" display="block" mt={2.5}>

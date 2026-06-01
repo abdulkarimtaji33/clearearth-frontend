@@ -26,7 +26,8 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
 import { useDropzone } from 'react-dropzone';
-import { IconArrowLeft, IconPlus, IconTrash, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription, IconInfoCircle } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconTrash, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription, IconInfoCircle, IconMapPin, IconExternalLink, IconShare, IconCopy, IconCheck } from '@tabler/icons-react';
+import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import Tooltip from '@mui/material/Tooltip';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -184,6 +185,12 @@ const DealForm = () => {
   });
 
   const [wdsDialogOpen, setWdsDialogOpen] = useState(false);
+  const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareError, setShareError] = useState('');
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false);
   const [materialTypes, setMaterialTypes] = useState([]);
   const SAFETY_TOOL_OPTIONS = [
@@ -1227,15 +1234,70 @@ const DealForm = () => {
                         Collection details (for driver pickup)
                       </Typography>
                       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                        <TextField
-                          fullWidth
-                          label="Google Maps link"
-                          name="pickupLocation"
-                          value={values.pickupLocation || ''}
-                          onChange={handleChange}
-                          placeholder="https://maps.google.com/..."
-                          helperText="Paste the Maps URL for the pickup location"
-                          sx={{ gridColumn: { sm: '1 / -1' }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        {/* Location picker — opens map dialog */}
+                        <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              p: 1.5,
+                              border: '1px solid',
+                              borderColor: values.pickupLocation ? 'primary.main' : 'divider',
+                              borderRadius: 2,
+                              bgcolor: 'background.paper',
+                              cursor: 'pointer',
+                              '&:hover': { borderColor: 'primary.main' },
+                            }}
+                            onClick={() => setLocationDialogOpen(true)}
+                          >
+                            <IconMapPin size={20} color={values.pickupLocation ? undefined : '#9e9e9e'} />
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              {values.pickupLocation ? (
+                                <Typography variant="body2" noWrap>{values.pickupLocation}</Typography>
+                              ) : (
+                                <Typography variant="body2" color="text.disabled">
+                                  Click to select pickup location on map
+                                </Typography>
+                              )}
+                            </Box>
+                            <Button
+                              size="small"
+                              variant={values.pickupLocation ? 'outlined' : 'contained'}
+                              onClick={(e) => { e.stopPropagation(); setLocationDialogOpen(true); }}
+                              sx={{ borderRadius: 2, whiteSpace: 'nowrap', flexShrink: 0 }}
+                              startIcon={<IconMapPin size={15} />}
+                            >
+                              {values.pickupLocation ? 'Change' : 'Pick on Map'}
+                            </Button>
+                            {values.pickupLocation && (
+                              <Tooltip title="Open in Google Maps">
+                                <IconButton
+                                  size="small"
+                                  component="a"
+                                  href={values.pickupLocation}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <IconExternalLink size={16} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                            Select the exact pin location on the map for the driver
+                          </Typography>
+                        </Box>
+
+                        <LocationPickerDialog
+                          open={locationDialogOpen}
+                          onClose={() => setLocationDialogOpen(false)}
+                          initialValue={values.pickupLocation}
+                          onConfirm={(url) => {
+                            setFieldValue('pickupLocation', url);
+                            setLocationDialogOpen(false);
+                          }}
                         />
                         <TextField
                           fullWidth
@@ -1255,8 +1317,94 @@ const DealForm = () => {
                           placeholder="+971 50 000 0000"
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
+
+                        {/* Share link with client — only available after deal is saved */}
+                        <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+                          {id ? (
+                            <Button
+                              variant="outlined"
+                              startIcon={<IconShare size={16} />}
+                              onClick={async () => {
+                                setShareError('');
+                                setShareUrl('');
+                                setShareDialogOpen(true);
+                                setShareLoading(true);
+                                try {
+                                  const res = await apiService.generateLocationShareToken(id);
+                                  setShareUrl(res.shareUrl);
+                                } catch (e) {
+                                  setShareError(e.message || 'Failed to generate link');
+                                } finally {
+                                  setShareLoading(false);
+                                }
+                              }}
+                              sx={{ borderRadius: 2, fontWeight: 600 }}
+                            >
+                              Share location link with client
+                            </Button>
+                          ) : (
+                            <Typography variant="caption" color="text.disabled">
+                              Save the deal first to generate a shareable location link for the client
+                            </Typography>
+                          )}
+                        </Box>
                       </Box>
                     </Box>
+
+                    {/* Share link dialog */}
+                    <Dialog open={shareDialogOpen} onClose={() => { setShareDialogOpen(false); setShareCopied(false); }} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+                      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+                        <Typography variant="h6" fontWeight={700}>Client Location Link</Typography>
+                      </DialogTitle>
+                      <DialogContent sx={{ pb: 1 }}>
+                        <Typography variant="body2" color="text.secondary" mb={2}>
+                          Send this link to your client. They will open it, drop a pin on their location, and it will automatically update here.
+                          The link expires in <strong>7 days</strong>.
+                        </Typography>
+                        {shareLoading && (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                            <CircularProgress size={28} />
+                          </Box>
+                        )}
+                        {shareError && <Alert severity="error" sx={{ borderRadius: 2 }}>{shareError}</Alert>}
+                        {shareUrl && (
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', p: 1.5, bgcolor: 'action.hover', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                            <Typography variant="body2" sx={{ flex: 1, wordBreak: 'break-all', fontSize: '0.78rem' }}>
+                              {shareUrl}
+                            </Typography>
+                            <Tooltip title={shareCopied ? 'Copied!' : 'Copy link'}>
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(shareUrl);
+                                  setShareCopied(true);
+                                  setTimeout(() => setShareCopied(false), 2500);
+                                }}
+                              >
+                                {shareCopied ? <IconCheck size={16} color="green" /> : <IconCopy size={16} />}
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        )}
+                      </DialogContent>
+                      <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+                        <Button onClick={() => { setShareDialogOpen(false); setShareCopied(false); }} sx={{ borderRadius: 2 }}>Close</Button>
+                        {shareUrl && (
+                          <Button
+                            variant="contained"
+                            startIcon={shareCopied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                            onClick={() => {
+                              navigator.clipboard.writeText(shareUrl);
+                              setShareCopied(true);
+                              setTimeout(() => setShareCopied(false), 2500);
+                            }}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            {shareCopied ? 'Copied!' : 'Copy Link'}
+                          </Button>
+                        )}
+                      </DialogActions>
+                    </Dialog>
 
                     <Box>
                       <FormControlLabel

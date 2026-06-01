@@ -5,10 +5,11 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import {
   IconMapPin, IconPhone, IconCheck, IconPlayerPlay,
-  IconClockHour4, IconAlertTriangle, IconCalendar, IconCalendarDue,
+  IconClockHour4, IconAlertTriangle, IconCalendar, IconCalendarDue, IconRoute,
 } from '@tabler/icons-react';
 import { useAuth } from '../../../context/AuthContext';
 import apiService from '../../../services/api';
+import RoutePlannerDialog from '../../../components/RoutePlannerDialog';
 
 // ─── Priority config ──────────────────────────────────────────────────────────
 const PRIORITY = {
@@ -279,6 +280,7 @@ const DriverDashboard = ({ data, onRefresh }) => {
   const { user } = useAuth();
   const firstName = user?.first_name || user?.firstName || '';
   const theme = useTheme();
+  const [routePlannerOpen, setRoutePlannerOpen] = useState(false);
 
   const overdue   = data.overdue   || [];
   const today     = data.today     || [];
@@ -307,6 +309,26 @@ const DriverDashboard = ({ data, onRefresh }) => {
           <StatChip key={k.label} {...k} />
         ))}
       </Stack>
+
+      {/* Route planner button */}
+      {allActive.length > 0 && (
+        <Button
+          fullWidth
+          variant="outlined"
+          size="large"
+          startIcon={<IconRoute size={20} />}
+          onClick={() => setRoutePlannerOpen(true)}
+          sx={{ mb: 3, borderRadius: 2.5, py: 1.4, fontWeight: 700, fontSize: '0.95rem', borderWidth: 2, '&:hover': { borderWidth: 2 } }}
+        >
+          Plan My Route ({allActive.length} stop{allActive.length !== 1 ? 's' : ''})
+        </Button>
+      )}
+
+      <RoutePlannerDialog
+        open={routePlannerOpen}
+        onClose={() => setRoutePlannerOpen(false)}
+        pickups={allActive}
+      />
 
       {/* No active pickups empty state */}
       {allActive.length === 0 && (

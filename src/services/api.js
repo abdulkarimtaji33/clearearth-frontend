@@ -877,6 +877,11 @@ class ApiService {
   async getCashFlowStatement(params) { return this.get('/reports/cash-flow', params); }
   async getChangesInEquity(params) { return this.get('/reports/changes-in-equity', params); }
   async getVatReport(params) { return this.get('/reports/vat-report', params); }
+
+  // ─── Location Share ────────────────────────────────────────────────────────────
+  async generateLocationShareToken(dealId) { return this.post(`/location-share/deals/${dealId}/token`); }
+  async getLocationShareInfo(token) { return this.get(`/location-share/pin/${token}`); }
+  async submitClientLocation(token, pickupLocation) { return this.post(`/location-share/pin/${token}`, { pickupLocation }); }
 }
 
 const apiService = new ApiService();

@@ -77,6 +77,9 @@ const CashFlowView = Loadable(lazy(() => import('../views/erp/reports/CashFlowVi
 const ChangesInEquityView = Loadable(lazy(() => import('../views/erp/reports/ChangesInEquityView')));
 const VatReportView = Loadable(lazy(() => import('../views/erp/reports/VatReportView')));
 
+// Public pages (no auth required)
+const ClientLocationPicker = Loadable(lazy(() => import('../views/public/ClientLocationPicker')));
+
 // authentication
 const Login = Loadable(lazy(() => import('../views/authentication/auth1/Login')));
 const Login2 = Loadable(lazy(() => import('../views/authentication/auth2/Login2')));
@@ -181,6 +184,10 @@ const Router = createBrowserRouter([
       { path: '/erp/reports/vat-report', element: <VatReportView /> },
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],
+  },
+  {
+    path: '/location-pin/:token',
+    element: <ClientLocationPicker />,
   },
   {
     path: '/auth',

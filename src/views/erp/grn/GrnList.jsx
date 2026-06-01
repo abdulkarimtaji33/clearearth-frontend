@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Chip, CircularProgress, Alert, TablePagination, TextField, MenuItem,
+  Box, Typography, Stack, Paper, Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow, Chip, CircularProgress, Alert, TablePagination, TextField, MenuItem, Link,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconPackage, IconPlus, IconFileCheck } from '@tabler/icons-react';
+import { IconPackage, IconFileCheck } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { getClientLabel, getContactDetails, getSalesPerson } from './grnDisplayHelpers';
 
 const STATUS_COLOR = { draft: 'default', submitted: 'info', approved: 'success' };
 
@@ -37,6 +38,8 @@ const GrnList = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  const colSpan = 10;
+
   return (
     <PageContainer title="GRN" description="Goods received notes">
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
@@ -59,18 +62,10 @@ const GrnList = () => {
               Goods Received (GRN)
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {total} record{total !== 1 ? 's' : ''}
+              {total} record{total !== 1 ? 's' : ''} · created when a work order is completed
             </Typography>
           </Box>
         </Stack>
-        <Button
-          variant="contained"
-          startIcon={<IconPlus size={18} />}
-          onClick={() => navigate('/erp/grn/create')}
-          sx={{ borderRadius: 2.5, px: 2.5 }}
-        >
-          New GRN
-        </Button>
       </Stack>
 
       {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
@@ -99,14 +94,14 @@ const GrnList = () => {
           </TextField>
         </Box>
 
-        <TableContainer>
+        <TableContainer sx={{ overflowX: 'auto' }}>
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
-                {['GRN #', 'Work Order', 'Deal', 'Items', 'Status', 'Created', ''].map((h) => (
+                {['GRN #', 'Deal', 'Client / Lead', 'Contact', 'Sales person', 'Work Order', 'Items', 'Status', 'Created', ''].map((h) => (
                   <TableCell
                     key={h || 'actions'}
-                    sx={{ fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: 0.4, py: 1.5 }}
+                    sx={{ fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: 0.4, py: 1.5, whiteSpace: 'nowrap' }}
                   >
                     {h}
                   </TableCell>
@@ -116,13 +111,13 @@ const GrnList = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                  <TableCell colSpan={colSpan} align="center" sx={{ py: 8 }}>
                     <CircularProgress size={28} />
                   </TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                  <TableCell colSpan={colSpan} align="center" sx={{ py: 8 }}>
                     <Box>
                       <IconFileCheck size={36} color={theme.palette.text.disabled} />
                       <Typography color="text.secondary" mt={1} fontWeight={600}>
@@ -137,64 +132,139 @@ const GrnList = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map((r) => (
-                  <TableRow
-                    key={r.id}
-                    hover
-                    sx={{ cursor: 'pointer', transition: 'background 0.14s' }}
-                    onClick={() => navigate(`/erp/grn/view/${r.id}`)}
-                  >
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        fontWeight={700}
-                        sx={{ fontFamily: 'monospace', color: 'primary.main' }}
-                      >
-                        {r.grn_number}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {r.workOrder?.title || r.work_order_id || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {r.deal ? `${r.deal.deal_number} ${r.deal.title}` : '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={r.items?.length || 0}
-                        variant="outlined"
-                        sx={{ fontWeight: 700, minWidth: 32 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={r.status}
-                        color={STATUS_COLOR[r.status] || 'default'}
-                        sx={{ textTransform: 'capitalize', fontWeight: 700 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="text.secondary">
-                        {r.created_at?.slice?.(0, 10) || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Button
-                        size="small"
-                        sx={{ borderRadius: 2 }}
-                        onClick={(e) => { e.stopPropagation(); navigate(`/erp/grn/view/${r.id}`); }}
-                      >
-                        View
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                rows.map((r) => {
+                  const deal = r.deal;
+                  const client = getClientLabel(deal);
+                  const contact = getContactDetails(deal);
+                  const sales = getSalesPerson(deal);
+
+                  return (
+                    <TableRow
+                      key={r.id}
+                      hover
+                      sx={{ cursor: 'pointer', transition: 'background 0.14s' }}
+                      onClick={() => navigate(`/erp/grn/view/${r.id}`)}
+                    >
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          sx={{ fontFamily: 'monospace', color: 'primary.main' }}
+                        >
+                          {r.grn_number}
+                        </Typography>
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {deal ? (
+                          <Link
+                            component="button"
+                            variant="body2"
+                            fontWeight={700}
+                            underline="hover"
+                            onClick={() => navigate(`/erp/deals/view/${deal.id}`)}
+                            sx={{ textAlign: 'left' }}
+                          >
+                            {deal.deal_number}
+                            <Typography component="span" variant="caption" color="text.secondary" display="block" noWrap sx={{ maxWidth: 160 }}>
+                              {deal.title}
+                            </Typography>
+                          </Link>
+                        ) : (
+                          <Typography variant="body2" color="text.disabled">—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 160 }}>
+                          {client}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {contact.name || contact.phone || contact.email ? (
+                          <Box>
+                            {contact.name && (
+                              <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 140 }}>
+                                {contact.name}
+                              </Typography>
+                            )}
+                            {contact.phone && (
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                {contact.phone}
+                              </Typography>
+                            )}
+                            {contact.email && !contact.phone && (
+                              <Typography variant="caption" color="text.secondary" display="block" noWrap sx={{ maxWidth: 140 }}>
+                                {contact.email}
+                              </Typography>
+                            )}
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.disabled">—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {sales ? (
+                          <Box>
+                            <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 140 }}>
+                              {sales.name}
+                            </Typography>
+                            {sales.phone && (
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                {sales.phone}
+                              </Typography>
+                            )}
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.disabled">—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {r.work_order_id ? (
+                          <Link
+                            component="button"
+                            variant="body2"
+                            underline="hover"
+                            onClick={() => navigate(`/erp/work-orders/view/${r.work_order_id}`)}
+                          >
+                            {r.workOrder?.title || `#${r.work_order_id}`}
+                          </Link>
+                        ) : (
+                          <Typography variant="body2" color="text.disabled">—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={r.items?.length || 0}
+                          variant="outlined"
+                          sx={{ fontWeight: 700, minWidth: 32 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={r.status}
+                          color={STATUS_COLOR[r.status] || 'default'}
+                          sx={{ textTransform: 'capitalize', fontWeight: 700 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary" noWrap>
+                          {r.created_at?.slice?.(0, 10) || '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                        <Link
+                          component="button"
+                          variant="body2"
+                          fontWeight={600}
+                          onClick={() => navigate(`/erp/grn/view/${r.id}`)}
+                        >
+                          View
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

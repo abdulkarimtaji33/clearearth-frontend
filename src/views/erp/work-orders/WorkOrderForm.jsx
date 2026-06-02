@@ -418,7 +418,7 @@ const WorkOrderForm = () => {
     try {
       setCollectionSaving(true);
       setCollectionError('');
-      await apiService.updateDeal(form.dealId, {
+      await apiService.updateDealCollectionDetails(form.dealId, {
         pickupLocation: collectionFields.pickup_location,
         pickupContactName: collectionFields.pickup_contact_name,
         pickupContactNumber: collectionFields.pickup_contact_number,

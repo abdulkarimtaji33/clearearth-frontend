@@ -274,6 +274,10 @@ class ApiService {
     return this.put(`/deals/${id}`, data);
   }
 
+  async updateDealCollectionDetails(id, data) {
+    return this.patch(`/deals/${id}/collection-details`, data);
+  }
+
   async deleteDeal(id) {
     return this.delete(`/deals/${id}`);
   }

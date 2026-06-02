@@ -567,7 +567,7 @@ const WorkOrderView = () => {
     try {
       setCollectionSaving(true);
       setCollectionError('');
-      await apiService.updateDeal(wo.deal_id, {
+      await apiService.updateDealCollectionDetails(wo.deal_id, {
         pickupLocation: collectionFields.pickup_location,
         pickupContactName: collectionFields.pickup_contact_name,
         pickupContactNumber: collectionFields.pickup_contact_number,

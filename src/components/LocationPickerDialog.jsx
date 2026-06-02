@@ -18,6 +18,8 @@ import { IconCurrentLocation, IconSearch, IconX, IconMapPin } from '@tabler/icon
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+const PLACEHOLDER_KEY = 'your_google_maps_api_key_here';
+const isMapsKeyConfigured = Boolean(API_KEY && API_KEY !== PLACEHOLDER_KEY);
 
 export default function LocationPickerDialog({ open, onClose, onConfirm, initialValue }) {
   const mapRef = useRef(null);
@@ -81,8 +83,10 @@ export default function LocationPickerDialog({ open, onClose, onConfirm, initial
     setError('');
     setLoading(true);
 
-    if (!API_KEY) {
-      setError('Google Maps API key is not configured. Set VITE_GOOGLE_MAPS_API_KEY in your .env file.');
+    if (!isMapsKeyConfigured) {
+      setError(
+        'Google Maps API key is not configured on the server. Set VITE_GOOGLE_MAPS_API_KEY in .env.production, enable Maps JavaScript + Places + Geocoding APIs, then rebuild the frontend.',
+      );
       setLoading(false);
       return;
     }

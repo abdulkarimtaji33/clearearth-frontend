@@ -59,6 +59,7 @@ const QuotationView = () => {
 
   const qStatus = String(q?.status || '').toLowerCase();
   const isApproved = qStatus === 'approved';
+  const linkedWorkOrder = q?.workOrder || q?.work_order;
   const canApproveQuotation = q && !isApproved && qStatus !== 'rejected';
 
   const handleApproveQuotation = async () => {
@@ -144,9 +145,15 @@ const QuotationView = () => {
               {isApproved ? 'Download service order PDF' : 'Download quotation PDF'}
             </Button>
             {isApproved && (
-              <Button variant="contained" color="primary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/create${q.deal?.id ? `?dealId=${q.deal.id}` : ''}`)} sx={{ borderRadius: 2 }}>
-                Create work order
-              </Button>
+              linkedWorkOrder?.id ? (
+                <Button variant="contained" color="primary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/view/${linkedWorkOrder.id}`)} sx={{ borderRadius: 2 }}>
+                  Open work order
+                </Button>
+              ) : (
+                <Button variant="contained" color="primary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/create?quotationId=${id}${q.deal?.id ? `&dealId=${q.deal.id}` : ''}`)} sx={{ borderRadius: 2 }}>
+                  Create work order
+                </Button>
+              )
             )}
           </Stack>
         </Stack>

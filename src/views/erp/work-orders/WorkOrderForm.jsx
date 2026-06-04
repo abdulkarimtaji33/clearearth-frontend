@@ -164,9 +164,12 @@ const WorkOrderForm = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isEdit = Boolean(id);
+  const quotationIdFromUrl = searchParams.get('quotationId')
+    ? parseInt(searchParams.get('quotationId'), 10)
+    : null;
   const { hasPermission } = useAuth();
 
-  const [loading, setLoading] = useState(isEdit);
+  const [loading, setLoading] = useState(isEdit || Boolean(quotationIdFromUrl));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [users, setUsers] = useState([]);
@@ -290,6 +293,33 @@ const WorkOrderForm = () => {
       setLoading(false);
     }
   }, [id]);
+
+  useEffect(() => {
+    if (!isEdit && quotationIdFromUrl) {
+      (async () => {
+        try {
+          setLoading(true);
+          const res = await apiService.getQuotation(quotationIdFromUrl);
+          if (res.success) {
+            const q = res.data;
+            const existingWo = q.workOrder || q.work_order;
+            if (existingWo?.id) {
+              navigate(`/erp/work-orders/view/${existingWo.id}`, { replace: true });
+              return;
+            }
+            setForm((prev) => ({
+              ...prev,
+              dealId: q.deal_id ?? q.deal?.id ?? prev.dealId,
+            }));
+          }
+        } catch (err) {
+          setError(err.message || 'Failed to load quotation');
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }
+  }, [isEdit, quotationIdFromUrl, navigate]);
 
   useEffect(() => {
     fetchUsers();
@@ -462,6 +492,7 @@ const WorkOrderForm = () => {
     try {
       const payload = {
         dealId: form.dealId || null,
+        quotationId: !isEdit && quotationIdFromUrl ? quotationIdFromUrl : undefined,
         title: form.title || null,
         notes: form.notes || null,
         status: form.status,

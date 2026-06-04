@@ -344,9 +344,15 @@ const QuotationList = () => {
             {isApproved(selectedQuotation) ? 'Download service order PDF' : 'Download quotation PDF'}
           </MenuItem>
           {isApproved(selectedQuotation) && (
-            <MenuItem onClick={() => { navigate(`/erp/work-orders/create${selectedQuotation?.deal?.id ? `?dealId=${selectedQuotation.deal.id}` : ''}`); setAnchorEl(null); }}>
-              <IconHammer size={16} style={{ marginRight: 10 }} /> Create Work Order
-            </MenuItem>
+            (selectedQuotation?.workOrder || selectedQuotation?.work_order)?.id ? (
+              <MenuItem onClick={() => { navigate(`/erp/work-orders/view/${(selectedQuotation.workOrder || selectedQuotation.work_order).id}`); setAnchorEl(null); }}>
+                <IconHammer size={16} style={{ marginRight: 10 }} /> Open Work Order
+              </MenuItem>
+            ) : (
+              <MenuItem onClick={() => { navigate(`/erp/work-orders/create?quotationId=${selectedQuotation?.id}${selectedQuotation?.deal?.id ? `&dealId=${selectedQuotation.deal.id}` : ''}`); setAnchorEl(null); }}>
+                <IconHammer size={16} style={{ marginRight: 10 }} /> Create Work Order
+              </MenuItem>
+            )
           )}
           <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
             <IconTrash size={16} style={{ marginRight: 10 }} /> Delete

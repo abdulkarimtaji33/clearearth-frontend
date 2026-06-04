@@ -20,6 +20,11 @@ export function normalizePermissions(perms) {
   return [];
 }
 
+/** Operations (and similar) see full deal detail but not pricing. */
+export function shouldHideDealFinancials(user) {
+  return getUserRole(user) === 'operations_manager';
+}
+
 export function collectPermissionsFromUserPayload(data) {
   if (!data) return [];
   const user = data.user || data;

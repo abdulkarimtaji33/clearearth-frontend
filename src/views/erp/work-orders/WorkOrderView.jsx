@@ -24,6 +24,8 @@ import {
 import { TextField, InputAdornment, Autocomplete } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
+import { shouldHideDealFinancials } from '../../../utils/authHelpers';
 import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
 
@@ -381,6 +383,8 @@ const WorkOrderView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
+  const { user } = useAuth();
+  const hideDealAmounts = shouldHideDealFinancials(user);
 
   const [wo, setWo] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -1276,10 +1280,12 @@ const WorkOrderView = () => {
                       <Typography variant="body2">{wo.deal.supplier.company_name}</Typography>
                     </Box>
                   )}
+                  {!hideDealAmounts && (
                   <Box>
                     <Typography variant="caption" color="text.secondary" fontWeight={600}>Total Value</Typography>
                     <Typography variant="body2" fontWeight={700}>{wo.deal.currency || 'AED'} {parseFloat(wo.deal.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Typography>
                   </Box>
+                  )}
                 </>
               )}
               <Box>

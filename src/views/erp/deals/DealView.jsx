@@ -67,7 +67,7 @@ import InspectionRequestDetail from '../../../components/erp/InspectionRequestDe
 import apiService from '../../../services/api';
 import config from 'src/context/config';
 import { useAuth } from '../../../context/AuthContext';
-import { getUserRole } from '../../../utils/authHelpers';
+import { getUserRole, shouldHideDealFinancials } from '../../../utils/authHelpers';
 
 const getStatusColor = (status) => {
   const colors = {
@@ -395,6 +395,7 @@ const DealView = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { user, hasPermission } = useAuth();
+  const hideDealAmounts = shouldHideDealFinancials(user);
   const showWorkOrderActions = getUserRole(user) !== 'sales';
   const canEditDeals = hasPermission('deals.update');
   const [loading, setLoading] = useState(true);
@@ -685,6 +686,7 @@ const DealView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+            {canEditDeals && (
             <Button
               variant="outlined"
               size="small"
@@ -694,6 +696,8 @@ const DealView = () => {
             >
               Create quotation
             </Button>
+            )}
+            {canEditDeals && (
             <Menu
               anchorEl={quotMenuAnchor}
               open={quotMenuOpen}
@@ -721,6 +725,7 @@ const DealView = () => {
                 </MenuItem>
               )}
             </Menu>
+            )}
             {canApproveDeal && (
               <Button
                 variant="contained"
@@ -824,9 +829,11 @@ const DealView = () => {
                 { label: 'Deal Status', value: <Chip label={deal.status?.replace(/_/g, ' ').toUpperCase()} color={getStatusColor(deal.status)} size="small" sx={{ fontWeight: 700 }} /> },
                 ...(deal.status === 'lost' && deal.loss_reason ? [{ label: 'Loss Reason', value: <Typography variant="body2" color="error.main" fontWeight={600}>{deal.loss_reason}</Typography> }] : []),
                 { label: 'Payment', value: <Chip label={deal.payment_status?.replace(/_/g, ' ').toUpperCase()} color={getPaymentStatusColor(deal.payment_status)} size="small" sx={{ fontWeight: 700 }} /> },
-                { label: 'Total', value: <Typography variant="subtitle1" fontWeight={800} color="primary.main">{deal.currency} {Number(deal.total).toFixed(2)}</Typography> },
-                ...(deal.payment_status !== 'unpaid' ? [{ label: 'Paid', value: <Typography variant="subtitle1" fontWeight={700} color="success.main">{deal.currency} {Number(deal.paid_amount).toFixed(2)}</Typography> }] : []),
-                ...(deal.payment_status !== 'unpaid' ? [{ label: 'Balance', value: <Typography variant="subtitle1" fontWeight={700} color="error.main">{deal.currency} {(Number(deal.total) - Number(deal.paid_amount)).toFixed(2)}</Typography> }] : []),
+                ...(!hideDealAmounts ? [
+                  { label: 'Total', value: <Typography variant="subtitle1" fontWeight={800} color="primary.main">{deal.currency} {Number(deal.total).toFixed(2)}</Typography> },
+                  ...(deal.payment_status !== 'unpaid' ? [{ label: 'Paid', value: <Typography variant="subtitle1" fontWeight={700} color="success.main">{deal.currency} {Number(deal.paid_amount).toFixed(2)}</Typography> }] : []),
+                  ...(deal.payment_status !== 'unpaid' ? [{ label: 'Balance', value: <Typography variant="subtitle1" fontWeight={700} color="error.main">{deal.currency} {(Number(deal.total) - Number(deal.paid_amount)).toFixed(2)}</Typography> }] : []),
+                ] : []),
               ].map((item, i, arr) => (
                 <Box
                   key={i}
@@ -867,6 +874,8 @@ const DealView = () => {
                 <InfoRow label="Created" value={new Date(deal.created_at).toLocaleString()} />
                 <InfoRow label="Updated" value={new Date(deal.updated_at).toLocaleString()} />
 
+                {!hideDealAmounts && (
+                <>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>Invoice Details</Typography>
                 {(() => {
@@ -905,6 +914,8 @@ const DealView = () => {
                     </>
                   );
                 })()}
+                </>
+                )}
               </Grid>
 
               {/* Related Entities */}
@@ -966,8 +977,8 @@ const DealView = () => {
                       <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
                       <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Qty</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>UOM</TableCell>
-                      <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Unit Price</TableCell>
-                      <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Line Total</TableCell>
+                      {!hideDealAmounts && <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Unit Price</TableCell>}
+                      {!hideDealAmounts && <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Line Total</TableCell>}
                       <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
                     </TableRow>
                   </TableHead>
@@ -978,8 +989,8 @@ const DealView = () => {
                         <TableCell><Chip label={item.productService?.category || '-'} size="small" variant="outlined" /></TableCell>
                         <TableCell align="right"><Typography variant="body2">{Number(item.quantity).toFixed(2)}</Typography></TableCell>
                         <TableCell><Typography variant="body2" color="text.secondary">{formatDealItemUom(item)}</Typography></TableCell>
-                        <TableCell align="right"><Typography variant="body2">{deal.currency} {Number(item.unit_price).toFixed(2)}</Typography></TableCell>
-                        <TableCell align="right"><Typography variant="body2" fontWeight={600}>{deal.currency} {Number(item.line_total).toFixed(2)}</Typography></TableCell>
+                        {!hideDealAmounts && <TableCell align="right"><Typography variant="body2">{deal.currency} {Number(item.unit_price).toFixed(2)}</Typography></TableCell>}
+                        {!hideDealAmounts && <TableCell align="right"><Typography variant="body2" fontWeight={600}>{deal.currency} {Number(item.line_total).toFixed(2)}</Typography></TableCell>}
                         <TableCell><Typography variant="caption" color="text.secondary">{item.notes || '-'}</Typography></TableCell>
                       </TableRow>
                     ))}
@@ -993,6 +1004,7 @@ const DealView = () => {
             )}
 
             {/* Totals */}
+            {!hideDealAmounts && (
             <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
               <Box sx={{ width: { xs: '100%', sm: 380 } }}>
                 <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
@@ -1024,6 +1036,7 @@ const DealView = () => {
                 </Paper>
               </Box>
             </Box>
+            )}
           </CardContent>
         </SectionCard>
 
@@ -1257,7 +1270,7 @@ const DealView = () => {
                     <TableHead>
                       <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
                         <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Amount</TableCell>
+                        {!hideDealAmounts && <TableCell sx={{ fontWeight: 700 }}>Amount</TableCell>}
                         <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Prepared By</TableCell>
                         <TableCell align="right">Actions</TableCell>
@@ -1267,7 +1280,7 @@ const DealView = () => {
                       {relatedQuotations.map((q) => (
                         <TableRow key={q.id} hover>
                           <TableCell>{q.quotation_date ? new Date(q.quotation_date).toLocaleDateString() : '-'}</TableCell>
-                          <TableCell>{q.currency || 'AED'} {Number(q.quotation_amount || 0).toFixed(2)}</TableCell>
+                          {!hideDealAmounts && <TableCell>{q.currency || 'AED'} {Number(q.quotation_amount || 0).toFixed(2)}</TableCell>}
                           <TableCell><Chip label={(q.status || '-').replace(/_/g, ' ')} size="small" color={{ new:'default', sent:'info', under_review:'warning', revised:'primary', approved:'success', rejected:'error' }[q.status] || 'default'} sx={{ fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
                           <TableCell>{q.preparedByUser ? [q.preparedByUser.first_name, q.preparedByUser.last_name].filter(Boolean).join(' ') || '-' : '-'}</TableCell>
                           <TableCell align="right"><Button size="small" onClick={() => navigate(`/erp/quotations/view/${q.id}?return=${encodeURIComponent(`/erp/deals/view/${id}`)}`)}>View</Button></TableCell>

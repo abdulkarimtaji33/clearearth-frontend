@@ -42,6 +42,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { shouldHideDealFinancials } from '../../../utils/authHelpers';
 
 const STATUS_CONFIG = {
   new:            { label: 'New',            color: 'default' },
@@ -110,7 +111,7 @@ const StatusChip = ({ value, config }) => {
   return <Chip label={cfg.label} size="small" color={cfg.color} sx={{ fontWeight: 600, textTransform: 'capitalize' }} />;
 };
 
-const InlineStatusPicker = ({ deal, onUpdated, onError }) => {
+const InlineStatusPicker = ({ deal, onUpdated, onError, readOnly = false }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -155,6 +156,10 @@ const InlineStatusPicker = ({ deal, onUpdated, onError }) => {
     setLossDialogOpen(false);
     await doUpdate('lost', lossReason);
   };
+
+  if (readOnly) {
+    return <Chip label={cfg.label} size="small" color={cfg.color} sx={{ fontWeight: 600 }} />;
+  }
 
   return (
     <>
@@ -217,8 +222,10 @@ const InlineStatusPicker = ({ deal, onUpdated, onError }) => {
 const DealList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const hideDealAmounts = shouldHideDealFinancials(user);
   const canEditDeals = hasPermission('deals.update');
+  const tableColSpan = hideDealAmounts ? 6 : 7;
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -409,12 +416,16 @@ const DealList = () => {
                   <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                     <Autocomplete size="small" options={users} getOptionLabel={o => `${o.first_name || ''} ${o.last_name || ''}`.trim() || '-'} value={assignedToFilter} onChange={(_, v) => { setAssignedToFilter(v); setPage(1); }} renderInput={p => <TextField {...p} label="Assigned To" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />} isOptionEqualToValue={(o, v) => o.id === v?.id} />
                   </Grid>
+                  {!hideDealAmounts && (
+                  <>
                   <Grid size={{ xs: 6, sm: 4, md: 2 }}>
                     <TextField fullWidth size="small" label="Min Amount" type="number" value={minAmountFilter} onChange={e => { setMinAmountFilter(e.target.value); setPage(1); }} inputProps={{ min: 0 }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                   </Grid>
                   <Grid size={{ xs: 6, sm: 4, md: 2 }}>
                     <TextField fullWidth size="small" label="Max Amount" type="number" value={maxAmountFilter} onChange={e => { setMaxAmountFilter(e.target.value); setPage(1); }} inputProps={{ min: 0 }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                   </Grid>
+                  </>
+                  )}
                   <Grid size={12}>
                     <ListDateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onFromChange={v => { setDateFrom(v); setPage(1); }} onToChange={v => { setDateTo(v); setPage(1); }} onClear={() => { setDateFrom(''); setDateTo(''); setPage(1); }} helperText="Created date" compact />
                   </Grid>
@@ -429,7 +440,9 @@ const DealList = () => {
                 <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Deal</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Company</TableCell>
+                  {!hideDealAmounts && (
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }} align="right">Total (AED)</TableCell>
+                  )}
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Inspection</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Payment</TableCell>
@@ -440,14 +453,14 @@ const DealList = () => {
                 {loading ? (
                   [...Array(5)].map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={7} sx={{ py: 2 }}>
+                      <TableCell colSpan={tableColSpan} sx={{ py: 2 }}>
                         <Box sx={{ height: 20, bgcolor: 'action.hover', borderRadius: 1, animation: 'pulse 1.5s ease-in-out infinite', '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } } }} />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : deals.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                    <TableCell colSpan={tableColSpan} align="center" sx={{ py: 8 }}>
                       <Box sx={{ color: 'text.disabled' }}>
                         <IconBriefcase size={40} style={{ marginBottom: 8, opacity: 0.3 }} />
                         <Typography variant="body2" color="text.secondary">No deals found</Typography>
@@ -475,12 +488,14 @@ const DealList = () => {
                       <TableCell>
                         <Typography variant="body2">{deal.company?.company_name || <Box component="span" sx={{ color: 'text.disabled' }}>—</Box>}</Typography>
                       </TableCell>
+                      {!hideDealAmounts && (
                       <TableCell align="right">
                         <Typography variant="body2" fontWeight={700}>{Number(deal.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
                         <Typography variant="caption" color="text.secondary">+VAT {Number(deal.vat_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
                       </TableCell>
+                      )}
                       <TableCell onClick={e => e.stopPropagation()}>
-                        <InlineStatusPicker deal={deal} onUpdated={handleStatusUpdated} onError={setError} />
+                        <InlineStatusPicker deal={deal} onUpdated={handleStatusUpdated} onError={setError} readOnly={!canEditDeals} />
                       </TableCell>
                       <TableCell>
                         {(() => {
@@ -492,7 +507,7 @@ const DealList = () => {
                       </TableCell>
                       <TableCell>
                         <StatusChip value={deal.payment_status} config={PAYMENT_CONFIG} />
-                        {deal.payment_status === 'partial' && (
+                        {!hideDealAmounts && deal.payment_status === 'partial' && (
                           <Typography variant="caption" display="block" color="text.secondary" mt={0.25}>
                             {Number(deal.paid_amount || 0).toFixed(0)} / {Number(deal.total || 0).toFixed(0)}
                           </Typography>

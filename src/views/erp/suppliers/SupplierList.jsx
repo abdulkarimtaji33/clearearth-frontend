@@ -44,10 +44,15 @@ import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const SupplierList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { hasPermission } = useAuth();
+  const canCreateSupplier = hasPermission('suppliers.create');
+  const canUpdateSupplier = hasPermission('suppliers.update');
+  const canDeleteSupplier = hasPermission('suppliers.delete');
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -153,9 +158,11 @@ const SupplierList = () => {
               {totalCount > 0 ? `${totalCount} supplier${totalCount !== 1 ? 's' : ''}` : 'Manage vendor and supplier accounts'}
             </Typography>
           </Box>
-          <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/suppliers/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
-            Add Supplier
-          </Button>
+          {canCreateSupplier && (
+            <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/suppliers/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
+              Add Supplier
+            </Button>
+          )}
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -356,12 +363,16 @@ const SupplierList = () => {
           <MenuItemMui onClick={() => { navigate(`/erp/suppliers/view/${selectedSupplier?.id}`); setAnchorEl(null); }}>
             <IconEye size={16} style={{ marginRight: 10 }} /> View
           </MenuItemMui>
-          <MenuItemMui onClick={() => { navigate(`/erp/suppliers/edit/${selectedSupplier?.id}`); setAnchorEl(null); }}>
-            <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
-          </MenuItemMui>
-          <MenuItemMui onClick={() => { setSupplierToDelete(selectedSupplier); setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
-            <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
-          </MenuItemMui>
+          {canUpdateSupplier && (
+            <MenuItemMui onClick={() => { navigate(`/erp/suppliers/edit/${selectedSupplier?.id}`); setAnchorEl(null); }}>
+              <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
+            </MenuItemMui>
+          )}
+          {canDeleteSupplier && (
+            <MenuItemMui onClick={() => { setSupplierToDelete(selectedSupplier); setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
+              <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
+            </MenuItemMui>
+          )}
         </Menu>
 
         <Dialog open={deleteDialogOpen} onClose={() => { setDeleteDialogOpen(false); setSupplierToDelete(null); }} PaperProps={{ sx: { borderRadius: 3 } }}>

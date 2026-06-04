@@ -127,6 +127,17 @@ const ErpMenuItems = [
     permission: 'deals.read',
     includeRoles: ACCOUNTS_ONLY_ROLES,
   },
+  {
+    id: uniqueId(),
+    title: 'Clients & Vendors',
+    icon: IconAddressBook,
+    href: '/erp/companies',
+    includeRoles: ACCOUNTS_ONLY_ROLES,
+    children: [
+      { id: uniqueId(), title: 'Clients', icon: IconPoint, href: '/erp/companies', permission: 'companies.read', includeRoles: ACCOUNTS_ONLY_ROLES },
+      { id: uniqueId(), title: 'Vendors', icon: IconPoint, href: '/erp/suppliers', permission: 'suppliers.read', includeRoles: ACCOUNTS_ONLY_ROLES },
+    ],
+  },
   // Quotations & orders for accounts role
   {
     id: uniqueId(),

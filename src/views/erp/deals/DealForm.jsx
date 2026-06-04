@@ -192,6 +192,14 @@ const DealForm = () => {
   const [shareCopied, setShareCopied] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false);
+
+  const openInspectionDialog = useCallback(() => {
+    setInspectionDetails((prev) => ({
+      ...prev,
+      requestedBy: prev.requestedBy ?? user?.id ?? null,
+    }));
+    setInspectionDialogOpen(true);
+  }, [user?.id]);
   const [materialTypes, setMaterialTypes] = useState([]);
   const SAFETY_TOOL_OPTIONS = [
     { value: 'safety_jacket', label: 'Safety Jacket' },
@@ -213,6 +221,7 @@ const DealForm = () => {
     quantityUom: '',
     safetyTools: [],
     supportingDocuments: '',
+    supportingDocumentName: '',
     requestedBy: null,
     notes: '',
     priority: 'medium',
@@ -385,6 +394,7 @@ const DealForm = () => {
             quantityUom: i.quantity_uom || '',
             safetyTools: safetyTools || [],
             supportingDocuments: i.supporting_documents || '',
+            supportingDocumentName: i.supporting_documents ? (i.supporting_documents.split('/').pop() || '') : '',
             requestedBy: i.requested_by || null,
             notes: i.notes || '',
             priority: i.priority || 'medium',
@@ -400,8 +410,10 @@ const DealForm = () => {
             quantityUom: '',
             safetyTools: [],
             supportingDocuments: '',
+            supportingDocumentName: '',
             requestedBy: null,
             notes: '',
+            priority: 'medium',
           });
         }
         
@@ -1414,7 +1426,7 @@ const DealForm = () => {
                             onChange={(e) => {
                               setFieldValue('inspectionRequired', e.target.checked);
                               if (e.target.checked) {
-                                setInspectionDialogOpen(true);
+                                openInspectionDialog();
                               }
                             }}
                             name="inspectionRequired"
@@ -1426,7 +1438,7 @@ const DealForm = () => {
                         <Button
                           variant="outlined"
                           size="small"
-                          onClick={() => setInspectionDialogOpen(true)}
+                          onClick={openInspectionDialog}
                           sx={{ ml: 2, borderRadius: 2 }}
                         >
                           Edit Inspection Details
@@ -2122,7 +2134,11 @@ const DealForm = () => {
                       try {
                         const res = await apiService.uploadInspectionDocument(file);
                         if (res.success && res.data?.path) {
-                          setInspectionDetails({ ...inspectionDetails, supportingDocuments: res.data.path });
+                          setInspectionDetails({
+                            ...inspectionDetails,
+                            supportingDocuments: res.data.path,
+                            supportingDocumentName: file.name,
+                          });
                         }
                       } catch (err) {
                         setError(err.message || 'Upload failed');
@@ -2133,9 +2149,51 @@ const DealForm = () => {
                   style={{ display: 'block' }}
                 />
                 {inspectionDetails.supportingDocuments && (
-                  <Typography variant="caption" color="success.main" sx={{ mt: 1, display: 'block' }}>
-                    File uploaded
-                  </Typography>
+                  <Stack spacing={1} sx={{ mt: 1.5 }}>
+                    <Typography variant="caption" color="success.main">
+                      File uploaded — you can view it before saving the deal
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<IconExternalLink size={16} />}
+                        href={apiService.getUploadUrl(inspectionDetails.supportingDocuments)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{ borderRadius: 2, textTransform: 'none' }}
+                      >
+                        View {inspectionDetails.supportingDocumentName || 'document'}
+                      </Button>
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => setInspectionDetails({
+                          ...inspectionDetails,
+                          supportingDocuments: '',
+                          supportingDocumentName: '',
+                        })}
+                        sx={{ borderRadius: 2, textTransform: 'none' }}
+                      >
+                        Remove
+                      </Button>
+                    </Stack>
+                    {/\.(jpe?g|png|gif|webp)$/i.test(inspectionDetails.supportingDocuments) && (
+                      <Box
+                        component="img"
+                        src={apiService.getUploadUrl(inspectionDetails.supportingDocuments)}
+                        alt={inspectionDetails.supportingDocumentName || 'Supporting document'}
+                        sx={{
+                          maxWidth: '100%',
+                          maxHeight: 200,
+                          objectFit: 'contain',
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      />
+                    )}
+                  </Stack>
                 )}
               </Box>
               <Autocomplete

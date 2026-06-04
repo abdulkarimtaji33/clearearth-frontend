@@ -19,6 +19,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const validationSchema = Yup.object({
   dealId: Yup.number().nullable().required('Deal is required'),
@@ -33,6 +34,7 @@ const QuotationForm = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const dealIdFromUrl = searchParams.get('dealId') ? parseInt(searchParams.get('dealId'), 10) : null;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -110,6 +112,12 @@ const QuotationForm = () => {
       fetchDealForPreFill(dealIdFromUrl);
     }
   }, [fetchData, isEdit, fetchQuotation, dealIdFromUrl, fetchDealForPreFill]);
+
+  // New quotations: default Prepared by to the logged-in user
+  useEffect(() => {
+    if (isEdit || !user?.id) return;
+    setInitialValues((prev) => (prev.preparedBy ? prev : { ...prev, preparedBy: user.id }));
+  }, [isEdit, user?.id]);
 
   const handleSubmit = async (values) => {
     try {

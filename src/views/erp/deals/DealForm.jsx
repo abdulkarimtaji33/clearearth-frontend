@@ -88,6 +88,15 @@ const DealImageDropzone = ({ onDrop }) => {
   );
 };
 
+const hasWdsContent = (wds, attachments = []) => {
+  if ((attachments || []).length > 0) return true;
+  const fields = [
+    'refNo', 'companyName', 'licenseNo', 'wasteDescription', 'containerNo',
+    'sourceProcess', 'packageType', 'quantityPerPackage', 'totalWeight', 'purpose', 'blNo', 'borNo',
+  ];
+  return fields.some((f) => wds[f]?.toString().trim());
+};
+
 const WdsAttachmentDropzone = ({ onDrop }) => {
   const { getRootProps, getInputProps } = useDropzone({
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'], 'application/pdf': ['.pdf'] },
@@ -623,16 +632,6 @@ const DealForm = () => {
         }
       }
 
-      if (values.wdsRequired) {
-        const required = ['refNo', 'date', 'companyName', 'licenseNo', 'wasteDescription', 'containerNo'];
-        const missing = required.filter((f) => !wdsDetails[f]?.toString().trim());
-        if (missing.length > 0) {
-          setError('Please fill all required WDS details (Ref No, Date, Company Name, License No, Waste Description, Container No)');
-          setSubmitting(false);
-          return;
-        }
-      }
-
       const isOtcContainer = values.dealType === 'offer_to_charge' && values.isContainerType;
       const { hasDownstreamPartner, downstreamPartnerSupplierId, ...restValues } = values;
       const payload = {
@@ -650,7 +649,9 @@ const DealForm = () => {
           unitPrice: parseFloat(item.unitPrice),
           unitOfMeasure: item.unitOfMeasure?.toString().trim() || null,
         })),
-        wdsDetails: values.wdsRequired ? { ...wdsDetails, attachments: wdsAttachments.map(a => ({ path: a.path, fileName: a.fileName })) } : null,
+        wdsDetails: values.wdsRequired && hasWdsContent(wdsDetails, wdsAttachments)
+          ? { ...wdsDetails, attachments: wdsAttachments.map(a => ({ path: a.path, fileName: a.fileName })) }
+          : null,
         inspectionDetails: values.inspectionRequired ? inspectionDetails : null,
         images: dealImages.map(img => ({ path: img.path })),
       };
@@ -1172,12 +1173,7 @@ const DealForm = () => {
                             control={
                               <Checkbox
                                 checked={values.wdsRequired}
-                                onChange={(e) => {
-                                  setFieldValue('wdsRequired', e.target.checked);
-                                  if (e.target.checked) {
-                                    setWdsDialogOpen(true);
-                                  }
-                                }}
+                                onChange={(e) => setFieldValue('wdsRequired', e.target.checked)}
                                 name="wdsRequired"
                               />
                             }
@@ -1803,6 +1799,9 @@ const DealForm = () => {
             <Typography variant="h4" fontWeight={700}>
               WDS Details
             </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              All fields are optional. You can save the deal with WDS required checked and complete these details later.
+            </Typography>
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 4 }}>
@@ -1812,7 +1811,6 @@ const DealForm = () => {
                   label="Ref No"
                   value={wdsDetails.refNo}
                   onChange={(e) => setWdsDetails({ ...wdsDetails, refNo: e.target.value })}
-                  required
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
                 <TextField
@@ -1821,7 +1819,6 @@ const DealForm = () => {
                   type="date"
                   value={wdsDetails.date}
                   onChange={(e) => setWdsDetails({ ...wdsDetails, date: e.target.value })}
-                  required
                   InputLabelProps={{ shrink: true }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
@@ -1837,7 +1834,6 @@ const DealForm = () => {
                   <TextField
                     {...params}
                     label="Company Name"
-                    required
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
                 )}
@@ -1851,7 +1847,6 @@ const DealForm = () => {
                   label="License No"
                   value={wdsDetails.licenseNo}
                   onChange={(e) => setWdsDetails({ ...wdsDetails, licenseNo: e.target.value })}
-                  required
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
                 <TextField
@@ -1859,7 +1854,6 @@ const DealForm = () => {
                   label="Container No"
                   value={wdsDetails.containerNo}
                   onChange={(e) => setWdsDetails({ ...wdsDetails, containerNo: e.target.value })}
-                  required
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
               </Box>
@@ -1871,7 +1865,6 @@ const DealForm = () => {
                 label="Waste Description"
                 value={wdsDetails.wasteDescription}
                 onChange={(e) => setWdsDetails({ ...wdsDetails, wasteDescription: e.target.value })}
-                required
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
 

@@ -28,6 +28,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { shouldHideDealFinancials } from '../../../utils/authHelpers';
 import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
+import { buildBillCreateUrl, getWorkOrderPurchaseBills } from '../../../utils/purchaseBills';
 
 const WO_STATUS_COLORS = {
   new: 'default',
@@ -390,7 +391,7 @@ const WorkOrderView = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [billPdfLoading, setBillPdfLoading] = useState(false);
+  const [billPdfLoadingId, setBillPdfLoadingId] = useState(null);
   const [reordering, setReordering] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [markingComplete, setMarkingComplete] = useState(false);
@@ -653,8 +654,9 @@ const WorkOrderView = () => {
   const completedCount = tasks.filter(t => t.status === 'completed').length;
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
   const allTasksDone = tasks.length > 0 && completedCount === tasks.length;
-  const purchaseBill = wo.purchase_bill || wo.purchaseBill;
+  const { clientBill, vendorBill } = getWorkOrderPurchaseBills(wo);
   const isOtpDeal = wo.deal?.deal_type === 'offer_to_purchase';
+  const clientCompanyId = wo.deal?.company_id;
   const vendorSupplierId = wo.deal?.downstream_partner_supplier_id || wo.deal?.supplier_id;
   const taskExpenseTotal = (t) => {
     if (t.expenses?.length) return t.expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
@@ -763,42 +765,82 @@ const WorkOrderView = () => {
                 View Tax Invoice
               </Button>
             )}
-            {wo.status === 'completed' && isOtpDeal && vendorSupplierId && (
+            {wo.status === 'completed' && isOtpDeal && clientCompanyId && (
               <>
                 <Button
-                  variant={purchaseBill ? 'outlined' : 'contained'}
-                  color="secondary"
+                  variant={clientBill ? 'outlined' : 'contained'}
+                  color="primary"
                   startIcon={<IconShoppingCart size={16} />}
                   onClick={() => {
-                    if (purchaseBill?.id) {
-                      navigate(`/erp/purchase-orders/edit/${purchaseBill.id}?bill=1`);
+                    if (clientBill?.id) {
+                      navigate(`/erp/purchase-orders/edit/${clientBill.id}?bill=1`);
                     } else {
-                      navigate(`/erp/purchase-orders/create?dealId=${wo.deal_id}&supplierId=${vendorSupplierId}&workOrderId=${wo.id}&bill=1`);
+                      navigate(buildBillCreateUrl({ dealId: wo.deal_id, workOrderId: wo.id, companyId: clientCompanyId }));
                     }
                   }}
                   sx={{ borderRadius: 2, fontWeight: 600 }}
                 >
-                  {purchaseBill ? 'Edit Purchase Bill' : 'Create Purchase Bill'}
+                  {clientBill ? 'Edit client purchase bill' : 'Create client purchase bill'}
                 </Button>
-                {purchaseBill?.id && (
+                {clientBill?.id && (
                   <Button
                     variant="outlined"
-                    color="secondary"
-                    startIcon={billPdfLoading ? <CircularProgress size={16} /> : <IconFileDownload size={16} />}
-                    disabled={billPdfLoading}
+                    color="primary"
+                    startIcon={billPdfLoadingId === clientBill.id ? <CircularProgress size={16} /> : <IconFileDownload size={16} />}
+                    disabled={billPdfLoadingId === clientBill.id}
                     onClick={async () => {
                       try {
-                        setBillPdfLoading(true);
-                        await apiService.downloadPurchaseOrderPdf(purchaseBill.id);
+                        setBillPdfLoadingId(clientBill.id);
+                        await apiService.downloadPurchaseOrderPdf(clientBill.id);
                       } catch (e) {
                         setError(e.message || 'PDF download failed');
                       } finally {
-                        setBillPdfLoading(false);
+                        setBillPdfLoadingId(null);
                       }
                     }}
                     sx={{ borderRadius: 2, fontWeight: 600 }}
                   >
-                    Download purchase bill PDF
+                    Download client bill PDF
+                  </Button>
+                )}
+              </>
+            )}
+            {wo.status === 'completed' && isOtpDeal && vendorSupplierId && (
+              <>
+                <Button
+                  variant={vendorBill ? 'outlined' : 'contained'}
+                  color="secondary"
+                  startIcon={<IconShoppingCart size={16} />}
+                  onClick={() => {
+                    if (vendorBill?.id) {
+                      navigate(`/erp/purchase-orders/edit/${vendorBill.id}?bill=1`);
+                    } else {
+                      navigate(buildBillCreateUrl({ dealId: wo.deal_id, workOrderId: wo.id, supplierId: vendorSupplierId }));
+                    }
+                  }}
+                  sx={{ borderRadius: 2, fontWeight: 600 }}
+                >
+                  {vendorBill ? 'Edit vendor purchase bill' : 'Create vendor purchase bill'}
+                </Button>
+                {vendorBill?.id && (
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    startIcon={billPdfLoadingId === vendorBill.id ? <CircularProgress size={16} /> : <IconFileDownload size={16} />}
+                    disabled={billPdfLoadingId === vendorBill.id}
+                    onClick={async () => {
+                      try {
+                        setBillPdfLoadingId(vendorBill.id);
+                        await apiService.downloadPurchaseOrderPdf(vendorBill.id);
+                      } catch (e) {
+                        setError(e.message || 'PDF download failed');
+                      } finally {
+                        setBillPdfLoadingId(null);
+                      }
+                    }}
+                    sx={{ borderRadius: 2, fontWeight: 600 }}
+                  >
+                    Download vendor bill PDF
                   </Button>
                 )}
               </>

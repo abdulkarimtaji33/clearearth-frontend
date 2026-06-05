@@ -27,6 +27,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconTrash, IconFileDownload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { billListPath } from '../../../utils/purchaseBills';
 
 const initialItem = () => ({
   productServiceId: null,
@@ -47,6 +48,7 @@ const PurchaseOrderForm = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const supplierIdFromUrl = searchParams.get('supplierId') ? parseInt(searchParams.get('supplierId'), 10) : null;
+  const companyIdFromUrl = searchParams.get('companyId') ? parseInt(searchParams.get('companyId'), 10) : null;
   const dealIdFromUrl = searchParams.get('dealId') ? parseInt(searchParams.get('dealId'), 10) : null;
   const workOrderIdFromUrl = searchParams.get('workOrderId') ? parseInt(searchParams.get('workOrderId'), 10) : null;
   const billFromUrl = searchParams.get('bill') === '1';
@@ -64,7 +66,7 @@ const PurchaseOrderForm = () => {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [initialValues, setInitialValues] = useState({
     dealId: dealIdFromUrl || null,
-    companyId: null,
+    companyId: companyIdFromUrl || null,
     supplierId: supplierIdFromUrl || null,
     poDate: new Date().toISOString().split('T')[0],
     expectedDelivery: '',
@@ -161,11 +163,16 @@ const PurchaseOrderForm = () => {
     }
   }, []);
 
-  const fetchDealForPreFill = useCallback(async (dealId, supplierIdOverride) => {
+  const fetchDealForPreFill = useCallback(async (dealId, { supplierId, companyId } = {}) => {
     if (!dealId) return;
     try {
       const res = await apiService.getDeal(dealId);
-      if (res.success && res.data) applyDealPreFill(res.data, supplierIdOverride);
+      if (res.success && res.data) {
+        applyDealPreFill(res.data, supplierId ?? undefined);
+        if (companyId != null) {
+          setInitialValues((prev) => ({ ...prev, companyId, supplierId: null }));
+        }
+      }
     } catch (err) {
       console.error(err);
     }
@@ -175,20 +182,25 @@ const PurchaseOrderForm = () => {
     fetchData();
     if (isEdit) fetchPO();
     else if (dealIdFromUrl) {
-      fetchDealForPreFill(dealIdFromUrl, supplierIdFromUrl ?? undefined);
+      fetchDealForPreFill(dealIdFromUrl, {
+        supplierId: supplierIdFromUrl ?? undefined,
+        companyId: companyIdFromUrl ?? undefined,
+      });
       if (billFromUrl) {
         setIsBillMode(true);
         setInitialValues((prev) => ({
           ...prev,
-          supplierId: supplierIdFromUrl || prev.supplierId,
-          companyId: null,
+          supplierId: supplierIdFromUrl || (companyIdFromUrl ? null : prev.supplierId),
+          companyId: companyIdFromUrl || (supplierIdFromUrl ? null : prev.companyId),
           status: 'approved',
         }));
       }
     } else if (supplierIdFromUrl) {
       setInitialValues((prev) => ({ ...prev, supplierId: supplierIdFromUrl, companyId: null, status: 'approved' }));
+    } else if (companyIdFromUrl) {
+      setInitialValues((prev) => ({ ...prev, companyId: companyIdFromUrl, supplierId: null, status: billFromUrl ? 'approved' : prev.status }));
     }
-  }, [fetchData, isEdit, fetchPO, supplierIdFromUrl, dealIdFromUrl, billFromUrl, fetchDealForPreFill]);
+  }, [fetchData, isEdit, fetchPO, supplierIdFromUrl, companyIdFromUrl, dealIdFromUrl, billFromUrl, fetchDealForPreFill]);
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
@@ -246,7 +258,9 @@ const PurchaseOrderForm = () => {
         await apiService.createPurchaseOrder(payload);
         setSuccess(isBillMode ? 'Purchase bill created' : 'Purchase quotation created');
       }
-      const listPath = isBillMode ? '/erp/supplier-purchase-orders' : quotationListPath(values.companyId, values.supplierId);
+      const listPath = isBillMode
+        ? billListPath({ company_id: values.companyId, supplier_id: values.supplierId })
+        : quotationListPath(values.companyId, values.supplierId);
       setTimeout(() => navigate(listPath), 1500);
     } catch (err) {
       setError(err.message || 'Save failed');
@@ -263,11 +277,14 @@ const PurchaseOrderForm = () => {
     );
   }
 
+  const isClientBill = isBillMode && Boolean(initialValues.companyId);
   const pageTitle = isBillMode
-    ? (isEdit ? 'Edit Purchase Bill' : 'Create Purchase Bill')
+    ? (isEdit
+      ? (isClientBill ? 'Edit Client Purchase Bill' : 'Edit Vendor Purchase Bill')
+      : (isClientBill ? 'Create Client Purchase Bill' : 'Create Vendor Purchase Bill'))
     : (isEdit ? 'Edit Purchase Quotation' : 'Create Purchase Quotation');
   const pageDesc = isBillMode
-    ? 'Adjust quantities on the vendor purchase bill; totals recalculate automatically'
+    ? 'Adjust quantities on the purchase bill; totals recalculate automatically'
     : (isEdit ? 'Set status to Approved to download a purchase order PDF' : 'After approval, download PDF is a purchase order');
 
   const billSubtotal = items.reduce((sum, it) => sum + (parseFloat(it.total) || 0), 0);
@@ -289,7 +306,7 @@ const PurchaseOrderForm = () => {
       <Box>
         <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} mb={3} flexWrap="wrap" gap={2}>
           <Stack direction="row" alignItems="center" spacing={2}>
-            <Button startIcon={<IconArrowLeft />} onClick={() => navigate(isBillMode ? '/erp/supplier-purchase-orders' : quotationListPath(initialValues.companyId, initialValues.supplierId))} size="small">
+            <Button startIcon={<IconArrowLeft />} onClick={() => navigate(isBillMode ? billListPath({ company_id: initialValues.companyId, supplier_id: initialValues.supplierId }) : quotationListPath(initialValues.companyId, initialValues.supplierId))} size="small">
               Back
             </Button>
             <Box>
@@ -595,7 +612,7 @@ const PurchaseOrderForm = () => {
 
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button type="submit" variant="contained" size="large" sx={{ borderRadius: 2 }}>
-                  {isEdit ? 'Update' : 'Create'} {isBillMode ? 'Purchase Bill' : 'Purchase Quotation'}
+                  {isEdit ? 'Update' : 'Create'} {isBillMode ? (isClientBill ? 'Client Purchase Bill' : 'Vendor Purchase Bill') : 'Purchase Quotation'}
                 </Button>
                 <Button variant="outlined" size="large" onClick={() => navigate(quotationListPath(values.companyId, values.supplierId))} sx={{ borderRadius: 2 }}>
                   Cancel

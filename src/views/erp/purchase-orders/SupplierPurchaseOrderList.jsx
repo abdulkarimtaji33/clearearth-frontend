@@ -15,6 +15,7 @@ import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
+import { buildBillCreateUrl, getPoSourceWorkOrderBills } from '../../../utils/purchaseBills';
 
 const STATUS_COLOR = {
   new: 'default', sent: 'info', under_review: 'warning',
@@ -213,6 +214,37 @@ const SupplierPurchaseOrderList = () => {
               </MenuItem>
             )
           )}
+          {(() => {
+            const wo = selectedOrder?.sourceWorkOrder || selectedOrder?.source_work_order;
+            const supplierId = selectedOrder?.supplier_id || selectedOrder?.deal?.supplier_id;
+            const { vendorBill } = getPoSourceWorkOrderBills(selectedOrder);
+            if (!wo || wo.status !== 'completed' || !supplierId) return null;
+            if (vendorBill?.id) {
+              return (
+                <>
+                  <MenuItem onClick={() => { navigate(`/erp/purchase-orders/edit/${vendorBill.id}?bill=1`); setAnchorEl(null); }}>
+                    <IconShoppingCart size={16} style={{ marginRight: 10 }} /> Open Vendor Purchase Bill
+                  </MenuItem>
+                  <MenuItem onClick={() => { handleDownloadPdf(vendorBill); setAnchorEl(null); }} disabled={pdfLoading === vendorBill.id}>
+                    {pdfLoading === vendorBill.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+                    Download vendor purchase bill PDF
+                  </MenuItem>
+                </>
+              );
+            }
+            return (
+              <MenuItem onClick={() => {
+                navigate(buildBillCreateUrl({
+                  dealId: selectedOrder?.deal?.id || selectedOrder?.deal_id,
+                  workOrderId: wo.id,
+                  supplierId,
+                }));
+                setAnchorEl(null);
+              }}>
+                <IconShoppingCart size={16} style={{ marginRight: 10 }} /> Create Vendor Purchase Bill
+              </MenuItem>
+            );
+          })()}
           <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
             <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
           </MenuItem>

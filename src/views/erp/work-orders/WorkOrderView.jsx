@@ -4,8 +4,9 @@ import {
   Paper, Divider, Avatar, Tooltip, IconButton, LinearProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  GlobalStyles,
 } from '@mui/material';
-import { alpha, useTheme, GlobalStyles } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -8,10 +8,6 @@ import {
   TextField,
   Stack,
   Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router';
@@ -29,28 +25,18 @@ import {
   mergeSelectOptions,
 } from '../../../constants/expenseFormOptions';
 
-const CATEGORIES = [
-  { value: 'travel', label: 'Travel' },
-  { value: 'utility', label: 'Utility' },
-  { value: 'fuel', label: 'Fuel' },
-  { value: 'materials', label: 'Materials' },
-  { value: 'equipment', label: 'Equipment' },
-  { value: 'professional', label: 'Professional services' },
-  { value: 'other', label: 'Other' },
-];
-
 const ExpenseCreate = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState('other');
   const [amount, setAmount] = useState('');
   const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paidTo, setPaidTo] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [notes, setNotes] = useState('');
-  const [paymentStatus, setPaymentStatus] = useState('unpaid');
   const [paidAmount, setPaidAmount] = useState('');
   const [paidAt, setPaidAt] = useState('');
   const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
@@ -74,6 +60,40 @@ const ExpenseCreate = () => {
     });
   }, []);
 
+  const categoryOptions = useMemo(
+    () => categories.map((c) => ({ value: c.value, label: c.name })),
+    [categories]
+  );
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await apiService.getExpenseCategories({ activeOnly: true });
+      if (res.success) {
+        const list = Array.isArray(res.data) ? res.data : [];
+        setCategories(list);
+        if (list.length > 0 && !list.some((c) => c.value === category)) {
+          setCategory(list.find((c) => c.value === 'other')?.value || list[0].value);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [category]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  const addExpenseCategory = useCallback(async (name) => {
+    const res = await apiService.createExpenseCategory({ name });
+    if (res.success && res.data) {
+      setCategories((prev) => [...prev, res.data]);
+      setCategory(res.data.value);
+    } else {
+      throw new Error(res.message || 'Failed to add category');
+    }
+  }, []);
+
   const addCustomPaymentMethod = useCallback((v) => {
     setCustomPaymentMethods((prev) => {
       const next = prev.includes(v) ? prev : [...prev, v];
@@ -94,12 +114,10 @@ const ExpenseCreate = () => {
       setError('Expense date is required.');
       return;
     }
-    if (paymentStatus === 'partial') {
-      const p = parseFloat(String(paidAmount).replace(/,/g, ''));
-      if (!Number.isFinite(p) || p <= 0 || p >= amt) {
-        setError('Partial: enter paid amount greater than 0 and less than total.');
-        return;
-      }
+    const paid = paidAmount !== '' ? parseFloat(String(paidAmount).replace(/,/g, '')) : 0;
+    if (paidAmount !== '' && (!Number.isFinite(paid) || paid < 0 || paid > amt)) {
+      setError('Paid amount must be between 0 and the expense total.');
+      return;
     }
     try {
       setSaving(true);
@@ -110,11 +128,8 @@ const ExpenseCreate = () => {
         paidTo: paidTo.trim() || undefined,
         paymentMethod: paymentMethod.trim() || undefined,
         notes: notes.trim() || undefined,
-        paymentStatus,
       };
-      if (paymentStatus === 'partial') {
-        payload.paidAmount = parseFloat(String(paidAmount).replace(/,/g, ''));
-      }
+      if (paidAmount !== '') payload.paidAmount = paid;
       if (paidAt) payload.paidAt = paidAt;
       const res = await apiService.createAccountsExpense(payload);
       if (res.success === false) throw new Error(res.message || 'Failed to create expense');
@@ -168,21 +183,17 @@ const ExpenseCreate = () => {
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, maxWidth: 560 }}>
           <CardContent component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
             <Stack spacing={2.5}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={category}
-                  label="Category"
-                  onChange={(e) => setCategory(e.target.value)}
-                  sx={{ borderRadius: 2 }}
-                >
-                  {CATEGORIES.map((c) => (
-                    <MenuItem key={c.value} value={c.value}>
-                      {c.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <SelectWithAddNew
+                label="Category"
+                value={category}
+                onChange={setCategory}
+                options={categoryOptions}
+                allowEmpty={false}
+                addDialogTitle="Add expense category"
+                addDialogDescription="Add a new category for manual expenses"
+                addFieldLabel="Category name"
+                onOptionAdded={addExpenseCategory}
+              />
               <TextField
                 required
                 fullWidth
@@ -225,33 +236,18 @@ const ExpenseCreate = () => {
                 addFieldLabel="Payment method"
                 onOptionAdded={addCustomPaymentMethod}
               />
-              <FormControl fullWidth size="small">
-                <InputLabel>Settlement</InputLabel>
-                <Select
-                  value={paymentStatus}
-                  label="Settlement"
-                  onChange={(e) => setPaymentStatus(e.target.value)}
-                  sx={{ borderRadius: 2 }}
-                >
-                  <MenuItem value="unpaid">Unpaid</MenuItem>
-                  <MenuItem value="partial">Partially paid</MenuItem>
-                  <MenuItem value="paid">Paid in full</MenuItem>
-                </Select>
-              </FormControl>
-              {paymentStatus === 'partial' && (
-                <TextField
-                  required
-                  fullWidth
-                  size="small"
-                  type="number"
-                  inputProps={{ min: 0, step: '0.01' }}
-                  label="Amount already paid (AED)"
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                />
-              )}
-              {(paymentStatus === 'paid' || paymentStatus === 'partial') && (
+              <TextField
+                fullWidth
+                size="small"
+                type="number"
+                inputProps={{ min: 0, step: '0.01' }}
+                label="Amount paid now (AED)"
+                value={paidAmount}
+                onChange={(e) => setPaidAmount(e.target.value)}
+                helperText="Settlement status is set automatically from the amount paid"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+              {paidAmount !== '' && parseFloat(paidAmount) > 0 && (
                 <TextField
                   fullWidth
                   size="small"

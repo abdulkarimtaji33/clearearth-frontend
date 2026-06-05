@@ -37,16 +37,9 @@ import PaymentHistoryDialog from '../../../components/erp/PaymentHistoryDialog';
 import apiService from '../../../services/api';
 import { resolveDefaultPaymentAccountId } from '../../../constants/paymentAccounts';
 
-const CATEGORY_FILTER = [
+const BASE_CATEGORY_FILTER = [
   { value: '', label: 'All categories' },
   { value: 'work_orders', label: 'Work orders' },
-  { value: 'travel', label: 'Travel' },
-  { value: 'utility', label: 'Utility' },
-  { value: 'fuel', label: 'Fuel' },
-  { value: 'materials', label: 'Materials' },
-  { value: 'equipment', label: 'Equipment' },
-  { value: 'professional', label: 'Professional services' },
-  { value: 'other', label: 'Other' },
 ];
 
 const linkLabel = (ex) => {
@@ -86,6 +79,24 @@ const ExpensesList = () => {
   const [paySaving, setPaySaving] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRow, setHistoryRow] = useState(null);
+  const [categoryOptions, setCategoryOptions] = useState(BASE_CATEGORY_FILTER);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiService.getExpenseCategories({ activeOnly: true });
+        if (res.success) {
+          const list = Array.isArray(res.data) ? res.data : [];
+          setCategoryOptions([
+            ...BASE_CATEGORY_FILTER,
+            ...list.map((c) => ({ value: c.value, label: c.name })),
+          ]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+  }, []);
 
   const fetchRows = useCallback(async () => {
     try {
@@ -257,7 +268,7 @@ const ExpensesList = () => {
                   }}
                   sx={{ borderRadius: 2 }}
                 >
-                  {CATEGORY_FILTER.map((o) => (
+                  {categoryOptions.map((o) => (
                     <MenuItem key={o.value || 'all'} value={o.value}>
                       {o.label}
                     </MenuItem>

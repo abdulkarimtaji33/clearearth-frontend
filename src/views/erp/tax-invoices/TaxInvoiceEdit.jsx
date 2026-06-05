@@ -26,12 +26,6 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { paymentMethodSelectOptions } from '../../../constants/paymentMethods';
 
-const PAYMENT_OPTIONS = [
-  { value: 'unpaid', label: 'Unpaid' },
-  { value: 'partial', label: 'Partial' },
-  { value: 'paid', label: 'Paid' },
-];
-
 const TaxInvoiceEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -94,12 +88,9 @@ const TaxInvoiceEdit = () => {
         const up = await apiService.uploadTaxInvoiceAttachment(file);
         attachmentPath = up.data?.path;
       }
-      const pa = paidAmount !== '' ? parseFloat(paidAmount) : null;
       await apiService.updateTaxInvoice(id, {
         invoiceDate,
         dueDate: dueDate || null,
-        paymentStatus,
-        paidAmount: pa,
         paymentMethod: paymentMethod || null,
         referenceNo: referenceNo || null,
         remarks: remarks || null,
@@ -265,38 +256,21 @@ const TaxInvoiceEdit = () => {
 
             <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} flexWrap="wrap" useFlexGap>
               <TextField
-                select
                 label="Payment status"
                 size="small"
-                value={paymentStatus}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setPaymentStatus(v);
-                  if (v === 'unpaid') setPaidAmount('');
-                  if (v === 'paid') setPaidAmount(fmt(row?.total).replace(/,/g, ''));
-                }}
-                sx={{ minWidth: 180 }}
-              >
-                {PAYMENT_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
-              </TextField>
-
-              {(paymentStatus === 'partial' || paymentStatus === 'paid') && (
-                <TextField
-                  label="Amount paid"
-                  size="small"
-                  type="number"
-                  inputProps={{ min: 0, step: 0.01 }}
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
-                  InputProps={{ startAdornment: <InputAdornment position="start">{cur}</InputAdornment> }}
-                  sx={{ minWidth: 200 }}
-                  helperText={
-                    paymentStatus === 'partial' && balanceNum != null
-                      ? `Balance due: ${cur} ${fmt(balanceNum)}`
-                      : undefined
-                  }
-                />
-              )}
+                value={(paymentStatus || 'unpaid').replace(/_/g, ' ')}
+                InputProps={{ readOnly: true }}
+                sx={{ minWidth: 180, '& .MuiOutlinedInput-root': { bgcolor: 'action.hover' } }}
+                helperText="Updated automatically from receivable payments"
+              />
+              <TextField
+                label="Amount paid"
+                size="small"
+                value={paidAmount !== '' ? `${cur} ${fmt(paidAmount)}` : `${cur} 0.00`}
+                InputProps={{ readOnly: true }}
+                sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { bgcolor: 'action.hover' } }}
+                helperText={balanceNum != null ? `Balance due: ${cur} ${fmt(balanceNum)}` : undefined}
+              />
             </Stack>
 
             <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} flexWrap="wrap" useFlexGap>

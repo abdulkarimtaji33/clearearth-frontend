@@ -24,7 +24,7 @@ import {
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconTrash, IconFileDownload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -61,6 +61,7 @@ const PurchaseOrderForm = () => {
   const [termsAndConditions, setTermsAndConditions] = useState([]);
   const [dropdowns, setDropdowns] = useState({ purchaseOrderStatus: [] });
   const [items, setItems] = useState([initialItem()]);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [initialValues, setInitialValues] = useState({
     dealId: dealIdFromUrl || null,
     companyId: null,
@@ -269,21 +270,48 @@ const PurchaseOrderForm = () => {
     ? 'Adjust quantities on the vendor purchase bill; totals recalculate automatically'
     : (isEdit ? 'Set status to Approved to download a purchase order PDF' : 'After approval, download PDF is a purchase order');
 
+  const billSubtotal = items.reduce((sum, it) => sum + (parseFloat(it.total) || 0), 0);
+
+  const handlePdf = async () => {
+    if (!id) return;
+    try {
+      setPdfLoading(true);
+      await apiService.downloadPurchaseOrderPdf(id);
+    } catch (err) {
+      setError(err.message || 'PDF download failed');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   return (
     <PageContainer title={pageTitle} description={pageDesc}>
       <Box>
-        <Stack direction="row" alignItems="center" spacing={2} mb={3}>
-          <Button startIcon={<IconArrowLeft />} onClick={() => navigate(isBillMode ? '/erp/supplier-purchase-orders' : quotationListPath(initialValues.companyId, initialValues.supplierId))} size="small">
-            Back
-          </Button>
-          <Box>
-            <Typography variant="h4" fontWeight={700}>
-              {pageTitle}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {pageDesc}
-            </Typography>
-          </Box>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} mb={3} flexWrap="wrap" gap={2}>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Button startIcon={<IconArrowLeft />} onClick={() => navigate(isBillMode ? '/erp/supplier-purchase-orders' : quotationListPath(initialValues.companyId, initialValues.supplierId))} size="small">
+              Back
+            </Button>
+            <Box>
+              <Typography variant="h4" fontWeight={700}>
+                {pageTitle}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {pageDesc}
+              </Typography>
+            </Box>
+          </Stack>
+          {isBillMode && isEdit && (
+            <Button
+              variant="outlined"
+              startIcon={pdfLoading ? <CircularProgress size={16} /> : <IconFileDownload size={18} />}
+              onClick={handlePdf}
+              disabled={pdfLoading}
+              sx={{ borderRadius: 2 }}
+            >
+              Download purchase bill PDF
+            </Button>
+          )}
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
@@ -524,6 +552,13 @@ const PurchaseOrderForm = () => {
                       </TableBody>
                     </Table>
                   </TableContainer>
+                  {isBillMode && (
+                    <Stack direction="row" justifyContent="flex-end" mt={2}>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        Bill subtotal: AED {billSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Typography>
+                    </Stack>
+                  )}
                 </CardContent>
               </Card>
 
@@ -560,7 +595,7 @@ const PurchaseOrderForm = () => {
 
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button type="submit" variant="contained" size="large" sx={{ borderRadius: 2 }}>
-                  {isEdit ? 'Update' : 'Create'} Purchase Quotation
+                  {isEdit ? 'Update' : 'Create'} {isBillMode ? 'Purchase Bill' : 'Purchase Quotation'}
                 </Button>
                 <Button variant="outlined" size="large" onClick={() => navigate(quotationListPath(values.companyId, values.supplierId))} sx={{ borderRadius: 2 }}>
                   Cancel

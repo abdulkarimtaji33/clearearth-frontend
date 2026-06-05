@@ -71,7 +71,7 @@ const SelectWithAddNew = ({
     setAddOpen(true);
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const v = newValue.trim();
     if (!v) {
       setAddError(`${addFieldLabel} is required`);
@@ -82,11 +82,18 @@ const SelectWithAddNew = ({
       setAddOpen(false);
       return;
     }
-    onOptionAdded?.(v);
-    onChange(v);
-    setAddOpen(false);
-    setNewValue('');
-    setAddError('');
+    try {
+      if (onOptionAdded) {
+        await onOptionAdded(v);
+      } else {
+        onChange(v);
+      }
+      setAddOpen(false);
+      setNewValue('');
+      setAddError('');
+    } catch (err) {
+      setAddError(err.message || 'Failed to add');
+    }
   };
 
   return (

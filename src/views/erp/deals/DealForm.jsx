@@ -1689,30 +1689,20 @@ const DealForm = () => {
                     <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
-                        select
-                        label="Payment Status"
-                        name="paymentStatus"
-                        value={values.paymentStatus}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      >
-                        {dropdowns.paymentStatus.map((s) => (
-                          <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
-                        ))}
-                      </TextField>
+                        label="Payment status"
+                        value={(values.paymentStatus || 'unpaid').replace(/_/g, ' ')}
+                        InputProps={{ readOnly: true }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'action.hover' } }}
+                        helperText="Updated automatically from receivable payments"
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth
-                        label="Paid Amount"
-                        name="paidAmount"
-                        type="number"
-                        value={values.paidAmount}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        inputProps={{ min: 0, step: 0.01 }}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        label="Paid amount"
+                        value={values.paidAmount != null && values.paidAmount !== '' ? Number(values.paidAmount).toFixed(2) : '0.00'}
+                        InputProps={{ readOnly: true }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'action.hover' } }}
                         helperText={`Total: ${values.currency} ${total.toFixed(2)}`}
                       />
                     </Grid>

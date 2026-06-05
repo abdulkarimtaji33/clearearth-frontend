@@ -18,7 +18,7 @@ import {
   IconArrowLeft, IconEdit, IconHammer, IconCalendar, IconUser,
   IconCurrencyDollar, IconClock, IconGripVertical, IconLock,
   IconAlertCircle, IconCircleCheck, IconNote, IconCheck, IconX,
-  IconFileReport, IconPrinter, IconReceipt, IconFileInvoice, IconShoppingCart,
+  IconFileReport, IconPrinter, IconReceipt, IconFileInvoice, IconShoppingCart, IconFileDownload,
   IconMapPin, IconPhone, IconPackage, IconTruckDelivery, IconShare, IconCopy,
 } from '@tabler/icons-react';
 import { TextField, InputAdornment, Autocomplete } from '@mui/material';
@@ -390,6 +390,7 @@ const WorkOrderView = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [billPdfLoading, setBillPdfLoading] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [markingComplete, setMarkingComplete] = useState(false);
@@ -763,21 +764,44 @@ const WorkOrderView = () => {
               </Button>
             )}
             {wo.status === 'completed' && isOtpDeal && vendorSupplierId && (
-              <Button
-                variant={purchaseBill ? 'outlined' : 'contained'}
-                color="secondary"
-                startIcon={<IconShoppingCart size={16} />}
-                onClick={() => {
-                  if (purchaseBill?.id) {
-                    navigate(`/erp/purchase-orders/edit/${purchaseBill.id}?bill=1`);
-                  } else {
-                    navigate(`/erp/purchase-orders/create?dealId=${wo.deal_id}&supplierId=${vendorSupplierId}&workOrderId=${wo.id}&bill=1`);
-                  }
-                }}
-                sx={{ borderRadius: 2, fontWeight: 600 }}
-              >
-                {purchaseBill ? 'Edit Purchase Bill' : 'Create Purchase Bill'}
-              </Button>
+              <>
+                <Button
+                  variant={purchaseBill ? 'outlined' : 'contained'}
+                  color="secondary"
+                  startIcon={<IconShoppingCart size={16} />}
+                  onClick={() => {
+                    if (purchaseBill?.id) {
+                      navigate(`/erp/purchase-orders/edit/${purchaseBill.id}?bill=1`);
+                    } else {
+                      navigate(`/erp/purchase-orders/create?dealId=${wo.deal_id}&supplierId=${vendorSupplierId}&workOrderId=${wo.id}&bill=1`);
+                    }
+                  }}
+                  sx={{ borderRadius: 2, fontWeight: 600 }}
+                >
+                  {purchaseBill ? 'Edit Purchase Bill' : 'Create Purchase Bill'}
+                </Button>
+                {purchaseBill?.id && (
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    startIcon={billPdfLoading ? <CircularProgress size={16} /> : <IconFileDownload size={16} />}
+                    disabled={billPdfLoading}
+                    onClick={async () => {
+                      try {
+                        setBillPdfLoading(true);
+                        await apiService.downloadPurchaseOrderPdf(purchaseBill.id);
+                      } catch (e) {
+                        setError(e.message || 'PDF download failed');
+                      } finally {
+                        setBillPdfLoading(false);
+                      }
+                    }}
+                    sx={{ borderRadius: 2, fontWeight: 600 }}
+                  >
+                    Download purchase bill PDF
+                  </Button>
+                )}
+              </>
             )}
             {wo.status === 'completed' && (
               <Button

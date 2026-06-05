@@ -18,12 +18,6 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
 
-const PAYMENT_OPTIONS = [
-  { value: 'unpaid', label: 'Unpaid' },
-  { value: 'partial', label: 'Partial' },
-  { value: 'paid', label: 'Paid' },
-];
-
 const TaxInvoiceCreate = () => {
   const { proformaId } = useParams();
   const navigate = useNavigate();
@@ -33,7 +27,6 @@ const TaxInvoiceCreate = () => {
   const [error, setError] = useState('');
   const [invoiceDate, setInvoiceDate] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [paymentStatus, setPaymentStatus] = useState('unpaid');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [referenceNo, setReferenceNo] = useState('');
   const [remarks, setRemarks] = useState('');
@@ -55,7 +48,6 @@ const TaxInvoiceCreate = () => {
       setProformaLabel(pf.proformaNumber || `#${proformaId}`);
       setInvoiceDate(d.defaults?.invoiceDate || new Date().toISOString().slice(0, 10));
       setDueDate(d.defaults?.dueDate || pf.dueDate || '');
-      setPaymentStatus(d.defaults?.paymentStatus || 'unpaid');
       setPaymentMethod(d.defaults?.paymentMethod || '');
       setReferenceNo(d.defaults?.referenceNo || '');
     } catch (e) {
@@ -83,7 +75,6 @@ const TaxInvoiceCreate = () => {
         proformaInvoiceId: parseInt(proformaId, 10),
         invoiceDate,
         dueDate: dueDate || null,
-        paymentStatus,
         paymentMethod: paymentMethod || null,
         referenceNo: referenceNo || null,
         attachmentPath,
@@ -140,11 +131,9 @@ const TaxInvoiceCreate = () => {
             <Typography variant="overline" fontWeight={700} color="text.secondary" letterSpacing={1}>Payment</Typography>
           </Box>
           <Stack spacing={2} sx={{ p: 2.5 }}>
-            <TextField select label="Payment status" size="small" value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} fullWidth>
-              {PAYMENT_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
-              ))}
-            </TextField>
+            <Typography variant="body2" color="text.secondary">
+              Payment status starts as unpaid and updates automatically when payments are recorded in Receivables.
+            </Typography>
             <TextField
               select
               label="Payment method"

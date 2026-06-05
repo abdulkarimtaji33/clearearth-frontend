@@ -802,6 +802,14 @@ class ApiService {
     return this.delete(`/work-types/${id}`);
   }
 
+  async getExpenseCategories(params) {
+    return this.get('/expense-categories', params);
+  }
+
+  async createExpenseCategory(data) {
+    return this.post('/expense-categories', data);
+  }
+
   async getGrns(params) {
     return this.get('/grn', params);
   }

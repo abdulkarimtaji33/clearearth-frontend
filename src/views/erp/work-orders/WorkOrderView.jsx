@@ -5,7 +5,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
 } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
+import { alpha, useTheme, GlobalStyles } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -664,8 +664,28 @@ const WorkOrderView = () => {
   };
   const totalExpense = tasks.reduce((sum, t) => sum + taskExpenseTotal(t), 0);
 
+  const handlePrintReport = () => {
+    window.print();
+  };
+
   return (
     <PageContainer title={wo.title || `Work Order #${wo.id}`}>
+      <GlobalStyles
+        styles={{
+          '@media print': {
+            'body *': { visibility: 'hidden' },
+            '#work-completion-report-print, #work-completion-report-print *': { visibility: 'visible' },
+            '#work-completion-report-print': {
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: '100%',
+              padding: '16px 24px',
+            },
+            '.print-hide': { display: 'none !important' },
+          },
+        }}
+      />
       <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 1, sm: 2 }, pb: 6 }}>
 
         {/* ── Header ── */}
@@ -1310,11 +1330,12 @@ const WorkOrderView = () => {
       </Dialog>
 
       {/* ── Work Completion Report Dialog ── */}
-      <Dialog open={reportOpen} onClose={() => setReportOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+      <Dialog open={reportOpen} onClose={() => setReportOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3, '@media print': { boxShadow: 'none', borderRadius: 0 } } }}>
+        <Box id="work-completion-report-print">
         <DialogTitle sx={{ pb: 1, pt: 3, px: 3 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             <Stack direction="row" alignItems="center" spacing={1.5}>
-              <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.1), color: 'success.main', display: 'flex', alignItems: 'center', justifyContent: 'center', '@media print': { bgcolor: 'transparent' } }}>
                 <IconFileReport size={20} />
               </Box>
               <Box>
@@ -1322,7 +1343,7 @@ const WorkOrderView = () => {
                 <Typography variant="caption" color="text.secondary">Generated on {new Date().toLocaleDateString('en-AE', { day: 'numeric', month: 'long', year: 'numeric' })}</Typography>
               </Box>
             </Stack>
-            <IconButton size="small" onClick={() => window.print()} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
+            <IconButton className="print-hide" size="small" onClick={handlePrintReport} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
               <IconPrinter size={18} />
             </IconButton>
           </Stack>
@@ -1451,12 +1472,13 @@ const WorkOrderView = () => {
             </Typography>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
+        </Box>
+        <DialogActions className="print-hide" sx={{ px: 3, pb: 3, pt: 1 }}>
           <Button onClick={() => setReportOpen(false)} variant="outlined" sx={{ borderRadius: 2 }}>Close</Button>
           <Button variant="outlined" color="primary" onClick={() => { setReportOpen(false); navigate(linkedGrn ? `/erp/grn/${linkedGrn.status === 'new' ? 'edit' : 'view'}/${linkedGrn.id}` : `/erp/grn/create?workOrderId=${wo.id}`); }} sx={{ borderRadius: 2, fontWeight: 600 }}>
             {linkedGrn ? (linkedGrn.status === 'new' ? 'Edit GRN' : 'View GRN') : 'Open GRN'}
           </Button>
-          <Button variant="contained" color="success" startIcon={<IconPrinter size={16} />} onClick={() => window.print()} sx={{ borderRadius: 2, fontWeight: 600 }}>
+          <Button variant="contained" color="success" startIcon={<IconPrinter size={16} />} onClick={handlePrintReport} sx={{ borderRadius: 2, fontWeight: 600 }}>
             Print Report
           </Button>
         </DialogActions>

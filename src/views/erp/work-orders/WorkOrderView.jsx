@@ -706,6 +706,26 @@ const WorkOrderView = () => {
                   {wo.deal.deal_number} — {wo.deal.title}
                 </Typography>
               )}
+              {(wo.quotation_id || wo.quotation?.id) && (
+                <Typography
+                  variant="body2"
+                  color="secondary.main"
+                  sx={{ ml: 6.5, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                  onClick={() => navigate(`/erp/quotations/view/${wo.quotation_id || wo.quotation.id}`)}
+                >
+                  Service order #{wo.quotation_id || wo.quotation.id}
+                </Typography>
+              )}
+              {(wo.purchase_order_id || wo.sourcePurchaseOrder?.id) && (
+                <Typography
+                  variant="body2"
+                  color="secondary.main"
+                  sx={{ ml: 6.5, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                  onClick={() => navigate(`/erp/purchase-orders/view/${wo.purchase_order_id || wo.sourcePurchaseOrder.id}`)}
+                >
+                  Purchase order #{wo.purchase_order_id || wo.sourcePurchaseOrder.id}
+                </Typography>
+              )}
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>

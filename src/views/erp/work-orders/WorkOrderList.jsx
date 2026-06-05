@@ -23,8 +23,8 @@ import {
   MenuItem,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconPlus, IconHammer } from '@tabler/icons-react';
-import { useNavigate } from 'react-router';
+import { IconSearch, IconHammer } from '@tabler/icons-react';
+import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { WorkOrderRow } from './WorkOrderExpandableRows';
@@ -39,10 +39,11 @@ const STATUS_OPTIONS = [
 
 const WorkOrderList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const [workOrders, setWorkOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(location.state?.error || '');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
@@ -97,9 +98,6 @@ const WorkOrderList = () => {
               {totalCount > 0 ? `${totalCount} work order${totalCount !== 1 ? 's' : ''}` : 'Manage operations work orders across deals'}
             </Typography>
           </Box>
-          <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/work-orders/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
-            New Work Order
-          </Button>
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -143,7 +141,9 @@ const WorkOrderList = () => {
                       <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
                         <IconHammer size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
                         <Typography variant="body2" color="text.secondary">No work orders found</Typography>
-                        <Button size="small" variant="outlined" sx={{ mt: 2, borderRadius: 2 }} onClick={() => navigate('/erp/work-orders/create')}>Create first work order</Button>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                          Create work orders from an approved service order or purchase order.
+                        </Typography>
                       </TableCell>
                     </TableRow>
                   ) : (

@@ -1047,19 +1047,6 @@ const DealView = () => {
               icon={IconHammer}
               title="Field work progress"
               subtitle="Work order tasks in sequence — pickup, processing, delivery, and more"
-              action={
-                showWorkOrderActions ? (
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<IconPlus size={16} />}
-                    onClick={() => navigate(`/erp/work-orders/create?dealId=${id}`)}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    New work order
-                  </Button>
-                ) : null
-              }
             />
             <Divider sx={{ mb: 2.5 }} />
             {(() => {
@@ -1073,14 +1060,9 @@ const DealView = () => {
                     <Typography variant="body1" fontWeight={600} color="text.secondary" gutterBottom>
                       No work orders yet
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 420, mx: 'auto' }}>
-                      Create a work order to track field tasks for this deal. Each task shows its status along the pipeline.
+                    <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420, mx: 'auto' }}>
+                      Work orders are created from an approved service order or purchase order linked to this deal.
                     </Typography>
-                    {showWorkOrderActions && (
-                      <Button variant="outlined" startIcon={<IconPlus size={18} />} onClick={() => navigate(`/erp/work-orders/create?dealId=${id}`)} sx={{ borderRadius: 2 }}>
-                        Create work order
-                      </Button>
-                    )}
                   </Paper>
                 );
               }

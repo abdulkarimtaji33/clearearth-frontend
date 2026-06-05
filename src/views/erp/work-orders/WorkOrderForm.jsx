@@ -167,9 +167,12 @@ const WorkOrderForm = () => {
   const quotationIdFromUrl = searchParams.get('quotationId')
     ? parseInt(searchParams.get('quotationId'), 10)
     : null;
+  const purchaseOrderIdFromUrl = searchParams.get('purchaseOrderId')
+    ? parseInt(searchParams.get('purchaseOrderId'), 10)
+    : null;
   const { hasPermission } = useAuth();
 
-  const [loading, setLoading] = useState(isEdit || Boolean(quotationIdFromUrl));
+  const [loading, setLoading] = useState(isEdit || Boolean(quotationIdFromUrl) || Boolean(purchaseOrderIdFromUrl));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [users, setUsers] = useState([]);
@@ -295,7 +298,12 @@ const WorkOrderForm = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!isEdit && quotationIdFromUrl) {
+    if (isEdit) return;
+    if (!quotationIdFromUrl && !purchaseOrderIdFromUrl) {
+      navigate('/erp/work-orders', { replace: true, state: { error: 'Work orders must be created from a service order or purchase order.' } });
+      return;
+    }
+    if (quotationIdFromUrl) {
       (async () => {
         try {
           setLoading(true);
@@ -318,8 +326,33 @@ const WorkOrderForm = () => {
           setLoading(false);
         }
       })();
+      return;
     }
-  }, [isEdit, quotationIdFromUrl, navigate]);
+    if (purchaseOrderIdFromUrl) {
+      (async () => {
+        try {
+          setLoading(true);
+          const res = await apiService.getPurchaseOrder(purchaseOrderIdFromUrl);
+          if (res.success) {
+            const po = res.data;
+            const existingWo = po.sourceWorkOrder || po.source_work_order;
+            if (existingWo?.id) {
+              navigate(`/erp/work-orders/view/${existingWo.id}`, { replace: true });
+              return;
+            }
+            setForm((prev) => ({
+              ...prev,
+              dealId: po.deal_id ?? po.deal?.id ?? prev.dealId,
+            }));
+          }
+        } catch (err) {
+          setError(err.message || 'Failed to load purchase order');
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }
+  }, [isEdit, quotationIdFromUrl, purchaseOrderIdFromUrl, navigate]);
 
   useEffect(() => {
     fetchUsers();
@@ -493,6 +526,7 @@ const WorkOrderForm = () => {
       const payload = {
         dealId: form.dealId || null,
         quotationId: !isEdit && quotationIdFromUrl ? quotationIdFromUrl : undefined,
+        purchaseOrderId: !isEdit && purchaseOrderIdFromUrl ? purchaseOrderIdFromUrl : undefined,
         title: form.title || null,
         notes: form.notes || null,
         status: form.status,

@@ -202,11 +202,6 @@ const VendorPurchaseQuotationList = () => {
             {pdfLoading === selectedOrder?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
             {isApproved(selectedOrder) ? 'Download purchase order PDF' : 'Download quotation PDF'}
           </MenuItem>
-          {isApproved(selectedOrder) && (
-            <MenuItem onClick={() => { navigate(`/erp/work-orders/create${selectedOrder?.deal?.id ? `?dealId=${selectedOrder.deal.id}` : ''}`); setAnchorEl(null); }}>
-              <IconHammer size={16} style={{ marginRight: 10 }} /> Create Work Order
-            </MenuItem>
-          )}
           <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
             <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
           </MenuItem>

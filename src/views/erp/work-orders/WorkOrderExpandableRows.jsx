@@ -188,8 +188,18 @@ export const WorkOrderRow = ({
         <TableCell>
           <Typography fontWeight={600}>{wo.title || `Work Order #${wo.id}`}</Typography>
           {showDealSubtext && wo.deal && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" display="block">
               {wo.deal.deal_number} — {wo.deal.title}
+            </Typography>
+          )}
+          {showDealSubtext && (wo.quotation_id || wo.quotation?.id) && (
+            <Typography variant="caption" color="text.secondary" display="block">
+              Service order #{wo.quotation_id || wo.quotation.id}
+            </Typography>
+          )}
+          {showDealSubtext && (wo.purchase_order_id || wo.sourcePurchaseOrder?.id) && (
+            <Typography variant="caption" color="text.secondary" display="block">
+              Purchase order #{wo.purchase_order_id || wo.sourcePurchaseOrder.id}
             </Typography>
           )}
         </TableCell>

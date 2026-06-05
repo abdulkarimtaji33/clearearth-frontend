@@ -83,6 +83,7 @@ const PurchaseOrderView = () => {
   const returnTo = returnParam || defaultListForPo(po);
   const partyLabel = po?.company_id ? 'Client' : po?.supplier_id ? 'Vendor' : '—';
   const partyName = po?.company?.company_name || po?.supplier?.company_name || '—';
+  const linkedWorkOrder = po?.sourceWorkOrder || po?.source_work_order;
 
   const items = po?.items || [];
   const linesTotal = items.reduce((s, it) => s + parseFloat(it.total || 0), 0);
@@ -147,9 +148,21 @@ const PurchaseOrderView = () => {
               {isApproved ? 'Download purchase order PDF' : 'Download quotation PDF'}
             </Button>
             {isApproved && (
-              <Button variant="contained" color="secondary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/create${po.deal?.id ? `?dealId=${po.deal.id}` : ''}`)} sx={{ borderRadius: 2 }}>
-                Create work order
-              </Button>
+              linkedWorkOrder?.id ? (
+                <Button variant="contained" color="secondary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/view/${linkedWorkOrder.id}`)} sx={{ borderRadius: 2 }}>
+                  Open work order
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<IconHammer size={18} />}
+                  onClick={() => navigate(`/erp/work-orders/create?purchaseOrderId=${po.id}${po.deal?.id ? `&dealId=${po.deal.id}` : ''}`)}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Create work order
+                </Button>
+              )
             )}
           </Stack>
         </Stack>

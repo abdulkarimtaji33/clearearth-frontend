@@ -203,9 +203,15 @@ const ClientPurchaseOrderList = () => {
             {isApproved(selectedOrder) ? 'Download purchase order PDF' : 'Download quotation PDF'}
           </MenuItem>
           {isApproved(selectedOrder) && (
-            <MenuItem onClick={() => { navigate(`/erp/work-orders/create${selectedOrder?.deal?.id ? `?dealId=${selectedOrder.deal.id}` : ''}`); setAnchorEl(null); }}>
-              <IconHammer size={16} style={{ marginRight: 10 }} /> Create Work Order
-            </MenuItem>
+            (selectedOrder?.sourceWorkOrder || selectedOrder?.source_work_order)?.id ? (
+              <MenuItem onClick={() => { navigate(`/erp/work-orders/view/${(selectedOrder.sourceWorkOrder || selectedOrder.source_work_order).id}`); setAnchorEl(null); }}>
+                <IconHammer size={16} style={{ marginRight: 10 }} /> Open Work Order
+              </MenuItem>
+            ) : (
+              <MenuItem onClick={() => { navigate(`/erp/work-orders/create?purchaseOrderId=${selectedOrder?.id}${selectedOrder?.deal?.id ? `&dealId=${selectedOrder.deal.id}` : ''}`); setAnchorEl(null); }}>
+                <IconHammer size={16} style={{ marginRight: 10 }} /> Create Work Order
+              </MenuItem>
+            )
           )}
           <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
             <IconTrash size={16} style={{ marginRight: 10 }} /> Delete

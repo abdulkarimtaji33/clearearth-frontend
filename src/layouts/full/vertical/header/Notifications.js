@@ -19,6 +19,7 @@ import apiService from 'src/services/api';
 const entityLink = (n) => {
   if (n.entity_type === 'deal' && n.entity_id) return `/erp/deals/view/${n.entity_id}`;
   if (n.entity_type === 'inspection_request' && n.entity_id) return `/erp/inspection-requests/${n.entity_id}`;
+  if (n.entity_type === 'lead' && n.entity_id) return `/erp/leads`;
   return null;
 };
 

@@ -68,6 +68,7 @@ const leadStatusChipColor = (status) => {
   switch (status?.toLowerCase()) {
     case 'new': return 'info';
     case 'contacted': return 'primary';
+    case 'pending_approval': return 'warning';
     case 'qualified':
     case 'converted':
       return 'success';
@@ -75,6 +76,8 @@ const leadStatusChipColor = (status) => {
     default: return 'default';
   }
 };
+
+const LEAD_APPROVABLE_STATUSES = ['new', 'contacted', 'pending_approval'];
 
 const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approving, canApproveLead }) => {
   const theme = useTheme();
@@ -252,7 +255,7 @@ const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approvi
         </Box>
       ) : null}
 
-      {canApproveLead && ['new', 'contacted'].includes(String(lead.status || '').toLowerCase()) && (
+      {canApproveLead && LEAD_APPROVABLE_STATUSES.includes(String(lead.status || '').toLowerCase()) && (
         <Button
           variant="contained"
           color="success"
@@ -270,7 +273,7 @@ const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approvi
         fullWidth
         startIcon={<IconEdit size={16} />}
         onClick={onEdit}
-        sx={{ mt: ['new', 'contacted'].includes(String(lead.status || '').toLowerCase()) ? 1.5 : 3, borderRadius: 2.5, fontWeight: 700, py: 1.25 }}
+        sx={{ mt: LEAD_APPROVABLE_STATUSES.includes(String(lead.status || '').toLowerCase()) ? 1.5 : 3, borderRadius: 2.5, fontWeight: 700, py: 1.25 }}
       >
         Edit Lead
       </Button>
@@ -282,7 +285,7 @@ const LeadList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { hasPermission } = useAuth();
-  const canApproveLead = hasPermission('leads.approve') || hasPermission('leads.update');
+  const canApproveLead = hasPermission('leads.approve');
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -609,6 +612,7 @@ const LeadList = () => {
                           <MenuItem value="">All</MenuItem>
                           <MenuItem value="new">New</MenuItem>
                           <MenuItem value="contacted">Contacted</MenuItem>
+                          <MenuItem value="pending_approval">Pending Approval</MenuItem>
                           <MenuItem value="qualified">Qualified</MenuItem>
                           <MenuItem value="disqualified">Disqualified</MenuItem>
                           <MenuItem value="converted">Converted</MenuItem>
@@ -849,7 +853,7 @@ const LeadList = () => {
             <IconEdit size={18} style={{ marginRight: 8 }} />
             Edit
           </MenuItem>
-          {canApproveLead && ['new', 'contacted'].includes(String(selectedLead?.status || '').toLowerCase()) && (
+          {canApproveLead && LEAD_APPROVABLE_STATUSES.includes(String(selectedLead?.status || '').toLowerCase()) && (
             <MenuItem
               onClick={() => {
                 handleApproveLead(selectedLead.id);

@@ -21,6 +21,9 @@ import * as Yup from 'yup';
 import { IconArrowLeft, IconUpload, IconPhoto } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
+
+const ADMIN_ROLES = ['admin', 'tenant_admin', 'super_admin'];
 
 const validationSchema = Yup.object({
   name: Yup.string().trim().required('Tenant name is required'),
@@ -38,6 +41,9 @@ const validationSchema = Yup.object({
 const CompanySettings = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { user } = useAuth();
+  const roleName = user?.role?.name ?? user?.role;
+  const canManageApprovalPin = ADMIN_ROLES.includes(roleName);
   const logoInputRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,6 +51,12 @@ const CompanySettings = () => {
   const [logoUrl, setLogoUrl] = useState('');
   const [logoUploading, setLogoUploading] = useState(false);
   const [dropdowns, setDropdowns] = useState({ countries: [], cities: [] });
+  const [leadApprovalPin, setLeadApprovalPin] = useState('');
+  const [leadApprovalPinConfirm, setLeadApprovalPinConfirm] = useState('');
+  const [pinConfigured, setPinConfigured] = useState(false);
+  const [savingPin, setSavingPin] = useState(false);
+  const [pinError, setPinError] = useState('');
+  const [pinSuccess, setPinSuccess] = useState('');
 
   const [initialValues, setInitialValues] = useState({
     name: '',
@@ -84,6 +96,7 @@ const CompanySettings = () => {
           if (t.logo) {
             setLogoUrl(apiService.getUploadUrl(t.logo));
           }
+          setPinConfigured(Boolean(t.lead_approval_pin_configured));
         }
         if (dropdownRes.success && dropdownRes.data) {
           setDropdowns({
@@ -267,6 +280,80 @@ const CompanySettings = () => {
             </form>
           )}
         </Formik>
+
+        {canManageApprovalPin && (
+          <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3, overflow: 'hidden' }}>
+            <Box sx={{ px: { xs: 2.5, sm: 3 }, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
+              <Typography variant="subtitle1" fontWeight={700}>Lead Approval PIN</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Secret PIN lets sales staff self-approve leads after saving. Managers can still approve from the lead list.
+              </Typography>
+            </Box>
+            <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
+              {pinError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setPinError('')}>{pinError}</Alert>}
+              {pinSuccess && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>{pinSuccess}</Alert>}
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                {pinConfigured ? 'A PIN is configured. Enter a new PIN below to change it.' : 'No PIN configured yet. Sales users can only request manager approval until you set one.'}
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="New PIN"
+                    type="password"
+                    value={leadApprovalPin}
+                    onChange={(e) => setLeadApprovalPin(e.target.value)}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Confirm PIN"
+                    type="password"
+                    value={leadApprovalPinConfirm}
+                    onChange={(e) => setLeadApprovalPinConfirm(e.target.value)}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                </Grid>
+              </Grid>
+              <Stack direction="row" justifyContent="flex-end" mt={3}>
+                <Button
+                  variant="contained"
+                  disabled={savingPin}
+                  onClick={async () => {
+                    setPinError('');
+                    setPinSuccess('');
+                    if (!leadApprovalPin || leadApprovalPin.length < 4) {
+                      setPinError('PIN must be at least 4 characters');
+                      return;
+                    }
+                    if (leadApprovalPin !== leadApprovalPinConfirm) {
+                      setPinError('PIN confirmation does not match');
+                      return;
+                    }
+                    try {
+                      setSavingPin(true);
+                      await apiService.updateLeadApprovalPin(leadApprovalPin);
+                      setPinConfigured(true);
+                      setLeadApprovalPin('');
+                      setLeadApprovalPinConfirm('');
+                      setPinSuccess('Lead approval PIN updated');
+                      setTimeout(() => setPinSuccess(''), 3000);
+                    } catch (err) {
+                      setPinError(err.message || 'Failed to update PIN');
+                    } finally {
+                      setSavingPin(false);
+                    }
+                  }}
+                  sx={{ minWidth: 160, borderRadius: 2, fontWeight: 700 }}
+                >
+                  {savingPin ? 'Saving…' : pinConfigured ? 'Change PIN' : 'Set PIN'}
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        )}
       </Box>
     </PageContainer>
   );

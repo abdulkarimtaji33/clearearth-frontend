@@ -228,6 +228,14 @@ class ApiService {
     return this.post(`/leads/${id}/qualify`, data);
   }
 
+  async requestLeadApproval(id) {
+    return this.post(`/leads/${id}/request-approval`, {});
+  }
+
+  async approveLeadWithPin(id, pin) {
+    return this.post(`/leads/${id}/approve-with-pin`, { pin });
+  }
+
   async disqualifyLead(id, data) {
     return this.post(`/leads/${id}/disqualify`, data);
   }
@@ -661,6 +669,10 @@ class ApiService {
 
   async updateTenant(data) {
     return this.put('/tenants/me', data);
+  }
+
+  async updateLeadApprovalPin(pin) {
+    return this.put('/tenants/me/lead-approval-pin', { pin });
   }
 
   async uploadTenantLogo(file) {

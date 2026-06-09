@@ -149,7 +149,6 @@ const DealForm = () => {
   
   const [dropdowns, setDropdowns] = useState({
     dealStatus: [],
-    paymentStatus: [],
     unitsOfMeasure: [],
   });
 
@@ -173,8 +172,6 @@ const DealForm = () => {
     currency: 'AED',
     status: 'new',
     lossReason: '',
-    paymentStatus: 'unpaid',
-    paidAmount: 0,
     assignedTo: null,
     termsAndConditionsIds: [],
     dealType: 'offer_to_purchase',
@@ -291,7 +288,6 @@ const DealForm = () => {
       if (response.success) {
         setDropdowns({
           dealStatus: response.data.deal_status || [],
-          paymentStatus: response.data.payment_status || [],
           unitsOfMeasure: response.data.units_of_measure || [],
         });
       }
@@ -320,8 +316,6 @@ const DealForm = () => {
           currency: d.currency || 'AED',
           status: d.status || 'new',
           lossReason: d.loss_reason || '',
-          paymentStatus: d.payment_status || 'unpaid',
-          paidAmount: d.paid_amount || 0,
           assignedTo: d.assigned_to || null,
           termsAndConditionsIds: (d.termsList && d.termsList.length > 0)
             ? d.termsList.map((t) => t.id)
@@ -633,7 +627,7 @@ const DealForm = () => {
       }
 
       const isOtcContainer = values.dealType === 'offer_to_charge' && values.isContainerType;
-      const { hasDownstreamPartner, downstreamPartnerSupplierId, ...restValues } = values;
+      const { hasDownstreamPartner, downstreamPartnerSupplierId, paymentStatus, paidAmount, ...restValues } = values;
       const payload = {
         ...restValues,
         downstreamPartnerSupplierId: hasDownstreamPartner ? downstreamPartnerSupplierId : null,
@@ -1639,14 +1633,14 @@ const DealForm = () => {
                 </CardContent>
               </Card>
 
-              {/* Status & Payment */}
+              {/* Status */}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h4" fontWeight={700} mb={1} color="primary.main">
-                    Status & Payment
+                    Status
                   </Typography>
                   <Typography variant="body2" color="text.secondary" mb={4}>
-                    Deal status and payment tracking
+                    Deal status and currency
                   </Typography>
                   <Divider sx={{ mb: 4 }} />
                   
@@ -1686,26 +1680,6 @@ const DealForm = () => {
                         />
                       </Grid>
                     )}
-                    <Grid size={{ xs: 12, md: 3 }}>
-                      <TextField
-                        fullWidth
-                        label="Payment status"
-                        value={(values.paymentStatus || 'unpaid').replace(/_/g, ' ')}
-                        InputProps={{ readOnly: true }}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'action.hover' } }}
-                        helperText="Updated automatically from receivable payments"
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 3 }}>
-                      <TextField
-                        fullWidth
-                        label="Paid amount"
-                        value={values.paidAmount != null && values.paidAmount !== '' ? Number(values.paidAmount).toFixed(2) : '0.00'}
-                        InputProps={{ readOnly: true }}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'action.hover' } }}
-                        helperText={`Total: ${values.currency} ${total.toFixed(2)}`}
-                      />
-                    </Grid>
                     <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         fullWidth

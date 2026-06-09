@@ -5,6 +5,10 @@ import Spinner from './views/spinner/Spinner';
 import './utils/i18n';
 import { CustomizerContextProvider } from './context/CustomizerContext';
 import { AuthProvider } from './context/AuthContext';
+import { clearChunkReloadFlag, installGlobalChunkReloadHandlers } from './utils/chunkReload';
+
+clearChunkReloadFlag();
+installGlobalChunkReloadHandlers();
 
 async function deferRender() {
   const { worker } = await import("./api/mocks/browser");

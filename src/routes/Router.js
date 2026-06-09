@@ -1,101 +1,103 @@
-import React, { lazy } from 'react';
+import React from 'react';
 import { Navigate, createBrowserRouter } from 'react-router';
 
-import Loadable from '../layouts/full/shared/loadable/Loadable';
+import Loadable, { lazyWithChunkReload } from '../layouts/full/shared/loadable/Loadable';
+import ChunkLoadErrorElement from '../components/ChunkLoadErrorElement';
 
 /* ***Layouts**** */
-const FullLayout = Loadable(lazy(() => import('../layouts/full/FullLayout')));
-const BlankLayout = Loadable(lazy(() => import('../layouts/blank/BlankLayout')));
+const FullLayout = Loadable(lazyWithChunkReload(() => import('../layouts/full/FullLayout')));
+const BlankLayout = Loadable(lazyWithChunkReload(() => import('../layouts/blank/BlankLayout')));
 
 /* ****ERP Pages***** */
-const Dashboard = Loadable(lazy(() => import('../views/erp/dashboard/DashboardRouter')));
-const ContactList = Loadable(lazy(() => import('../views/erp/contacts/ContactList')));
-const ContactForm = Loadable(lazy(() => import('../views/erp/contacts/ContactForm')));
-const CompanyList = Loadable(lazy(() => import('../views/erp/companies/CompanyList')));
-const CompanyForm = Loadable(lazy(() => import('../views/erp/companies/CompanyForm')));
-const CompanyView = Loadable(lazy(() => import('../views/erp/companies/CompanyView')));
-const SupplierList = Loadable(lazy(() => import('../views/erp/suppliers/SupplierList')));
-const SupplierForm = Loadable(lazy(() => import('../views/erp/suppliers/SupplierForm')));
-const SupplierView = Loadable(lazy(() => import('../views/erp/suppliers/SupplierView')));
-const LeadList = Loadable(lazy(() => import('../views/erp/leads/LeadList')));
-const LeadForm = Loadable(lazy(() => import('../views/erp/leads/LeadForm')));
-const ProductList = Loadable(lazy(() => import('../views/erp/products/ProductList')));
-const ProductForm = Loadable(lazy(() => import('../views/erp/products/ProductForm')));
-const DealList = Loadable(lazy(() => import('../views/erp/deals/DealList')));
-const DealForm = Loadable(lazy(() => import('../views/erp/deals/DealForm')));
-const DealView = Loadable(lazy(() => import('../views/erp/deals/DealView')));
-const TermsList = Loadable(lazy(() => import('../views/erp/terms/TermsList')));
-const TermsForm = Loadable(lazy(() => import('../views/erp/terms/TermsForm')));
-const QuotationList = Loadable(lazy(() => import('../views/erp/quotations/QuotationList')));
-const QuotationForm = Loadable(lazy(() => import('../views/erp/quotations/QuotationForm')));
-const QuotationView = Loadable(lazy(() => import('../views/erp/quotations/QuotationView')));
-const ProformaInvoiceList = Loadable(lazy(() => import('../views/erp/proforma-invoices/ProformaInvoiceList')));
-const ProformaInvoiceCreate = Loadable(lazy(() => import('../views/erp/proforma-invoices/ProformaInvoiceCreate')));
-const ProformaInvoiceView = Loadable(lazy(() => import('../views/erp/proforma-invoices/ProformaInvoiceView')));
-const TaxInvoiceList = Loadable(lazy(() => import('../views/erp/tax-invoices/TaxInvoiceList')));
-const TaxInvoiceCreate = Loadable(lazy(() => import('../views/erp/tax-invoices/TaxInvoiceCreate')));
-const TaxInvoiceView = Loadable(lazy(() => import('../views/erp/tax-invoices/TaxInvoiceView')));
-const TaxInvoiceEdit = Loadable(lazy(() => import('../views/erp/tax-invoices/TaxInvoiceEdit')));
-const AccountsWorkOrderList = Loadable(lazy(() => import('../views/erp/accounts/AccountsWorkOrderList')));
-const AccountsWorkOrderView = Loadable(lazy(() => import('../views/erp/accounts/AccountsWorkOrderView')));
-const ExpensesList = Loadable(lazy(() => import('../views/erp/accounts/ExpensesList')));
-const ExpenseCreate = Loadable(lazy(() => import('../views/erp/accounts/ExpenseCreate')));
-const ReceivablesList = Loadable(lazy(() => import('../views/erp/receivables/ReceivablesList')));
-const AgingSummaryView = Loadable(lazy(() => import('../views/erp/receivables/AgingSummaryView')));
-const PayablesList = Loadable(lazy(() => import('../views/erp/payables/PayablesList')));
-const PayablesAgingSummaryView = Loadable(lazy(() => import('../views/erp/payables/PayablesAgingSummaryView')));
-const PurchaseOrderForm = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderForm')));
-const PurchaseOrderView = Loadable(lazy(() => import('../views/erp/purchase-orders/PurchaseOrderView')));
-const ClientPurchaseQuotationList = Loadable(lazy(() => import('../views/erp/purchase-orders/ClientPurchaseQuotationList')));
-const VendorPurchaseQuotationList = Loadable(lazy(() => import('../views/erp/purchase-orders/VendorPurchaseQuotationList')));
-const ClientPurchaseOrderList = Loadable(lazy(() => import('../views/erp/purchase-orders/ClientPurchaseOrderList')));
-const SupplierPurchaseOrderList = Loadable(lazy(() => import('../views/erp/purchase-orders/SupplierPurchaseOrderList')));
-const RoleList = Loadable(lazy(() => import('../views/erp/roles/RoleList')));
-const RoleForm = Loadable(lazy(() => import('../views/erp/roles/RoleForm')));
-const UserList = Loadable(lazy(() => import('../views/erp/users/UserList')));
-const UserForm = Loadable(lazy(() => import('../views/erp/users/UserForm')));
-const InspectionRequestList = Loadable(lazy(() => import('../views/erp/inspection-requests/InspectionRequestList')));
-const InspectionRequestView = Loadable(lazy(() => import('../views/erp/inspection-requests/InspectionRequestView')));
-const WorkOrderList = Loadable(lazy(() => import('../views/erp/work-orders/WorkOrderList')));
-const WorkOrderForm = Loadable(lazy(() => import('../views/erp/work-orders/WorkOrderForm')));
-const WorkOrderView = Loadable(lazy(() => import('../views/erp/work-orders/WorkOrderView')));
-const CompanySettings = Loadable(lazy(() => import('../views/erp/settings/CompanySettings')));
-const FiscalYearManager = Loadable(lazy(() => import('../views/erp/reports/FiscalYearManager')));
-const ChartOfAccountsList = Loadable(lazy(() => import('../views/erp/reports/ChartOfAccountsList')));
-const OpeningBalancesForm = Loadable(lazy(() => import('../views/erp/reports/OpeningBalancesForm')));
-const JournalList = Loadable(lazy(() => import('../views/erp/reports/JournalList')));
-const JournalEntryView = Loadable(lazy(() => import('../views/erp/reports/JournalEntryView')));
-const JournalEntryCreate = Loadable(lazy(() => import('../views/erp/reports/JournalEntryCreate')));
-const GeneralLedgerView = Loadable(lazy(() => import('../views/erp/reports/GeneralLedgerView')));
-const GrnList = Loadable(lazy(() => import('../views/erp/grn/GrnList')));
-const GrnForm = Loadable(lazy(() => import('../views/erp/grn/GrnForm')));
-const GrnView = Loadable(lazy(() => import('../views/erp/grn/GrnView')));
-const TrialBalanceView = Loadable(lazy(() => import('../views/erp/reports/TrialBalanceView')));
-const IncomeStatementView = Loadable(lazy(() => import('../views/erp/reports/IncomeStatementView')));
-const BalanceSheetView = Loadable(lazy(() => import('../views/erp/reports/BalanceSheetView')));
-const CashFlowView = Loadable(lazy(() => import('../views/erp/reports/CashFlowView')));
-const ChangesInEquityView = Loadable(lazy(() => import('../views/erp/reports/ChangesInEquityView')));
-const VatReportView = Loadable(lazy(() => import('../views/erp/reports/VatReportView')));
+const Dashboard = Loadable(lazyWithChunkReload(() => import('../views/erp/dashboard/DashboardRouter')));
+const ContactList = Loadable(lazyWithChunkReload(() => import('../views/erp/contacts/ContactList')));
+const ContactForm = Loadable(lazyWithChunkReload(() => import('../views/erp/contacts/ContactForm')));
+const CompanyList = Loadable(lazyWithChunkReload(() => import('../views/erp/companies/CompanyList')));
+const CompanyForm = Loadable(lazyWithChunkReload(() => import('../views/erp/companies/CompanyForm')));
+const CompanyView = Loadable(lazyWithChunkReload(() => import('../views/erp/companies/CompanyView')));
+const SupplierList = Loadable(lazyWithChunkReload(() => import('../views/erp/suppliers/SupplierList')));
+const SupplierForm = Loadable(lazyWithChunkReload(() => import('../views/erp/suppliers/SupplierForm')));
+const SupplierView = Loadable(lazyWithChunkReload(() => import('../views/erp/suppliers/SupplierView')));
+const LeadList = Loadable(lazyWithChunkReload(() => import('../views/erp/leads/LeadList')));
+const LeadForm = Loadable(lazyWithChunkReload(() => import('../views/erp/leads/LeadForm')));
+const ProductList = Loadable(lazyWithChunkReload(() => import('../views/erp/products/ProductList')));
+const ProductForm = Loadable(lazyWithChunkReload(() => import('../views/erp/products/ProductForm')));
+const DealList = Loadable(lazyWithChunkReload(() => import('../views/erp/deals/DealList')));
+const DealForm = Loadable(lazyWithChunkReload(() => import('../views/erp/deals/DealForm')));
+const DealView = Loadable(lazyWithChunkReload(() => import('../views/erp/deals/DealView')));
+const TermsList = Loadable(lazyWithChunkReload(() => import('../views/erp/terms/TermsList')));
+const TermsForm = Loadable(lazyWithChunkReload(() => import('../views/erp/terms/TermsForm')));
+const QuotationList = Loadable(lazyWithChunkReload(() => import('../views/erp/quotations/QuotationList')));
+const QuotationForm = Loadable(lazyWithChunkReload(() => import('../views/erp/quotations/QuotationForm')));
+const QuotationView = Loadable(lazyWithChunkReload(() => import('../views/erp/quotations/QuotationView')));
+const ProformaInvoiceList = Loadable(lazyWithChunkReload(() => import('../views/erp/proforma-invoices/ProformaInvoiceList')));
+const ProformaInvoiceCreate = Loadable(lazyWithChunkReload(() => import('../views/erp/proforma-invoices/ProformaInvoiceCreate')));
+const ProformaInvoiceView = Loadable(lazyWithChunkReload(() => import('../views/erp/proforma-invoices/ProformaInvoiceView')));
+const TaxInvoiceList = Loadable(lazyWithChunkReload(() => import('../views/erp/tax-invoices/TaxInvoiceList')));
+const TaxInvoiceCreate = Loadable(lazyWithChunkReload(() => import('../views/erp/tax-invoices/TaxInvoiceCreate')));
+const TaxInvoiceView = Loadable(lazyWithChunkReload(() => import('../views/erp/tax-invoices/TaxInvoiceView')));
+const TaxInvoiceEdit = Loadable(lazyWithChunkReload(() => import('../views/erp/tax-invoices/TaxInvoiceEdit')));
+const AccountsWorkOrderList = Loadable(lazyWithChunkReload(() => import('../views/erp/accounts/AccountsWorkOrderList')));
+const AccountsWorkOrderView = Loadable(lazyWithChunkReload(() => import('../views/erp/accounts/AccountsWorkOrderView')));
+const ExpensesList = Loadable(lazyWithChunkReload(() => import('../views/erp/accounts/ExpensesList')));
+const ExpenseCreate = Loadable(lazyWithChunkReload(() => import('../views/erp/accounts/ExpenseCreate')));
+const ReceivablesList = Loadable(lazyWithChunkReload(() => import('../views/erp/receivables/ReceivablesList')));
+const AgingSummaryView = Loadable(lazyWithChunkReload(() => import('../views/erp/receivables/AgingSummaryView')));
+const PayablesList = Loadable(lazyWithChunkReload(() => import('../views/erp/payables/PayablesList')));
+const PayablesAgingSummaryView = Loadable(lazyWithChunkReload(() => import('../views/erp/payables/PayablesAgingSummaryView')));
+const PurchaseOrderForm = Loadable(lazyWithChunkReload(() => import('../views/erp/purchase-orders/PurchaseOrderForm')));
+const PurchaseOrderView = Loadable(lazyWithChunkReload(() => import('../views/erp/purchase-orders/PurchaseOrderView')));
+const ClientPurchaseQuotationList = Loadable(lazyWithChunkReload(() => import('../views/erp/purchase-orders/ClientPurchaseQuotationList')));
+const VendorPurchaseQuotationList = Loadable(lazyWithChunkReload(() => import('../views/erp/purchase-orders/VendorPurchaseQuotationList')));
+const ClientPurchaseOrderList = Loadable(lazyWithChunkReload(() => import('../views/erp/purchase-orders/ClientPurchaseOrderList')));
+const SupplierPurchaseOrderList = Loadable(lazyWithChunkReload(() => import('../views/erp/purchase-orders/SupplierPurchaseOrderList')));
+const RoleList = Loadable(lazyWithChunkReload(() => import('../views/erp/roles/RoleList')));
+const RoleForm = Loadable(lazyWithChunkReload(() => import('../views/erp/roles/RoleForm')));
+const UserList = Loadable(lazyWithChunkReload(() => import('../views/erp/users/UserList')));
+const UserForm = Loadable(lazyWithChunkReload(() => import('../views/erp/users/UserForm')));
+const InspectionRequestList = Loadable(lazyWithChunkReload(() => import('../views/erp/inspection-requests/InspectionRequestList')));
+const InspectionRequestView = Loadable(lazyWithChunkReload(() => import('../views/erp/inspection-requests/InspectionRequestView')));
+const WorkOrderList = Loadable(lazyWithChunkReload(() => import('../views/erp/work-orders/WorkOrderList')));
+const WorkOrderForm = Loadable(lazyWithChunkReload(() => import('../views/erp/work-orders/WorkOrderForm')));
+const WorkOrderView = Loadable(lazyWithChunkReload(() => import('../views/erp/work-orders/WorkOrderView')));
+const CompanySettings = Loadable(lazyWithChunkReload(() => import('../views/erp/settings/CompanySettings')));
+const FiscalYearManager = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/FiscalYearManager')));
+const ChartOfAccountsList = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/ChartOfAccountsList')));
+const OpeningBalancesForm = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/OpeningBalancesForm')));
+const JournalList = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/JournalList')));
+const JournalEntryView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/JournalEntryView')));
+const JournalEntryCreate = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/JournalEntryCreate')));
+const GeneralLedgerView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/GeneralLedgerView')));
+const GrnList = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnList')));
+const GrnForm = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnForm')));
+const GrnView = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnView')));
+const TrialBalanceView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/TrialBalanceView')));
+const IncomeStatementView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/IncomeStatementView')));
+const BalanceSheetView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/BalanceSheetView')));
+const CashFlowView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/CashFlowView')));
+const ChangesInEquityView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/ChangesInEquityView')));
+const VatReportView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/VatReportView')));
 
 // Public pages (no auth required)
-const ClientLocationPicker = Loadable(lazy(() => import('../views/public/ClientLocationPicker')));
+const ClientLocationPicker = Loadable(lazyWithChunkReload(() => import('../views/public/ClientLocationPicker')));
 
 // authentication
-const Login = Loadable(lazy(() => import('../views/authentication/auth1/Login')));
-const Login2 = Loadable(lazy(() => import('../views/authentication/auth2/Login2')));
-const Register = Loadable(lazy(() => import('../views/authentication/auth1/Register')));
-const Register2 = Loadable(lazy(() => import('../views/authentication/auth2/Register2')));
-const ForgotPassword = Loadable(lazy(() => import('../views/authentication/auth1/ForgotPassword')));
-const ForgotPassword2 = Loadable(lazy(() => import('../views/authentication/auth2/ForgotPassword2')));
-const TwoSteps = Loadable(lazy(() => import('../views/authentication/auth1/TwoSteps')));
-const TwoSteps2 = Loadable(lazy(() => import('../views/authentication/auth2/TwoSteps2')));
-const Error = Loadable(lazy(() => import('../views/authentication/Error')));
-const Maintenance = Loadable(lazy(() => import('../views/authentication/Maintenance')));
+const Login = Loadable(lazyWithChunkReload(() => import('../views/authentication/auth1/Login')));
+const Login2 = Loadable(lazyWithChunkReload(() => import('../views/authentication/auth2/Login2')));
+const Register = Loadable(lazyWithChunkReload(() => import('../views/authentication/auth1/Register')));
+const Register2 = Loadable(lazyWithChunkReload(() => import('../views/authentication/auth2/Register2')));
+const ForgotPassword = Loadable(lazyWithChunkReload(() => import('../views/authentication/auth1/ForgotPassword')));
+const ForgotPassword2 = Loadable(lazyWithChunkReload(() => import('../views/authentication/auth2/ForgotPassword2')));
+const TwoSteps = Loadable(lazyWithChunkReload(() => import('../views/authentication/auth1/TwoSteps')));
+const TwoSteps2 = Loadable(lazyWithChunkReload(() => import('../views/authentication/auth2/TwoSteps2')));
+const Error = Loadable(lazyWithChunkReload(() => import('../views/authentication/Error')));
+const Maintenance = Loadable(lazyWithChunkReload(() => import('../views/authentication/Maintenance')));
 
 const Router = createBrowserRouter([
   {
     path: '/',
     element: <FullLayout />,
+    errorElement: <ChunkLoadErrorElement />,
     children: [
       { path: '/', element: <Navigate to="/erp/dashboard" /> },
       { path: '/erp', element: <Navigate to="/erp/dashboard" /> },
@@ -188,10 +190,12 @@ const Router = createBrowserRouter([
   {
     path: '/location-pin/:token',
     element: <ClientLocationPicker />,
+    errorElement: <ChunkLoadErrorElement />,
   },
   {
     path: '/auth',
     element: <BlankLayout />,
+    errorElement: <ChunkLoadErrorElement />,
     children: [
       { path: '404', element: <Error /> },
       { path: '/auth/login', element: <Login /> },

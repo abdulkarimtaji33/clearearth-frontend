@@ -1,13 +1,15 @@
-import React, { Suspense, Component } from "react";
+import React, { Suspense, Component, lazy } from "react";
 import Spinner from "../../../../views/spinner/Spinner";
+import { clearChunkReloadFlag, handleChunkLoadError, isChunkLoadError } from "../../../../utils/chunkReload";
 
-const CHUNK_RELOAD_KEY = "chunk_reload_attempted";
-
-function isChunkLoadError(error) {
-  return (
-    error?.message?.includes("Failed to fetch dynamically imported module") ||
-    error?.message?.includes("Importing a module script failed") ||
-    error?.name === "ChunkLoadError"
+export function lazyWithChunkReload(importFn) {
+  return lazy(() =>
+    importFn().catch((error) => {
+      if (handleChunkLoadError(error)) {
+        return new Promise(() => {});
+      }
+      throw error;
+    })
   );
 }
 
@@ -26,17 +28,11 @@ class ChunkErrorBoundary extends Component {
 
   componentDidUpdate(_, prevState) {
     if (!this.state.hasError || prevState.hasError) return;
-
-    const alreadyRetried = sessionStorage.getItem(CHUNK_RELOAD_KEY);
-    if (!alreadyRetried) {
-      sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
-      window.location.reload();
-    }
+    handleChunkLoadError(new Error('chunk load failed'));
   }
 
   componentDidMount() {
-    // Clear the retry flag on successful mount so future navigations can retry
-    sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+    clearChunkReloadFlag();
   }
 
   render() {

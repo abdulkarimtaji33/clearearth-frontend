@@ -18,8 +18,12 @@ import * as Yup from 'yup';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+
+const QUOTABLE_DEAL_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
+const QUOTATION_APPROVAL_ELIGIBLE_STATUSES = ['new', 'sent', 'under_review', 'revised'];
 
 const validationSchema = Yup.object({
   dealId: Yup.number().nullable().required('Deal is required'),
@@ -42,6 +46,11 @@ const QuotationForm = () => {
   const [deals, setDeals] = useState([]);
   const [users, setUsers] = useState([]);
   const [dropdowns, setDropdowns] = useState({ quotationStatus: [] });
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [savedQuotationId, setSavedQuotationId] = useState(null);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
+  const [pinConfigured, setPinConfigured] = useState(false);
   const [initialValues, setInitialValues] = useState({
     dealId: dealIdFromUrl || null,
     preparedBy: null,
@@ -60,7 +69,10 @@ const QuotationForm = () => {
         apiService.getUsers({ pageSize: 500 }),
         apiService.getAllDropdowns(),
       ]);
-      if (dealsRes.success) setDeals(Array.isArray(dealsRes.data) ? dealsRes.data : []);
+      if (dealsRes.success) {
+        const allDeals = Array.isArray(dealsRes.data) ? dealsRes.data : [];
+        setDeals(allDeals.filter((d) => QUOTABLE_DEAL_STATUSES.includes(String(d.status || '').toLowerCase())));
+      }
       if (usersRes.success) setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.items || []);
       if (dropdownRes.success) setDropdowns({ quotationStatus: dropdownRes.data.quotation_status || [] });
     } catch (err) {
@@ -95,6 +107,11 @@ const QuotationForm = () => {
     try {
       const res = await apiService.getDeal(dealId);
       if (res.success && res.data) {
+        if (!QUOTABLE_DEAL_STATUSES.includes(String(res.data.status || '').toLowerCase())) {
+          setError('This deal must be approved before creating a quotation');
+          setInitialValues((prev) => ({ ...prev, dealId: null }));
+          return;
+        }
         const total = res.data.total != null ? Number(res.data.total).toFixed(2) : '';
         setInitialValues((prev) => ({ ...prev, dealId, quotationAmount: total || prev.quotationAmount }));
         if (onAmount && total) onAmount(total);
@@ -105,6 +122,9 @@ const QuotationForm = () => {
   }, []);
 
   useEffect(() => {
+    apiService.getTenant().then((res) => {
+      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+    }).catch(() => {});
     fetchData();
     if (isEdit) fetchQuotation();
     else if (dealIdFromUrl) {
@@ -122,6 +142,11 @@ const QuotationForm = () => {
   const handleSubmit = async (values) => {
     try {
       setError('');
+      const deal = deals.find((d) => d.id === values.dealId);
+      if (!deal) {
+        setError('Selected deal must be approved before creating a quotation');
+        return;
+      }
       const payload = {
         dealId: values.dealId,
         preparedBy: values.preparedBy,
@@ -130,16 +155,64 @@ const QuotationForm = () => {
         status: values.status,
         remarks: values.remarks || null,
       };
+      let savedQuotation;
       if (isEdit) {
-        await apiService.updateQuotation(id, payload);
+        const res = await apiService.updateQuotation(id, payload);
+        savedQuotation = res.data;
         setSuccess('Service quotation updated');
       } else {
-        await apiService.createQuotation(payload);
+        const res = await apiService.createQuotation(payload);
+        savedQuotation = res.data;
         setSuccess('Service quotation created');
       }
-      setTimeout(() => navigate('/erp/quotations'), 1500);
+
+      const quotationId = savedQuotation?.id || (isEdit ? Number(id) : null);
+      const quotationStatus = String(savedQuotation?.status || payload.status || 'new').toLowerCase();
+      if (quotationId && QUOTATION_APPROVAL_ELIGIBLE_STATUSES.includes(quotationStatus)) {
+        setSavedQuotationId(quotationId);
+        setApprovalDialogOpen(true);
+      } else {
+        setTimeout(() => navigate('/erp/quotations'), 1500);
+      }
     } catch (err) {
       setError(err.message || 'Save failed');
+    }
+  };
+
+  const finishAndNavigate = () => {
+    setApprovalDialogOpen(false);
+    setSavedQuotationId(null);
+    setApprovalError('');
+    navigate('/erp/quotations');
+  };
+
+  const handleRequestQuotationApproval = async () => {
+    if (!savedQuotationId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.requestQuotationApproval(savedQuotationId);
+      setSuccess('Approval requested. Your manager has been notified.');
+      setTimeout(finishAndNavigate, 1200);
+    } catch (err) {
+      setApprovalError(err.message || 'Failed to request approval');
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
+  const handleApproveQuotationWithPin = async (pin) => {
+    if (!savedQuotationId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.approveQuotationWithPin(savedQuotationId, pin);
+      setSuccess('Quotation approved successfully!');
+      setTimeout(finishAndNavigate, 1200);
+    } catch (err) {
+      setApprovalError(err.message || 'Invalid PIN or approval failed');
+    } finally {
+      setApprovalLoading(false);
     }
   };
 
@@ -257,11 +330,18 @@ const QuotationForm = () => {
                       {(dropdowns.quotationStatus?.length ? dropdowns.quotationStatus : [
                         { id: 1, value: 'new', display_name: 'New' },
                         { id: 2, value: 'sent', display_name: 'Sent' },
-                        { id: 3, value: 'approved', display_name: 'Approved' },
-                        { id: 4, value: 'rejected', display_name: 'Rejected' },
-                      ]).map((s) => (
-                        <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
-                      ))}
+                        { id: 3, value: 'rejected', display_name: 'Rejected' },
+                      ])
+                        .filter((s) => !['approved', 'pending_approval'].includes(s.value))
+                        .map((s) => (
+                          <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
+                        ))}
+                      {values.status === 'pending_approval' && (
+                        <MenuItem value="pending_approval" disabled>Pending Approval</MenuItem>
+                      )}
+                      {values.status === 'approved' && (
+                        <MenuItem value="approved" disabled>Approved</MenuItem>
+                      )}
                     </TextField>
 
                     <TextField
@@ -290,6 +370,19 @@ const QuotationForm = () => {
             </form>
           )}
         </Formik>
+
+        <ApprovalWorkflowDialogs
+          open={approvalDialogOpen}
+          entityLabel="quotation"
+          pinConfigured={pinConfigured}
+          loading={approvalLoading}
+          error={approvalError}
+          onClose={() => !approvalLoading && finishAndNavigate()}
+          onDecideLater={finishAndNavigate}
+          onRequestApproval={handleRequestQuotationApproval}
+          onApproveWithPin={handleApproveQuotationWithPin}
+          approveButtonLabel="Approve quotation"
+        />
       </Box>
     </PageContainer>
   );

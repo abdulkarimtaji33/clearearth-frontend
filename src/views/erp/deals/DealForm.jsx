@@ -30,8 +30,12 @@ import { IconArrowLeft, IconPlus, IconTrash, IconPhoto, IconReceipt, IconShoppin
 import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import Tooltip from '@mui/material/Tooltip';
 import PageContainer from '../../../components/container/PageContainer';
+import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+
+const DEAL_APPROVAL_ELIGIBLE_STATUSES = ['new'];
+const DEAL_QUOTABLE_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
 
 const validationSchema = Yup.object({
   leadId: Yup.number().nullable().required('Lead is required'),
@@ -138,7 +142,12 @@ const DealForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [savedDealId, setSavedDealId] = useState(null);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
+  const [pinConfigured, setPinConfigured] = useState(false);
+
   const [leads, setLeads] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [contacts, setContacts] = useState([]);
@@ -257,6 +266,12 @@ const DealForm = () => {
       else navigate('/erp/deals', { replace: true });
     }
   }, [canEditDeals, isEdit, id, navigate]);
+
+  useEffect(() => {
+    apiService.getTenant().then((res) => {
+      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+    }).catch(() => {});
+  }, []);
 
   const fetchAllData = useCallback(async () => {
     const results = await Promise.allSettled([
@@ -650,14 +665,25 @@ const DealForm = () => {
         images: dealImages.map(img => ({ path: img.path })),
       };
 
+      let savedDeal;
       if (isEdit) {
-        await apiService.updateDeal(id, payload);
+        const res = await apiService.updateDeal(id, payload);
+        savedDeal = res.data;
         setSuccess('Deal updated successfully!');
       } else {
-        await apiService.createDeal(payload);
+        const res = await apiService.createDeal(payload);
+        savedDeal = res.data;
         setSuccess('Deal created successfully!');
       }
-      setTimeout(() => navigate('/erp/deals'), 1000);
+
+      const dealId = savedDeal?.id || (isEdit ? Number(id) : null);
+      const dealStatus = String(savedDeal?.status || 'new').toLowerCase();
+      if (dealId && DEAL_APPROVAL_ELIGIBLE_STATUSES.includes(dealStatus)) {
+        setSavedDealId(dealId);
+        setApprovalDialogOpen(true);
+      } else {
+        setTimeout(() => navigate('/erp/deals'), 1000);
+      }
     } catch (err) {
       let errorMessage = err.message || 'Failed to save deal';
       if (err.errors) {
@@ -672,6 +698,45 @@ const DealForm = () => {
       setSubmitting(false);
     }
   };
+
+  const finishAndNavigate = () => {
+    setApprovalDialogOpen(false);
+    setSavedDealId(null);
+    setApprovalError('');
+    navigate('/erp/deals');
+  };
+
+  const handleRequestDealApproval = async () => {
+    if (!savedDealId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.requestDealApproval(savedDealId);
+      setSuccess('Approval requested. Your manager has been notified.');
+      setTimeout(finishAndNavigate, 1200);
+    } catch (err) {
+      setApprovalError(err.message || 'Failed to request approval');
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
+  const handleApproveDealWithPin = async (pin) => {
+    if (!savedDealId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.approveDealWithPin(savedDealId, pin);
+      setSuccess('Deal approved successfully!');
+      setTimeout(finishAndNavigate, 1200);
+    } catch (err) {
+      setApprovalError(err.message || 'Invalid PIN or approval failed');
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
+  const dealIsQuotable = DEAL_QUOTABLE_STATUSES.includes(String(initialValues.status || '').toLowerCase());
 
   if (!canEditDeals) return null;
 
@@ -705,7 +770,7 @@ const DealForm = () => {
               {isEdit ? 'Update deal information' : 'Create a new business deal'}
             </Typography>
           </Box>
-          {isEdit && (
+          {isEdit && dealIsQuotable && (
             <Stack direction="row" spacing={1}>
               {initialValues.dealType === 'offer_to_purchase' && (
                 <Button
@@ -1659,9 +1724,17 @@ const DealForm = () => {
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       >
-                        {dropdowns.dealStatus.map((s) => (
-                          <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
-                        ))}
+                        {dropdowns.dealStatus
+                          .filter((s) => !['approved', 'pending_approval'].includes(s.value))
+                          .map((s) => (
+                            <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
+                          ))}
+                        {values.status === 'pending_approval' && (
+                          <MenuItem value="pending_approval" disabled>Pending Approval</MenuItem>
+                        )}
+                        {values.status === 'approved' && (
+                          <MenuItem value="approved" disabled>Approved</MenuItem>
+                        )}
                       </TextField>
                     </Grid>
                     {values.status === 'lost' && (
@@ -2186,6 +2259,19 @@ const DealForm = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <ApprovalWorkflowDialogs
+          open={approvalDialogOpen}
+          entityLabel="deal"
+          pinConfigured={pinConfigured}
+          loading={approvalLoading}
+          error={approvalError}
+          onClose={() => !approvalLoading && finishAndNavigate()}
+          onDecideLater={finishAndNavigate}
+          onRequestApproval={handleRequestDealApproval}
+          onApproveWithPin={handleApproveDealWithPin}
+          approveButtonLabel="Approve deal"
+        />
       </Box>
     </PageContainer>
   );

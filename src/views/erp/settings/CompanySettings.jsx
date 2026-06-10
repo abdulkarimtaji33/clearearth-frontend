@@ -284,9 +284,9 @@ const CompanySettings = () => {
         {canManageApprovalPin && (
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3, overflow: 'hidden' }}>
             <Box sx={{ px: { xs: 2.5, sm: 3 }, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
-              <Typography variant="subtitle1" fontWeight={700}>Lead Approval PIN</Typography>
+              <Typography variant="subtitle1" fontWeight={700}>Approval PIN</Typography>
               <Typography variant="body2" color="text.secondary">
-                Secret PIN lets sales staff self-approve leads after saving. Managers can still approve from the lead list.
+                Secret PIN lets sales staff self-approve leads, deals, and quotations. Managers can still approve from the list.
               </Typography>
             </Box>
             <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>

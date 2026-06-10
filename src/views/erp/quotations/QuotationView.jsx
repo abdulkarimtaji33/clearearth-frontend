@@ -7,11 +7,22 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconEdit, IconFileDownload, IconHammer, IconReceipt, IconCheck, IconFileInvoice } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
+
+const QUOTATION_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 
 const STATUS_COLOR = {
-  new: 'default', sent: 'info', under_review: 'warning', revised: 'primary', approved: 'success', rejected: 'error',
-  new: 'default', pending: 'warning', cancelled: 'error',
+  new: 'default',
+  sent: 'info',
+  under_review: 'warning',
+  revised: 'primary',
+  pending_approval: 'warning',
+  approved: 'success',
+  rejected: 'error',
+  pending: 'warning',
+  cancelled: 'error',
 };
 
 const QuotationView = () => {
@@ -19,6 +30,8 @@ const QuotationView = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const theme = useTheme();
+  const { hasPermission } = useAuth();
+  const canManagerApprove = hasPermission('quotations.approve');
   const returnTo = searchParams.get('return') || '/erp/quotations';
 
   const [q, setQ] = useState(null);
@@ -27,6 +40,10 @@ const QuotationView = () => {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [approveLoading, setApproveLoading] = useState(false);
   const [approveError, setApproveError] = useState('');
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
+  const [pinConfigured, setPinConfigured] = useState(false);
 
   const fetchQ = useCallback(async () => {
     if (!id) return;
@@ -44,6 +61,11 @@ const QuotationView = () => {
   }, [id]);
 
   useEffect(() => { fetchQ(); }, [fetchQ]);
+  useEffect(() => {
+    apiService.getTenant().then((res) => {
+      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+    }).catch(() => {});
+  }, []);
 
   const handlePdf = async () => {
     if (!id) return;
@@ -60,19 +82,54 @@ const QuotationView = () => {
   const qStatus = String(q?.status || '').toLowerCase();
   const isApproved = qStatus === 'approved';
   const linkedWorkOrder = q?.workOrder || q?.work_order;
-  const canApproveQuotation = q && !isApproved && qStatus !== 'rejected';
+  const canAttemptApproval = q && QUOTATION_APPROVABLE_STATUSES.includes(qStatus);
 
   const handleApproveQuotation = async () => {
     if (!id) return;
+    setApproveError('');
+    if (canManagerApprove) {
+      try {
+        setApproveLoading(true);
+        await apiService.approveQuotation(id);
+        await fetchQ();
+      } catch (e) {
+        setApproveError(e.message || 'Failed to approve');
+      } finally {
+        setApproveLoading(false);
+      }
+      return;
+    }
+    setApprovalError('');
+    setApprovalDialogOpen(true);
+  };
+
+  const handleRequestQuotationApproval = async () => {
+    if (!id) return;
     try {
-      setApproveLoading(true);
-      setApproveError('');
-      await apiService.updateQuotation(id, { status: 'approved' });
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.requestQuotationApproval(id);
+      setApprovalDialogOpen(false);
       await fetchQ();
     } catch (e) {
-      setApproveError(e.message || 'Failed to approve');
+      setApprovalError(e.message || 'Failed to request approval');
     } finally {
-      setApproveLoading(false);
+      setApprovalLoading(false);
+    }
+  };
+
+  const handleApproveQuotationWithPin = async (pin) => {
+    if (!id) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.approveQuotationWithPin(id, pin);
+      setApprovalDialogOpen(false);
+      await fetchQ();
+    } catch (e) {
+      setApprovalError(e.message || 'Invalid PIN or approval failed');
+    } finally {
+      setApprovalLoading(false);
     }
   };
   const dealItems = (q?.deal?.items || []).slice().sort((a, b) => (a.id || 0) - (b.id || 0));
@@ -123,7 +180,7 @@ const QuotationView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap">
-            {canApproveQuotation && (
+            {canAttemptApproval && (
               <Button
                 variant="contained"
                 color="success"
@@ -258,6 +315,19 @@ const QuotationView = () => {
             </Box>
           )}
         </Paper>
+
+        <ApprovalWorkflowDialogs
+          open={approvalDialogOpen}
+          entityLabel="quotation"
+          pinConfigured={pinConfigured}
+          loading={approvalLoading}
+          error={approvalError}
+          onClose={() => setApprovalDialogOpen(false)}
+          onDecideLater={() => setApprovalDialogOpen(false)}
+          onRequestApproval={handleRequestQuotationApproval}
+          onApproveWithPin={handleApproveQuotationWithPin}
+          approveButtonLabel="Approve quotation"
+        />
       </Box>
     </PageContainer>
   );

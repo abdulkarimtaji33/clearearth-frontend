@@ -61,6 +61,7 @@ import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import RecordDetailDrawer from '../../../components/erp/RecordDetailDrawer';
+import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -79,7 +80,7 @@ const leadStatusChipColor = (status) => {
 
 const LEAD_APPROVABLE_STATUSES = ['new', 'contacted', 'pending_approval'];
 
-const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approving, canApproveLead }) => {
+const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approving, canAttemptApproval }) => {
   const theme = useTheme();
   const companyName = lead.company?.company_name || '';
   const initial = (companyName.trim().charAt(0) || lead.lead_number?.charAt(0) || '?').toUpperCase();
@@ -255,7 +256,7 @@ const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approvi
         </Box>
       ) : null}
 
-      {canApproveLead && LEAD_APPROVABLE_STATUSES.includes(String(lead.status || '').toLowerCase()) && (
+      {canAttemptApproval && LEAD_APPROVABLE_STATUSES.includes(String(lead.status || '').toLowerCase()) && (
         <Button
           variant="contained"
           color="success"
@@ -285,7 +286,8 @@ const LeadList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { hasPermission } = useAuth();
-  const canApproveLead = hasPermission('leads.approve');
+  const canAttemptApproval = hasPermission('leads.update');
+  const canManagerApprove = hasPermission('leads.approve');
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -318,6 +320,11 @@ const LeadList = () => {
   const [viewLoading, setViewLoading] = useState(false);
   const [viewLead, setViewLead] = useState(null);
   const [approvingLeadId, setApprovingLeadId] = useState(null);
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approvalTargetId, setApprovalTargetId] = useState(null);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
+  const [pinConfigured, setPinConfigured] = useState(false);
 
   const fetchDropdowns = useCallback(async () => {
     const results = await Promise.allSettled([
@@ -378,6 +385,9 @@ const LeadList = () => {
 
   useEffect(() => {
     fetchDropdowns();
+    apiService.getTenant().then((res) => {
+      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+    }).catch(() => {});
   }, [fetchDropdowns]);
 
   useEffect(() => {
@@ -421,21 +431,70 @@ const LeadList = () => {
     setSelectedLead(null);
   };
 
+  const refreshLeadAfterApproval = async (leadId) => {
+    fetchLeads();
+    if (viewLead?.id === leadId) {
+      const res = await apiService.getLead(leadId);
+      if (res.success) setViewLead(res.data);
+    }
+  };
+
   const handleApproveLead = async (leadId) => {
-    try {
-      setApprovingLeadId(leadId);
-      setError('');
-      await apiService.qualifyLead(leadId, {});
-      setSuccess('Lead approved');
-      fetchLeads();
-      if (viewLead?.id === leadId) {
-        const res = await apiService.getLead(leadId);
-        if (res.success) setViewLead(res.data);
+    if (!leadId) return;
+    setError('');
+    if (canManagerApprove) {
+      try {
+        setApprovingLeadId(leadId);
+        await apiService.qualifyLead(leadId, {});
+        setSuccess('Lead approved');
+        await refreshLeadAfterApproval(leadId);
+      } catch (err) {
+        setError(err.message || 'Failed to approve lead');
+      } finally {
+        setApprovingLeadId(null);
       }
+      return;
+    }
+    setApprovalTargetId(leadId);
+    setApprovalError('');
+    setApprovalDialogOpen(true);
+  };
+
+  const closeApprovalDialog = () => {
+    setApprovalDialogOpen(false);
+    setApprovalTargetId(null);
+    setApprovalError('');
+  };
+
+  const handleRequestLeadApproval = async () => {
+    if (!approvalTargetId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.requestLeadApproval(approvalTargetId);
+      setSuccess('Approval requested. Your manager has been notified.');
+      closeApprovalDialog();
+      await refreshLeadAfterApproval(approvalTargetId);
     } catch (err) {
-      setError(err.message || 'Failed to approve lead');
+      setApprovalError(err.message || 'Failed to request approval');
     } finally {
-      setApprovingLeadId(null);
+      setApprovalLoading(false);
+    }
+  };
+
+  const handleApproveLeadWithPin = async (pin) => {
+    if (!approvalTargetId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.approveLeadWithPin(approvalTargetId, pin);
+      setSuccess('Lead approved');
+      closeApprovalDialog();
+      await refreshLeadAfterApproval(approvalTargetId);
+    } catch (err) {
+      setApprovalError(err.message || 'Invalid PIN or approval failed');
+    } finally {
+      setApprovalLoading(false);
     }
   };
 
@@ -853,7 +912,7 @@ const LeadList = () => {
             <IconEdit size={18} style={{ marginRight: 8 }} />
             Edit
           </MenuItem>
-          {canApproveLead && LEAD_APPROVABLE_STATUSES.includes(String(selectedLead?.status || '').toLowerCase()) && (
+          {canAttemptApproval && LEAD_APPROVABLE_STATUSES.includes(String(selectedLead?.status || '').toLowerCase()) && (
             <MenuItem
               onClick={() => {
                 handleApproveLead(selectedLead.id);
@@ -913,11 +972,24 @@ const LeadList = () => {
                 navigate(`/erp/companies/view/${companyId}`);
               }}
               onApprove={handleApproveLead}
-              canApproveLead={canApproveLead}
+              canAttemptApproval={canAttemptApproval}
               approving={approvingLeadId === viewLead?.id}
             />
           )}
         </RecordDetailDrawer>
+
+        <ApprovalWorkflowDialogs
+          open={approvalDialogOpen}
+          entityLabel="lead"
+          pinConfigured={pinConfigured}
+          loading={approvalLoading}
+          error={approvalError}
+          onClose={closeApprovalDialog}
+          onDecideLater={closeApprovalDialog}
+          onRequestApproval={handleRequestLeadApproval}
+          onApproveWithPin={handleApproveLeadWithPin}
+          approveButtonLabel="Approve lead"
+        />
 
         <Dialog open={disqualifyDialogOpen} onClose={() => setDisqualifyDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
           <DialogTitle>Disqualify Lead</DialogTitle>

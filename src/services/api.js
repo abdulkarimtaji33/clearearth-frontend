@@ -290,6 +290,18 @@ class ApiService {
     return this.delete(`/deals/${id}`);
   }
 
+  async approveDeal(id) {
+    return this.post(`/deals/${id}/approve`, {});
+  }
+
+  async requestDealApproval(id) {
+    return this.post(`/deals/${id}/request-approval`, {});
+  }
+
+  async approveDealWithPin(id, pin) {
+    return this.post(`/deals/${id}/approve-with-pin`, { pin });
+  }
+
   async updateDealPayment(id, paidAmount) {
     return this.post(`/deals/${id}/payment`, { paidAmount });
   }
@@ -360,6 +372,18 @@ class ApiService {
 
   async updateQuotation(id, data) {
     return this.put(`/quotations/${id}`, data);
+  }
+
+  async approveQuotation(id) {
+    return this.post(`/quotations/${id}/approve`, {});
+  }
+
+  async requestQuotationApproval(id) {
+    return this.post(`/quotations/${id}/request-approval`, {});
+  }
+
+  async approveQuotationWithPin(id, pin) {
+    return this.post(`/quotations/${id}/approve-with-pin`, { pin });
   }
 
   async deleteQuotation(id) {

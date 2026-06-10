@@ -40,12 +40,14 @@ import { IconPlus, IconEdit, IconTrash, IconSearch, IconEye, IconFilterOff, Icon
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
+import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { shouldHideDealFinancials } from '../../../utils/authHelpers';
 
 const STATUS_CONFIG = {
   new:            { label: 'New',            color: 'default' },
+  pending_approval: { label: 'Pending Approval', color: 'warning' },
   approved:       { label: 'Approved',       color: 'info' },
   quotation_sent: { label: 'Quotation Sent', color: 'primary' },
   negotiation:    { label: 'Negotiation',    color: 'warning' },
@@ -58,7 +60,9 @@ const STATUS_CONFIG = {
   cancelled:      { label: 'Cancelled',      color: 'error' },
 };
 
-const DEAL_STATUSES = ['new', 'approved', 'quotation_sent', 'negotiation', 'won', 'lost'];
+const DEAL_STATUSES = ['new', 'pending_approval', 'approved', 'quotation_sent', 'negotiation', 'won', 'lost'];
+const DEAL_APPROVABLE_STATUSES = ['new', 'pending_approval'];
+const DEAL_PICKER_STATUSES = ['new', 'quotation_sent', 'negotiation', 'won', 'lost'];
 
 const PAYMENT_CONFIG = {
   unpaid:  { label: 'Unpaid',   color: 'error' },
@@ -179,17 +183,19 @@ const InlineStatusPicker = ({ deal, onUpdated, onError, readOnly = false }) => {
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
         PaperProps={{ sx: { borderRadius: 2, minWidth: 180, py: 0.5, boxShadow: theme.shadows[8] } }}
       >
-        {DEAL_STATUSES.map(s => {
-          const c = STATUS_CONFIG[s];
+        {(deal.status === 'pending_approval' ? ['pending_approval', 'lost'] : DEAL_PICKER_STATUSES).map(s => {
+          const c = STATUS_CONFIG[s] || { label: s, color: 'default' };
+          const isCurrent = s === deal.status;
           return (
             <MenuItemMui
               key={s}
-              onClick={() => handleSelect(s)}
-              selected={s === deal.status}
+              onClick={() => !isCurrent && handleSelect(s)}
+              selected={isCurrent}
+              disabled={isCurrent}
               sx={{ fontSize: '0.85rem', py: 0.75, gap: 1 }}
             >
               <Chip label={c.label} size="small" color={c.color} sx={{ fontWeight: 600, pointerEvents: 'none', minWidth: 100 }} />
-              {s === deal.status && <IconCheck size={14} style={{ marginLeft: 'auto', opacity: 0.6 }} />}
+              {isCurrent && <IconCheck size={14} style={{ marginLeft: 'auto', opacity: 0.6 }} />}
             </MenuItemMui>
           );
         })}
@@ -225,6 +231,7 @@ const DealList = () => {
   const { user, hasPermission } = useAuth();
   const hideDealAmounts = shouldHideDealFinancials(user);
   const canEditDeals = hasPermission('deals.update');
+  const canManagerApprove = hasPermission('deals.approve');
   const tableColSpan = hideDealAmounts ? 6 : 7;
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -253,11 +260,22 @@ const DealList = () => {
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approvalTargetId, setApprovalTargetId] = useState(null);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
+  const [pinConfigured, setPinConfigured] = useState(false);
+  const [approvingDealId, setApprovingDealId] = useState(null);
 
   const pageSize = 10;
 
   useEffect(() => { fetchDeals(); }, [page, search, statusFilter, paymentStatusFilter, companyFilter, contactFilter, assignedToFilter, productFilter, minAmountFilter, maxAmountFilter, dateFrom, dateTo]);
   useEffect(() => { fetchRelatedData(); }, []);
+  useEffect(() => {
+    apiService.getTenant().then((res) => {
+      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+    }).catch(() => {});
+  }, []);
 
   const fetchRelatedData = async () => {
     const results = await Promise.allSettled([
@@ -327,6 +345,65 @@ const DealList = () => {
   const handleStatusUpdated = (dealId, newStatus, lossReason) => {
     setDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: newStatus, loss_reason: lossReason ?? d.loss_reason } : d));
     setSuccess('Status updated');
+  };
+
+  const closeApprovalDialog = () => {
+    setApprovalDialogOpen(false);
+    setApprovalTargetId(null);
+    setApprovalError('');
+  };
+
+  const handleApproveDeal = async (dealId) => {
+    if (!dealId) return;
+    setError('');
+    if (canManagerApprove) {
+      try {
+        setApprovingDealId(dealId);
+        await apiService.approveDeal(dealId);
+        setSuccess('Deal approved');
+        fetchDeals();
+      } catch (err) {
+        setError(err.message || 'Failed to approve deal');
+      } finally {
+        setApprovingDealId(null);
+      }
+      return;
+    }
+    setApprovalTargetId(dealId);
+    setApprovalError('');
+    setApprovalDialogOpen(true);
+  };
+
+  const handleRequestDealApproval = async () => {
+    if (!approvalTargetId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.requestDealApproval(approvalTargetId);
+      setSuccess('Approval requested. Your manager has been notified.');
+      closeApprovalDialog();
+      fetchDeals();
+    } catch (err) {
+      setApprovalError(err.message || 'Failed to request approval');
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
+  const handleApproveDealWithPin = async (pin) => {
+    if (!approvalTargetId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.approveDealWithPin(approvalTargetId, pin);
+      setSuccess('Deal approved');
+      closeApprovalDialog();
+      fetchDeals();
+    } catch (err) {
+      setApprovalError(err.message || 'Invalid PIN or approval failed');
+    } finally {
+      setApprovalLoading(false);
+    }
   };
 
   return (
@@ -542,12 +619,37 @@ const DealList = () => {
             <MenuItemMui onClick={() => { navigate(`/erp/deals/edit/${selectedDeal?.id}`); setAnchorEl(null); }}>
               <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
             </MenuItemMui>
+            {DEAL_APPROVABLE_STATUSES.includes(String(selectedDeal?.status || '').toLowerCase()) && (
+              <MenuItemMui
+                onClick={() => {
+                  handleApproveDeal(selectedDeal.id);
+                  setAnchorEl(null);
+                }}
+                disabled={approvingDealId === selectedDeal?.id}
+              >
+                <IconCheck size={16} style={{ marginRight: 10 }} />
+                {approvingDealId === selectedDeal?.id ? 'Approving…' : 'Approve'}
+              </MenuItemMui>
+            )}
             <MenuItemMui onClick={() => { setDealToDelete(selectedDeal); setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
               <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
             </MenuItemMui>
           </>
         )}
       </Menu>
+
+      <ApprovalWorkflowDialogs
+        open={approvalDialogOpen}
+        entityLabel="deal"
+        pinConfigured={pinConfigured}
+        loading={approvalLoading}
+        error={approvalError}
+        onClose={closeApprovalDialog}
+        onDecideLater={closeApprovalDialog}
+        onRequestApproval={handleRequestDealApproval}
+        onApproveWithPin={handleApproveDealWithPin}
+        approveButtonLabel="Approve deal"
+      />
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle fontWeight={700}>Delete Deal</DialogTitle>

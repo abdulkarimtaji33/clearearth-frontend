@@ -36,29 +36,34 @@ import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDo
 import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
+import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const STATUS_COLOR = {
-  new:          'default',
-  sent:         'info',
+  new: 'default',
+  sent: 'info',
   under_review: 'warning',
-  revised:      'primary',
-  approved:     'success',
-  rejected:     'error',
-  // legacy
-  new:        'default',
-  pending:      'warning',
-  cancelled:    'error',
+  revised: 'primary',
+  pending_approval: 'warning',
+  approved: 'success',
+  rejected: 'error',
+  pending: 'warning',
+  cancelled: 'error',
 };
 
 const QUOTATION_STATUSES = [
-  { value: 'new',          label: 'New',          color: 'default' },
-  { value: 'sent',         label: 'Sent',         color: 'info' },
+  { value: 'new', label: 'New', color: 'default' },
+  { value: 'sent', label: 'Sent', color: 'info' },
   { value: 'under_review', label: 'Under Review', color: 'warning' },
-  { value: 'revised',      label: 'Revised',      color: 'primary' },
-  { value: 'approved',     label: 'Approved',     color: 'success' },
-  { value: 'rejected',     label: 'Rejected',     color: 'error' },
+  { value: 'revised', label: 'Revised', color: 'primary' },
+  { value: 'pending_approval', label: 'Pending Approval', color: 'warning' },
+  { value: 'approved', label: 'Approved', color: 'success' },
+  { value: 'rejected', label: 'Rejected', color: 'error' },
 ];
+
+const QUOTATION_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
+const QUOTATION_PICKER_STATUSES = ['new', 'sent', 'under_review', 'revised', 'rejected'];
 
 const InlineStatusPicker = ({ quotation, statusLabel: statusLabelFn, onUpdated, onError }) => {
   const theme = useTheme();
@@ -106,17 +111,24 @@ const InlineStatusPicker = ({ quotation, statusLabel: statusLabelFn, onUpdated, 
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
         PaperProps={{ sx: { borderRadius: 2, minWidth: 180, py: 0.5, boxShadow: theme.shadows[8] } }}
       >
-        {QUOTATION_STATUSES.map(s => (
-          <MenuItem
-            key={s.value}
-            onClick={() => handleSelect(s.value)}
-            selected={s.value === quotation.status}
-            sx={{ fontSize: '0.85rem', py: 0.75, gap: 1 }}
-          >
-            <Chip label={s.label} size="small" color={s.color} sx={{ fontWeight: 600, pointerEvents: 'none', minWidth: 100 }} />
-            {s.value === quotation.status && <IconCheck size={14} style={{ marginLeft: 'auto', opacity: 0.6 }} />}
-          </MenuItem>
-        ))}
+        {(quotation.status === 'pending_approval'
+          ? [{ value: 'pending_approval', label: 'Pending Approval', color: 'warning' }, { value: 'rejected', label: 'Rejected', color: 'error' }]
+          : QUOTATION_PICKER_STATUSES.map((v) => QUOTATION_STATUSES.find((s) => s.value === v)).filter(Boolean)
+        ).map((s) => {
+          const isCurrent = s.value === quotation.status;
+          return (
+            <MenuItem
+              key={s.value}
+              onClick={() => !isCurrent && handleSelect(s.value)}
+              selected={isCurrent}
+              disabled={isCurrent}
+              sx={{ fontSize: '0.85rem', py: 0.75, gap: 1 }}
+            >
+              <Chip label={s.label} size="small" color={s.color} sx={{ fontWeight: 600, pointerEvents: 'none', minWidth: 100 }} />
+              {isCurrent && <IconCheck size={14} style={{ marginLeft: 'auto', opacity: 0.6 }} />}
+            </MenuItem>
+          );
+        })}
       </Popover>
     </>
   );
@@ -125,6 +137,9 @@ const InlineStatusPicker = ({ quotation, statusLabel: statusLabelFn, onUpdated, 
 const QuotationList = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { hasPermission } = useAuth();
+  const canAttemptApproval = hasPermission('quotations.update');
+  const canManagerApprove = hasPermission('quotations.approve');
   const isOrdersView = location.pathname.includes('/service-orders');
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
@@ -144,6 +159,12 @@ const QuotationList = () => {
   const [pdfLoading, setPdfLoading] = useState(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approvalTargetId, setApprovalTargetId] = useState(null);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
+  const [pinConfigured, setPinConfigured] = useState(false);
+  const [approvingQuotationId, setApprovingQuotationId] = useState(null);
 
   const fetchDropdowns = useCallback(async () => {
     try {
@@ -178,6 +199,11 @@ const QuotationList = () => {
   }, [page, rowsPerPage, search, statusFilter, dateFrom, dateTo, isOrdersView]);
 
   useEffect(() => { fetchDropdowns(); }, [fetchDropdowns]);
+  useEffect(() => {
+    apiService.getTenant().then((res) => {
+      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+    }).catch(() => {});
+  }, []);
   useEffect(() => { fetchQuotations(); }, [fetchQuotations]);
 
   const handleDownloadPdf = async (q) => {
@@ -213,6 +239,65 @@ const QuotationList = () => {
     setSuccess('Status updated');
   };
   const isApproved = (q) => String(q?.status || '').toLowerCase() === 'approved';
+
+  const closeApprovalDialog = () => {
+    setApprovalDialogOpen(false);
+    setApprovalTargetId(null);
+    setApprovalError('');
+  };
+
+  const handleApproveQuotation = async (quotationId) => {
+    if (!quotationId) return;
+    setError('');
+    if (canManagerApprove) {
+      try {
+        setApprovingQuotationId(quotationId);
+        await apiService.approveQuotation(quotationId);
+        setSuccess('Quotation approved');
+        fetchQuotations();
+      } catch (err) {
+        setError(err.message || 'Failed to approve quotation');
+      } finally {
+        setApprovingQuotationId(null);
+      }
+      return;
+    }
+    setApprovalTargetId(quotationId);
+    setApprovalError('');
+    setApprovalDialogOpen(true);
+  };
+
+  const handleRequestQuotationApproval = async () => {
+    if (!approvalTargetId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.requestQuotationApproval(approvalTargetId);
+      setSuccess('Approval requested. Your manager has been notified.');
+      closeApprovalDialog();
+      fetchQuotations();
+    } catch (err) {
+      setApprovalError(err.message || 'Failed to request approval');
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
+  const handleApproveQuotationWithPin = async (pin) => {
+    if (!approvalTargetId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.approveQuotationWithPin(approvalTargetId, pin);
+      setSuccess('Quotation approved');
+      closeApprovalDialog();
+      fetchQuotations();
+    } catch (err) {
+      setApprovalError(err.message || 'Invalid PIN or approval failed');
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
 
   const pageTitle = isOrdersView ? 'Clients Service Orders' : 'Service Quotations';
   const pageDesc = isOrdersView
@@ -339,6 +424,18 @@ const QuotationList = () => {
           <MenuItem onClick={() => { navigate(`/erp/quotations/edit/${selectedQuotation?.id}`); setAnchorEl(null); }}>
             <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
           </MenuItem>
+          {!isOrdersView && canAttemptApproval && QUOTATION_APPROVABLE_STATUSES.includes(String(selectedQuotation?.status || '').toLowerCase()) && (
+            <MenuItem
+              onClick={() => {
+                handleApproveQuotation(selectedQuotation.id);
+                setAnchorEl(null);
+              }}
+              disabled={approvingQuotationId === selectedQuotation?.id}
+            >
+              <IconCheck size={16} style={{ marginRight: 10 }} />
+              {approvingQuotationId === selectedQuotation?.id ? 'Approving…' : 'Approve'}
+            </MenuItem>
+          )}
           <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation); setAnchorEl(null); }} disabled={pdfLoading === selectedQuotation?.id}>
             {pdfLoading === selectedQuotation?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
             {isApproved(selectedQuotation) ? 'Download service order PDF' : 'Download quotation PDF'}
@@ -358,6 +455,19 @@ const QuotationList = () => {
             <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
           </MenuItem>
         </Menu>
+
+        <ApprovalWorkflowDialogs
+          open={approvalDialogOpen}
+          entityLabel="quotation"
+          pinConfigured={pinConfigured}
+          loading={approvalLoading}
+          error={approvalError}
+          onClose={closeApprovalDialog}
+          onDecideLater={closeApprovalDialog}
+          onRequestApproval={handleRequestQuotationApproval}
+          onApproveWithPin={handleApproveQuotationWithPin}
+          approveButtonLabel="Approve quotation"
+        />
       </Box>
     </PageContainer>
   );

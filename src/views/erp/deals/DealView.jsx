@@ -64,14 +64,19 @@ import {
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import InspectionRequestDetail from '../../../components/erp/InspectionRequestDetail';
+import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import config from 'src/context/config';
 import { useAuth } from '../../../context/AuthContext';
 import { getUserRole, shouldHideDealFinancials } from '../../../utils/authHelpers';
 
+const DEAL_APPROVABLE_STATUSES = ['new', 'pending_approval'];
+const DEAL_QUOTABLE_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
+
 const getStatusColor = (status) => {
   const colors = {
     new: 'default',
+    pending_approval: 'warning',
     approved: 'info',
     quotation_sent: 'primary',
     negotiation: 'warning',
@@ -398,6 +403,7 @@ const DealView = () => {
   const hideDealAmounts = shouldHideDealFinancials(user);
   const showWorkOrderActions = getUserRole(user) !== 'sales';
   const canEditDeals = hasPermission('deals.update');
+  const canManagerApprove = hasPermission('deals.approve');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deal, setDeal] = useState(null);
@@ -431,11 +437,18 @@ const DealView = () => {
   const [inspectionPopupLoading, setInspectionPopupLoading] = useState(false);
   const [uomList, setUomList] = useState([]);
   const [approveLoading, setApproveLoading] = useState(false);
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
+  const [pinConfigured, setPinConfigured] = useState(false);
 
   useEffect(() => {
     apiService.getAllDropdowns().then((r) => {
       if (r.success) setUomList(r.data.units_of_measure || []);
     });
+    apiService.getTenant().then((res) => {
+      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+    }).catch(() => {});
   }, []);
 
   const formatDealItemUom = (item) => {
@@ -513,19 +526,55 @@ const DealView = () => {
   }, []);
 
   const dealStatusLower = String(deal?.status || '').toLowerCase();
-  const canApproveDeal = canEditDeals && deal && !['approved', 'won', 'lost'].includes(dealStatusLower);
+  const canAttemptApproval = canEditDeals && deal && DEAL_APPROVABLE_STATUSES.includes(dealStatusLower);
+  const canCreateQuotation = canEditDeals && deal && DEAL_QUOTABLE_STATUSES.includes(dealStatusLower);
 
   const handleApproveDeal = async () => {
     if (!id || !deal) return;
+    setError('');
+    if (canManagerApprove) {
+      try {
+        setApproveLoading(true);
+        await apiService.approveDeal(id);
+        await fetchDeal();
+      } catch (err) {
+        setError(err.message || 'Failed to approve deal');
+      } finally {
+        setApproveLoading(false);
+      }
+      return;
+    }
+    setApprovalError('');
+    setApprovalDialogOpen(true);
+  };
+
+  const handleRequestDealApproval = async () => {
+    if (!id) return;
     try {
-      setApproveLoading(true);
-      setError('');
-      await apiService.updateDeal(id, { status: 'approved' });
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.requestDealApproval(id);
+      setApprovalDialogOpen(false);
       await fetchDeal();
     } catch (err) {
-      setError(err.message || 'Failed to approve deal');
+      setApprovalError(err.message || 'Failed to request approval');
     } finally {
-      setApproveLoading(false);
+      setApprovalLoading(false);
+    }
+  };
+
+  const handleApproveDealWithPin = async (pin) => {
+    if (!id) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.approveDealWithPin(id, pin);
+      setApprovalDialogOpen(false);
+      await fetchDeal();
+    } catch (err) {
+      setApprovalError(err.message || 'Invalid PIN or approval failed');
+    } finally {
+      setApprovalLoading(false);
     }
   };
 
@@ -686,7 +735,7 @@ const DealView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
-            {canEditDeals && (
+            {canCreateQuotation && (
             <Button
               variant="outlined"
               size="small"
@@ -697,7 +746,7 @@ const DealView = () => {
               Create quotation
             </Button>
             )}
-            {canEditDeals && (
+            {canCreateQuotation && (
             <Menu
               anchorEl={quotMenuAnchor}
               open={quotMenuOpen}
@@ -726,7 +775,7 @@ const DealView = () => {
               )}
             </Menu>
             )}
-            {canApproveDeal && (
+            {canAttemptApproval && (
               <Button
                 variant="contained"
                 color="success"
@@ -1407,6 +1456,19 @@ const DealView = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <ApprovalWorkflowDialogs
+          open={approvalDialogOpen}
+          entityLabel="deal"
+          pinConfigured={pinConfigured}
+          loading={approvalLoading}
+          error={approvalError}
+          onClose={() => setApprovalDialogOpen(false)}
+          onDecideLater={() => setApprovalDialogOpen(false)}
+          onRequestApproval={handleRequestDealApproval}
+          onApproveWithPin={handleApproveDealWithPin}
+          approveButtonLabel="Approve deal"
+        />
       </Box>
     </PageContainer>
   );

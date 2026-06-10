@@ -283,6 +283,7 @@ const LeadForm = () => {
         phone: newContactValues.phone || undefined,
         designation: newContactValues.designation,
         companyId: companyId || null,
+        contactType: 'clients',
       });
       const newContact = res.data;
       setContacts((prev) => [...prev, newContact]);

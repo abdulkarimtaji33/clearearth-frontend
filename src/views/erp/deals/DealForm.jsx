@@ -33,6 +33,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 
 const DEAL_APPROVAL_ELIGIBLE_STATUSES = ['new'];
 const DEAL_QUOTABLE_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
@@ -139,6 +140,7 @@ const DealForm = () => {
   const roleName = user?.role?.name ?? user?.role;
   const showAssignedTo = canAssignDeals(roleName);
   const canEditDeals = hasPermission('deals.update');
+  const canChangeStatus = canChangeRecordStatus(user, hasPermission, 'deals.approve');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -642,9 +644,10 @@ const DealForm = () => {
       }
 
       const isOtcContainer = values.dealType === 'offer_to_charge' && values.isContainerType;
-      const { hasDownstreamPartner, downstreamPartnerSupplierId, paymentStatus, paidAmount, ...restValues } = values;
+      const { hasDownstreamPartner, downstreamPartnerSupplierId, paymentStatus, paidAmount, status, ...restValues } = values;
       const payload = {
         ...restValues,
+        ...(canChangeStatus ? { status } : {}),
         downstreamPartnerSupplierId: hasDownstreamPartner ? downstreamPartnerSupplierId : null,
         containerType: isOtcContainer ? values.containerType : null,
         locationType: isOtcContainer ? values.locationType : null,
@@ -1711,31 +1714,42 @@ const DealForm = () => {
                   
                   <Grid container spacing={3}>
                     <Grid size={{ xs: 12, md: 3 }}>
-                      <TextField
-                        fullWidth
-                        select
-                        label="Status"
-                        name="status"
-                        value={values.status || ''}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={touched.status && Boolean(errors.status)}
-                        helperText={touched.status ? errors.status : ' '}
-                        required
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      >
-                        {dropdowns.dealStatus
-                          .filter((s) => !['approved', 'pending_approval'].includes(s.value))
-                          .map((s) => (
-                            <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
-                          ))}
-                        {values.status === 'pending_approval' && (
-                          <MenuItem value="pending_approval" disabled>Pending Approval</MenuItem>
-                        )}
-                        {values.status === 'approved' && (
-                          <MenuItem value="approved" disabled>Approved</MenuItem>
-                        )}
-                      </TextField>
+                      {canChangeStatus ? (
+                        <TextField
+                          fullWidth
+                          select
+                          label="Status"
+                          name="status"
+                          value={values.status || ''}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          error={touched.status && Boolean(errors.status)}
+                          helperText={touched.status ? errors.status : ' '}
+                          required
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        >
+                          {dropdowns.dealStatus
+                            .filter((s) => !['approved', 'pending_approval'].includes(s.value))
+                            .map((s) => (
+                              <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
+                            ))}
+                          {values.status === 'pending_approval' && (
+                            <MenuItem value="pending_approval" disabled>Pending Approval</MenuItem>
+                          )}
+                          {values.status === 'approved' && (
+                            <MenuItem value="approved" disabled>Approved</MenuItem>
+                          )}
+                        </TextField>
+                      ) : (
+                        <TextField
+                          fullWidth
+                          label="Status"
+                          value={formatStatusLabel(values.status || 'new')}
+                          disabled
+                          helperText="Status is managed through the approval workflow"
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                      )}
                     </Grid>
                     {values.status === 'lost' && (
                       <Grid size={{ xs: 12 }}>

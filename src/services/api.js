@@ -564,6 +564,18 @@ class ApiService {
     return this.put(`/purchase-orders/${id}`, data);
   }
 
+  async approvePurchaseOrder(id) {
+    return this.post(`/purchase-orders/${id}/approve`, {});
+  }
+
+  async requestPurchaseOrderApproval(id) {
+    return this.post(`/purchase-orders/${id}/request-approval`, {});
+  }
+
+  async approvePurchaseOrderWithPin(id, pin) {
+    return this.post(`/purchase-orders/${id}/approve-with-pin`, { pin });
+  }
+
   async deletePurchaseOrder(id) {
     return this.delete(`/purchase-orders/${id}`);
   }

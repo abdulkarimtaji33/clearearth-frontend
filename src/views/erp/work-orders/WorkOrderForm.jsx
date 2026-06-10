@@ -23,6 +23,7 @@ import { CSS } from '@dnd-kit/utilities';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 import WorkTypesManageDialog from './WorkTypesManageDialog';
 import TaskStatusSegments from './TaskStatusSegments';
 
@@ -170,7 +171,8 @@ const WorkOrderForm = () => {
   const purchaseOrderIdFromUrl = searchParams.get('purchaseOrderId')
     ? parseInt(searchParams.get('purchaseOrderId'), 10)
     : null;
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
+  const canChangeStatus = canChangeRecordStatus(user, hasPermission);
 
   const [loading, setLoading] = useState(isEdit || Boolean(quotationIdFromUrl) || Boolean(purchaseOrderIdFromUrl));
   const [saving, setSaving] = useState(false);
@@ -529,7 +531,7 @@ const WorkOrderForm = () => {
         purchaseOrderId: !isEdit && purchaseOrderIdFromUrl ? purchaseOrderIdFromUrl : undefined,
         title: form.title || null,
         notes: form.notes || null,
-        status: form.status,
+        ...(canChangeStatus ? { status: form.status } : {}),
         tasks: form.tasks
           .filter(t => taskHasBillableContent(t))
           .map(t => ({
@@ -648,18 +650,29 @@ const WorkOrderForm = () => {
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Status"
-                  value={form.status}
-                  onChange={e => setField('status', e.target.value)}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                >
-                  {WO_STATUS_OPTIONS.map(s => (
-                    <MenuItem key={s} value={s}>{s.replace(/_/g, ' ')}</MenuItem>
-                  ))}
-                </TextField>
+                {canChangeStatus ? (
+                  <TextField
+                    select
+                    fullWidth
+                    label="Status"
+                    value={form.status}
+                    onChange={e => setField('status', e.target.value)}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  >
+                    {WO_STATUS_OPTIONS.map(s => (
+                      <MenuItem key={s} value={s}>{s.replace(/_/g, ' ')}</MenuItem>
+                    ))}
+                  </TextField>
+                ) : (
+                  <TextField
+                    fullWidth
+                    label="Status"
+                    value={formatStatusLabel(form.status)}
+                    disabled
+                    helperText="Only managers can change work order status"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                )}
               </Grid>
               <Grid size={{ xs: 12 }}>
                 <TextField

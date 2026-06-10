@@ -26,6 +26,7 @@ import { IconArrowLeft, IconPlus, IconKey, IconUserCheck } from '@tabler/icons-r
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 
 // Popper that matches the anchor element width
 const WidePopper = ({ style, anchorEl, ...props }) => {
@@ -52,7 +53,8 @@ const APPROVAL_ELIGIBLE_STATUSES = ['new', 'contacted'];
 const LeadForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const canChangeStatus = canChangeRecordStatus(user, hasPermission, 'leads.approve');
   const roleName = user?.role?.name ?? user?.role;
   const showAssignedTo = canAssignLeads(roleName);
   const [loading, setLoading] = useState(false);
@@ -311,7 +313,7 @@ const LeadForm = () => {
         email: values.email || undefined,
         phone: values.phone || undefined,
         source: values.leadSource,
-        status: values.status,
+        ...(canChangeStatus ? { status: values.status } : {}),
         productServiceId: values.productServiceId,
         notes: values.notes || undefined,
         assignedTo: values.assignedTo || undefined,
@@ -650,36 +652,47 @@ const LeadForm = () => {
                       </TextField>
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        select
-                        label="Status"
-                        name="status"
-                        value={values.status || 'new'}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={touched.status && Boolean(errors.status)}
-                        helperText={touched.status ? errors.status : ' '}
-                        required
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        SelectProps={{
-                          MenuProps: {
-                            PaperProps: {
-                              style: { maxHeight: 250 }
+                      {canChangeStatus ? (
+                        <TextField
+                          fullWidth
+                          select
+                          label="Status"
+                          name="status"
+                          value={values.status || 'new'}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          error={touched.status && Boolean(errors.status)}
+                          helperText={touched.status ? errors.status : ' '}
+                          required
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          SelectProps={{
+                            MenuProps: {
+                              PaperProps: {
+                                style: { maxHeight: 250 }
+                              }
                             }
-                          }
-                        }}
-                      >
-                        <MenuItem value="new">New</MenuItem>
-                        <MenuItem value="contacted">Contacted</MenuItem>
-                        {values.status === 'pending_approval' && (
-                          <MenuItem value="pending_approval" disabled>Pending Approval</MenuItem>
-                        )}
-                        {values.status === 'qualified' && (
-                          <MenuItem value="qualified" disabled>Qualified</MenuItem>
-                        )}
-                        <MenuItem value="disqualified">Disqualified</MenuItem>
-                      </TextField>
+                          }}
+                        >
+                          <MenuItem value="new">New</MenuItem>
+                          <MenuItem value="contacted">Contacted</MenuItem>
+                          {values.status === 'pending_approval' && (
+                            <MenuItem value="pending_approval" disabled>Pending Approval</MenuItem>
+                          )}
+                          {values.status === 'qualified' && (
+                            <MenuItem value="qualified" disabled>Qualified</MenuItem>
+                          )}
+                          <MenuItem value="disqualified">Disqualified</MenuItem>
+                        </TextField>
+                      ) : (
+                        <TextField
+                          fullWidth
+                          label="Status"
+                          value={formatStatusLabel(values.status || 'new')}
+                          disabled
+                          helperText="Status is managed through the approval workflow"
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                      )}
                     </Grid>
                     {showAssignedTo && (
                       <Grid size={{ xs: 12, md: 6 }}>

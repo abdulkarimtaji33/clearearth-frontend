@@ -7,11 +7,15 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconEdit, IconFileDownload, IconHammer, IconShoppingCart, IconCheck } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
+
+const PO_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 
 const STATUS_COLOR = {
   new: 'default', sent: 'info', under_review: 'warning', revised: 'primary', approved: 'success', rejected: 'error',
-  new: 'default', pending: 'warning', cancelled: 'error',
+  new: 'default',   pending_approval: 'warning', pending: 'warning', cancelled: 'error',
 };
 
 const PurchaseOrderView = () => {
@@ -19,6 +23,8 @@ const PurchaseOrderView = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const theme = useTheme();
+  const { hasPermission } = useAuth();
+  const canManagerApprove = hasPermission('purchase_orders.approve');
   const returnParam = searchParams.get('return');
   const defaultListForPo = (p) => {
     if (!p) return '/erp/client-purchase-quotations';
@@ -33,6 +39,10 @@ const PurchaseOrderView = () => {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [approveLoading, setApproveLoading] = useState(false);
   const [approveError, setApproveError] = useState('');
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
+  const [pinConfigured, setPinConfigured] = useState(false);
 
   const fetchPo = useCallback(async () => {
     if (!id) return;
@@ -50,6 +60,11 @@ const PurchaseOrderView = () => {
   }, [id]);
 
   useEffect(() => { fetchPo(); }, [fetchPo]);
+  useEffect(() => {
+    apiService.getTenant().then((res) => {
+      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+    }).catch(() => {});
+  }, []);
 
   const handlePdf = async () => {
     if (!id) return;
@@ -63,23 +78,60 @@ const PurchaseOrderView = () => {
     }
   };
 
+  const isClientQuotation = po?.company_id && String(po?.document_type || 'quotation').toLowerCase() === 'quotation';
+
   const handleApprovePo = async () => {
+    if (!id || !isClientQuotation) return;
+    setApproveError('');
+    if (canManagerApprove) {
+      try {
+        setApproveLoading(true);
+        await apiService.approvePurchaseOrder(id);
+        await fetchPo();
+      } catch (e) {
+        setApproveError(e.message || 'Failed to approve');
+      } finally {
+        setApproveLoading(false);
+      }
+      return;
+    }
+    setApprovalError('');
+    setApprovalDialogOpen(true);
+  };
+
+  const handleRequestPoApproval = async () => {
     if (!id) return;
     try {
-      setApproveLoading(true);
-      setApproveError('');
-      await apiService.updatePurchaseOrder(id, { status: 'approved' });
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.requestPurchaseOrderApproval(id);
+      setApprovalDialogOpen(false);
       await fetchPo();
     } catch (e) {
-      setApproveError(e.message || 'Failed to approve');
+      setApprovalError(e.message || 'Failed to request approval');
     } finally {
-      setApproveLoading(false);
+      setApprovalLoading(false);
+    }
+  };
+
+  const handleApprovePoWithPin = async (pin) => {
+    if (!id) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.approvePurchaseOrderWithPin(id, pin);
+      setApprovalDialogOpen(false);
+      await fetchPo();
+    } catch (e) {
+      setApprovalError(e.message || 'Invalid PIN or approval failed');
+    } finally {
+      setApprovalLoading(false);
     }
   };
 
   const poStatus = String(po?.status || '').toLowerCase();
   const isApproved = poStatus === 'approved';
-  const canApprovePo = po && !isApproved && poStatus !== 'rejected';
+  const canAttemptApproval = isClientQuotation && po && PO_APPROVABLE_STATUSES.includes(poStatus);
   const returnTo = returnParam || defaultListForPo(po);
   const partyLabel = po?.company_id ? 'Client' : po?.supplier_id ? 'Vendor' : '—';
   const partyName = po?.company?.company_name || po?.supplier?.company_name || '—';
@@ -129,7 +181,7 @@ const PurchaseOrderView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap">
-            {canApprovePo && (
+            {canAttemptApproval && (
               <Button
                 variant="contained"
                 color="success"
@@ -274,6 +326,19 @@ const PurchaseOrderView = () => {
             <Typography variant="subtitle1" fontWeight={800}>AED {linesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
           </Box>
         </Paper>
+
+        <ApprovalWorkflowDialogs
+          open={approvalDialogOpen}
+          entityLabel="client purchase quotation"
+          pinConfigured={pinConfigured}
+          loading={approvalLoading}
+          error={approvalError}
+          onClose={() => setApprovalDialogOpen(false)}
+          onDecideLater={() => setApprovalDialogOpen(false)}
+          onRequestApproval={handleRequestPoApproval}
+          onApproveWithPin={handleApprovePoWithPin}
+          approveButtonLabel="Approve quotation"
+        />
       </Box>
     </PageContainer>
   );

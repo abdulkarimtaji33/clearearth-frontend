@@ -21,6 +21,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 
 const QUOTABLE_DEAL_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
 const QUOTATION_APPROVAL_ELIGIBLE_STATUSES = ['new', 'sent', 'under_review', 'revised'];
@@ -38,7 +39,8 @@ const QuotationForm = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const canChangeStatus = canChangeRecordStatus(user, hasPermission, 'quotations.approve');
   const dealIdFromUrl = searchParams.get('dealId') ? parseInt(searchParams.get('dealId'), 10) : null;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -152,7 +154,7 @@ const QuotationForm = () => {
         preparedBy: values.preparedBy,
         quotationDate: values.quotationDate,
         quotationAmount: parseFloat(values.quotationAmount) || 0,
-        status: values.status,
+        ...(canChangeStatus ? { status: values.status } : {}),
         remarks: values.remarks || null,
       };
       let savedQuotation;
@@ -313,36 +315,47 @@ const QuotationForm = () => {
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
 
-                    <TextField
-                      fullWidth
-                      select
-                      label="Status (Required)"
-                      name="status"
-                      value={values.status || 'new'}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      error={touched.status && Boolean(errors.status)}
-                      helperText={touched.status && errors.status}
-                      required
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
-                    >
-                      {(dropdowns.quotationStatus?.length ? dropdowns.quotationStatus : [
-                        { id: 1, value: 'new', display_name: 'New' },
-                        { id: 2, value: 'sent', display_name: 'Sent' },
-                        { id: 3, value: 'rejected', display_name: 'Rejected' },
-                      ])
-                        .filter((s) => !['approved', 'pending_approval'].includes(s.value))
-                        .map((s) => (
-                          <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
-                        ))}
-                      {values.status === 'pending_approval' && (
-                        <MenuItem value="pending_approval" disabled>Pending Approval</MenuItem>
-                      )}
-                      {values.status === 'approved' && (
-                        <MenuItem value="approved" disabled>Approved</MenuItem>
-                      )}
-                    </TextField>
+                    {canChangeStatus ? (
+                      <TextField
+                        fullWidth
+                        select
+                        label="Status (Required)"
+                        name="status"
+                        value={values.status || 'new'}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        error={touched.status && Boolean(errors.status)}
+                        helperText={touched.status && errors.status}
+                        required
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
+                      >
+                        {(dropdowns.quotationStatus?.length ? dropdowns.quotationStatus : [
+                          { id: 1, value: 'new', display_name: 'New' },
+                          { id: 2, value: 'sent', display_name: 'Sent' },
+                          { id: 3, value: 'rejected', display_name: 'Rejected' },
+                        ])
+                          .filter((s) => !['approved', 'pending_approval'].includes(s.value))
+                          .map((s) => (
+                            <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
+                          ))}
+                        {values.status === 'pending_approval' && (
+                          <MenuItem value="pending_approval" disabled>Pending Approval</MenuItem>
+                        )}
+                        {values.status === 'approved' && (
+                          <MenuItem value="approved" disabled>Approved</MenuItem>
+                        )}
+                      </TextField>
+                    ) : (
+                      <TextField
+                        fullWidth
+                        label="Status"
+                        value={formatStatusLabel(values.status || 'new')}
+                        disabled
+                        helperText="Status is managed through the approval workflow"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
+                    )}
 
                     <TextField
                       fullWidth

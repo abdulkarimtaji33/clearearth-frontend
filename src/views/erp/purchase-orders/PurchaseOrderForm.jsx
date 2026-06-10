@@ -26,8 +26,13 @@ import * as Yup from 'yup';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconTrash, IconFileDownload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
+import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 import { billListPath } from '../../../utils/purchaseBills';
+
+const CLIENT_PO_APPROVAL_ELIGIBLE = ['new', 'sent', 'under_review', 'revised'];
 
 const initialItem = () => ({
   productServiceId: null,
@@ -47,6 +52,8 @@ const PurchaseOrderForm = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user, hasPermission } = useAuth();
+  const canChangeStatus = canChangeRecordStatus(user, hasPermission, 'purchase_orders.approve');
   const supplierIdFromUrl = searchParams.get('supplierId') ? parseInt(searchParams.get('supplierId'), 10) : null;
   const companyIdFromUrl = searchParams.get('companyId') ? parseInt(searchParams.get('companyId'), 10) : null;
   const dealIdFromUrl = searchParams.get('dealId') ? parseInt(searchParams.get('dealId'), 10) : null;
@@ -64,6 +71,11 @@ const PurchaseOrderForm = () => {
   const [dropdowns, setDropdowns] = useState({ purchaseOrderStatus: [] });
   const [items, setItems] = useState([initialItem()]);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [savedPoId, setSavedPoId] = useState(null);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [approvalError, setApprovalError] = useState('');
+  const [pinConfigured, setPinConfigured] = useState(false);
   const [initialValues, setInitialValues] = useState({
     dealId: dealIdFromUrl || null,
     companyId: companyIdFromUrl || null,
@@ -179,6 +191,9 @@ const PurchaseOrderForm = () => {
   }, [applyDealPreFill]);
 
   useEffect(() => {
+    apiService.getTenant().then((res) => {
+      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+    }).catch(() => {});
     fetchData();
     if (isEdit) fetchPO();
     else if (dealIdFromUrl) {
@@ -233,13 +248,15 @@ const PurchaseOrderForm = () => {
     }
     try {
       setError('');
+      const isVendorQuotation = !isBillMode && Boolean(values.supplierId);
+      const isClientQuotation = !isBillMode && Boolean(values.companyId);
       const payload = {
         dealId: values.dealId || null,
         companyId: values.companyId || null,
         supplierId: values.supplierId || null,
         poDate: values.poDate,
         expectedDelivery: values.expectedDelivery || null,
-        status: values.status || (values.supplierId ? 'approved' : 'new'),
+        ...(canChangeStatus && isClientQuotation ? { status: values.status } : {}),
         termsAndConditionsIds: values.termsAndConditionsIds,
         documentType: isBillMode ? 'bill' : 'quotation',
         workOrderId: workOrderIdFromUrl || null,
@@ -251,19 +268,69 @@ const PurchaseOrderForm = () => {
           total: String(it.total),
         })),
       };
+      let savedPo;
       if (isEdit) {
-        await apiService.updatePurchaseOrder(id, payload);
+        const res = await apiService.updatePurchaseOrder(id, payload);
+        savedPo = res.data;
         setSuccess(isBillMode ? 'Purchase bill updated' : 'Purchase quotation updated');
       } else {
-        await apiService.createPurchaseOrder(payload);
+        const res = await apiService.createPurchaseOrder(payload);
+        savedPo = res.data;
         setSuccess(isBillMode ? 'Purchase bill created' : 'Purchase quotation created');
       }
+
+      const poId = savedPo?.id || (isEdit ? Number(id) : null);
+      const poStatus = String(savedPo?.status || (isVendorQuotation ? 'approved' : 'new')).toLowerCase();
       const listPath = isBillMode
         ? billListPath({ company_id: values.companyId, supplier_id: values.supplierId })
         : quotationListPath(values.companyId, values.supplierId);
-      setTimeout(() => navigate(listPath), 1500);
+
+      if (isClientQuotation && poId && CLIENT_PO_APPROVAL_ELIGIBLE.includes(poStatus)) {
+        setSavedPoId(poId);
+        setApprovalDialogOpen(true);
+      } else {
+        setTimeout(() => navigate(listPath), 1500);
+      }
     } catch (err) {
       setError(err.message || 'Save failed');
+    }
+  };
+
+  const finishAndNavigate = () => {
+    setApprovalDialogOpen(false);
+    setSavedPoId(null);
+    setApprovalError('');
+    const listPath = quotationListPath(initialValues.companyId, initialValues.supplierId);
+    navigate(isBillMode ? billListPath({ company_id: initialValues.companyId, supplier_id: initialValues.supplierId }) : listPath);
+  };
+
+  const handleRequestPoApproval = async () => {
+    if (!savedPoId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.requestPurchaseOrderApproval(savedPoId);
+      setSuccess('Approval requested. Your manager has been notified.');
+      setTimeout(finishAndNavigate, 1200);
+    } catch (err) {
+      setApprovalError(err.message || 'Failed to request approval');
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
+  const handleApprovePoWithPin = async (pin) => {
+    if (!savedPoId) return;
+    try {
+      setApprovalLoading(true);
+      setApprovalError('');
+      await apiService.approvePurchaseOrderWithPin(savedPoId, pin);
+      setSuccess('Purchase quotation approved!');
+      setTimeout(finishAndNavigate, 1200);
+    } catch (err) {
+      setApprovalError(err.message || 'Invalid PIN or approval failed');
+    } finally {
+      setApprovalLoading(false);
     }
   };
 
@@ -442,30 +509,58 @@ const PurchaseOrderForm = () => {
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
 
-                    {!isBillMode && (
+                    {!isBillMode && values.supplierId && (
                       <TextField
                         fullWidth
-                        select
-                        label="Status (Required)"
-                        name="status"
-                        value={values.status || 'new'}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        required
-                        error={touched.status && Boolean(errors.status)}
-                        helperText={(touched.status && errors.status) || 'Approved → PDF is a purchase order'}
+                        label="Status"
+                        value="Approved"
+                        disabled
+                        helperText="Vendor purchase quotations are auto-approved on creation"
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
-                      >
-                        {(dropdowns.purchaseOrderStatus?.length ? dropdowns.purchaseOrderStatus : [
-                          { id: 1, value: 'new', display_name: 'New' },
-                          { id: 2, value: 'sent', display_name: 'Sent' },
-                          { id: 3, value: 'approved', display_name: 'Approved' },
-                          { id: 4, value: 'rejected', display_name: 'Rejected' },
-                        ]).map((s) => (
-                          <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
-                        ))}
-                      </TextField>
+                      />
+                    )}
+                    {!isBillMode && values.companyId && (
+                      canChangeStatus ? (
+                        <TextField
+                          fullWidth
+                          select
+                          label="Status (Required)"
+                          name="status"
+                          value={values.status || 'new'}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          required
+                          error={touched.status && Boolean(errors.status)}
+                          helperText={(touched.status && errors.status) || 'Approved → PDF is a purchase order'}
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
+                        >
+                          {(dropdowns.purchaseOrderStatus?.length ? dropdowns.purchaseOrderStatus : [
+                            { id: 1, value: 'new', display_name: 'New' },
+                            { id: 2, value: 'sent', display_name: 'Sent' },
+                            { id: 3, value: 'rejected', display_name: 'Rejected' },
+                          ])
+                            .filter((s) => !['approved', 'pending_approval'].includes(s.value))
+                            .map((s) => (
+                              <MenuItem key={s.id} value={s.value}>{s.display_name}</MenuItem>
+                            ))}
+                          {values.status === 'pending_approval' && (
+                            <MenuItem value="pending_approval" disabled>Pending Approval</MenuItem>
+                          )}
+                          {values.status === 'approved' && (
+                            <MenuItem value="approved" disabled>Approved</MenuItem>
+                          )}
+                        </TextField>
+                      ) : (
+                        <TextField
+                          fullWidth
+                          label="Status"
+                          value={formatStatusLabel(values.status || 'new')}
+                          disabled
+                          helperText="Status is managed through the approval workflow"
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                      )
                     )}
                   </Box>
                 </CardContent>
@@ -621,6 +716,19 @@ const PurchaseOrderForm = () => {
             </form>
           )}
         </Formik>
+
+        <ApprovalWorkflowDialogs
+          open={approvalDialogOpen}
+          entityLabel="client purchase quotation"
+          pinConfigured={pinConfigured}
+          loading={approvalLoading}
+          error={approvalError}
+          onClose={() => !approvalLoading && finishAndNavigate()}
+          onDecideLater={finishAndNavigate}
+          onRequestApproval={handleRequestPoApproval}
+          onApproveWithPin={handleApprovePoWithPin}
+          approveButtonLabel="Approve quotation"
+        />
       </Box>
     </PageContainer>
   );

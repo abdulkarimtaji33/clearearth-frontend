@@ -282,7 +282,7 @@ const DealList = () => {
     const results = await Promise.allSettled([
       apiService.getCompanies({ pageSize: 500 }),
       apiService.getContacts({ pageSize: 500 }),
-      apiService.getUsers({ pageSize: 500 }),
+      apiService.getAssignees(),
       apiService.getProducts({ pageSize: 500 }),
     ]);
     const [companiesRes, contactsRes, usersRes, productsRes] = results.map(r => r.status === 'fulfilled' ? r.value : null);

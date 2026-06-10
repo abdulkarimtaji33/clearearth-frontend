@@ -521,7 +521,7 @@ const DealView = () => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await apiService.getUsers({ pageSize: 500 });
+      const res = await apiService.getInspectors();
       if (res.success) {
         const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
         setUsers(list);

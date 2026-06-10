@@ -330,7 +330,7 @@ const LeadList = () => {
   const fetchDropdowns = useCallback(async () => {
     const results = await Promise.allSettled([
       apiService.getAllDropdowns(),
-      apiService.getUsers({ pageSize: 500 }),
+      apiService.getAssignees(),
       apiService.getCompanies({ pageSize: 500 }),
       apiService.getContacts({ pageSize: 500 }),
       apiService.getProducts({ pageSize: 500 }),

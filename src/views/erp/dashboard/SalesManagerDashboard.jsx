@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Grid, Typography, Paper, Stack, Chip, LinearProgress, Divider, Avatar, Button } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router';
+import { useAuth } from '../../../context/AuthContext';
 import { IconTrophy, IconMedal, IconArrowRight, IconUsers } from '@tabler/icons-react';
 import KpiCard from './shared/KpiCard';
 import ActionableList from './shared/ActionableList';
@@ -33,6 +34,7 @@ const AVATAR_COLORS = ['#1565C0', '#2E7D32', '#6A1B9A', '#AD1457', '#E65100', '#
 const SalesManagerDashboard = ({ data }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { hasAdminDashboardAccess } = useAuth();
   const maxWon = Math.max(...(data.leaderboard || []).map((r) => parseFloat(r.total || 0)), 1);
   const maxPipeline = Math.max(...(data.pipeline || []).map((p) => p.count), 1);
 
@@ -77,9 +79,11 @@ const SalesManagerDashboard = ({ data }) => {
                 <IconTrophy size={18} color={theme.palette.warning.main} />
                 <Typography variant="subtitle2" fontWeight={800}>Won deals leaderboard</Typography>
               </Stack>
-              <Button size="small" startIcon={<IconUsers size={14} />} onClick={() => navigate('/erp/users')} sx={{ borderRadius: 2, fontSize: '0.78rem' }}>
-                Team
-              </Button>
+              {hasAdminDashboardAccess() && (
+                <Button size="small" startIcon={<IconUsers size={14} />} onClick={() => navigate('/erp/users')} sx={{ borderRadius: 2, fontSize: '0.78rem' }}>
+                  Team
+                </Button>
+              )}
             </Stack>
             <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />}>
               {(data.leaderboard || []).length === 0 ? (

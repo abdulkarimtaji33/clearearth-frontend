@@ -294,7 +294,7 @@ const ErpMenuItems = [
     title: 'Roles',
     icon: IconShield,
     href: '/erp/roles',
-    permission: 'roles.read',
+    adminDashboardOnly: true,
     excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
@@ -302,7 +302,7 @@ const ErpMenuItems = [
     title: 'Users',
     icon: IconUsers,
     href: '/erp/users',
-    permission: 'users.read',
+    adminDashboardOnly: true,
     excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
@@ -310,7 +310,7 @@ const ErpMenuItems = [
     title: 'Company Settings',
     icon: IconSettings,
     href: '/erp/settings/company',
-    permission: 'users.read',
+    adminDashboardOnly: true,
     excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {

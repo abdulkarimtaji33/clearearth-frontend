@@ -115,7 +115,7 @@ const LeadForm = () => {
       apiService.getCompanies({ pageSize: 500 }),
       apiService.getContacts({ pageSize: 500 }),
       apiService.getProducts({ pageSize: 500, status: 'active' }),
-      apiService.getUsers({ pageSize: 500 }),
+      apiService.getAssignees(),
     ]);
     const [companiesRes, contactsRes, productsRes, usersRes] = results.map((r) =>
       r.status === 'fulfilled' ? r.value : null

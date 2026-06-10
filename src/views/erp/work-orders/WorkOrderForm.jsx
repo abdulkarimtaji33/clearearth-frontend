@@ -220,14 +220,12 @@ const WorkOrderForm = () => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = hasPermission('users.read')
-        ? await apiService.getUsers({ pageSize: 500 })
-        : await apiService.getAssignees();
+      const res = await apiService.getAssignees();
       if (res.success) {
         setUsers(Array.isArray(res.data) ? res.data : res.data?.items || []);
       }
     } catch (err) { console.error(err); }
-  }, [hasPermission]);
+  }, []);
 
   const fetchDeals = useCallback(async () => {
     try {

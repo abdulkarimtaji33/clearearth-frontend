@@ -3,6 +3,7 @@ import { Navigate, createBrowserRouter } from 'react-router';
 
 import Loadable, { lazyWithChunkReload } from '../layouts/full/shared/loadable/Loadable';
 import ChunkLoadErrorElement from '../components/ChunkLoadErrorElement';
+import RequireAdmin from '../components/auth/RequireAdmin';
 
 /* ***Layouts**** */
 const FullLayout = Loadable(lazyWithChunkReload(() => import('../layouts/full/FullLayout')));
@@ -154,12 +155,12 @@ const Router = createBrowserRouter([
       { path: '/erp/purchase-orders/edit/:id', element: <PurchaseOrderForm /> },
       { path: '/erp/client-purchase-orders', element: <ClientPurchaseOrderList /> },
       { path: '/erp/supplier-purchase-orders', element: <SupplierPurchaseOrderList /> },
-      { path: '/erp/roles', element: <RoleList /> },
-      { path: '/erp/roles/create', element: <RoleForm /> },
-      { path: '/erp/roles/edit/:id', element: <RoleForm /> },
-      { path: '/erp/users', element: <UserList /> },
-      { path: '/erp/users/create', element: <UserForm /> },
-      { path: '/erp/users/edit/:id', element: <UserForm /> },
+      { path: '/erp/roles', element: <RequireAdmin><RoleList /></RequireAdmin> },
+      { path: '/erp/roles/create', element: <RequireAdmin><RoleForm /></RequireAdmin> },
+      { path: '/erp/roles/edit/:id', element: <RequireAdmin><RoleForm /></RequireAdmin> },
+      { path: '/erp/users', element: <RequireAdmin><UserList /></RequireAdmin> },
+      { path: '/erp/users/create', element: <RequireAdmin><UserForm /></RequireAdmin> },
+      { path: '/erp/users/edit/:id', element: <RequireAdmin><UserForm /></RequireAdmin> },
       { path: '/erp/inspection-requests', element: <InspectionRequestList /> },
       { path: '/erp/inspection-requests/:id', element: <InspectionRequestView /> },
       { path: '/erp/work-orders', element: <WorkOrderList /> },
@@ -170,7 +171,7 @@ const Router = createBrowserRouter([
       { path: '/erp/grn/create', element: <GrnForm /> },
       { path: '/erp/grn/edit/:id', element: <GrnForm /> },
       { path: '/erp/grn/view/:id', element: <GrnView /> },
-      { path: '/erp/settings/company', element: <CompanySettings /> },
+      { path: '/erp/settings/company', element: <RequireAdmin><CompanySettings /></RequireAdmin> },
       { path: '/erp/settings/fiscal-years', element: <FiscalYearManager /> },
       { path: '/erp/chart-of-accounts', element: <ChartOfAccountsList /> },
       { path: '/erp/journal', element: <JournalList /> },

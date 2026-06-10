@@ -282,7 +282,7 @@ const DealForm = () => {
       apiService.getContacts({ pageSize: 500 }),
       apiService.getSuppliers({ pageSize: 500 }),
       apiService.getProducts({ pageSize: 500, status: 'active' }),
-      apiService.getUsers({ pageSize: 500 }),
+      apiService.getAssignees(),
       apiService.getTermsAndConditions({ pageSize: 500, status: 'active' }),
       apiService.getMaterialTypes(),
     ]);

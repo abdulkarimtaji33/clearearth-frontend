@@ -68,7 +68,7 @@ const QuotationForm = () => {
     try {
       const [dealsRes, usersRes, dropdownRes] = await Promise.all([
         apiService.getDeals({ pageSize: 500 }),
-        apiService.getUsers({ pageSize: 500 }),
+        apiService.getAssignees(),
         apiService.getAllDropdowns(),
       ]);
       if (dealsRes.success) {

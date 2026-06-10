@@ -70,6 +70,11 @@ import config from 'src/context/config';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
 import { getUserRole, shouldHideDealFinancials } from '../../../utils/authHelpers';
+import {
+  isInspectionRole,
+  formatUserDisplayName,
+  resolveInspectorIdForReport,
+} from '../../../utils/inspectionReportHelpers';
 
 const DEAL_APPROVABLE_STATUSES = ['new', 'pending_approval'];
 const DEAL_QUOTABLE_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
@@ -588,6 +593,7 @@ const DealView = () => {
   const openReportDialog = () => {
     setReportFormErrors({});
     setError('');
+    const inspectorId = resolveInspectorIdForReport(user, deal?.inspectionReport?.inspector_id || null);
     if (deal?.inspectionReport) {
       const r = deal.inspectionReport;
       const images = Array.isArray(r.images) ? r.images : (typeof r.images === 'string' ? JSON.parse(r.images || '[]') : []);
@@ -599,12 +605,12 @@ const DealView = () => {
         transportationArrangement: r.transportation_arrangement || '',
         approximateValue: r.approximate_value ?? '',
         images: images.map((p) => ({ path: p, url: apiService.getUploadUrl(p) })),
-        inspectorId: r.inspector_id || null,
+        inspectorId,
         approvedById: r.approved_by_id || null,
         notes: r.notes || '',
       });
     } else {
-      setReportForm({ inspectionDatetime: null, approximateWeight: '', weightUom: 'kg', cargoType: '', transportationArrangement: '', approximateValue: '', images: [], inspectorId: null, approvedById: null, notes: '' });
+      setReportForm({ inspectionDatetime: null, approximateWeight: '', weightUom: 'kg', cargoType: '', transportationArrangement: '', approximateValue: '', images: [], inspectorId, approvedById: null, notes: '' });
     }
     fetchUsers();
     setReportDialogOpen(true);
@@ -618,7 +624,6 @@ const DealView = () => {
     if (!reportForm.transportationArrangement?.trim()) errs.transportationArrangement = 'Transportation arrangement is required';
     if (reportForm.approximateValue === '' || reportForm.approximateValue == null) errs.approximateValue = 'Approximate value is required';
     if (!reportForm.inspectorId) errs.inspectorId = "Inspector's name is required";
-    if (!reportForm.approvedById) errs.approvedById = 'Approved by is required';
     if (!reportForm.images?.length) errs.images = 'At least one image is required';
     setReportFormErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -634,7 +639,6 @@ const DealView = () => {
         approximateValue: reportForm.approximateValue ? parseFloat(reportForm.approximateValue) : null,
         images: reportForm.images.map((i) => i.path),
         inspectorId: reportForm.inspectorId,
-        approvedById: reportForm.approvedById,
         notes: reportForm.notes || null,
       });
       setReportDialogOpen(false);
@@ -1450,8 +1454,32 @@ const DealView = () => {
                     </Box>
                   )}
                 </Box>
-                <Autocomplete options={users} getOptionLabel={(o) => `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email || ''} value={users.find((u) => u.id === reportForm.inspectorId) || null} onChange={(_, v) => setReportForm((f) => ({ ...f, inspectorId: v?.id || null }))} renderInput={(params) => <TextField {...params} label="Inspector's Name (Required)" required error={Boolean(reportFormErrors.inspectorId)} helperText={reportFormErrors.inspectorId} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />} />
-                <Autocomplete options={users} getOptionLabel={(o) => `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email || ''} value={users.find((u) => u.id === reportForm.approvedById) || null} onChange={(_, v) => setReportForm((f) => ({ ...f, approvedById: v?.id || null }))} renderInput={(params) => <TextField {...params} label="Approved By (Required)" required error={Boolean(reportFormErrors.approvedById)} helperText={reportFormErrors.approvedById} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />} />
+                {isInspectionRole(user) ? (
+                  <TextField
+                    fullWidth
+                    label="Inspector"
+                    value={formatUserDisplayName(user)}
+                    InputProps={{ readOnly: true }}
+                    helperText="Auto-filled from your account"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                ) : (
+                  <Autocomplete options={users} getOptionLabel={(o) => formatUserDisplayName(o)} value={users.find((u) => u.id === reportForm.inspectorId) || null} onChange={(_, v) => setReportForm((f) => ({ ...f, inspectorId: v?.id || null }))} renderInput={(params) => <TextField {...params} label="Inspector's Name (Required)" required error={Boolean(reportFormErrors.inspectorId)} helperText={reportFormErrors.inspectorId} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />} />
+                )}
+                {deal?.inspectionReport?.approved_by_id && deal?.inspectionReport?.approvedBy && (
+                  <TextField
+                    fullWidth
+                    label="Approved by"
+                    value={formatUserDisplayName(deal.inspectionReport.approvedBy)}
+                    InputProps={{ readOnly: true }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                )}
+                {isInspectionRole(user) && !deal?.inspectionReport?.approved_by_id && (
+                  <Typography variant="body2" color="text.secondary">
+                    Approval is done by operations manager or admin after you submit the report.
+                  </Typography>
+                )}
                 <TextField fullWidth multiline rows={3} label="Notes" value={reportForm.notes} onChange={(e) => setReportForm((f) => ({ ...f, notes: e.target.value }))} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Box>
             </LocalizationProvider>

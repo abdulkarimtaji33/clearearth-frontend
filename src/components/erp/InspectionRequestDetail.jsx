@@ -46,6 +46,12 @@ import {
 } from '@tabler/icons-react';
 import { useAuth } from '../../context/AuthContext';
 import apiService from '../../services/api';
+import {
+  isInspectionRole,
+  canApproveInspectionReport,
+  formatUserDisplayName,
+  resolveInspectorIdForReport,
+} from '../../utils/inspectionReportHelpers';
 
 const SAFETY_TOOL_LABELS = {
   safety_jacket: 'Safety Jacket',
@@ -256,6 +262,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
     setReportFormErrors({});
     setError('');
     const r = request?.deal?.inspectionReport;
+    const inspectorId = resolveInspectorIdForReport(user, r?.inspector_id || null);
     if (r) {
       const images = Array.isArray(r.images) ? r.images : (typeof r.images === 'string' ? JSON.parse(r.images || '[]') : []);
       setReportForm({
@@ -266,7 +273,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
         transportationArrangement: r.transportation_arrangement || '',
         approximateValue: r.approximate_value ?? '',
         images: images.map((p) => ({ path: p, url: apiService.getUploadUrl(p) })),
-        inspectorId: r.inspector_id || null,
+        inspectorId,
         approvedById: r.approved_by_id || null,
         notes: r.notes || '',
       });
@@ -274,7 +281,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
       setReportForm({
         inspectionDatetime: null, approximateWeight: '', weightUom: 'kg',
         cargoType: '', transportationArrangement: '', approximateValue: '',
-        images: [], inspectorId: null, approvedById: null, notes: '',
+        images: [], inspectorId, approvedById: null, notes: '',
       });
     }
     fetchUsers();
@@ -295,7 +302,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
     try {
       setReportFormErrors({});
       setReportSaving(true);
-      await apiService.saveInspectionReport(request.deal_id, {
+      const payload = {
         inspectionDatetime: reportForm.inspectionDatetime?.toISOString?.() || null,
         approximateWeight: reportForm.approximateWeight ? parseFloat(reportForm.approximateWeight) : null,
         weightUom: reportForm.weightUom || null,
@@ -304,9 +311,9 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
         approximateValue: reportForm.approximateValue ? parseFloat(reportForm.approximateValue) : null,
         images: reportForm.images.map((i) => i.path),
         inspectorId: reportForm.inspectorId,
-        approvedById: reportForm.approvedById,
         notes: reportForm.notes || null,
-      });
+      };
+      await apiService.saveInspectionReport(request.deal_id, payload);
       setReportDialogOpen(false);
       await refresh();
     } catch (err) {
@@ -318,7 +325,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
 
   const handleApprove = async () => {
     const report = request?.deal?.inspectionReport;
-    if (!report) return;
+    if (!report || !canApproveInspectionReport(user)) return;
     setApproving(true);
     setError('');
     try {
@@ -349,6 +356,8 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
   const report = deal?.inspectionReport;
   const contact = deal?.contact;
   const isApproved = Boolean(report?.approved_by_id);
+  const userIsInspector = isInspectionRole(user);
+  const userCanApproveReport = canApproveInspectionReport(user);
 
   const safetyTools = (() => {
     const st = request?.safety_tools;
@@ -885,7 +894,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
         </Grid>
 
         {/* ── bottom action bar ── */}
-        {report && !isApproved && (
+        {report && !isApproved && userCanApproveReport && (
           <Stack direction="row" justifyContent="flex-end" mt={3}>
             <Button
               variant="contained"
@@ -896,7 +905,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
               disabled={approving}
               sx={{ borderRadius: 2.5, fontWeight: 700, px: 4 }}
             >
-              {approving ? 'Approving…' : 'Approve & Submit'}
+              {approving ? 'Approving…' : 'Approve report'}
             </Button>
           </Stack>
         )}
@@ -985,23 +994,40 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
                     </Box>
                   )}
                 </Box>
-                <Autocomplete
-                  options={users}
-                  getOptionLabel={(o) => `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email || ''}
-                  value={users.find((u) => u.id === reportForm.inspectorId) || null}
-                  onChange={(_, v) => setReportForm((f) => ({ ...f, inspectorId: v?.id || null }))}
-                  renderInput={(params) => <TextField {...params} label="Inspector (Required)" required
-                    error={Boolean(reportFormErrors.inspectorId)} helperText={reportFormErrors.inspectorId}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
-                />
-                <Autocomplete
-                  options={users}
-                  getOptionLabel={(o) => `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email || ''}
-                  value={users.find((u) => u.id === reportForm.approvedById) || null}
-                  onChange={(_, v) => setReportForm((f) => ({ ...f, approvedById: v?.id || null }))}
-                  renderInput={(params) => <TextField {...params} label="Approved By (Optional)"
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
-                />
+                {userIsInspector ? (
+                  <TextField
+                    fullWidth
+                    label="Inspector"
+                    value={formatUserDisplayName(user)}
+                    InputProps={{ readOnly: true }}
+                    helperText="Auto-filled from your account"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                ) : (
+                  <Autocomplete
+                    options={users}
+                    getOptionLabel={(o) => formatUserDisplayName(o)}
+                    value={users.find((u) => u.id === reportForm.inspectorId) || null}
+                    onChange={(_, v) => setReportForm((f) => ({ ...f, inspectorId: v?.id || null }))}
+                    renderInput={(params) => <TextField {...params} label="Inspector (Required)" required
+                      error={Boolean(reportFormErrors.inspectorId)} helperText={reportFormErrors.inspectorId}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />}
+                  />
+                )}
+                {isApproved && approvedByName && (
+                  <TextField
+                    fullWidth
+                    label="Approved by"
+                    value={approvedByName}
+                    InputProps={{ readOnly: true }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                )}
+                {!isApproved && userIsInspector && (
+                  <Typography variant="body2" color="text.secondary">
+                    Approval is done by operations manager or admin after you submit the report.
+                  </Typography>
+                )}
                 <TextField fullWidth multiline rows={3} label="Notes" value={reportForm.notes}
                   onChange={(e) => setReportForm((f) => ({ ...f, notes: e.target.value }))}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />

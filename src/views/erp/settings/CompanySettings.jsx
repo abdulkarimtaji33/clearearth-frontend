@@ -334,8 +334,8 @@ const CompanySettings = () => {
                     }
                     try {
                       setSavingPin(true);
-                      await apiService.updateLeadApprovalPin(leadApprovalPin);
-                      setPinConfigured(true);
+                      const res = await apiService.updateLeadApprovalPin(leadApprovalPin);
+                      setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
                       setLeadApprovalPin('');
                       setLeadApprovalPinConfirm('');
                       setPinSuccess('Lead approval PIN updated');

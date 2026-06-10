@@ -39,6 +39,7 @@ import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { canDirectManagerApprove } from '../../../utils/recordStatus';
 
 const STATUS_COLOR = {
   new: 'default',
@@ -137,9 +138,9 @@ const InlineStatusPicker = ({ quotation, statusLabel: statusLabelFn, onUpdated, 
 const QuotationList = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const canAttemptApproval = hasPermission('quotations.update');
-  const canManagerApprove = hasPermission('quotations.approve');
+  const canDirectApprove = canDirectManagerApprove(user);
   const isOrdersView = location.pathname.includes('/service-orders');
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
@@ -249,14 +250,21 @@ const QuotationList = () => {
   const handleApproveQuotation = async (quotationId) => {
     if (!quotationId) return;
     setError('');
-    if (canManagerApprove) {
+    if (canDirectApprove) {
       try {
         setApprovingQuotationId(quotationId);
         await apiService.approveQuotation(quotationId);
         setSuccess('Quotation approved');
         fetchQuotations();
       } catch (err) {
-        setError(err.message || 'Failed to approve quotation');
+        const msg = err.message || '';
+        if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
+          setApprovalTargetId(quotationId);
+          setApprovalError('');
+          setApprovalDialogOpen(true);
+        } else {
+          setError(msg || 'Failed to approve quotation');
+        }
       } finally {
         setApprovingQuotationId(null);
       }

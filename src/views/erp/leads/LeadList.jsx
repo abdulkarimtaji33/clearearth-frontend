@@ -64,6 +64,7 @@ import RecordDetailDrawer from '../../../components/erp/RecordDetailDrawer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { canDirectManagerApprove } from '../../../utils/recordStatus';
 
 const leadStatusChipColor = (status) => {
   switch (status?.toLowerCase()) {
@@ -285,9 +286,9 @@ const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approvi
 const LeadList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const canAttemptApproval = hasPermission('leads.update');
-  const canManagerApprove = hasPermission('leads.approve');
+  const canDirectApprove = canDirectManagerApprove(user);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -442,14 +443,21 @@ const LeadList = () => {
   const handleApproveLead = async (leadId) => {
     if (!leadId) return;
     setError('');
-    if (canManagerApprove) {
+    if (canDirectApprove) {
       try {
         setApprovingLeadId(leadId);
         await apiService.qualifyLead(leadId, {});
         setSuccess('Lead approved');
         await refreshLeadAfterApproval(leadId);
       } catch (err) {
-        setError(err.message || 'Failed to approve lead');
+        const msg = err.message || '';
+        if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
+          setApprovalTargetId(leadId);
+          setApprovalError('');
+          setApprovalDialogOpen(true);
+        } else {
+          setError(msg || 'Failed to approve lead');
+        }
       } finally {
         setApprovingLeadId(null);
       }

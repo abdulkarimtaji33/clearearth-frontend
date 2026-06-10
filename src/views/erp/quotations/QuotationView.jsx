@@ -10,6 +10,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { canDirectManagerApprove } from '../../../utils/recordStatus';
 
 const QUOTATION_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 
@@ -30,8 +31,8 @@ const QuotationView = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const theme = useTheme();
-  const { hasPermission } = useAuth();
-  const canManagerApprove = hasPermission('quotations.approve');
+  const { user } = useAuth();
+  const canDirectApprove = canDirectManagerApprove(user);
   const returnTo = searchParams.get('return') || '/erp/quotations';
 
   const [q, setQ] = useState(null);
@@ -87,13 +88,19 @@ const QuotationView = () => {
   const handleApproveQuotation = async () => {
     if (!id) return;
     setApproveError('');
-    if (canManagerApprove) {
+    if (canDirectApprove) {
       try {
         setApproveLoading(true);
         await apiService.approveQuotation(id);
         await fetchQ();
       } catch (e) {
-        setApproveError(e.message || 'Failed to approve');
+        const msg = e.message || '';
+        if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
+          setApprovalError('');
+          setApprovalDialogOpen(true);
+        } else {
+          setApproveError(msg || 'Failed to approve');
+        }
       } finally {
         setApproveLoading(false);
       }

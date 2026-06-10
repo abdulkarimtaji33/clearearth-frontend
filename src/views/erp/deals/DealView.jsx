@@ -68,6 +68,7 @@ import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDia
 import apiService from '../../../services/api';
 import config from 'src/context/config';
 import { useAuth } from '../../../context/AuthContext';
+import { canDirectManagerApprove } from '../../../utils/recordStatus';
 import { getUserRole, shouldHideDealFinancials } from '../../../utils/authHelpers';
 
 const DEAL_APPROVABLE_STATUSES = ['new', 'pending_approval'];
@@ -403,7 +404,7 @@ const DealView = () => {
   const hideDealAmounts = shouldHideDealFinancials(user);
   const showWorkOrderActions = getUserRole(user) !== 'sales';
   const canEditDeals = hasPermission('deals.update');
-  const canManagerApprove = hasPermission('deals.approve');
+  const canDirectApprove = canDirectManagerApprove(user);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deal, setDeal] = useState(null);
@@ -532,13 +533,19 @@ const DealView = () => {
   const handleApproveDeal = async () => {
     if (!id || !deal) return;
     setError('');
-    if (canManagerApprove) {
+    if (canDirectApprove) {
       try {
         setApproveLoading(true);
         await apiService.approveDeal(id);
         await fetchDeal();
       } catch (err) {
-        setError(err.message || 'Failed to approve deal');
+        const msg = err.message || '';
+        if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
+          setApprovalError('');
+          setApprovalDialogOpen(true);
+        } else {
+          setError(msg || 'Failed to approve deal');
+        }
       } finally {
         setApproveLoading(false);
       }

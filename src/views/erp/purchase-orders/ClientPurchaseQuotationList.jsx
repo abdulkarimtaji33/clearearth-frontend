@@ -17,6 +17,7 @@ import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { canDirectManagerApprove } from '../../../utils/recordStatus';
 
 const STATUS_COLOR = {
   new: 'default', sent: 'info', under_review: 'warning',
@@ -29,9 +30,9 @@ const PO_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pendi
 const ClientPurchaseQuotationList = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const canAttemptApproval = hasPermission('purchase_orders.update');
-  const canManagerApprove = hasPermission('purchase_orders.approve');
+  const canDirectApprove = canDirectManagerApprove(user);
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [orders, setOrders] = useState([]);
@@ -118,14 +119,21 @@ const ClientPurchaseQuotationList = () => {
   const handleApprovePo = async (poId) => {
     if (!poId) return;
     setError('');
-    if (canManagerApprove) {
+    if (canDirectApprove) {
       try {
         setApprovingPoId(poId);
         await apiService.approvePurchaseOrder(poId);
         setSuccess('Purchase quotation approved');
         fetchOrders();
       } catch (err) {
-        setError(err.message || 'Failed to approve');
+        const msg = err.message || '';
+        if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
+          setApprovalTargetId(poId);
+          setApprovalError('');
+          setApprovalDialogOpen(true);
+        } else {
+          setError(msg || 'Failed to approve');
+        }
       } finally {
         setApprovingPoId(null);
       }

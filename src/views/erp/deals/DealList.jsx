@@ -43,6 +43,7 @@ import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { canDirectManagerApprove } from '../../../utils/recordStatus';
 import { shouldHideDealFinancials } from '../../../utils/authHelpers';
 
 const STATUS_CONFIG = {
@@ -231,7 +232,7 @@ const DealList = () => {
   const { user, hasPermission } = useAuth();
   const hideDealAmounts = shouldHideDealFinancials(user);
   const canEditDeals = hasPermission('deals.update');
-  const canManagerApprove = hasPermission('deals.approve');
+  const canDirectApprove = canDirectManagerApprove(user);
   const tableColSpan = hideDealAmounts ? 6 : 7;
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -356,14 +357,21 @@ const DealList = () => {
   const handleApproveDeal = async (dealId) => {
     if (!dealId) return;
     setError('');
-    if (canManagerApprove) {
+    if (canDirectApprove) {
       try {
         setApprovingDealId(dealId);
         await apiService.approveDeal(dealId);
         setSuccess('Deal approved');
         fetchDeals();
       } catch (err) {
-        setError(err.message || 'Failed to approve deal');
+        const msg = err.message || '';
+        if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
+          setApprovalTargetId(dealId);
+          setApprovalError('');
+          setApprovalDialogOpen(true);
+        } else {
+          setError(msg || 'Failed to approve deal');
+        }
       } finally {
         setApprovingDealId(null);
       }

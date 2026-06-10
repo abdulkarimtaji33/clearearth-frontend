@@ -10,6 +10,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { canDirectManagerApprove } from '../../../utils/recordStatus';
 
 const PO_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 
@@ -23,8 +24,8 @@ const PurchaseOrderView = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const theme = useTheme();
-  const { hasPermission } = useAuth();
-  const canManagerApprove = hasPermission('purchase_orders.approve');
+  const { user } = useAuth();
+  const canDirectApprove = canDirectManagerApprove(user);
   const returnParam = searchParams.get('return');
   const defaultListForPo = (p) => {
     if (!p) return '/erp/client-purchase-quotations';
@@ -83,13 +84,19 @@ const PurchaseOrderView = () => {
   const handleApprovePo = async () => {
     if (!id || !isClientQuotation) return;
     setApproveError('');
-    if (canManagerApprove) {
+    if (canDirectApprove) {
       try {
         setApproveLoading(true);
         await apiService.approvePurchaseOrder(id);
         await fetchPo();
       } catch (e) {
-        setApproveError(e.message || 'Failed to approve');
+        const msg = e.message || '';
+        if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
+          setApprovalError('');
+          setApprovalDialogOpen(true);
+        } else {
+          setApproveError(msg || 'Failed to approve');
+        }
       } finally {
         setApproveLoading(false);
       }

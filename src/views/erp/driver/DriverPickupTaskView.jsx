@@ -121,6 +121,8 @@ const DriverPickupTaskView = () => {
 
   // form state
   const [quantity, setQuantity] = useState('');
+  const [uom, setUom] = useState('');
+  const [uomOptions, setUomOptions] = useState([]);
   const [condition, setCondition] = useState('');
   const [remarks, setRemarks] = useState('');
   const [newPhotos, setNewPhotos] = useState([]); // { file, preview }
@@ -144,6 +146,7 @@ const DriverPickupTaskView = () => {
       // pre-fill from inspection request or existing confirmed values
       if (data.pickupQuantity) setQuantity(data.pickupQuantity);
       else if (data.material?.quantity) setQuantity(String(data.material.quantity));
+      setUom(data.pickupUom || data.uom || data.material?.unit || '');
       if (data.pickupCondition) setCondition(data.pickupCondition);
       if (data.notes) setRemarks(data.notes);
     } catch (e) {
@@ -153,7 +156,12 @@ const DriverPickupTaskView = () => {
     }
   };
 
-  useEffect(() => { fetchPickup(); }, [taskId]);
+  useEffect(() => {
+    fetchPickup();
+    apiService.getAllDropdowns().then((res) => {
+      if (res?.success) setUomOptions(res.data?.units_of_measure || []);
+    }).catch(() => {});
+  }, [taskId]);
 
   const handleAddPhotos = (e) => {
     const files = Array.from(e.target.files || []);
@@ -188,6 +196,7 @@ const DriverPickupTaskView = () => {
       setActionErr('');
       const formData = new FormData();
       if (quantity) formData.append('quantity', quantity);
+      if (uom) formData.append('uom', uom);
       if (condition) formData.append('condition', condition);
       if (remarks) formData.append('remarks', remarks);
       newPhotos.forEach(({ file }) => formData.append('photos', file));
@@ -230,7 +239,6 @@ const DriverPickupTaskView = () => {
   const isCompleted = pickup.taskStatus === 'completed';
   const canEdit = !isCompleted;
   const existingPhotos = pickup.files || [];
-  const uom = pickup.uom || pickup.material?.unit || '';
   const address = [
     pickup.deal?.company?.address,
     pickup.deal?.company?.city,
@@ -441,13 +449,21 @@ const DriverPickupTaskView = () => {
             required
           />
           <TextField
+            select
             label="UOM"
             value={uom}
+            onChange={(e) => setUom(e.target.value)}
+            disabled={!canEdit}
             size="small"
             sx={{ minWidth: 100, maxWidth: 120 }}
-            disabled
-            placeholder="—"
-          />
+          >
+            {(uomOptions.length > 0
+              ? uomOptions
+              : ['kg', 'ton', 'MT', 'liter', 'm3', 'pcs', 'bag', 'drum'].map((v) => ({ value: v, display_name: v }))
+            ).map((u) => (
+              <MenuItem key={u.value ?? u} value={u.value ?? u}>{u.display_name ?? u}</MenuItem>
+            ))}
+          </TextField>
           <FormControl size="small" sx={{ minWidth: 130 }} required>
             <InputLabel>Condition</InputLabel>
             <Select

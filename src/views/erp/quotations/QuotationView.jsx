@@ -11,6 +11,7 @@ import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDia
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
+import { shouldHideDealFinancials } from '../../../utils/authHelpers';
 
 const QUOTATION_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 
@@ -32,6 +33,7 @@ const QuotationView = () => {
   const [searchParams] = useSearchParams();
   const theme = useTheme();
   const { user } = useAuth();
+  const viewOnly = shouldHideDealFinancials(user);
   const canDirectApprove = canDirectManagerApprove(user);
   const returnTo = searchParams.get('return') || '/erp/quotations';
 
@@ -83,7 +85,7 @@ const QuotationView = () => {
   const qStatus = String(q?.status || '').toLowerCase();
   const isApproved = qStatus === 'approved';
   const linkedWorkOrder = q?.workOrder || q?.work_order;
-  const canAttemptApproval = q && QUOTATION_APPROVABLE_STATUSES.includes(qStatus);
+  const canAttemptApproval = !viewOnly && q && QUOTATION_APPROVABLE_STATUSES.includes(qStatus);
 
   const handleApproveQuotation = async () => {
     if (!id) return;
@@ -199,15 +201,21 @@ const QuotationView = () => {
                 Approve
               </Button>
             )}
-            <Button variant="outlined" color="secondary" startIcon={<IconFileInvoice size={18} />} onClick={() => navigate(`/erp/proforma-invoices/create/${id}?return=${encodeURIComponent(returnTo)}`)} sx={{ borderRadius: 2 }}>
-              Create proforma invoice
-            </Button>
-            <Button variant="outlined" startIcon={<IconEdit size={18} />} onClick={() => navigate(`/erp/quotations/edit/${id}`)} sx={{ borderRadius: 2 }}>
-              Edit
-            </Button>
-            <Button variant="outlined" startIcon={pdfLoading ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={handlePdf} disabled={pdfLoading} sx={{ borderRadius: 2 }}>
-              {isApproved ? 'Download service order PDF' : 'Download quotation PDF'}
-            </Button>
+            {!viewOnly && (
+              <Button variant="outlined" color="secondary" startIcon={<IconFileInvoice size={18} />} onClick={() => navigate(`/erp/proforma-invoices/create/${id}?return=${encodeURIComponent(returnTo)}`)} sx={{ borderRadius: 2 }}>
+                Create proforma invoice
+              </Button>
+            )}
+            {!viewOnly && (
+              <Button variant="outlined" startIcon={<IconEdit size={18} />} onClick={() => navigate(`/erp/quotations/edit/${id}`)} sx={{ borderRadius: 2 }}>
+                Edit
+              </Button>
+            )}
+            {!viewOnly && (
+              <Button variant="outlined" startIcon={pdfLoading ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={handlePdf} disabled={pdfLoading} sx={{ borderRadius: 2 }}>
+                {isApproved ? 'Download service order PDF' : 'Download quotation PDF'}
+              </Button>
+            )}
             {isApproved && (
               linkedWorkOrder?.id ? (
                 <Button variant="contained" color="primary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/view/${linkedWorkOrder.id}`)} sx={{ borderRadius: 2 }}>
@@ -222,16 +230,18 @@ const QuotationView = () => {
           </Stack>
         </Stack>
 
-        {/* Amount highlight card */}
+        {/* Summary card */}
         <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2, px: 3, py: 2.5, bgcolor: alpha(theme.palette.primary.main, 0.03), borderColor: alpha(theme.palette.primary.main, 0.18) }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
-            <Box>
-              <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1}>Total amount</Typography>
-              <Typography variant="h3" fontWeight={800} color="primary.main">
-                {q.currency || 'AED'} {Number(q.quotation_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </Typography>
-            </Box>
-            <Stack spacing={0.5} alignItems={{ xs: 'flex-start', sm: 'flex-end' }}>
+            {!viewOnly && (
+              <Box>
+                <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1}>Total amount</Typography>
+                <Typography variant="h3" fontWeight={800} color="primary.main">
+                  {q.currency || 'AED'} {Number(q.quotation_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </Typography>
+              </Box>
+            )}
+            <Stack spacing={0.5} alignItems={{ xs: 'flex-start', sm: viewOnly ? 'flex-start' : 'flex-end' }}>
               <Typography variant="body2" color="text.secondary">Date: <strong>{q.quotation_date || '—'}</strong></Typography>
               <Typography variant="body2" color="text.secondary">Prepared by: <strong>{preparedName}</strong></Typography>
             </Stack>
@@ -290,14 +300,14 @@ const QuotationView = () => {
                   <TableCell sx={{ fontWeight: 700, pl: 2.5 }}>Item</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>UOM</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700 }}>Qty</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>Unit price</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700, pr: 2.5 }}>Line total</TableCell>
+                  {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700 }}>Unit price</TableCell>}
+                  {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700, pr: 2.5 }}>Line total</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {dealItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} sx={{ py: 4, textAlign: 'center' }}>
+                    <TableCell colSpan={viewOnly ? 3 : 5} sx={{ py: 4, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary">No line items on the linked deal</Typography>
                     </TableCell>
                   </TableRow>
@@ -307,15 +317,15 @@ const QuotationView = () => {
                       <TableCell sx={{ pl: 2.5 }}><Typography variant="body2" fontWeight={600}>{it.productService?.name || '—'}</Typography></TableCell>
                       <TableCell><Typography variant="body2" color="text.secondary">{it.unit_of_measure || it.productService?.unit_of_measure || '—'}</Typography></TableCell>
                       <TableCell align="right"><Typography variant="body2">{Number(it.quantity || 0).toLocaleString()}</Typography></TableCell>
-                      <TableCell align="right"><Typography variant="body2">{Number(it.unit_price || 0).toFixed(2)}</Typography></TableCell>
-                      <TableCell align="right" sx={{ pr: 2.5 }}><Typography variant="body2" fontWeight={700}>{Number(it.line_total || 0).toFixed(2)}</Typography></TableCell>
+                      {!viewOnly && <TableCell align="right"><Typography variant="body2">{Number(it.unit_price || 0).toFixed(2)}</Typography></TableCell>}
+                      {!viewOnly && <TableCell align="right" sx={{ pr: 2.5 }}><Typography variant="body2" fontWeight={700}>{Number(it.line_total || 0).toFixed(2)}</Typography></TableCell>}
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
           </TableContainer>
-          {dealItems.length > 0 && (
+          {!viewOnly && dealItems.length > 0 && (
             <Box sx={{ px: 2.5, py: 2, borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end', gap: 3 }}>
               <Typography variant="body2" color="text.secondary" fontWeight={600}>Lines subtotal</Typography>
               <Typography variant="subtitle1" fontWeight={800}>{q.currency || 'AED'} {linesSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>

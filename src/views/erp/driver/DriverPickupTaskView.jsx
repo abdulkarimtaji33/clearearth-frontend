@@ -137,11 +137,13 @@ const DriverPickupTaskView = () => {
     try {
       setLoading(true);
       setFetchErr('');
-      const data = await apiService.getDriverPickup(taskId);
+      const res = await apiService.getDriverPickup(taskId);
+      if (!res.success) throw new Error(res.message || 'Failed to load pickup');
+      const data = res.data;
       setPickup(data);
       // pre-fill from inspection request or existing confirmed values
       if (data.pickupQuantity) setQuantity(data.pickupQuantity);
-      else if (data.material?.quantity) setQuantity(data.material.quantity);
+      else if (data.material?.quantity) setQuantity(String(data.material.quantity));
       if (data.pickupCondition) setCondition(data.pickupCondition);
       if (data.notes) setRemarks(data.notes);
     } catch (e) {
@@ -228,6 +230,7 @@ const DriverPickupTaskView = () => {
   const isCompleted = pickup.taskStatus === 'completed';
   const canEdit = !isCompleted;
   const existingPhotos = pickup.files || [];
+  const uom = pickup.uom || pickup.material?.unit || '';
   const address = [
     pickup.deal?.company?.address,
     pickup.deal?.company?.city,
@@ -258,7 +261,7 @@ const DriverPickupTaskView = () => {
             </Typography>
             <Stack direction="row" alignItems="center" spacing={1} mt={0.25}>
               <Typography variant="h6" fontWeight={800}>
-                {pickup.deal?.deal_number ? `ORD-${pickup.deal.deal_number}` : `WO-${pickup.workOrderId}`}
+                {pickup.workOrderId != null ? `WO-${pickup.workOrderId}` : pickup.deal?.deal_number ? `ORD-${pickup.deal.deal_number}` : 'Pickup task'}
               </Typography>
               <Chip
                 label={isCompleted ? 'Collected' : pickup.taskStatus === 'in_progress' ? 'In Progress' : 'Pending'}
@@ -350,23 +353,35 @@ const DriverPickupTaskView = () => {
       </Paper>
 
       {/* Material Details */}
-      {pickup.material && (
+      {(pickup.material || uom) && (
         <Section icon={<IconTruck size={16} color={theme.palette.primary.main} />} title="Material Details">
-          <Stack direction="row" spacing={2}>
-            <Box flex={1}>
-              <Typography variant="caption" color="text.disabled">Material Type</Typography>
-              <Typography variant="body2" fontWeight={700}>{pickup.material.materialType || '—'}</Typography>
-            </Box>
-            {pickup.material.specification && (
-              <Box flex={1}>
+          <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+            {pickup.material?.materialType && (
+              <Box flex={1} minWidth={120}>
+                <Typography variant="caption" color="text.disabled">Material Type</Typography>
+                <Typography variant="body2" fontWeight={700}>{pickup.material.materialType}</Typography>
+              </Box>
+            )}
+            {pickup.material?.quantity != null && pickup.material.quantity !== '' && (
+              <Box minWidth={100}>
+                <Typography variant="caption" color="text.disabled">Expected Qty</Typography>
+                <Typography variant="body2" fontWeight={700}>
+                  {pickup.material.quantity}{uom ? ` ${uom}` : ''}
+                </Typography>
+              </Box>
+            )}
+            {uom && (
+              <Box minWidth={80}>
+                <Typography variant="caption" color="text.disabled">UOM</Typography>
+                <Typography variant="body2" fontWeight={700}>{uom}</Typography>
+              </Box>
+            )}
+            {pickup.material?.specification && (
+              <Box flex={1} minWidth={120}>
                 <Typography variant="caption" color="text.disabled">Specification</Typography>
                 <Typography variant="body2" fontWeight={700}>{pickup.material.specification}</Typography>
               </Box>
             )}
-            <Box>
-              <Typography variant="caption" color="text.disabled">Unit</Typography>
-              <Typography variant="body2" fontWeight={700}>{pickup.material.unit || '—'}</Typography>
-            </Box>
           </Stack>
         </Section>
       )}
@@ -417,13 +432,21 @@ const DriverPickupTaskView = () => {
       <Section icon={<IconBuilding size={16} color={theme.palette.primary.main} />} title="Quantity & Condition">
         <Stack direction="row" spacing={2}>
           <TextField
-            label={`Quantity${pickup.material?.unit ? ` (${pickup.material.unit})` : ''}`}
+            label="Quantity"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             disabled={!canEdit}
             size="small"
             sx={{ flex: 1 }}
             required
+          />
+          <TextField
+            label="UOM"
+            value={uom}
+            size="small"
+            sx={{ minWidth: 100, maxWidth: 120 }}
+            disabled
+            placeholder="—"
           />
           <FormControl size="small" sx={{ minWidth: 130 }} required>
             <InputLabel>Condition</InputLabel>

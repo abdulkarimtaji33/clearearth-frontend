@@ -4,6 +4,7 @@ import { Navigate, createBrowserRouter } from 'react-router';
 import Loadable, { lazyWithChunkReload } from '../layouts/full/shared/loadable/Loadable';
 import ChunkLoadErrorElement from '../components/ChunkLoadErrorElement';
 import RequireAdmin from '../components/auth/RequireAdmin';
+import RequireQuotationPoEditor from '../components/auth/RequireQuotationPoEditor';
 
 /* ***Layouts**** */
 const FullLayout = Loadable(lazyWithChunkReload(() => import('../layouts/full/FullLayout')));
@@ -130,9 +131,9 @@ const Router = createBrowserRouter([
       { path: '/erp/terms/edit/:id', element: <TermsForm /> },
       { path: '/erp/quotations', element: <QuotationList /> },
       { path: '/erp/service-orders', element: <QuotationList /> },
-      { path: '/erp/quotations/create', element: <QuotationForm /> },
+      { path: '/erp/quotations/create', element: <RequireQuotationPoEditor><QuotationForm /></RequireQuotationPoEditor> },
       { path: '/erp/quotations/view/:id', element: <QuotationView /> },
-      { path: '/erp/quotations/edit/:id', element: <QuotationForm /> },
+      { path: '/erp/quotations/edit/:id', element: <RequireQuotationPoEditor><QuotationForm /></RequireQuotationPoEditor> },
       { path: '/erp/proforma-invoices', element: <ProformaInvoiceList /> },
       { path: '/erp/proforma-invoices/create/:quotationId', element: <ProformaInvoiceCreate /> },
       { path: '/erp/proforma-invoices/view/:id', element: <ProformaInvoiceView /> },
@@ -151,9 +152,9 @@ const Router = createBrowserRouter([
       { path: '/erp/purchase-orders', element: <Navigate to="/erp/client-purchase-quotations" replace /> },
       { path: '/erp/client-purchase-quotations', element: <ClientPurchaseQuotationList /> },
       { path: '/erp/vendor-purchase-quotations', element: <VendorPurchaseQuotationList /> },
-      { path: '/erp/purchase-orders/create', element: <PurchaseOrderForm /> },
+      { path: '/erp/purchase-orders/create', element: <RequireQuotationPoEditor><PurchaseOrderForm /></RequireQuotationPoEditor> },
       { path: '/erp/purchase-orders/view/:id', element: <PurchaseOrderView /> },
-      { path: '/erp/purchase-orders/edit/:id', element: <PurchaseOrderForm /> },
+      { path: '/erp/purchase-orders/edit/:id', element: <RequireQuotationPoEditor><PurchaseOrderForm /></RequireQuotationPoEditor> },
       { path: '/erp/client-purchase-orders', element: <ClientPurchaseOrderList /> },
       { path: '/erp/supplier-purchase-orders', element: <SupplierPurchaseOrderList /> },
       { path: '/erp/roles', element: <RequireAdmin><RoleList /></RequireAdmin> },

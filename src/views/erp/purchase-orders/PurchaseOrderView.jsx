@@ -11,6 +11,7 @@ import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDia
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
+import { shouldHideDealFinancials } from '../../../utils/authHelpers';
 
 const PO_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 
@@ -25,6 +26,7 @@ const PurchaseOrderView = () => {
   const [searchParams] = useSearchParams();
   const theme = useTheme();
   const { user } = useAuth();
+  const viewOnly = shouldHideDealFinancials(user);
   const canDirectApprove = canDirectManagerApprove(user);
   const returnParam = searchParams.get('return');
   const defaultListForPo = (p) => {
@@ -138,7 +140,7 @@ const PurchaseOrderView = () => {
 
   const poStatus = String(po?.status || '').toLowerCase();
   const isApproved = poStatus === 'approved';
-  const canAttemptApproval = isClientQuotation && po && PO_APPROVABLE_STATUSES.includes(poStatus);
+  const canAttemptApproval = !viewOnly && isClientQuotation && po && PO_APPROVABLE_STATUSES.includes(poStatus);
   const returnTo = returnParam || defaultListForPo(po);
   const partyLabel = po?.company_id ? 'Client' : po?.supplier_id ? 'Vendor' : '—';
   const partyName = po?.company?.company_name || po?.supplier?.company_name || '—';
@@ -200,12 +202,16 @@ const PurchaseOrderView = () => {
                 Approve
               </Button>
             )}
-            <Button variant="outlined" startIcon={<IconEdit size={18} />} onClick={() => navigate(`/erp/purchase-orders/edit/${id}`)} sx={{ borderRadius: 2 }}>
-              Edit
-            </Button>
-            <Button variant="outlined" startIcon={pdfLoading ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={handlePdf} disabled={pdfLoading} sx={{ borderRadius: 2 }}>
-              {isApproved ? 'Download purchase order PDF' : 'Download quotation PDF'}
-            </Button>
+            {!viewOnly && (
+              <Button variant="outlined" startIcon={<IconEdit size={18} />} onClick={() => navigate(`/erp/purchase-orders/edit/${id}`)} sx={{ borderRadius: 2 }}>
+                Edit
+              </Button>
+            )}
+            {!viewOnly && (
+              <Button variant="outlined" startIcon={pdfLoading ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={handlePdf} disabled={pdfLoading} sx={{ borderRadius: 2 }}>
+                {isApproved ? 'Download purchase order PDF' : 'Download quotation PDF'}
+              </Button>
+            )}
             {isApproved && (
               linkedWorkOrder?.id ? (
                 <Button variant="contained" color="secondary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/view/${linkedWorkOrder.id}`)} sx={{ borderRadius: 2 }}>
@@ -229,13 +235,15 @@ const PurchaseOrderView = () => {
         {/* Summary highlight */}
         <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2, px: 3, py: 2.5, bgcolor: alpha(theme.palette.secondary.main, 0.04), borderColor: alpha(theme.palette.secondary.main, 0.2) }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
-            <Box>
-              <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1}>Total amount</Typography>
-              <Typography variant="h3" fontWeight={800} color="secondary.main">
-                AED {linesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </Typography>
-            </Box>
-            <Stack spacing={0.5} alignItems={{ xs: 'flex-start', sm: 'flex-end' }}>
+            {!viewOnly && (
+              <Box>
+                <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1}>Total amount</Typography>
+                <Typography variant="h3" fontWeight={800} color="secondary.main">
+                  AED {linesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </Typography>
+              </Box>
+            )}
+            <Stack spacing={0.5} alignItems={{ xs: 'flex-start', sm: viewOnly ? 'flex-start' : 'flex-end' }}>
               <Typography variant="body2" color="text.secondary">PO date: <strong>{po.po_date || '—'}</strong></Typography>
               <Typography variant="body2" color="text.secondary">Delivery: <strong>{po.expected_delivery || '—'}</strong></Typography>
               <Typography variant="body2" color="text.secondary">{partyLabel}: <strong>{partyName}</strong></Typography>
@@ -303,14 +311,14 @@ const PurchaseOrderView = () => {
                   <TableCell sx={{ fontWeight: 700, pl: 2.5 }}>Item</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700 }}>Qty</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>Unit price</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700, pr: 2.5 }}>Total</TableCell>
+                  {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700 }}>Unit price</TableCell>}
+                  {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700, pr: 2.5 }}>Total</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {items.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} sx={{ py: 4, textAlign: 'center' }}>
+                    <TableCell colSpan={viewOnly ? 3 : 5} sx={{ py: 4, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary">No line items</Typography>
                     </TableCell>
                   </TableRow>
@@ -320,18 +328,20 @@ const PurchaseOrderView = () => {
                       <TableCell sx={{ pl: 2.5 }}><Typography variant="body2" fontWeight={600}>{it.productService?.name || '—'}</Typography></TableCell>
                       <TableCell><Typography variant="body2" color="text.secondary">{it.item_description || '—'}</Typography></TableCell>
                       <TableCell align="right"><Typography variant="body2">{Number(it.quantity || 0).toLocaleString()}</Typography></TableCell>
-                      <TableCell align="right"><Typography variant="body2">{Number(it.price || 0).toFixed(2)}</Typography></TableCell>
-                      <TableCell align="right" sx={{ pr: 2.5 }}><Typography variant="body2" fontWeight={700}>{Number(it.total || 0).toFixed(2)}</Typography></TableCell>
+                      {!viewOnly && <TableCell align="right"><Typography variant="body2">{Number(it.price || 0).toFixed(2)}</Typography></TableCell>}
+                      {!viewOnly && <TableCell align="right" sx={{ pr: 2.5 }}><Typography variant="body2" fontWeight={700}>{Number(it.total || 0).toFixed(2)}</Typography></TableCell>}
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
           </TableContainer>
-          <Box sx={{ px: 2.5, py: 2, borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end', gap: 3 }}>
-            <Typography variant="body2" color="text.secondary" fontWeight={600}>Total</Typography>
-            <Typography variant="subtitle1" fontWeight={800}>AED {linesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
-          </Box>
+          {!viewOnly && (
+            <Box sx={{ px: 2.5, py: 2, borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end', gap: 3 }}>
+              <Typography variant="body2" color="text.secondary" fontWeight={600}>Total</Typography>
+              <Typography variant="subtitle1" fontWeight={800}>AED {linesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
+            </Box>
+          )}
         </Paper>
 
         <ApprovalWorkflowDialogs

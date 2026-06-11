@@ -40,6 +40,7 @@ import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDia
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
+import { shouldHideDealFinancials } from '../../../utils/authHelpers';
 
 const STATUS_COLOR = {
   new: 'default',
@@ -66,7 +67,7 @@ const QUOTATION_STATUSES = [
 const QUOTATION_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 const QUOTATION_PICKER_STATUSES = ['new', 'sent', 'under_review', 'revised', 'rejected'];
 
-const InlineStatusPicker = ({ quotation, statusLabel: statusLabelFn, onUpdated, onError }) => {
+const InlineStatusPicker = ({ quotation, statusLabel: statusLabelFn, onUpdated, onError, readOnly = false }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -76,6 +77,7 @@ const InlineStatusPicker = ({ quotation, statusLabel: statusLabelFn, onUpdated, 
   const color = STATUS_COLOR[quotation.status] || 'default';
 
   const handleChipClick = (e) => {
+    if (readOnly) return;
     e.stopPropagation();
     setAnchorEl(e.currentTarget);
   };
@@ -100,8 +102,8 @@ const InlineStatusPicker = ({ quotation, statusLabel: statusLabelFn, onUpdated, 
         label={saving ? <CircularProgress size={12} color="inherit" /> : label}
         size="small"
         color={color}
-        onClick={handleChipClick}
-        sx={{ fontWeight: 600, cursor: 'pointer', '&:hover': { opacity: 0.85 } }}
+        onClick={readOnly ? undefined : handleChipClick}
+        sx={{ fontWeight: 600, cursor: readOnly ? 'default' : 'pointer', '&:hover': readOnly ? {} : { opacity: 0.85 } }}
       />
       <Popover
         open={Boolean(anchorEl)}
@@ -139,9 +141,11 @@ const QuotationList = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, hasPermission } = useAuth();
-  const canAttemptApproval = hasPermission('quotations.update');
+  const viewOnly = shouldHideDealFinancials(user);
+  const canAttemptApproval = !viewOnly && hasPermission('quotations.update');
   const canDirectApprove = canDirectManagerApprove(user);
   const isOrdersView = location.pathname.includes('/service-orders');
+  const tableHeaders = ['Deal', 'Prepared By', 'Date', 'Items', ...(viewOnly ? [] : ['Amount (AED)']), 'Status', ''];
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [quotations, setQuotations] = useState([]);
@@ -327,7 +331,7 @@ const QuotationList = () => {
               {totalCount > 0 ? `${totalCount} record${totalCount !== 1 ? 's' : ''}` : pageDesc}
             </Typography>
           </Box>
-          {!isOrdersView && (
+          {!isOrdersView && !viewOnly && (
             <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/quotations/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
               Add Quotation
             </Button>
@@ -368,17 +372,17 @@ const QuotationList = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                    {['Deal', 'Prepared By', 'Date', 'Items', 'Amount (AED)', 'Status', ''].map((h, i) => (
-                      <TableCell key={i} align={i === 4 ? 'right' : i === 6 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                    {tableHeaders.map((h, i) => (
+                      <TableCell key={i} align={h === 'Amount (AED)' ? 'right' : i === tableHeaders.length - 1 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {loading ? (
-                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 8 }}><CircularProgress /></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={tableHeaders.length} align="center" sx={{ py: 8 }}><CircularProgress /></TableCell></TableRow>
                   ) : quotations.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                      <TableCell colSpan={tableHeaders.length} align="center" sx={{ py: 8 }}>
                         <IconReceipt size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
                         <Typography variant="body2" color="text.secondary">{isOrdersView ? 'No approved service orders yet' : 'No quotations found'}</Typography>
                       </TableCell>
@@ -394,11 +398,13 @@ const QuotationList = () => {
                         </TableCell>
                         <TableCell><Typography variant="body2">{q.quotation_date || '—'}</Typography></TableCell>
                         <TableCell><Typography variant="body2" color="text.secondary">{q.deal?.items?.length ?? 0}</Typography></TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" fontWeight={600}>{parseFloat(q.quotation_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
-                        </TableCell>
+                        {!viewOnly && (
+                          <TableCell align="right">
+                            <Typography variant="body2" fontWeight={600}>{parseFloat(q.quotation_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
+                          </TableCell>
+                        )}
                         <TableCell onClick={e => e.stopPropagation()}>
-                          <InlineStatusPicker quotation={q} statusLabel={statusLabel} onUpdated={handleStatusUpdated} onError={setError} />
+                          <InlineStatusPicker quotation={q} statusLabel={statusLabel} onUpdated={handleStatusUpdated} onError={setError} readOnly={viewOnly} />
                         </TableCell>
                         <TableCell align="right" onClick={e => e.stopPropagation()}>
                           <IconButton size="small" onClick={e => { setAnchorEl(e.currentTarget); setSelectedQuotation(q); }} sx={{ borderRadius: 1.5 }}>
@@ -426,12 +432,16 @@ const QuotationList = () => {
         </Dialog>
 
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => { setAnchorEl(null); setSelectedQuotation(null); }} PaperProps={{ sx: { borderRadius: 2, minWidth: 200 } }}>
-          <MenuItem onClick={() => { navigate(`/erp/proforma-invoices/create/${selectedQuotation?.id}?return=${listReturnEnc}`); setAnchorEl(null); }}>
-            <IconFileInvoice size={16} style={{ marginRight: 10 }} /> Create proforma invoice
-          </MenuItem>
-          <MenuItem onClick={() => { navigate(`/erp/quotations/edit/${selectedQuotation?.id}`); setAnchorEl(null); }}>
-            <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
-          </MenuItem>
+          {!viewOnly && (
+            <MenuItem onClick={() => { navigate(`/erp/proforma-invoices/create/${selectedQuotation?.id}?return=${listReturnEnc}`); setAnchorEl(null); }}>
+              <IconFileInvoice size={16} style={{ marginRight: 10 }} /> Create proforma invoice
+            </MenuItem>
+          )}
+          {!viewOnly && (
+            <MenuItem onClick={() => { navigate(`/erp/quotations/edit/${selectedQuotation?.id}`); setAnchorEl(null); }}>
+              <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
+            </MenuItem>
+          )}
           {!isOrdersView && canAttemptApproval && QUOTATION_APPROVABLE_STATUSES.includes(String(selectedQuotation?.status || '').toLowerCase()) && (
             <MenuItem
               onClick={() => {
@@ -444,10 +454,12 @@ const QuotationList = () => {
               {approvingQuotationId === selectedQuotation?.id ? 'Approving…' : 'Approve'}
             </MenuItem>
           )}
-          <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation); setAnchorEl(null); }} disabled={pdfLoading === selectedQuotation?.id}>
-            {pdfLoading === selectedQuotation?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
-            {isApproved(selectedQuotation) ? 'Download service order PDF' : 'Download quotation PDF'}
-          </MenuItem>
+          {!viewOnly && (
+            <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation); setAnchorEl(null); }} disabled={pdfLoading === selectedQuotation?.id}>
+              {pdfLoading === selectedQuotation?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+              {isApproved(selectedQuotation) ? 'Download service order PDF' : 'Download quotation PDF'}
+            </MenuItem>
+          )}
           {isApproved(selectedQuotation) && (
             (selectedQuotation?.workOrder || selectedQuotation?.work_order)?.id ? (
               <MenuItem onClick={() => { navigate(`/erp/work-orders/view/${(selectedQuotation.workOrder || selectedQuotation.work_order).id}`); setAnchorEl(null); }}>
@@ -459,9 +471,11 @@ const QuotationList = () => {
               </MenuItem>
             )
           )}
-          <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
-            <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
-          </MenuItem>
+          {!viewOnly && (
+            <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
+              <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
+            </MenuItem>
+          )}
         </Menu>
 
         <ApprovalWorkflowDialogs

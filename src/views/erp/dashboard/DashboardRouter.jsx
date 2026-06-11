@@ -8,7 +8,7 @@ import SalesDashboard from './SalesDashboard';
 import SalesManagerDashboard from './SalesManagerDashboard';
 import InspectionDashboard from './InspectionDashboard';
 import OperationsDashboard from './OperationsDashboard';
-import DriverDashboard from './DriverDashboard';
+import DriverPickupList from '../driver/DriverPickupList';
 import SuperAdminDashboard from './SuperAdminDashboard';
 import AccountsDashboard from './AccountsDashboard';
 
@@ -20,7 +20,7 @@ const ROLE_MAP = {
   sales_manager: SalesManagerDashboard,
   inspection_team: InspectionDashboard,
   operations_manager: OperationsDashboard,
-  driver: DriverDashboard,
+  driver: DriverPickupList,
   accounts: AccountsDashboard,
 };
 

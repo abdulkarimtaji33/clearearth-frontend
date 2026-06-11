@@ -244,6 +244,42 @@ const ErpMenuItems = [
     permission: 'deals.read',
     excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
+  {
+    id: uniqueId(),
+    title: 'Service and Purchase',
+    icon: IconReceipt,
+    href: '/erp/quotations',
+    permission: 'quotations.read',
+    includeRoles: OPERATIONS_ONLY_ROLES,
+    children: [
+      {
+        id: uniqueId(),
+        title: 'Quotations',
+        icon: IconFileText,
+        href: '/erp/quotations',
+        permission: 'quotations.read',
+        includeRoles: OPERATIONS_ONLY_ROLES,
+        children: [
+          { id: uniqueId(), title: 'Service Quotation', icon: IconPoint, href: '/erp/quotations', permission: 'quotations.read', includeRoles: OPERATIONS_ONLY_ROLES },
+          { id: uniqueId(), title: 'Client purchase quotations', icon: IconPoint, href: '/erp/client-purchase-quotations', permission: 'purchase_orders.read', includeRoles: OPERATIONS_ONLY_ROLES },
+          { id: uniqueId(), title: 'Vendor purchase quotations', icon: IconPoint, href: '/erp/vendor-purchase-quotations', permission: 'purchase_orders.read', includeRoles: OPERATIONS_ONLY_ROLES },
+        ],
+      },
+      {
+        id: uniqueId(),
+        title: 'Orders',
+        icon: IconShoppingCart,
+        href: '/erp/service-orders',
+        permission: 'quotations.read',
+        includeRoles: OPERATIONS_ONLY_ROLES,
+        children: [
+          { id: uniqueId(), title: 'Clients Service Orders', icon: IconPoint, href: '/erp/service-orders', permission: 'quotations.read', includeRoles: OPERATIONS_ONLY_ROLES },
+          { id: uniqueId(), title: 'Clients Purchase Orders', icon: IconPoint, href: '/erp/client-purchase-orders', permission: 'purchase_orders.read', includeRoles: OPERATIONS_ONLY_ROLES },
+          { id: uniqueId(), title: 'Vendor Purchase Orders', icon: IconPoint, href: '/erp/supplier-purchase-orders', permission: 'purchase_orders.read', includeRoles: OPERATIONS_ONLY_ROLES },
+        ],
+      },
+    ],
+  },
 
   // ─── Others ─────────────────────────────────────────────────────────────────
   {

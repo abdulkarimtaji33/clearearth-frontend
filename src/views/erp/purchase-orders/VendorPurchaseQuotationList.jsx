@@ -15,6 +15,8 @@ import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
+import { shouldHideDealFinancials } from '../../../utils/authHelpers';
 
 const STATUS_COLOR = {
   new: 'default', sent: 'info', under_review: 'warning',
@@ -25,6 +27,8 @@ const STATUS_COLOR = {
 const VendorPurchaseQuotationList = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const viewOnly = shouldHideDealFinancials(user);
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [orders, setOrders] = useState([]);
@@ -106,9 +110,11 @@ const VendorPurchaseQuotationList = () => {
               {totalCount > 0 ? `${totalCount} quotation${totalCount !== 1 ? 's' : ''}` : 'Drafts and pending vendor purchase quotations'}
             </Typography>
           </Box>
-          <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/purchase-orders/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
-            Add quotation
-          </Button>
+          {!viewOnly && (
+            <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/purchase-orders/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
+              Add quotation
+            </Button>
+          )}
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -195,16 +201,22 @@ const VendorPurchaseQuotationList = () => {
         </Dialog>
 
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => { setAnchorEl(null); setSelectedOrder(null); }} PaperProps={{ sx: { borderRadius: 2, minWidth: 210 } }}>
-          <MenuItem onClick={() => { navigate(`/erp/purchase-orders/edit/${selectedOrder?.id}`); setAnchorEl(null); }}>
-            <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
-          </MenuItem>
-          <MenuItem onClick={() => { handleDownloadPdf(selectedOrder); setAnchorEl(null); }} disabled={pdfLoading === selectedOrder?.id}>
-            {pdfLoading === selectedOrder?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
-            {isApproved(selectedOrder) ? 'Download purchase order PDF' : 'Download quotation PDF'}
-          </MenuItem>
-          <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
-            <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
-          </MenuItem>
+          {!viewOnly && (
+            <MenuItem onClick={() => { navigate(`/erp/purchase-orders/edit/${selectedOrder?.id}`); setAnchorEl(null); }}>
+              <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
+            </MenuItem>
+          )}
+          {!viewOnly && (
+            <MenuItem onClick={() => { handleDownloadPdf(selectedOrder); setAnchorEl(null); }} disabled={pdfLoading === selectedOrder?.id}>
+              {pdfLoading === selectedOrder?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+              {isApproved(selectedOrder) ? 'Download purchase order PDF' : 'Download quotation PDF'}
+            </MenuItem>
+          )}
+          {!viewOnly && (
+            <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
+              <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
+            </MenuItem>
+          )}
         </Menu>
       </Box>
     </PageContainer>

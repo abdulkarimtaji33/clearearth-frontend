@@ -69,6 +69,7 @@ const JournalList = Loadable(lazyWithChunkReload(() => import('../views/erp/repo
 const JournalEntryView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/JournalEntryView')));
 const JournalEntryCreate = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/JournalEntryCreate')));
 const GeneralLedgerView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/GeneralLedgerView')));
+const DriverPickupTaskView = Loadable(lazyWithChunkReload(() => import('../views/erp/driver/DriverPickupTaskView')));
 const GrnList = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnList')));
 const GrnForm = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnForm')));
 const GrnView = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnView')));
@@ -167,6 +168,7 @@ const Router = createBrowserRouter([
       { path: '/erp/work-orders/create', element: <WorkOrderForm /> },
       { path: '/erp/work-orders/edit/:id', element: <WorkOrderForm /> },
       { path: '/erp/work-orders/view/:id', element: <WorkOrderView /> },
+      { path: '/erp/driver/pickups/:taskId', element: <DriverPickupTaskView /> },
       { path: '/erp/grn', element: <GrnList /> },
       { path: '/erp/grn/create', element: <GrnForm /> },
       { path: '/erp/grn/edit/:id', element: <GrnForm /> },

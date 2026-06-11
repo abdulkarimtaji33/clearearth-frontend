@@ -7,8 +7,9 @@ import { alpha, useTheme } from '@mui/material/styles';
 import {
   IconMapPin, IconPhone, IconCheck, IconPlayerPlay,
   IconClockHour4, IconAlertTriangle, IconCalendar, IconCalendarDue,
-  IconRoute, IconList, IconCheckbox, IconNavigation,
+  IconRoute, IconList, IconCheckbox, IconNavigation, IconExternalLink,
 } from '@tabler/icons-react';
+import { useNavigate } from 'react-router';
 import { useAuth } from '../../../context/AuthContext';
 import apiService from '../../../services/api';
 import RoutePlannerDialog from '../../../components/RoutePlannerDialog';
@@ -23,6 +24,7 @@ const P = {
 // ── Single pickup card ─────────────────────────────────────────────────────────
 const PickupCard = ({ pickup, onRefresh }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [acting, setAct] = useState(null);
   const [err, setErr] = useState('');
   const cfg = P[pickup.priority] || P.upcoming;
@@ -57,6 +59,14 @@ const PickupCard = ({ pickup, onRefresh }) => {
             ) : pickup.endDate ? (
               <Typography variant="caption" color="text.disabled">Due {pickup.endDate}</Typography>
             ) : null}
+            <Button
+              size="small"
+              endIcon={<IconExternalLink size={12} />}
+              onClick={() => navigate(`/erp/driver/pickups/${pickup.taskId}`)}
+              sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, textTransform: 'none', fontWeight: 700, lineHeight: 1 }}
+            >
+              View Details
+            </Button>
           </Stack>
         </Stack>
       </Box>

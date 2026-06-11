@@ -886,12 +886,27 @@ class ApiService {
     return this.get('/driver/pickups');
   }
 
+  async getDriverPickup(taskId) {
+    return this.get(`/driver/pickups/${taskId}`);
+  }
+
   async startDriverPickup(taskId) {
     return this.post(`/driver/pickups/${taskId}/start`);
   }
 
   async completeDriverPickup(taskId) {
     return this.post(`/driver/pickups/${taskId}/complete`);
+  }
+
+  async completeDriverPickupWithData(taskId, formData) {
+    const url = `${this.baseURL}/driver/pickups/${taskId}/complete`;
+    const token = this.getAuthToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(url, { method: 'POST', body: formData, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to confirm pickup');
+    return data;
   }
 
   async assignRolePermissions(roleId, permissionIds) {

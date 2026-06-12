@@ -5,6 +5,7 @@ import Loadable, { lazyWithChunkReload } from '../layouts/full/shared/loadable/L
 import ChunkLoadErrorElement from '../components/ChunkLoadErrorElement';
 import RequireAdmin from '../components/auth/RequireAdmin';
 import RequireQuotationPoEditor from '../components/auth/RequireQuotationPoEditor';
+import RequireNotDriver from '../components/auth/RequireNotDriver';
 
 /* ***Layouts**** */
 const FullLayout = Loadable(lazyWithChunkReload(() => import('../layouts/full/FullLayout')));
@@ -122,10 +123,10 @@ const Router = createBrowserRouter([
       { path: '/erp/products', element: <ProductList /> },
       { path: '/erp/products/create', element: <ProductForm /> },
       { path: '/erp/products/edit/:id', element: <ProductForm /> },
-      { path: '/erp/deals', element: <DealList /> },
-      { path: '/erp/deals/create', element: <DealForm /> },
-      { path: '/erp/deals/edit/:id', element: <DealForm /> },
-      { path: '/erp/deals/view/:id', element: <DealView /> },
+      { path: '/erp/deals', element: <RequireNotDriver><DealList /></RequireNotDriver> },
+      { path: '/erp/deals/create', element: <RequireNotDriver><DealForm /></RequireNotDriver> },
+      { path: '/erp/deals/edit/:id', element: <RequireNotDriver><DealForm /></RequireNotDriver> },
+      { path: '/erp/deals/view/:id', element: <RequireNotDriver><DealView /></RequireNotDriver> },
       { path: '/erp/terms', element: <TermsList /> },
       { path: '/erp/terms/create', element: <TermsForm /> },
       { path: '/erp/terms/edit/:id', element: <TermsForm /> },

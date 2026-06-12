@@ -26,7 +26,6 @@ import {
   IconBuilding,
   IconCamera,
   IconCheck,
-  IconExternalLink,
   IconMapPin,
   IconNavigation,
   IconPhone,
@@ -297,16 +296,6 @@ const DriverPickupTaskView = () => {
                 ? new Date(`${pickup.startDate}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                 : '—'}
             </Typography>
-            {pickup.deal?.id && (
-              <Button
-                size="small"
-                endIcon={<IconExternalLink size={13} />}
-                onClick={() => navigate(`/erp/deals/view/${pickup.deal.id}`)}
-                sx={{ mt: 0.5, fontSize: '0.75rem', p: 0, minWidth: 0, textTransform: 'none', fontWeight: 700 }}
-              >
-                View Details
-              </Button>
-            )}
           </Box>
         </Stack>
       </Paper>

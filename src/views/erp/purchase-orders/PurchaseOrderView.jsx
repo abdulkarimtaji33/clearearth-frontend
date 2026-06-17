@@ -286,11 +286,17 @@ const PurchaseOrderView = () => {
         </Paper>
 
         {po.terms && po.terms.length > 0 && (
-          <Paper variant="outlined" sx={{ borderRadius: 3, px: 2.5, py: 2, mb: 2 }}>
-            <Typography variant="overline" fontWeight={700} color="text.secondary" letterSpacing={1} display="block" mb={1.25}>Terms</Typography>
-            <Stack direction="row" flexWrap="wrap" gap={0.75}>
-              {po.terms.map((t) => (
-                <Chip key={t.id} label={t.title} size="small" variant="outlined" sx={{ fontWeight: 500 }} />
+          <Paper variant="outlined" sx={{ borderRadius: 3, px: 2.5, py: 2.5, mb: 2 }}>
+            <Typography variant="overline" fontWeight={700} color="text.secondary" letterSpacing={1} display="block" mb={1.5}>Terms & Conditions</Typography>
+            <Stack spacing={1.5}>
+              {po.terms.map((t, idx) => (
+                <Box key={t.id}>
+                  {idx > 0 && <Divider sx={{ mb: 1.5 }} />}
+                  <Typography variant="body2" fontWeight={700} mb={0.5}>{t.title}</Typography>
+                  {t.content && (
+                    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>{t.content}</Typography>
+                  )}
+                </Box>
               ))}
             </Stack>
           </Paper>

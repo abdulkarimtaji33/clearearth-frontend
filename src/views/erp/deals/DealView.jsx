@@ -1270,7 +1270,7 @@ const DealView = () => {
                       View report
                     </Button>
                   )}
-                  {canEditDeals && (
+                  {canEditDeals && !['sales', 'sales_manager'].includes(getUserRole(user)) && (
                     <Button variant="contained" size="small" startIcon={<IconPlus size={16} />} onClick={openReportDialog} sx={{ borderRadius: 2 }}>
                       {deal.inspectionReport ? 'Edit report' : 'Add report'}
                     </Button>

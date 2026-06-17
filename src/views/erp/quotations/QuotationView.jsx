@@ -47,6 +47,7 @@ const QuotationView = () => {
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalError, setApprovalError] = useState('');
   const [pinConfigured, setPinConfigured] = useState(false);
+  const [dealWorkOrders, setDealWorkOrders] = useState([]);
 
   const fetchQ = useCallback(async () => {
     if (!id) return;
@@ -54,8 +55,18 @@ const QuotationView = () => {
       setLoading(true);
       setError('');
       const res = await apiService.getQuotation(id);
-      if (res.success) setQ(res.data);
-      else setError('Not found');
+      if (res.success) {
+        setQ(res.data);
+        const dealId = res.data?.deal?.id;
+        if (dealId) {
+          try {
+            const woRes = await apiService.getWorkOrders({ dealId, pageSize: 50 });
+            setDealWorkOrders(Array.isArray(woRes.data) ? woRes.data : woRes.data?.items || []);
+          } catch { /* ignore */ }
+        }
+      } else {
+        setError('Not found');
+      }
     } catch (e) {
       setError(e.message || 'Failed to load quotation');
     } finally {
@@ -85,6 +96,7 @@ const QuotationView = () => {
   const qStatus = String(q?.status || '').toLowerCase();
   const isApproved = qStatus === 'approved';
   const linkedWorkOrder = q?.workOrder || q?.work_order;
+  const anyDealWorkOrder = linkedWorkOrder || dealWorkOrders.find((wo) => wo.id);
   const canAttemptApproval = !viewOnly && q && QUOTATION_APPROVABLE_STATUSES.includes(qStatus);
 
   const handleApproveQuotation = async () => {
@@ -217,8 +229,8 @@ const QuotationView = () => {
               </Button>
             )}
             {isApproved && (
-              linkedWorkOrder?.id ? (
-                <Button variant="contained" color="primary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/view/${linkedWorkOrder.id}`)} sx={{ borderRadius: 2 }}>
+              anyDealWorkOrder?.id ? (
+                <Button variant="contained" color="primary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/view/${anyDealWorkOrder.id}`)} sx={{ borderRadius: 2 }}>
                   Open work order
                 </Button>
               ) : (

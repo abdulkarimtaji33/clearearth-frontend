@@ -423,6 +423,12 @@ const ContactForm = () => {
             <Grid size={12}>
               <TextField fullWidth required label="Address" value={newCompanyValues.address} onChange={e => setNewCompanyValues(v => ({ ...v, address: e.target.value }))} error={Boolean(newCompanyErrors.address)} helperText={newCompanyErrors.address || ' '} sx={tfSx} />
             </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField fullWidth select label="Industry Type" value={newCompanyValues.industryType} onChange={e => setNewCompanyValues(v => ({ ...v, industryType: e.target.value }))} sx={tfSx} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 350 } } } }}>
+                <MenuItem value="">None</MenuItem>
+                {dropdowns.industryTypes.map(it => <MenuItem key={it.id} value={it.value}>{it.display_name}</MenuItem>)}
+              </TextField>
+            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 4, pb: 4, pt: 2 }}>

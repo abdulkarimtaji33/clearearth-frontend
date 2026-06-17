@@ -625,7 +625,7 @@ const PurchaseOrderForm = () => {
                                 value={row.quantity}
                                 onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
                                 sx={{ width: 90 }}
-                                inputProps={{ min: 0 }}
+                                inputProps={{ min: 0, step: 'any' }}
                               />
                             </TableCell>
                             <TableCell>

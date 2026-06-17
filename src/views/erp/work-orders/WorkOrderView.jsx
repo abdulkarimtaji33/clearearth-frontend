@@ -435,13 +435,11 @@ const WorkOrderView = () => {
         setDealProformaId(null);
         setDealTaxInvoiceId(null);
         setLinkedGrn(null);
-        if (res.data.status === 'completed') {
-          try {
-            const grnRes = await apiService.getGrns({ workOrderId: id, pageSize: 1 });
-            const grnRow = Array.isArray(grnRes.data) ? grnRes.data[0] : null;
-            if (grnRow?.id) setLinkedGrn(grnRow);
-          } catch { /* ignore */ }
-        }
+        try {
+          const grnRes = await apiService.getGrns({ workOrderId: id, pageSize: 1 });
+          const grnRow = Array.isArray(grnRes.data) ? grnRes.data[0] : null;
+          if (grnRow?.id) setLinkedGrn(grnRow);
+        } catch { /* ignore */ }
         const deal = res.data.deal;
         if (deal?.id) {
           try {
@@ -753,7 +751,7 @@ const WorkOrderView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-            {wo.status === 'completed' && dealQuotationId && !dealProformaId && (
+            {!hideDealAmounts && wo.status === 'completed' && dealQuotationId && !dealProformaId && (
               <Button
                 variant="contained"
                 color="primary"
@@ -764,7 +762,7 @@ const WorkOrderView = () => {
                 Create Proforma Invoice
               </Button>
             )}
-            {wo.status === 'completed' && dealProformaId && !dealTaxInvoiceId && (
+            {!hideDealAmounts && wo.status === 'completed' && dealProformaId && !dealTaxInvoiceId && (
               <Button
                 variant="contained"
                 color="primary"
@@ -775,7 +773,7 @@ const WorkOrderView = () => {
                 Create Tax Invoice
               </Button>
             )}
-            {wo.status === 'completed' && dealTaxInvoiceId && (
+            {!hideDealAmounts && wo.status === 'completed' && dealTaxInvoiceId && (
               <Button
                 variant="outlined"
                 color="primary"
@@ -786,7 +784,7 @@ const WorkOrderView = () => {
                 View Tax Invoice
               </Button>
             )}
-            {wo.status === 'completed' && isOtpDeal && clientCompanyId && (
+            {!hideDealAmounts && wo.status === 'completed' && isOtpDeal && clientCompanyId && (
               <>
                 <Button
                   variant={clientBill ? 'outlined' : 'contained'}
@@ -826,7 +824,7 @@ const WorkOrderView = () => {
                 )}
               </>
             )}
-            {wo.status === 'completed' && isOtpDeal && vendorSupplierId && (
+            {!hideDealAmounts && wo.status === 'completed' && isOtpDeal && vendorSupplierId && (
               <>
                 <Button
                   variant={vendorBill ? 'outlined' : 'contained'}
@@ -893,7 +891,7 @@ const WorkOrderView = () => {
                 </span>
               </Tooltip>
             )}
-            {wo.status === 'completed' && (
+            {(linkedGrn || wo.status === 'completed') && (
               <Button
                 variant="contained"
                 color="warning"
@@ -1476,9 +1474,11 @@ const WorkOrderView = () => {
         </Box>
         <DialogActions className="print-hide" sx={{ px: 3, pb: 3, pt: 1 }}>
           <Button onClick={() => setReportOpen(false)} variant="outlined" sx={{ borderRadius: 2 }}>Close</Button>
-          <Button variant="outlined" color="primary" onClick={() => { setReportOpen(false); navigate(linkedGrn ? `/erp/grn/${linkedGrn.status === 'new' ? 'edit' : 'view'}/${linkedGrn.id}` : `/erp/grn/create?workOrderId=${wo.id}`); }} sx={{ borderRadius: 2, fontWeight: 600 }}>
-            {linkedGrn ? (linkedGrn.status === 'new' ? 'Edit GRN' : 'View GRN') : 'Open GRN'}
-          </Button>
+          {(linkedGrn || wo.status === 'completed') && (
+            <Button variant="outlined" color="primary" onClick={() => { setReportOpen(false); navigate(linkedGrn ? `/erp/grn/${linkedGrn.status === 'new' ? 'edit' : 'view'}/${linkedGrn.id}` : `/erp/grn/create?workOrderId=${wo.id}`); }} sx={{ borderRadius: 2, fontWeight: 600 }}>
+              {linkedGrn ? (linkedGrn.status === 'new' ? 'Edit GRN' : 'View GRN') : 'Open GRN'}
+            </Button>
+          )}
           <Button variant="contained" color="success" startIcon={<IconPrinter size={16} />} onClick={handlePrintReport} sx={{ borderRadius: 2, fontWeight: 600 }}>
             Print Report
           </Button>

@@ -1416,7 +1416,7 @@ const DealView = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
                 <DateTimePicker label="Inspection Date & Time (Required)" value={reportForm.inspectionDatetime} onChange={(v) => setReportForm((f) => ({ ...f, inspectionDatetime: v }))} slotProps={{ textField: { fullWidth: true, required: true, error: Boolean(reportFormErrors.inspectionDatetime), helperText: reportFormErrors.inspectionDatetime, sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }} />
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
-                  <TextField label="Approximate Weight (Required)" type="number" value={reportForm.approximateWeight} onChange={(e) => setReportForm((f) => ({ ...f, approximateWeight: e.target.value }))} required error={Boolean(reportFormErrors.approximateWeight)} helperText={reportFormErrors.approximateWeight} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                  <TextField label="Approximate Weight (Required)" type="number" value={reportForm.approximateWeight} onChange={(e) => setReportForm((f) => ({ ...f, approximateWeight: e.target.value }))} required error={Boolean(reportFormErrors.approximateWeight)} helperText={reportFormErrors.approximateWeight} inputProps={{ min: 0, step: 'any' }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                   <TextField select label="UOM" value={reportForm.weightUom} onChange={(e) => setReportForm((f) => ({ ...f, weightUom: e.target.value }))} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
                     <MenuItem value="kg">kg</MenuItem>
                     <MenuItem value="tons">tons</MenuItem>
@@ -1438,7 +1438,7 @@ const DealView = () => {
                   <MenuItem value="reefer">Reefer</MenuItem>
                   <MenuItem value="lowbed trailer">Lowbed Trailer</MenuItem>
                 </TextField>
-                <TextField fullWidth label="Approximate Value (Required)" type="number" value={reportForm.approximateValue} onChange={(e) => setReportForm((f) => ({ ...f, approximateValue: e.target.value }))} required error={Boolean(reportFormErrors.approximateValue)} helperText={reportFormErrors.approximateValue} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                <TextField fullWidth label="Approximate Value (Required)" type="number" value={reportForm.approximateValue} onChange={(e) => setReportForm((f) => ({ ...f, approximateValue: e.target.value }))} required error={Boolean(reportFormErrors.approximateValue)} helperText={reportFormErrors.approximateValue} inputProps={{ min: 0, step: 'any' }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                 <Box>
                   <Typography variant="body2" color="text.secondary" mb={1}>Images (Required) — at least one</Typography>
                   {reportFormErrors.images && <Typography variant="caption" color="error" display="block" mb={1}>{reportFormErrors.images}</Typography>}

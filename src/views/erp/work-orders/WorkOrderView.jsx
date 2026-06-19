@@ -1416,15 +1416,63 @@ const WorkOrderView = () => {
                     <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Task</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Status</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Notes</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Expense (AED)</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Expense Description</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Amount (AED)</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Accounts</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {tasks.map((task, idx) => {
-                    const exp = task.expenses?.length
-                      ? task.expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0)
-                      : (task.expense != null ? parseFloat(task.expense) : 0);
-                    return (
+                    const hasExpenses = task.expenses?.length > 0;
+                    const legacyExp = !hasExpenses && task.expense != null ? parseFloat(task.expense) : null;
+                    const expenseRows = hasExpenses ? task.expenses : (legacyExp != null ? [{ description: null, amount: legacyExp, accounts_status: 'approved' }] : []);
+                    const rowSpan = expenseRows.length > 0 ? expenseRows.length : 1;
+                    return expenseRows.length > 0 ? expenseRows.map((ex, ei) => {
+                      const isRejected = String(ex.accounts_status || '').toLowerCase() === 'rejected';
+                      return (
+                        <TableRow
+                          key={`${task.id ?? idx}-ex-${ei}`}
+                          sx={isRejected ? { bgcolor: alpha(theme.palette.error.main, 0.04) } : {}}
+                        >
+                          {ei === 0 && (
+                            <>
+                              <TableCell rowSpan={rowSpan} sx={{ fontSize: '0.8rem', color: 'text.secondary', verticalAlign: 'top', pt: 1.5 }}>{idx + 1}</TableCell>
+                              <TableCell rowSpan={rowSpan} sx={{ fontSize: '0.85rem', fontWeight: 600, verticalAlign: 'top', pt: 1.5 }}>{task.type_of_work || task.workType?.name || `Task ${idx + 1}`}</TableCell>
+                              <TableCell rowSpan={rowSpan} sx={{ verticalAlign: 'top', pt: 1.5 }}>
+                                <Chip
+                                  label={task.status?.replace(/_/g, ' ')}
+                                  size="small"
+                                  color={task.status === 'completed' ? 'success' : task.status === 'in_progress' ? 'primary' : 'default'}
+                                  sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }}
+                                />
+                              </TableCell>
+                              <TableCell rowSpan={rowSpan} sx={{ fontSize: '0.8rem', color: 'text.secondary', maxWidth: 160, verticalAlign: 'top', pt: 1.5 }}>{task.notes || '—'}</TableCell>
+                            </>
+                          )}
+                          <TableCell sx={{ fontSize: '0.8rem', color: isRejected ? 'error.main' : 'text.secondary' }}>
+                            {ex.description || '—'}
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontSize: '0.85rem', fontWeight: 600, color: isRejected ? 'error.main' : 'inherit', textDecoration: isRejected ? 'line-through' : 'none' }}>
+                            {parseFloat(ex.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell>
+                            {(() => {
+                              const st = String(ex.accounts_status || 'pending').toLowerCase();
+                              if (st === 'approved') return <Chip size="small" label="Approved" color="success" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700 }} />;
+                              if (st === 'rejected') return (
+                                <Box>
+                                  <Chip size="small" label="Rejected" color="error" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700 }} />
+                                  {ex.rejection_reason && (
+                                    <Typography variant="caption" display="block" color="error.main" sx={{ mt: 0.25, fontSize: '0.62rem' }}>{ex.rejection_reason}</Typography>
+                                  )}
+                                </Box>
+                              );
+                              return <Chip size="small" label="Pending" color="warning" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700 }} />;
+                            })()}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }) : (
                       <TableRow key={task.id ?? idx}>
                         <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{idx + 1}</TableCell>
                         <TableCell sx={{ fontSize: '0.85rem', fontWeight: 600 }}>{task.type_of_work || task.workType?.name || `Task ${idx + 1}`}</TableCell>
@@ -1436,19 +1484,18 @@ const WorkOrderView = () => {
                             sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }}
                           />
                         </TableCell>
-                        <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary', maxWidth: 200 }}>{task.notes || '—'}</TableCell>
-                        <TableCell align="right" sx={{ fontSize: '0.85rem', fontWeight: exp > 0 ? 600 : 400 }}>
-                          {exp > 0 ? exp.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '—'}
-                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary', maxWidth: 160 }}>{task.notes || '—'}</TableCell>
+                        <TableCell colSpan={3} sx={{ fontSize: '0.8rem', color: 'text.disabled' }}>No expenses</TableCell>
                       </TableRow>
                     );
                   })}
                   {totalExpense > 0 && (
                     <TableRow sx={{ bgcolor: alpha(theme.palette.success.main, 0.05) }}>
-                      <TableCell colSpan={4} sx={{ fontWeight: 700, fontSize: '0.85rem' }}>Total Expenses</TableCell>
+                      <TableCell colSpan={5} sx={{ fontWeight: 700, fontSize: '0.85rem' }}>Total Expenses</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.85rem', color: 'success.main' }}>
                         {totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </TableCell>
+                      <TableCell />
                     </TableRow>
                   )}
                 </TableBody>

@@ -649,7 +649,7 @@ const PurchaseOrderForm = () => {
                                 onChange={(e) => handleItemChange(idx, 'total', e.target.value)}
                                 disabled={isBillMode}
                                 sx={{ width: 100 }}
-                                inputProps={{ min: 0 }}
+                                inputProps={{ min: 0, step: 0.01 }}
                               />
                             </TableCell>
                             <TableCell>

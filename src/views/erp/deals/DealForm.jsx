@@ -2130,6 +2130,7 @@ const DealForm = () => {
                   value={inspectionDetails.quantity}
                   onChange={(e) => setInspectionDetails({ ...inspectionDetails, quantity: e.target.value })}
                   required
+                  inputProps={{ min: 0, step: 'any' }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
                 <TextField

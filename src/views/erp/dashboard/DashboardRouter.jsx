@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Box, CircularProgress, Alert } from '@mui/material';
 import { useAuth } from '../../../context/AuthContext';
+import { useSocket } from '../../../context/SocketContext';
 import apiService from '../../../services/api';
 import PageContainer from '../../../components/container/PageContainer';
 import AdminDashboard from './AdminDashboard';
@@ -26,6 +27,7 @@ const ROLE_MAP = {
 
 const DashboardRouter = () => {
   const { user } = useAuth();
+  const { on } = useSocket() || {};
   const roleName = user?.role?.name || user?.Role?.name || 'sales';
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,17 @@ const DashboardRouter = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Refresh dashboard data silently when a real-time notification arrives
+  useEffect(() => {
+    if (!on) return;
+    const off = on('notification', () => {
+      apiService.getDashboardOverview().then((res) => {
+        if (res.success) setData(res.data);
+      }).catch(() => {});
+    });
+    return off;
+  }, [on]);
 
   const Component = ROLE_MAP[roleName] || SalesDashboard;
 

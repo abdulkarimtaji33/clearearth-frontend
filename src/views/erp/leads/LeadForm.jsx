@@ -22,11 +22,11 @@ import {
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
-import { IconArrowLeft, IconPlus, IconKey, IconUserCheck } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
-import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
+import { formatStatusLabel } from '../../../utils/recordStatus';
 
 // Popper that matches the anchor element width
 const WidePopper = ({ style, anchorEl, ...props }) => {
@@ -48,13 +48,10 @@ const validationSchema = Yup.object({
 const canAssignLeads = (roleName) =>
   ['sales_manager', 'admin', 'tenant_admin', 'super_admin'].includes(roleName);
 
-const APPROVAL_ELIGIBLE_STATUSES = ['new', 'contacted'];
-
 const LeadForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, hasPermission } = useAuth();
-  const canChangeStatus = canChangeRecordStatus(user, hasPermission, 'leads.approve');
+  const { user } = useAuth();
   const roleName = user?.role?.name ?? user?.role;
   const showAssignedTo = canAssignLeads(roleName);
   const [loading, setLoading] = useState(false);
@@ -89,13 +86,6 @@ const LeadForm = () => {
   });
   
   const [users, setUsers] = useState([]);
-  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
-  const [pinDialogOpen, setPinDialogOpen] = useState(false);
-  const [savedLeadId, setSavedLeadId] = useState(null);
-  const [approvalPin, setApprovalPin] = useState('');
-  const [approvalLoading, setApprovalLoading] = useState(false);
-  const [approvalError, setApprovalError] = useState('');
-  const [pinConfigured, setPinConfigured] = useState(false);
   const [initialValues, setInitialValues] = useState({
     companyId: null,
     contactId: null,
@@ -180,55 +170,10 @@ const LeadForm = () => {
   useEffect(() => {
     fetchCompaniesAndContacts();
     fetchDropdowns();
-    apiService.getTenant().then((res) => {
-      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
-    }).catch(() => {});
     if (isEdit) {
       fetchLead();
     }
   }, [isEdit, fetchCompaniesAndContacts, fetchDropdowns, fetchLead]);
-
-  const finishAndNavigate = () => {
-    setApprovalDialogOpen(false);
-    setPinDialogOpen(false);
-    setSavedLeadId(null);
-    setApprovalPin('');
-    setApprovalError('');
-    navigate('/erp/leads');
-  };
-
-  const handleRequestApproval = async () => {
-    if (!savedLeadId) return;
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.requestLeadApproval(savedLeadId);
-      setSuccess('Approval requested. Your manager has been notified.');
-      setTimeout(finishAndNavigate, 1200);
-    } catch (err) {
-      setApprovalError(err.message || 'Failed to request approval');
-    } finally {
-      setApprovalLoading(false);
-    }
-  };
-
-  const handleApproveWithPin = async () => {
-    if (!savedLeadId || !approvalPin.trim()) {
-      setApprovalError('Enter the approval PIN');
-      return;
-    }
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.approveLeadWithPin(savedLeadId, approvalPin.trim());
-      setSuccess('Lead approved successfully!');
-      setTimeout(finishAndNavigate, 1200);
-    } catch (err) {
-      setApprovalError(err.message || 'Invalid PIN or approval failed');
-    } finally {
-      setApprovalLoading(false);
-    }
-  };
 
   const handleCreateCompany = async () => {
     const setFieldValue = setFieldValueRef.current;
@@ -313,31 +258,21 @@ const LeadForm = () => {
         email: values.email || undefined,
         phone: values.phone || undefined,
         source: values.leadSource,
-        ...(canChangeStatus ? { status: values.status } : {}),
+        status: values.status,
         productServiceId: values.productServiceId,
         notes: values.notes || undefined,
         assignedTo: values.assignedTo || undefined,
       };
-      
-      let savedLead;
+
       if (isEdit) {
-        const res = await apiService.updateLead(id, payload);
-        savedLead = res.data;
+        await apiService.updateLead(id, payload);
         setSuccess('Lead updated successfully!');
       } else {
-        const res = await apiService.createLead(payload);
-        savedLead = res.data;
+        await apiService.createLead(payload);
         setSuccess('Lead created successfully!');
       }
 
-      const leadId = savedLead?.id || (isEdit ? Number(id) : null);
-      const leadStatus = String(savedLead?.status || payload.status || 'new').toLowerCase();
-      if (leadId && APPROVAL_ELIGIBLE_STATUSES.includes(leadStatus)) {
-        setSavedLeadId(leadId);
-        setApprovalDialogOpen(true);
-      } else {
-        setTimeout(() => navigate('/erp/leads'), 1000);
-      }
+      setTimeout(() => navigate('/erp/leads'), 1000);
     } catch (err) {
       // Display detailed validation errors
       let errorMessage = err.message || 'Failed to save lead';
@@ -652,7 +587,7 @@ const LeadForm = () => {
                       </TextField>
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      {canChangeStatus ? (
+                      {['new', 'contacted', 'disqualified'].includes(values.status) ? (
                         <TextField
                           fullWidth
                           select
@@ -665,22 +600,10 @@ const LeadForm = () => {
                           helperText={touched.status ? errors.status : ' '}
                           required
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          SelectProps={{
-                            MenuProps: {
-                              PaperProps: {
-                                style: { maxHeight: 250 }
-                              }
-                            }
-                          }}
+                          SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 250 } } } }}
                         >
                           <MenuItem value="new">New</MenuItem>
                           <MenuItem value="contacted">Contacted</MenuItem>
-                          {values.status === 'pending_approval' && (
-                            <MenuItem value="pending_approval" disabled>Pending Approval</MenuItem>
-                          )}
-                          {values.status === 'qualified' && (
-                            <MenuItem value="qualified" disabled>Qualified</MenuItem>
-                          )}
                           <MenuItem value="disqualified">Disqualified</MenuItem>
                         </TextField>
                       ) : (
@@ -689,7 +612,7 @@ const LeadForm = () => {
                           label="Status"
                           value={formatStatusLabel(values.status || 'new')}
                           disabled
-                          helperText="Status is managed through the approval workflow"
+                          helperText=" "
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                       )}
@@ -895,99 +818,6 @@ const LeadForm = () => {
           </DialogActions>
         </Dialog>
 
-        <Dialog
-          open={approvalDialogOpen}
-          onClose={() => !approvalLoading && finishAndNavigate()}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{ sx: { borderRadius: 3 } }}
-        >
-          <DialogTitle sx={{ pb: 1, pt: 3, px: 3 }}>
-            <Typography variant="h5" fontWeight={700}>Approve this lead?</Typography>
-            <Typography variant="body2" color="text.secondary" mt={1}>
-              The lead has been saved. Approve it now with the secret PIN, or send a request to your sales manager.
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ px: 3, pt: 2 }}>
-            {approvalError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{approvalError}</Alert>}
-            <Stack spacing={2}>
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={<IconKey size={18} />}
-                onClick={() => {
-                  setApprovalError('');
-                  setApprovalDialogOpen(false);
-                  setPinDialogOpen(true);
-                }}
-                disabled={approvalLoading || !pinConfigured}
-                sx={{ borderRadius: 2, py: 1.25, fontWeight: 700 }}
-              >
-                Enter secret PIN
-              </Button>
-              {!pinConfigured && (
-                <Typography variant="caption" color="text.secondary">
-                  Approval PIN is not configured yet. Ask an administrator to set it in Company Settings, or request manager approval.
-                </Typography>
-              )}
-              <Button
-                variant="outlined"
-                size="large"
-                startIcon={<IconUserCheck size={18} />}
-                onClick={handleRequestApproval}
-                disabled={approvalLoading}
-                sx={{ borderRadius: 2, py: 1.25, fontWeight: 700 }}
-              >
-                {approvalLoading ? 'Requesting…' : 'Request manager approval'}
-              </Button>
-            </Stack>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 3 }}>
-            <Button onClick={finishAndNavigate} disabled={approvalLoading} sx={{ borderRadius: 2 }}>
-              Decide later
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Dialog
-          open={pinDialogOpen}
-          onClose={() => !approvalLoading && setPinDialogOpen(false)}
-          maxWidth="xs"
-          fullWidth
-          PaperProps={{ sx: { borderRadius: 3 } }}
-        >
-          <DialogTitle sx={{ pb: 1 }}>Enter approval PIN</DialogTitle>
-          <DialogContent>
-            {approvalError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{approvalError}</Alert>}
-            <TextField
-              fullWidth
-              label="Secret PIN"
-              type="password"
-              value={approvalPin}
-              onChange={(e) => setApprovalPin(e.target.value)}
-              autoFocus
-              sx={{ mt: 1, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              onKeyDown={(e) => e.key === 'Enter' && handleApproveWithPin()}
-            />
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 3 }}>
-            <Button
-              onClick={() => {
-                setPinDialogOpen(false);
-                setApprovalDialogOpen(true);
-                setApprovalPin('');
-                setApprovalError('');
-              }}
-              disabled={approvalLoading}
-              sx={{ borderRadius: 2 }}
-            >
-              Back
-            </Button>
-            <Button variant="contained" onClick={handleApproveWithPin} disabled={approvalLoading} sx={{ borderRadius: 2 }}>
-              {approvalLoading ? 'Approving…' : 'Approve lead'}
-            </Button>
-          </DialogActions>
-        </Dialog>
       </Box>
     </PageContainer>
   );

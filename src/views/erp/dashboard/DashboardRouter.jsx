@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Box, CircularProgress, Alert } from '@mui/material';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocket } from '../../../context/SocketContext';
@@ -32,33 +32,51 @@ const DashboardRouter = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
+
+  const silentRefresh = useCallback(() => {
+    apiService.getDashboardOverview().then((res) => {
+      if (isMounted.current && res.success) setData(res.data);
+    }).catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       const res = await apiService.getDashboardOverview();
-      if (res.success) setData(res.data);
-      else setError(res.message || 'Failed to load dashboard');
+      if (isMounted.current) {
+        if (res.success) setData(res.data);
+        else setError(res.message || 'Failed to load dashboard');
+      }
     } catch (e) {
-      setError(e.message);
+      if (isMounted.current) setError(e.message);
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  // Refresh dashboard data silently when a real-time notification arrives
+  // Real-time refresh on socket notification
   useEffect(() => {
     if (!on) return;
-    const off = on('notification', () => {
-      apiService.getDashboardOverview().then((res) => {
-        if (res.success) setData(res.data);
-      }).catch(() => {});
-    });
+    const off = on('notification', silentRefresh);
     return off;
-  }, [on]);
+  }, [on, silentRefresh]);
+
+  // Polling fallback every 30s for roles that care about live data
+  useEffect(() => {
+    const POLLING_ROLES = ['sales_manager', 'inspection_team', 'accounts', 'operations_manager'];
+    if (!POLLING_ROLES.includes(roleName)) return;
+    const interval = setInterval(silentRefresh, 30000);
+    return () => clearInterval(interval);
+  }, [roleName, silentRefresh]);
 
   const Component = ROLE_MAP[roleName] || SalesDashboard;
 

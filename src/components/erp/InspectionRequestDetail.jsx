@@ -129,7 +129,10 @@ const PersonRow = ({ icon, label, name, sub, verified }) => (
 /* dropzone */
 const ReportImageDropzone = ({ onDrop }) => {
   const { getRootProps, getInputProps } = useDropzone({
-    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'] },
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.heic', '.heif', '.bmp', '.tiff', '.tif'],
+      'application/pdf': ['.pdf'],
+    },
     multiple: true,
     onDrop: (files) => { if (files.length) onDrop(files); },
   });
@@ -141,7 +144,7 @@ const ReportImageDropzone = ({ onDrop }) => {
       <input {...getInputProps()} />
       <IconPhoto size={32} style={{ opacity: 0.5 }} />
       <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-        Drag & drop or click
+        Drag & drop or click — JPG, PNG, HEIC, PDF and more
       </Typography>
     </Box>
   );
@@ -219,7 +222,7 @@ const InspectionStageStepper = ({ currentStatus, requestId, onUpdated }) => {
  * @param {() => Promise<void>|void} onRefresh — called after save / approve
  * @param {() => void} [onClose] — when set, back control becomes a close icon (e.g. dialog)
  */
-const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
+const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButton = false }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -237,6 +240,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
     approximateWeight: '',
     weightUom: 'kg',
     cargoType: '',
+    cargoPackingType: '',
     transportationArrangement: '',
     approximateValue: '',
     images: [],
@@ -270,6 +274,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
         approximateWeight: r.approximate_weight ?? '',
         weightUom: r.weight_uom || 'kg',
         cargoType: r.cargo_type || '',
+        cargoPackingType: r.cargo_packing_type || '',
         transportationArrangement: r.transportation_arrangement || '',
         approximateValue: r.approximate_value ?? '',
         images: images.map((p) => ({ path: p, url: apiService.getUploadUrl(p) })),
@@ -280,7 +285,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
     } else {
       setReportForm({
         inspectionDatetime: null, approximateWeight: '', weightUom: 'kg',
-        cargoType: '', transportationArrangement: '', approximateValue: '',
+        cargoType: '', cargoPackingType: '', transportationArrangement: '', approximateValue: '',
         images: [], inspectorId, approvedById: null, notes: '',
       });
     }
@@ -291,7 +296,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
   const saveReport = async () => {
     const errs = {};
     if (!reportForm.inspectionDatetime) errs.inspectionDatetime = 'Inspection date and time is required';
-    if (reportForm.approximateWeight === '' || reportForm.approximateWeight == null) errs.approximateWeight = 'Approximate weight is required';
+    if (reportForm.weightUom !== 'lumpsum' && (reportForm.approximateWeight === '' || reportForm.approximateWeight == null)) errs.approximateWeight = 'Approximate weight is required';
     if (!reportForm.cargoType?.trim()) errs.cargoType = 'Cargo type is required';
     if (!reportForm.transportationArrangement?.trim()) errs.transportationArrangement = 'Transportation arrangement is required';
     if (reportForm.approximateValue === '' || reportForm.approximateValue == null) errs.approximateValue = 'Approximate value is required';
@@ -307,6 +312,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
         approximateWeight: reportForm.approximateWeight ? parseFloat(reportForm.approximateWeight) : null,
         weightUom: reportForm.weightUom || null,
         cargoType: reportForm.cargoType || null,
+        cargoPackingType: reportForm.cargoPackingType || null,
         transportationArrangement: reportForm.transportationArrangement || null,
         approximateValue: reportForm.approximateValue ? parseFloat(reportForm.approximateValue) : null,
         images: reportForm.images.map((i) => i.path),
@@ -459,14 +465,16 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
               </Stack>
             </Box>
           </Stack>
-          <Button
-            variant="contained"
-            startIcon={<IconEdit size={16} />}
-            onClick={openReportDialog}
-            sx={{ borderRadius: 2, fontWeight: 600, flexShrink: 0 }}
-          >
-            {report ? 'Edit Report' : 'Add Report'}
-          </Button>
+          {userIsInspector && (
+            <Button
+              variant="contained"
+              startIcon={<IconEdit size={16} />}
+              onClick={openReportDialog}
+              sx={{ borderRadius: 2, fontWeight: 600, flexShrink: 0 }}
+            >
+              {report ? 'Edit Report' : 'Add Report'}
+            </Button>
+          )}
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -894,7 +902,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
         </Grid>
 
         {/* ── bottom action bar ── */}
-        {report && !isApproved && userCanApproveReport && (
+        {report && !isApproved && userCanApproveReport && !hideApproveButton && (
           <Stack direction="row" justifyContent="flex-end" mt={3}>
             <Button
               variant="contained"
@@ -928,17 +936,22 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
                   slotProps={{ textField: { fullWidth: true, required: true, error: Boolean(reportFormErrors.inspectionDatetime), helperText: reportFormErrors.inspectionDatetime, sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }}
                 />
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
-                  <TextField label="Approximate Weight (Required)" type="number" value={reportForm.approximateWeight}
-                    onChange={(e) => setReportForm((f) => ({ ...f, approximateWeight: e.target.value }))}
-                    required error={Boolean(reportFormErrors.approximateWeight)} helperText={reportFormErrors.approximateWeight}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                   <TextField select label="UOM" value={reportForm.weightUom}
                     onChange={(e) => setReportForm((f) => ({ ...f, weightUom: e.target.value }))}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
                     <MenuItem value="kg">kg</MenuItem>
                     <MenuItem value="tons">tons</MenuItem>
                     <MenuItem value="lbs">lbs</MenuItem>
+                    <MenuItem value="nos">nos</MenuItem>
+                    <MenuItem value="lumpsum">Lumpsum</MenuItem>
                   </TextField>
+                  {reportForm.weightUom !== 'lumpsum' && (
+                    <TextField label="Approximate Weight" type="number" value={reportForm.approximateWeight}
+                      onChange={(e) => setReportForm((f) => ({ ...f, approximateWeight: e.target.value }))}
+                      error={Boolean(reportFormErrors.approximateWeight)} helperText={reportFormErrors.approximateWeight}
+                      inputProps={{ step: 'any' }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                  )}
                 </Box>
                 <TextField select fullWidth label="Cargo Type (Required)" value={reportForm.cargoType}
                   onChange={(e) => setReportForm((f) => ({ ...f, cargoType: e.target.value }))}
@@ -948,6 +961,20 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose }) => {
                   <MenuItem value="unpacked">Unpacked</MenuItem>
                   <MenuItem value="packed">Packed</MenuItem>
                   <MenuItem value="palletized">Palletized</MenuItem>
+                </TextField>
+                <TextField select fullWidth label="Cargo Packing Type *" value={reportForm.cargoPackingType}
+                  onChange={(e) => setReportForm((f) => ({ ...f, cargoPackingType: e.target.value }))}
+                  required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+                  <MenuItem value="">—</MenuItem>
+                  <MenuItem value="bags">Bags</MenuItem>
+                  <MenuItem value="drums">Drums</MenuItem>
+                  <MenuItem value="loose">Loose</MenuItem>
+                  <MenuItem value="pallets">Pallets</MenuItem>
+                  <MenuItem value="ibc">IBC</MenuItem>
+                  <MenuItem value="bales">Bales</MenuItem>
+                  <MenuItem value="boxes">Boxes</MenuItem>
+                  <MenuItem value="bulk">Bulk</MenuItem>
+                  <MenuItem value="other">Other</MenuItem>
                 </TextField>
                 <TextField select fullWidth label="Transportation Arrangement (Required)" value={reportForm.transportationArrangement}
                   onChange={(e) => setReportForm((f) => ({ ...f, transportationArrangement: e.target.value }))}

@@ -6,6 +6,7 @@ import './utils/i18n';
 import { CustomizerContextProvider } from './context/CustomizerContext';
 import { AuthProvider } from './context/AuthContext';
 import { clearChunkReloadFlag, installGlobalChunkReloadHandlers } from './utils/chunkReload';
+import { SocketProvider } from './context/SocketContext';
 
 clearChunkReloadFlag();
 installGlobalChunkReloadHandlers();
@@ -21,9 +22,11 @@ deferRender().then(() => {
   ReactDOM.createRoot(document.getElementById('root')).render(
     <CustomizerContextProvider>
       <AuthProvider>
-        <Suspense fallback={<Spinner />}>
-          <App />
-        </Suspense>
+        <SocketProvider>
+          <Suspense fallback={<Spinner />}>
+            <App />
+          </Suspense>
+        </SocketProvider>
       </AuthProvider>
     </CustomizerContextProvider>,
   )

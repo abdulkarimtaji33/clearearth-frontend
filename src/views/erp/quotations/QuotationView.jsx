@@ -256,6 +256,7 @@ const QuotationView = () => {
             <Stack spacing={0.5} alignItems={{ xs: 'flex-start', sm: viewOnly ? 'flex-start' : 'flex-end' }}>
               <Typography variant="body2" color="text.secondary">Date: <strong>{q.quotation_date || '—'}</strong></Typography>
               <Typography variant="body2" color="text.secondary">Prepared by: <strong>{preparedName}</strong></Typography>
+              {q.version > 1 && <Typography variant="body2" color="primary.main" fontWeight={700}>Version V{q.version}</Typography>}
             </Stack>
           </Stack>
         </Paper>

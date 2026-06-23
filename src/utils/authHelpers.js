@@ -25,6 +25,13 @@ export function shouldHideDealFinancials(user) {
   return getUserRole(user) === 'operations_manager';
 }
 
+const SALES_ROLES = ['sales', 'sales_executive'];
+
+/** Sales Executive / Sales should not generate proforma or tax invoices. */
+export function isSalesRole(user) {
+  return SALES_ROLES.includes(getUserRole(user));
+}
+
 export function collectPermissionsFromUserPayload(data) {
   if (!data) return [];
   const user = data.user || data;

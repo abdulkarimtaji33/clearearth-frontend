@@ -1,9 +1,10 @@
-import React from 'react';
-import { Box, Grid, Typography, Paper, Stack, Button, Chip } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Grid, Typography, Paper, Stack, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconAlertCircle, IconArrowRight } from '@tabler/icons-react';
+import { IconAlertCircle, IconCheck, IconX } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import KpiCard from './shared/KpiCard';
+import api from 'src/services/api';
 
 const PRIORITY_META = {
   critical: { color: '#D32F2F', bg: 'rgba(211,47,47,0.07)', label: 'Critical', chip: 'error' },
@@ -12,11 +13,49 @@ const PRIORITY_META = {
   low:      { color: '#2E7D32', bg: 'rgba(46,125,50,0.04)', label: 'Low',      chip: 'success' },
 };
 
-const InspectionDashboard = ({ data }) => {
+const InspectionDashboard = ({ data, onRefresh }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const urgentKpi = (data.kpis || []).find((k) => k.highlight);
   const urgentCount = urgentKpi ? Number(urgentKpi.value || 0) : 0;
+
+  const [actionState, setActionState] = useState({}); // { [requestId]: 'accepting' | 'rejecting' | 'done' }
+  const [rejectDialog, setRejectDialog] = useState(null); // { requestId }
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectSubmitting, setRejectSubmitting] = useState(false);
+
+  const handleAccept = async (e, requestId) => {
+    e.stopPropagation();
+    setActionState((s) => ({ ...s, [requestId]: 'accepting' }));
+    try {
+      await api.acceptInspectionRequest(requestId);
+      setActionState((s) => ({ ...s, [requestId]: 'accepted' }));
+      if (onRefresh) onRefresh();
+    } catch {
+      setActionState((s) => ({ ...s, [requestId]: null }));
+    }
+  };
+
+  const openRejectDialog = (e, requestId) => {
+    e.stopPropagation();
+    setRejectReason('');
+    setRejectDialog({ requestId });
+  };
+
+  const handleReject = async () => {
+    if (!rejectDialog) return;
+    setRejectSubmitting(true);
+    try {
+      await api.rejectInspectionRequest(rejectDialog.requestId, rejectReason);
+      setActionState((s) => ({ ...s, [rejectDialog.requestId]: 'rejected' }));
+      setRejectDialog(null);
+      if (onRefresh) onRefresh();
+    } catch {
+      // keep dialog open
+    } finally {
+      setRejectSubmitting(false);
+    }
+  };
 
   return (
     <Box>
@@ -62,6 +101,9 @@ const InspectionDashboard = ({ data }) => {
           ) : (
             (data.actionables || []).map((item) => {
               const meta = PRIORITY_META[item.priority] || PRIORITY_META.medium;
+              const state = actionState[item.requestId];
+              const alreadyResponded = item.responseStatus === 'accepted' || item.responseStatus === 'rejected' || state === 'accepted' || state === 'rejected';
+              const resolvedStatus = state || item.responseStatus;
               return (
                 <Stack key={item.id} direction="row" alignItems="center" justifyContent="space-between"
                   sx={{ px: 2.5, py: 1.5, transition: 'background 0.14s', '&:hover': { bgcolor: 'action.hover' }, cursor: 'pointer', borderLeft: '4px solid', borderColor: meta.color }}
@@ -69,19 +111,61 @@ const InspectionDashboard = ({ data }) => {
                 >
                   <Box flex={1} minWidth={0}>
                     <Typography variant="body2" fontWeight={600} noWrap>{item.label}</Typography>
-                    <Chip size="small" label={meta.label} sx={{ mt: 0.5, height: 18, fontSize: '0.63rem', fontWeight: 700, bgcolor: alpha(meta.color, 0.1), color: meta.color }} />
+                    <Stack direction="row" spacing={0.75} mt={0.5} flexWrap="wrap">
+                      <Chip size="small" label={meta.label} sx={{ height: 18, fontSize: '0.63rem', fontWeight: 700, bgcolor: alpha(meta.color, 0.1), color: meta.color }} />
+                      {resolvedStatus === 'accepted' && <Chip size="small" label="Accepted" color="success" sx={{ height: 18, fontSize: '0.63rem', fontWeight: 700 }} />}
+                      {resolvedStatus === 'rejected' && <Chip size="small" label="Rejected" color="error" sx={{ height: 18, fontSize: '0.63rem', fontWeight: 700 }} />}
+                    </Stack>
                   </Box>
-                  <Button size="small" variant="contained" sx={{ borderRadius: 2, fontSize: '0.78rem', ml: 1, flexShrink: 0, bgcolor: meta.color, '&:hover': { bgcolor: meta.color, filter: 'brightness(0.9)' } }}
-                    onClick={(e) => { e.stopPropagation(); navigate(item.href); }}
-                  >
-                    Open
-                  </Button>
+                  <Stack direction="row" spacing={0.75} ml={1} flexShrink={0} onClick={(e) => e.stopPropagation()}>
+                    {!alreadyResponded && (
+                      <>
+                        <Button size="small" variant="contained" color="success" disabled={state === 'accepting'}
+                          startIcon={<IconCheck size={14} />}
+                          sx={{ borderRadius: 2, fontSize: '0.75rem', minWidth: 0, px: 1.25 }}
+                          onClick={(e) => handleAccept(e, item.requestId)}
+                        >
+                          Accept
+                        </Button>
+                        <Button size="small" variant="outlined" color="error"
+                          startIcon={<IconX size={14} />}
+                          sx={{ borderRadius: 2, fontSize: '0.75rem', minWidth: 0, px: 1.25 }}
+                          onClick={(e) => openRejectDialog(e, item.requestId)}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                    <Button size="small" variant="text" sx={{ borderRadius: 2, fontSize: '0.75rem', minWidth: 0, px: 1.25, color: meta.color }}
+                      onClick={(e) => { e.stopPropagation(); navigate(item.href); }}
+                    >
+                      Open
+                    </Button>
+                  </Stack>
                 </Stack>
               );
             })
           )}
         </Stack>
       </Paper>
+
+      <Dialog open={Boolean(rejectDialog)} onClose={() => setRejectDialog(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Reject Inspection Request</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus fullWidth multiline rows={3} label="Reason for rejection"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            sx={{ mt: 1, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setRejectDialog(null)} disabled={rejectSubmitting}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleReject} disabled={rejectSubmitting || !rejectReason.trim()}>
+            Reject
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

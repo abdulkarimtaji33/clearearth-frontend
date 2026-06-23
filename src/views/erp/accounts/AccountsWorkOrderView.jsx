@@ -226,6 +226,16 @@ const AccountsWorkOrderView = () => {
   }
 
   const tasks = wo.tasks || [];
+  const purchaseBills = wo.purchaseBills || [];
+
+  const PAYMENT_STATUS_LABEL = {
+    unpaid: { label: 'Unpaid', color: 'error' },
+    partial: { label: 'Partially Paid', color: 'warning' },
+    paid: { label: 'Paid', color: 'success' },
+    advance_received: { label: 'Advance Received', color: 'info' },
+    partial_advance: { label: 'Partial Advance', color: 'warning' },
+    fully_received: { label: 'Fully Received', color: 'success' },
+  };
 
   return (
     <PageContainer title={wo.title || `Work order #${wo.id}`}>
@@ -366,6 +376,114 @@ const AccountsWorkOrderView = () => {
             )}
           </Paper>
         ))}
+
+        {purchaseBills.length > 0 && (
+          <Paper variant="outlined" sx={{ borderRadius: 3, mb: 3, overflow: 'hidden' }}>
+            <Box sx={{ px: 2.5, py: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.05), borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Typography fontWeight={700} fontSize="0.95rem">Purchase Bills — Payment Status</Typography>
+            </Box>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: alpha(theme.palette.warning.main, 0.03) }}>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>PO #</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>Supplier</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>Amount</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>Payment Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {purchaseBills.map((po) => {
+                    const psMeta = PAYMENT_STATUS_LABEL[po.payment_status] || { label: po.payment_status || '—', color: 'default' };
+                    const total = (po.items || []).reduce((s, i) => s + parseFloat(i.total_price || 0), 0);
+                    return (
+                      <TableRow key={po.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/purchase-orders/view/${po.id}`)}>
+                        <TableCell>#{po.id}</TableCell>
+                        <TableCell sx={{ textTransform: 'capitalize' }}>{(po.document_type || '').replace(/_/g, ' ') || '—'}</TableCell>
+                        <TableCell>{po.supplier?.company_name || po.company?.company_name || '—'}</TableCell>
+                        <TableCell align="right">AED {total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell><Chip size="small" label={psMeta.label} color={psMeta.color} sx={{ fontWeight: 700 }} /></TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        )}
+
+        {wo.deal && (
+          <Paper variant="outlined" sx={{ borderRadius: 3, mb: 3, overflow: 'hidden' }}>
+            <Box sx={{ px: 2.5, py: 1.5, bgcolor: alpha(theme.palette.success.main, 0.05), borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Typography fontWeight={700} fontSize="0.95rem">Service Payment Status</Typography>
+            </Box>
+            <Box sx={{ px: 2.5, py: 2 }}>
+              <Stack spacing={1}>
+                {(() => {
+                  const payStatus = wo.deal.payment_status || 'unpaid';
+                  const psMeta = PAYMENT_STATUS_LABEL[payStatus] || { label: payStatus.replace(/_/g, ' '), color: 'default' };
+                  return (
+                    <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+                      <Typography variant="body2" color="text.secondary" sx={{ width: 160 }}>Purchase payment:</Typography>
+                      <Chip label={psMeta.label} color={psMeta.color} sx={{ fontWeight: 700 }} size="small" />
+                    </Stack>
+                  );
+                })()}
+                {wo.deal.service_payment_status && (() => {
+                  const sps = wo.deal.service_payment_status;
+                  const spsMeta = PAYMENT_STATUS_LABEL[sps] || { label: sps.replace(/_/g, ' '), color: 'default' };
+                  return (
+                    <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
+                      <Typography variant="body2" color="text.secondary" sx={{ width: 160 }}>Service payment:</Typography>
+                      <Chip label={spsMeta.label} color={spsMeta.color} sx={{ fontWeight: 700 }} size="small" />
+                    </Stack>
+                  );
+                })()}
+                {wo.deal.total != null && (
+                  <Stack direction="row" alignItems="center" spacing={2}>
+                    <Typography variant="body2" color="text.secondary" sx={{ width: 160 }}>Deal total:</Typography>
+                    <Typography variant="body2" fontWeight={700}>AED {parseFloat(wo.deal.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
+                  </Stack>
+                )}
+              </Stack>
+            </Box>
+          </Paper>
+        )}
+
+        {wo.deal?.inspectionReport && (
+          <Paper variant="outlined" sx={{ borderRadius: 3, mb: 3, overflow: 'hidden' }}>
+            <Box sx={{ px: 2.5, py: 1.5, bgcolor: alpha(theme.palette.info.main, 0.05), borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Typography fontWeight={700} fontSize="0.95rem">Inspection Report</Typography>
+            </Box>
+            <Box sx={{ px: 2.5, py: 2 }}>
+              {(() => {
+                const r = wo.deal.inspectionReport;
+                const rows = [
+                  ['Inspection Date', r.inspection_datetime ? new Date(r.inspection_datetime).toLocaleString() : '—'],
+                  ['Cargo Type', r.cargo_type || '—'],
+                  ['Cargo Packing Type', r.cargo_packing_type || '—'],
+                  ['Approximate Weight', r.approximate_weight != null ? `${r.approximate_weight} ${r.weight_uom || ''}`.trim() : '—'],
+                  ['Approximate Value', r.approximate_value != null ? `AED ${parseFloat(r.approximate_value).toLocaleString()}` : '—'],
+                  ['Transportation', r.transportation_arrangement || '—'],
+                  ['Notes', r.notes || '—'],
+                ];
+                return (
+                  <Table size="small">
+                    <TableBody>
+                      {rows.map(([label, value]) => (
+                        <TableRow key={label}>
+                          <TableCell sx={{ color: 'text.secondary', fontWeight: 600, width: 180, border: 0, py: 0.5 }}>{label}</TableCell>
+                          <TableCell sx={{ border: 0, py: 0.5 }}>{value}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                );
+              })()}
+            </Box>
+          </Paper>
+        )}
 
         <Dialog open={approveOpen} onClose={() => !saving && setApproveOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
           <DialogTitle fontWeight={700}>Approve expense</DialogTitle>

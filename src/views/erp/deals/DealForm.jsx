@@ -199,6 +199,7 @@ const DealForm = () => {
     pickupLocation: '',
     pickupContactName: '',
     pickupContactNumber: '',
+    servicePaymentStatus: '',
   });
 
   const [wdsDialogOpen, setWdsDialogOpen] = useState(false);
@@ -236,6 +237,7 @@ const DealForm = () => {
     serviceType: '',
     quantity: '',
     quantityUom: '',
+    lumpsumPrice: '',
     safetyTools: [],
     supportingDocuments: '',
     supportingDocumentName: '',
@@ -351,6 +353,7 @@ const DealForm = () => {
           pickupLocation: d.pickup_location || '',
           pickupContactName: d.pickup_contact_name || '',
           pickupContactNumber: d.pickup_contact_number || '',
+          servicePaymentStatus: d.service_payment_status || '',
         });
         
         const defaultWds = {
@@ -412,6 +415,7 @@ const DealForm = () => {
             serviceType: i.service_type || '',
             quantity: i.quantity || '',
             quantityUom: i.quantity_uom || '',
+            lumpsumPrice: i.lumpsum_price || '',
             safetyTools: safetyTools || [],
             supportingDocuments: i.supporting_documents || '',
             supportingDocumentName: i.supporting_documents ? (i.supporting_documents.split('/').pop() || '') : '',
@@ -439,16 +443,22 @@ const DealForm = () => {
         
         setDealImages((d.images || []).map(img => ({ path: img.file_path, url: apiService.getUploadUrl(img.file_path) })));
 
-        // Load line items
-        const items = (d.items || []).map(item => ({
-          id: item.id,
-          productServiceId: item.product_service_id,
-          productName: item.productService?.name || '',
-          quantity: item.quantity,
-          unitOfMeasure: item.unit_of_measure || item.productService?.unit_of_measure || '',
-          unitPrice: item.unit_price,
-          lineTotal: item.line_total,
-        }));
+        // Load line items — refresh unit price from current product catalog
+        const currentProducts = Array.isArray(productsRes?.data) ? productsRes.data : productsRes?.data?.items || [];
+        const items = (d.items || []).map(item => {
+          const catalogProduct = currentProducts.find(p => p.id === item.product_service_id);
+          const unitPrice = catalogProduct?.price != null ? catalogProduct.price : item.unit_price;
+          const qty = parseFloat(item.quantity || 0);
+          return {
+            id: item.id,
+            productServiceId: item.product_service_id,
+            productName: item.productService?.name || '',
+            quantity: item.quantity,
+            unitOfMeasure: item.unit_of_measure || item.productService?.unit_of_measure || '',
+            unitPrice,
+            lineTotal: (qty * parseFloat(unitPrice || 0)).toFixed(2),
+          };
+        });
         setLineItems(items);
       }
     } catch (err) {
@@ -608,6 +618,11 @@ const DealForm = () => {
           setSubmitting(false);
           return;
         }
+        if (!inspectionDetails.locationType?.trim()) {
+          setError('Location Type is required in inspection request details');
+          setSubmitting(false);
+          return;
+        }
         if (!inspectionDetails.serviceType?.trim()) {
           setError('Service Type is required in inspection request details');
           setSubmitting(false);
@@ -618,7 +633,7 @@ const DealForm = () => {
           setSubmitting(false);
           return;
         }
-        if (!inspectionDetails.quantity?.toString().trim()) {
+        if (inspectionDetails.quantityUom !== 'lumpsum' && !inspectionDetails.quantity?.toString().trim()) {
           setError('Quantity is required in inspection request details');
           setSubmitting(false);
           return;
@@ -1771,6 +1786,23 @@ const DealForm = () => {
                       <TextField
                         fullWidth
                         select
+                        label="Service Payment Status"
+                        name="servicePaymentStatus"
+                        value={values.servicePaymentStatus || ''}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      >
+                        <MenuItem value="">— None —</MenuItem>
+                        <MenuItem value="advance_received">Advance Received</MenuItem>
+                        <MenuItem value="partial_advance">Partial Advance</MenuItem>
+                        <MenuItem value="fully_received">Fully Received</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 3 }}>
+                      <TextField
+                        fullWidth
+                        select
                         label="Currency"
                         name="currency"
                         value={values.currency || 'AED'}
@@ -2053,12 +2085,11 @@ const DealForm = () => {
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 4 }}>
               <TextField
-                fullWidth
                 select
                 label="Priority"
                 value={inspectionDetails.priority || 'medium'}
                 onChange={(e) => setInspectionDetails({ ...inspectionDetails, priority: e.target.value })}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                sx={{ width: 180, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               >
                 <MenuItem value="critical">Critical</MenuItem>
                 <MenuItem value="high">High</MenuItem>
@@ -2122,17 +2153,29 @@ const DealForm = () => {
                 <MenuItem value="free_of_charge">Free of Charge</MenuItem>
                 <MenuItem value="N/A">N/A</MenuItem>
               </TextField>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
-                <TextField
-                  fullWidth
-                  label="Quantity (Required)"
-                  type="number"
-                  value={inspectionDetails.quantity}
-                  onChange={(e) => setInspectionDetails({ ...inspectionDetails, quantity: e.target.value })}
-                  required
-                  inputProps={{ min: 0, step: 'any' }}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                />
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 2 }}>
+                {inspectionDetails.quantityUom === 'lumpsum' ? (
+                  <TextField
+                    fullWidth
+                    label="Lumpsum Price"
+                    type="number"
+                    value={inspectionDetails.lumpsumPrice || ''}
+                    onChange={(e) => setInspectionDetails({ ...inspectionDetails, lumpsumPrice: e.target.value })}
+                    inputProps={{ min: 0, step: 'any' }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                ) : (
+                  <TextField
+                    fullWidth
+                    label="Quantity (Required)"
+                    type="number"
+                    value={inspectionDetails.quantity}
+                    onChange={(e) => setInspectionDetails({ ...inspectionDetails, quantity: e.target.value })}
+                    required
+                    inputProps={{ min: 0, step: 'any' }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                )}
                 <TextField
                   fullWidth
                   select

@@ -889,6 +889,7 @@ const DealView = () => {
                 { label: 'Deal Status', value: <Chip label={deal.status?.replace(/_/g, ' ').toUpperCase()} color={getStatusColor(deal.status)} size="small" sx={{ fontWeight: 700 }} /> },
                 ...(deal.status === 'lost' && deal.loss_reason ? [{ label: 'Loss Reason', value: <Typography variant="body2" color="error.main" fontWeight={600}>{deal.loss_reason}</Typography> }] : []),
                 { label: 'Payment', value: <Chip label={deal.payment_status?.replace(/_/g, ' ').toUpperCase()} color={getPaymentStatusColor(deal.payment_status)} size="small" sx={{ fontWeight: 700 }} /> },
+                ...(deal.service_payment_status ? [{ label: 'Service Payment', value: <Chip label={deal.service_payment_status.replace(/_/g, ' ')} color="info" size="small" sx={{ fontWeight: 700, textTransform: 'capitalize' }} /> }] : []),
                 ...(!hideDealAmounts ? [
                   { label: 'Total', value: <Typography variant="subtitle1" fontWeight={800} color="primary.main">{deal.currency} {Number(deal.total).toFixed(2)}</Typography> },
                   ...(deal.payment_status !== 'unpaid' ? [{ label: 'Paid', value: <Typography variant="subtitle1" fontWeight={700} color="success.main">{deal.currency} {Number(deal.paid_amount).toFixed(2)}</Typography> }] : []),
@@ -934,7 +935,7 @@ const DealView = () => {
                 <InfoRow label="Created" value={new Date(deal.created_at).toLocaleString()} />
                 <InfoRow label="Updated" value={new Date(deal.updated_at).toLocaleString()} />
 
-                {!hideDealAmounts && (
+                {!hideDealAmounts && deal.deal_type !== 'free_of_charge' && (
                 <>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>Invoice Details</Typography>
@@ -1175,6 +1176,11 @@ const DealView = () => {
               <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Contact number" value={deal.pickup_contact_number} /></Grid>
             </Grid>
 
+            {deal.wds_required && !deal.wdsDetails && (
+              <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+                <strong>Pending WDS details</strong> — WDS is required for this deal but the details have not been filled in yet.
+              </Alert>
+            )}
             {deal.wds_required && deal.wdsDetails && (
                 <>
                   <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>WDS Details</Typography>
@@ -1396,6 +1402,7 @@ const DealView = () => {
               <InspectionRequestDetail
                 request={inspectionPopupData}
                 onRefresh={refreshInspectionPopup}
+                hideApproveButton
                 onClose={() => {
                   setInspectionPopupOpen(false);
                   setInspectionPopupData(null);

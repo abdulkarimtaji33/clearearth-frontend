@@ -81,7 +81,7 @@ const leadStatusChipColor = (status) => {
 
 const LEAD_APPROVABLE_STATUSES = ['new', 'contacted', 'pending_approval'];
 
-const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approving, canAttemptApproval }) => {
+const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approving, canAttemptApproval, canDirectApprove }) => {
   const theme = useTheme();
   const companyName = lead.company?.company_name || '';
   const initial = (companyName.trim().charAt(0) || lead.lead_number?.charAt(0) || '?').toUpperCase();
@@ -257,7 +257,7 @@ const LeadDrawerContent = ({ lead, onEdit, onNavigateCompany, onApprove, approvi
         </Box>
       ) : null}
 
-      {canAttemptApproval && LEAD_APPROVABLE_STATUSES.includes(String(lead.status || '').toLowerCase()) && (
+      {canAttemptApproval && canDirectApprove && LEAD_APPROVABLE_STATUSES.includes(String(lead.status || '').toLowerCase()) && (
         <Button
           variant="contained"
           color="success"
@@ -686,22 +686,7 @@ const LeadList = () => {
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-                      <FormControl fullWidth>
-                        <InputLabel>Source</InputLabel>
-                        <Select
-                          value={sourceFilter}
-                          onChange={(e) => { setSourceFilter(e.target.value); setPage(0); }}
-                          label="Source"
-                          sx={{ borderRadius: 2 }}
-                        >
-                          <MenuItem value="">All</MenuItem>
-                          {dropdowns.leadSources.map((source) => (
-                            <MenuItem key={source.id} value={source.value}>{source.display_name}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
+                    {/* Source filter removed — replaced by Product/Service column */}
                     <Grid size={{ xs: 6, sm: 4, md: 3 }}>
                       <Box>
                         <Autocomplete
@@ -808,7 +793,7 @@ const LeadList = () => {
               <Table sx={{ minWidth: 800 }}>
                 <TableHead>
                   <TableRow>
-                    {['Lead', 'Company', 'Contact', 'Email', 'Phone', 'Source', 'Status', 'Assigned', ''].map((h, idx) => (
+                    {['Lead', 'Company', 'Contact', 'Email', 'Phone', 'Product / Service', 'Status', 'Assigned', ''].map((h, idx) => (
                       <TableCell
                         key={`col-${idx}`}
                         sx={{
@@ -873,7 +858,7 @@ const LeadList = () => {
                           <Typography variant="body2" color="text.secondary">{lead.phone || '—'}</Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" color="text.secondary" noWrap>{lead.source || '—'}</Typography>
+                          <Typography variant="body2" color="text.secondary" noWrap>{lead.productService?.name || '—'}</Typography>
                         </TableCell>
                         <TableCell>
                           <Chip label={lead.status} size="small" color={getStatusColor(lead.status)} sx={{ fontWeight: 700, fontSize: '0.68rem' }} />
@@ -920,7 +905,7 @@ const LeadList = () => {
             <IconEdit size={18} style={{ marginRight: 8 }} />
             Edit
           </MenuItem>
-          {canAttemptApproval && LEAD_APPROVABLE_STATUSES.includes(String(selectedLead?.status || '').toLowerCase()) && (
+          {canAttemptApproval && canDirectApprove && LEAD_APPROVABLE_STATUSES.includes(String(selectedLead?.status || '').toLowerCase()) && (
             <MenuItem
               onClick={() => {
                 handleApproveLead(selectedLead.id);
@@ -937,7 +922,7 @@ const LeadList = () => {
               Disqualify
             </MenuItem>
           )}
-          {selectedLead?.status === 'qualified' && (
+          {!['converted', 'disqualified'].includes(selectedLead?.status) && (
             <MenuItem
               onClick={() => {
                 handleConvert(selectedLead.id);
@@ -981,6 +966,7 @@ const LeadList = () => {
               }}
               onApprove={handleApproveLead}
               canAttemptApproval={canAttemptApproval}
+              canDirectApprove={canDirectApprove}
               approving={approvingLeadId === viewLead?.id}
             />
           )}

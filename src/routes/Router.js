@@ -6,6 +6,7 @@ import ChunkLoadErrorElement from '../components/ChunkLoadErrorElement';
 import RequireAdmin from '../components/auth/RequireAdmin';
 import RequireQuotationPoEditor from '../components/auth/RequireQuotationPoEditor';
 import RequireNotDriver from '../components/auth/RequireNotDriver';
+import ProtectedRoute from '../components/auth/ProtectedRoute';
 
 /* ***Layouts**** */
 const FullLayout = Loadable(lazyWithChunkReload(() => import('../layouts/full/FullLayout')));
@@ -100,7 +101,7 @@ const Maintenance = Loadable(lazyWithChunkReload(() => import('../views/authenti
 const Router = createBrowserRouter([
   {
     path: '/',
-    element: <FullLayout />,
+    element: <ProtectedRoute><FullLayout /></ProtectedRoute>,
     errorElement: <ChunkLoadErrorElement />,
     children: [
       { path: '/', element: <Navigate to="/erp/dashboard" /> },

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
+import { useSocket } from 'src/context/SocketContext';
 import {
   IconButton,
   Box,
@@ -25,6 +26,7 @@ const entityLink = (n) => {
 
 const Notifications = () => {
   const navigate = useNavigate();
+  const { on } = useSocket() || {};
   const [anchorEl2, setAnchorEl2] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -50,6 +52,16 @@ const Notifications = () => {
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
+
+  // Real-time: increment badge and re-fetch when a notification arrives via socket
+  useEffect(() => {
+    if (!on) return;
+    const off = on('notification', () => {
+      setUnreadCount(c => c + 1);
+      fetchNotifications();
+    });
+    return off;
+  }, [on, fetchNotifications]);
 
   const handleClick2 = (event) => {
     setAnchorEl2(event.currentTarget);

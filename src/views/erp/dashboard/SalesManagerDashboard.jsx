@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Grid, Typography, Paper, Stack, Chip, LinearProgress, Divider, Avatar, Button } from '@mui/material';
+import { Box, Grid, Typography, Paper, Stack, Chip, LinearProgress, Divider, Avatar, Button, Badge } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../../context/AuthContext';
@@ -8,7 +8,7 @@ import KpiCard from './shared/KpiCard';
 import ActionableList from './shared/ActionableList';
 import DashboardChart from './shared/DashboardChart';
 import {
-  IconCurrencyDollar, IconTrendingUp, IconAlertTriangle, IconClipboardList,
+  IconCurrencyDollar, IconTrendingUp, IconAlertTriangle, IconClipboardList, IconClockHour4,
 } from '@tabler/icons-react';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
@@ -50,6 +50,34 @@ const SalesManagerDashboard = ({ data }) => {
         <Typography variant="h4" fontWeight={900} lineHeight={1.2}>Team performance</Typography>
         <Typography variant="body2" color="text.secondary" mt={0.25}>Leaderboard, pipeline and stale deals</Typography>
       </Box>
+
+      {data.pendingApprovals?.total > 0 && (
+        <Paper
+          elevation={0}
+          onClick={() => navigate('/erp/leads?status=pending_approval')}
+          sx={{
+            mb: 3, p: 2, borderRadius: 2, border: '1.5px solid', borderColor: 'warning.main',
+            bgcolor: (t) => t.palette.warning.lighter || '#fffde7',
+            display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer',
+            '&:hover': { bgcolor: (t) => t.palette.warning.light || '#fff9c4' },
+          }}
+        >
+          <IconClockHour4 size={22} />
+          <Box flex={1}>
+            <Typography variant="subtitle2" fontWeight={800}>
+              {data.pendingApprovals.total} pending approval{data.pendingApprovals.total !== 1 ? 's' : ''}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {[
+                data.pendingApprovals.leads > 0 && `${data.pendingApprovals.leads} lead${data.pendingApprovals.leads !== 1 ? 's' : ''}`,
+                data.pendingApprovals.deals > 0 && `${data.pendingApprovals.deals} deal${data.pendingApprovals.deals !== 1 ? 's' : ''}`,
+                data.pendingApprovals.quotations > 0 && `${data.pendingApprovals.quotations} quotation${data.pendingApprovals.quotations !== 1 ? 's' : ''}`,
+              ].filter(Boolean).join(' · ')}
+            </Typography>
+          </Box>
+          <Chip label="Review" size="small" color="warning" sx={{ fontWeight: 700 }} />
+        </Paper>
+      )}
 
       <Grid container spacing={2.5} mb={3.5}>
         {(data.kpis || []).map((k) => (

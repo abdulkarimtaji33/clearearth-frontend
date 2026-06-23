@@ -40,7 +40,7 @@ import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDia
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
-import { shouldHideDealFinancials } from '../../../utils/authHelpers';
+import { shouldHideDealFinancials, isSalesRole } from '../../../utils/authHelpers';
 
 const STATUS_COLOR = {
   new: 'default',
@@ -142,6 +142,8 @@ const QuotationList = () => {
   const location = useLocation();
   const { user, hasPermission } = useAuth();
   const viewOnly = shouldHideDealFinancials(user);
+  const canGenerateInvoice = !isSalesRole(user);
+  const canCreateWorkOrder = hasPermission('operations.create');
   const canAttemptApproval = !viewOnly && hasPermission('quotations.update');
   const canDirectApprove = canDirectManagerApprove(user);
   const isOrdersView = location.pathname.includes('/service-orders');
@@ -391,7 +393,13 @@ const QuotationList = () => {
                     quotations.map(q => (
                       <TableRow key={q.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }} onClick={() => navigate(`/erp/quotations/view/${q.id}?return=${listReturnEnc}`)}>
                         <TableCell>
-                          <Typography variant="body2" fontWeight={600}>{q.deal?.title || q.deal?.deal_number || '—'}</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" fontWeight={600}>{q.deal?.title || q.deal?.deal_number || '—'}</Typography>
+                            {q.version > 1 && (
+                              <Chip label={`V${q.version}`} size="small" color="primary" variant="outlined"
+                                sx={{ height: 18, fontSize: '0.65rem', fontWeight: 800, px: 0.25 }} />
+                            )}
+                          </Box>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">{q.preparedByUser ? `${q.preparedByUser.first_name || ''} ${q.preparedByUser.last_name || ''}`.trim() : '—'}</Typography>
@@ -432,7 +440,7 @@ const QuotationList = () => {
         </Dialog>
 
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => { setAnchorEl(null); setSelectedQuotation(null); }} PaperProps={{ sx: { borderRadius: 2, minWidth: 200 } }}>
-          {!viewOnly && (
+          {!viewOnly && canGenerateInvoice && selectedQuotation?.deal?.deal_type !== 'free_of_charge' && (
             <MenuItem onClick={() => { navigate(`/erp/proforma-invoices/create/${selectedQuotation?.id}?return=${listReturnEnc}`); setAnchorEl(null); }}>
               <IconFileInvoice size={16} style={{ marginRight: 10 }} /> Create proforma invoice
             </MenuItem>
@@ -460,16 +468,15 @@ const QuotationList = () => {
               {isApproved(selectedQuotation) ? 'Download service order PDF' : 'Download quotation PDF'}
             </MenuItem>
           )}
-          {isApproved(selectedQuotation) && (
-            (selectedQuotation?.workOrder || selectedQuotation?.work_order)?.id ? (
-              <MenuItem onClick={() => { navigate(`/erp/work-orders/view/${(selectedQuotation.workOrder || selectedQuotation.work_order).id}`); setAnchorEl(null); }}>
-                <IconHammer size={16} style={{ marginRight: 10 }} /> Open Work Order
-              </MenuItem>
-            ) : (
-              <MenuItem onClick={() => { navigate(`/erp/work-orders/create?quotationId=${selectedQuotation?.id}${selectedQuotation?.deal?.id ? `&dealId=${selectedQuotation.deal.id}` : ''}`); setAnchorEl(null); }}>
-                <IconHammer size={16} style={{ marginRight: 10 }} /> Create Work Order
-              </MenuItem>
-            )
+          {isApproved(selectedQuotation) && (selectedQuotation?.workOrder || selectedQuotation?.work_order)?.id && (
+            <MenuItem onClick={() => { navigate(`/erp/work-orders/view/${(selectedQuotation.workOrder || selectedQuotation.work_order).id}`); setAnchorEl(null); }}>
+              <IconHammer size={16} style={{ marginRight: 10 }} /> Open Work Order
+            </MenuItem>
+          )}
+          {isApproved(selectedQuotation) && canCreateWorkOrder && !(selectedQuotation?.workOrder || selectedQuotation?.work_order)?.id && (
+            <MenuItem onClick={() => { navigate(`/erp/work-orders/create?quotationId=${selectedQuotation?.id}${selectedQuotation?.deal?.id ? `&dealId=${selectedQuotation.deal.id}` : ''}`); setAnchorEl(null); }}>
+              <IconHammer size={16} style={{ marginRight: 10 }} /> Create Work Order
+            </MenuItem>
           )}
           {!viewOnly && (
             <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>

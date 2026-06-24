@@ -41,7 +41,7 @@ const PurchaseOrderView = () => {
   const [po, setPo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(null);
   const [approveLoading, setApproveLoading] = useState(false);
   const [approveError, setApproveError] = useState('');
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
@@ -71,15 +71,16 @@ const PurchaseOrderView = () => {
     }).catch(() => {});
   }, []);
 
-  const handlePdf = async () => {
+  const handlePdf = async (documentType) => {
     if (!id) return;
+    const loadKey = documentType || 'default';
     try {
-      setPdfLoading(true);
-      await apiService.downloadPurchaseOrderPdf(id);
+      setPdfLoading(loadKey);
+      await apiService.downloadPurchaseOrderPdf(id, documentType ? { documentType } : {});
     } catch (e) {
       setError(e.message || 'PDF failed');
     } finally {
-      setPdfLoading(false);
+      setPdfLoading(null);
     }
   };
 
@@ -142,6 +143,7 @@ const PurchaseOrderView = () => {
 
   const poStatus = String(po?.status || '').toLowerCase();
   const isApproved = poStatus === 'approved';
+  const isPoBill = String(po?.document_type || '').toLowerCase() === 'bill';
   const canAttemptApproval = !viewOnly && isClientQuotation && po && PO_APPROVABLE_STATUSES.includes(poStatus);
   const returnTo = returnParam || defaultListForPo(po);
   const partyLabel = po?.company_id ? 'Client' : po?.supplier_id ? 'Vendor' : '—';
@@ -209,9 +211,19 @@ const PurchaseOrderView = () => {
                 Edit
               </Button>
             )}
-            {!viewOnly && (
-              <Button variant="outlined" startIcon={pdfLoading ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={handlePdf} disabled={pdfLoading} sx={{ borderRadius: 2 }}>
-                {isApproved ? 'Download purchase order PDF' : 'Download quotation PDF'}
+            {!viewOnly && isApproved && !isPoBill && (
+              <>
+                <Button variant="outlined" startIcon={pdfLoading === 'order' ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={() => handlePdf('order')} disabled={Boolean(pdfLoading)} sx={{ borderRadius: 2 }}>
+                  Download purchase order PDF
+                </Button>
+                <Button variant="outlined" startIcon={pdfLoading === 'quotation' ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={() => handlePdf('quotation')} disabled={Boolean(pdfLoading)} sx={{ borderRadius: 2 }}>
+                  Download quotation PDF
+                </Button>
+              </>
+            )}
+            {!viewOnly && (!isApproved || isPoBill) && (
+              <Button variant="outlined" startIcon={pdfLoading === 'default' ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={() => handlePdf()} disabled={Boolean(pdfLoading)} sx={{ borderRadius: 2 }}>
+                {isPoBill ? 'Download purchase bill PDF' : (isApproved ? 'Download purchase order PDF' : 'Download quotation PDF')}
               </Button>
             )}
             {isApproved && (

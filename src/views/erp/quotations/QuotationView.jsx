@@ -45,7 +45,7 @@ const QuotationView = () => {
   const [q, setQ] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(null);
   const [approveLoading, setApproveLoading] = useState(false);
   const [approveError, setApproveError] = useState('');
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
@@ -95,15 +95,16 @@ const QuotationView = () => {
     }).catch(() => {});
   }, []);
 
-  const handlePdf = async () => {
+  const handlePdf = async (documentType) => {
     if (!id) return;
+    const loadKey = documentType || 'default';
     try {
-      setPdfLoading(true);
-      await apiService.downloadQuotationPdf(id);
+      setPdfLoading(loadKey);
+      await apiService.downloadQuotationPdf(id, documentType ? { documentType } : {});
     } catch (e) {
       setError(e.message || 'PDF failed');
     } finally {
-      setPdfLoading(false);
+      setPdfLoading(null);
     }
   };
 
@@ -237,9 +238,19 @@ const QuotationView = () => {
                 Create proforma invoice
               </Button>
             )}
-            {!viewOnly && (
-              <Button variant="outlined" startIcon={pdfLoading ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={handlePdf} disabled={pdfLoading} sx={{ borderRadius: 2 }}>
-                {isApproved ? 'Download service order PDF' : 'Download quotation PDF'}
+            {!viewOnly && isApproved && (
+              <>
+                <Button variant="outlined" startIcon={pdfLoading === 'order' ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={() => handlePdf('order')} disabled={Boolean(pdfLoading)} sx={{ borderRadius: 2 }}>
+                  Download service order PDF
+                </Button>
+                <Button variant="outlined" startIcon={pdfLoading === 'quotation' ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={() => handlePdf('quotation')} disabled={Boolean(pdfLoading)} sx={{ borderRadius: 2 }}>
+                  Download quotation PDF
+                </Button>
+              </>
+            )}
+            {!viewOnly && !isApproved && (
+              <Button variant="outlined" startIcon={pdfLoading === 'default' ? <CircularProgress size={16} /> : <IconFileDownload size={18} />} onClick={() => handlePdf()} disabled={Boolean(pdfLoading)} sx={{ borderRadius: 2 }}>
+                Download quotation PDF
               </Button>
             )}
             {isApproved && (

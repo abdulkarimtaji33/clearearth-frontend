@@ -534,8 +534,9 @@ class ApiService {
     }
   }
 
-  async downloadQuotationPdf(id) {
-    const url = `${this.baseURL}/quotations/${id}/pdf`;
+  async downloadQuotationPdf(id, { documentType } = {}) {
+    const qs = documentType ? `?documentType=${encodeURIComponent(documentType)}` : '';
+    const url = `${this.baseURL}/quotations/${id}/pdf${qs}`;
     const token = this.getAuthToken();
     const res = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -588,8 +589,9 @@ class ApiService {
     return this.delete(`/purchase-orders/${id}`);
   }
 
-  async downloadPurchaseOrderPdf(id) {
-    const url = `${this.baseURL}/purchase-orders/${id}/pdf`;
+  async downloadPurchaseOrderPdf(id, { documentType } = {}) {
+    const qs = documentType ? `?documentType=${encodeURIComponent(documentType)}` : '';
+    const url = `${this.baseURL}/purchase-orders/${id}/pdf${qs}`;
     const token = this.getAuthToken();
     const res = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},

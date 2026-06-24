@@ -199,11 +199,12 @@ const QuotationList = () => {
   useEffect(() => { fetchDropdowns(); }, [fetchDropdowns]);
   useEffect(() => { fetchQuotations(); }, [fetchQuotations]);
 
-  const handleDownloadPdf = async (q) => {
+  const handleDownloadPdf = async (q, documentType) => {
     if (!q?.id) return;
+    const loadKey = documentType ? `${documentType}-${q.id}` : String(q.id);
     try {
-      setPdfLoading(q.id);
-      await apiService.downloadQuotationPdf(q.id);
+      setPdfLoading(loadKey);
+      await apiService.downloadQuotationPdf(q.id, documentType ? { documentType } : {});
       setSuccess('PDF downloaded');
     } catch (err) {
       setError(err.message || 'PDF download failed');
@@ -366,10 +367,22 @@ const QuotationList = () => {
               <IconFileInvoice size={16} style={{ marginRight: 10 }} /> Create proforma invoice
             </MenuItem>
           )}
-          {!viewOnly && (
-            <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation); setAnchorEl(null); }} disabled={pdfLoading === selectedQuotation?.id}>
-              {pdfLoading === selectedQuotation?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
-              {isApproved(selectedQuotation) ? 'Download service order PDF' : 'Download quotation PDF'}
+          {!viewOnly && isApproved(selectedQuotation) && (
+            <>
+              <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation, 'order'); setAnchorEl(null); }} disabled={pdfLoading === `order-${selectedQuotation?.id}`}>
+                {pdfLoading === `order-${selectedQuotation?.id}` ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+                Download service order PDF
+              </MenuItem>
+              <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation, 'quotation'); setAnchorEl(null); }} disabled={pdfLoading === `quotation-${selectedQuotation?.id}`}>
+                {pdfLoading === `quotation-${selectedQuotation?.id}` ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+                Download quotation PDF
+              </MenuItem>
+            </>
+          )}
+          {!viewOnly && !isApproved(selectedQuotation) && (
+            <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation); setAnchorEl(null); }} disabled={pdfLoading === String(selectedQuotation?.id)}>
+              {pdfLoading === String(selectedQuotation?.id) ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+              Download quotation PDF
             </MenuItem>
           )}
           {isApproved(selectedQuotation) && (selectedQuotation?.workOrder || selectedQuotation?.work_order)?.id && (

@@ -69,11 +69,12 @@ const SupplierPurchaseOrderList = () => {
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  const handleDownloadPdf = async (o) => {
+  const handleDownloadPdf = async (o, documentType) => {
     if (!o?.id) return;
+    const loadKey = documentType ? `${documentType}-${o.id}` : String(o.id);
     try {
-      setPdfLoading(o.id);
-      await apiService.downloadPurchaseOrderPdf(o.id);
+      setPdfLoading(loadKey);
+      await apiService.downloadPurchaseOrderPdf(o.id, documentType ? { documentType } : {});
       setSuccess('PDF downloaded');
     } catch (err) {
       setError(err.message || 'PDF download failed');
@@ -96,6 +97,7 @@ const SupplierPurchaseOrderList = () => {
   };
 
   const isApproved = (o) => String(o?.status || '').toLowerCase() === 'approved';
+  const isPoBill = (o) => String(o?.document_type || '').toLowerCase() === 'bill';
 
   return (
     <PageContainer title="Vendor Purchase Orders" description="Approved vendor POs (moved from Purchase Quotations)">
@@ -208,10 +210,22 @@ const SupplierPurchaseOrderList = () => {
               <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
             </MenuItem>
           )}
-          {!viewOnly && (
-            <MenuItem onClick={() => { handleDownloadPdf(selectedOrder); setAnchorEl(null); }} disabled={pdfLoading === selectedOrder?.id}>
-              {pdfLoading === selectedOrder?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
-              {isApproved(selectedOrder) ? 'Download purchase order PDF' : 'Download quotation PDF'}
+          {!viewOnly && isApproved(selectedOrder) && !isPoBill(selectedOrder) && (
+            <>
+              <MenuItem onClick={() => { handleDownloadPdf(selectedOrder, 'order'); setAnchorEl(null); }} disabled={pdfLoading === `order-${selectedOrder?.id}`}>
+                {pdfLoading === `order-${selectedOrder?.id}` ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+                Download purchase order PDF
+              </MenuItem>
+              <MenuItem onClick={() => { handleDownloadPdf(selectedOrder, 'quotation'); setAnchorEl(null); }} disabled={pdfLoading === `quotation-${selectedOrder?.id}`}>
+                {pdfLoading === `quotation-${selectedOrder?.id}` ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+                Download quotation PDF
+              </MenuItem>
+            </>
+          )}
+          {!viewOnly && (!isApproved(selectedOrder) || isPoBill(selectedOrder)) && (
+            <MenuItem onClick={() => { handleDownloadPdf(selectedOrder); setAnchorEl(null); }} disabled={pdfLoading === String(selectedOrder?.id)}>
+              {pdfLoading === String(selectedOrder?.id) ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+              {isPoBill(selectedOrder) ? 'Download purchase bill PDF' : (isApproved(selectedOrder) ? 'Download purchase order PDF' : 'Download quotation PDF')}
             </MenuItem>
           )}
           {isApproved(selectedOrder) && (
@@ -236,8 +250,8 @@ const SupplierPurchaseOrderList = () => {
                   <MenuItem onClick={() => { navigate(`/erp/purchase-orders/edit/${vendorBill.id}?bill=1`); setAnchorEl(null); }}>
                     <IconShoppingCart size={16} style={{ marginRight: 10 }} /> Open Vendor Purchase Bill
                   </MenuItem>
-                  <MenuItem onClick={() => { handleDownloadPdf(vendorBill); setAnchorEl(null); }} disabled={pdfLoading === vendorBill.id}>
-                    {pdfLoading === vendorBill.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+                  <MenuItem onClick={() => { handleDownloadPdf(vendorBill); setAnchorEl(null); }} disabled={pdfLoading === String(vendorBill.id)}>
+                    {pdfLoading === String(vendorBill.id) ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
                     Download vendor purchase bill PDF
                   </MenuItem>
                 </>

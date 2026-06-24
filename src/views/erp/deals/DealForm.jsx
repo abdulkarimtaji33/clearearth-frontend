@@ -484,9 +484,7 @@ const DealForm = () => {
         setDealImages((d.images || []).map(img => ({ path: img.file_path, url: apiService.getUploadUrl(img.file_path) })));
 
         // Load line items — refresh unit price from current product catalog
-        const currentProducts = catalogProducts.length
-          ? catalogProducts
-          : (Array.isArray(products) ? products : []);
+        const currentProducts = catalogProducts;
         const items = (d.items || []).map(item => {
           const catalogProduct = currentProducts.find(p => p.id === item.product_service_id);
           const unitPrice = catalogProduct?.price != null ? catalogProduct.price : item.unit_price;
@@ -508,7 +506,7 @@ const DealForm = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, products]);
+  }, [id]);
 
   const fetchLeadData = useCallback(async (leadId) => {
     try {
@@ -546,15 +544,20 @@ const DealForm = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const leadId = urlParams.get('leadId');
+    let cancelled = false;
     // fetchAllData must finish first so products are loaded before fetchLeadData
     // sets lineItems — otherwise the prefilled product shows as blank and the
     // user thinks the form is empty and adds a duplicate item.
     fetchAllData().then(({ products: catalogProducts }) => {
+      if (cancelled) return;
       if (isEdit) fetchDeal(catalogProducts);
       else if (leadId) fetchLeadData(leadId);
     });
     fetchDropdowns();
-  }, [isEdit, fetchAllData, fetchDropdowns, fetchDeal, fetchLeadData]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, id, fetchAllData, fetchDropdowns, fetchDeal, fetchLeadData]);
 
   // Recalculate totals when line items or VAT changes
   useEffect(() => {

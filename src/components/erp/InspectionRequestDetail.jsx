@@ -782,7 +782,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                       <Grid size={{ xs: 12, sm: 4 }}>
                         <StatCard
                           icon={<IconPackage size={16} />}
-                          label="Cargo Type"
+                          label="Cargo Packing Type"
                           value={report.cargo_type
                             ? report.cargo_type.charAt(0).toUpperCase() + report.cargo_type.slice(1)
                             : '—'}

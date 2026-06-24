@@ -79,6 +79,18 @@ import {
 const DEAL_APPROVABLE_STATUSES = ['new', 'pending_approval'];
 const DEAL_QUOTABLE_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
 
+const isWdsPending = (deal) => {
+  if (!deal?.wds_required) return false;
+  const w = deal.wdsDetails;
+  if (!w) return true;
+  if ((w.attachments || []).length > 0) return false;
+  const fields = [
+    'ref_no', 'company_name', 'license_no', 'waste_description', 'container_no',
+    'source_process', 'package_type', 'quantity_per_package', 'total_weight', 'purpose', 'bl_no', 'bor_no',
+  ];
+  return !fields.some((f) => w[f]?.toString().trim());
+};
+
 const getStatusColor = (status) => {
   const colors = {
     new: 'default',
@@ -723,6 +735,8 @@ const DealView = () => {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const wdsPending = isWdsPending(deal);
+
   return (
     <PageContainer title={`Deal: ${deal.deal_number}`} description="View deal details">
       <Box sx={{ maxWidth: 'min(5000px, 100%)', mx: 'auto', px: { xs: 1.5, sm: 2 }, overflow: 'visible' }}>
@@ -812,6 +826,16 @@ const DealView = () => {
             )}
           </Stack>
         </Stack>
+
+        {wdsPending && (
+          <Alert
+            severity="warning"
+            icon={<IconAlertCircle size={20} />}
+            sx={{ mb: 2, borderRadius: 2, fontWeight: 600 }}
+          >
+            Pending WDS details
+          </Alert>
+        )}
 
         {/* ── Sticky section nav (top = app bar height so it sits below sticky header) ── */}
         <Box
@@ -1176,12 +1200,7 @@ const DealView = () => {
               <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Contact number" value={deal.pickup_contact_number} /></Grid>
             </Grid>
 
-            {deal.wds_required && !deal.wdsDetails && (
-              <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
-                <strong>Pending WDS details</strong> — WDS is required for this deal but the details have not been filled in yet.
-              </Alert>
-            )}
-            {deal.wds_required && deal.wdsDetails && (
+            {deal.wds_required && deal.wdsDetails && !wdsPending && (
                 <>
                   <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>WDS Details</Typography>
                   <Grid container spacing={2} mb={2}>

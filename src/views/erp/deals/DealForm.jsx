@@ -707,7 +707,7 @@ const DealForm = () => {
       const { hasDownstreamPartner, downstreamPartnerSupplierId, paymentStatus, paidAmount, status, ...restValues } = values;
       const payload = {
         ...restValues,
-        ...(canChangeStatus ? { status } : {}),
+        ...(canChangeStatus && status !== initialValues.status ? { status } : {}),
         downstreamPartnerSupplierId: hasDownstreamPartner ? downstreamPartnerSupplierId : null,
         containerType: isOtcContainer ? values.containerType : null,
         locationType: isOtcContainer ? values.locationType : null,

@@ -3,7 +3,7 @@ import { Box, Grid, Typography, Paper, Stack, Button, Divider, LinearProgress, C
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router';
 import {
-  IconReceiptTax, IconReceiptRefund, IconCoin, IconArrowRight,
+  IconReceiptTax, IconReceiptRefund, IconReceipt, IconCoin, IconArrowRight,
   IconTrendingUp, IconTrendingDown, IconAlertTriangle,
 } from '@tabler/icons-react';
 import KpiCard from './shared/KpiCard';
@@ -22,6 +22,7 @@ const KPI_ICONS = {
 const QUICK_ACTIONS = [
   { label: 'Receivables', sub: 'Track incoming payments', icon: IconReceiptTax, href: '/erp/receivables', color: 'success' },
   { label: 'Payables', sub: 'Track outgoing payments', icon: IconReceiptRefund, href: '/erp/payables', color: 'error' },
+  { label: 'Payment Receipts', sub: 'Purchase payment receipts', icon: IconReceipt, href: '/erp/payment-receipts', color: 'success' },
   { label: 'Tax Invoices', sub: 'View all tax invoices', icon: IconTrendingUp, href: '/erp/tax-invoices', color: 'primary' },
   { label: 'Expenses', sub: 'Review work order expenses', icon: IconCoin, href: '/erp/accounts/work-orders', color: 'warning' },
 ];

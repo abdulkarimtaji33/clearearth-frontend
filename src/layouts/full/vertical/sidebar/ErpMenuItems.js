@@ -191,6 +191,7 @@ const ErpMenuItems = [
       { id: uniqueId(), title: 'Tax Invoices', icon: IconReceipt, href: '/erp/tax-invoices', permission: 'accounting.read' },
       { id: uniqueId(), title: 'Receivables', icon: IconCoin, href: '/erp/receivables', permission: 'accounting.read' },
       { id: uniqueId(), title: 'Payables', icon: IconTruckDelivery, href: '/erp/payables', permission: 'accounting.read' },
+      { id: uniqueId(), title: 'Payment Receipts', icon: IconReceipt, href: '/erp/payment-receipts', permission: 'accounting.read' },
       { id: uniqueId(), title: 'Expenses', icon: IconWallet, href: '/erp/accounts/expenses', permission: 'accounting.read' },
       { id: uniqueId(), title: 'Work Orders (Accounts)', icon: IconClipboardCheck, href: '/erp/accounts/work-orders', permission: 'accounting.read' },
       // ── General Ledger ───────────────────────────────────────────────────

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack, Typography,
-  CircularProgress, Alert, Box, Chip,
+  CircularProgress, Alert, Box, Chip, IconButton, Tooltip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconHistory, IconCoin } from '@tabler/icons-react';
+import { IconHistory, IconCoin, IconEye, IconPrinter } from '@tabler/icons-react';
+import { useNavigate } from 'react-router';
 import apiService from '../../services/api';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -17,6 +18,7 @@ const FETCHERS = {
 
 const PaymentHistoryDialog = ({ open, onClose, sourceType, sourceId, title, currency = 'AED' }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -62,7 +64,7 @@ const PaymentHistoryDialog = ({ open, onClose, sourceType, sourceId, title, curr
           </Box>
           <Box>
             <Typography fontWeight={800} lineHeight={1.2}>
-              Payment history
+              {sourceType === 'payable' ? 'Payment receipts' : 'Payment history'}
             </Typography>
             {title && (
               <Typography variant="body2" color="text.secondary">
@@ -195,6 +197,20 @@ const PaymentHistoryDialog = ({ open, onClose, sourceType, sourceId, title, curr
                       {currency} {fmt(r.amount)}
                     </Typography>
                   </Stack>
+                  {sourceType === 'payable' && (
+                    <Stack direction="row" spacing={0.5} mt={1}>
+                      <Tooltip title="View receipt">
+                        <IconButton size="small" onClick={() => { onClose(); navigate(`/erp/payment-receipts/${r.id}`); }} sx={{ borderRadius: 1.5 }}>
+                          <IconEye size={16} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Print receipt">
+                        <IconButton size="small" onClick={() => { onClose(); navigate(`/erp/payment-receipts/${r.id}?print=1`); }} sx={{ borderRadius: 1.5 }}>
+                          <IconPrinter size={16} />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  )}
                 </Box>
               </Box>
             ))}

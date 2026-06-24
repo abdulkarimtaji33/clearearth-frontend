@@ -5,7 +5,7 @@ import {
   DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconTruckDelivery, IconChartHistogram, IconHistory } from '@tabler/icons-react';
+import { IconSearch, IconTruckDelivery, IconChartHistogram, IconHistory, IconReceipt } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -45,6 +45,7 @@ const PayablesList = () => {
   const [payMethod, setPayMethod] = useState('Bank transfer');
   const [payAccountId, setPayAccountId] = useState('');
   const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [payRef, setPayRef] = useState('');
   const [paidTo, setPaidTo] = useState('');
   const [paymentAccounts, setPaymentAccounts] = useState([]);
   const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
@@ -107,6 +108,7 @@ const PayablesList = () => {
     setPayMethod('Bank transfer');
     setPayAccountId(resolveDefaultPaymentAccountId(paymentAccounts, 'Bank transfer'));
     setPaidTo(r.party_name || 'Supplier');
+    setPayRef('');
     setPayDate(new Date().toISOString().slice(0, 10));
     setPayDialogError('');
     setPayOpen(true);
@@ -129,11 +131,18 @@ const PayablesList = () => {
         paymentAccountId: payAccountId ? parseInt(payAccountId, 10) : undefined,
         paymentDate: payDate || undefined,
         paidTo: paidTo || undefined,
+        referenceNo: payRef || undefined,
       });
+      const paymentsRes = await apiService.getPayablePayments(payRow.id);
+      const payments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+      const latestReceipt = payments.length ? payments[payments.length - 1] : null;
       setPayOpen(false);
       setPayRow(null);
       setError('');
       fetchRows();
+      if (latestReceipt?.id) {
+        navigate(`/erp/payment-receipts/${latestReceipt.id}`);
+      }
     } catch (err) {
       setPayDialogError(err.message || 'Payment failed');
     } finally {
@@ -142,7 +151,7 @@ const PayablesList = () => {
   };
 
   return (
-    <PageContainer title="Payables" description="Approved purchase orders — record payments to vendors or clients">
+    <PageContainer title="Payables" description="Approved purchase orders — record payment receipts for vendors or clients">
       <Box>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={2}>
           <Stack direction="row" alignItems="center" spacing={1.5}>
@@ -154,7 +163,12 @@ const PayablesList = () => {
               <Typography variant="body2" color="text.secondary">{totalCount} open</Typography>
             </Box>
           </Stack>
-          <Button variant="outlined" startIcon={<IconChartHistogram size={18} />} onClick={() => navigate('/erp/payables/aging')} sx={{ borderRadius: 2 }}>Aging summary</Button>
+          <Stack direction="row" spacing={1}>
+            <Button variant="outlined" startIcon={<IconReceipt size={18} />} onClick={() => navigate('/erp/payment-receipts')} sx={{ borderRadius: 2 }}>
+              Payment receipts
+            </Button>
+            <Button variant="outlined" startIcon={<IconChartHistogram size={18} />} onClick={() => navigate('/erp/payables/aging')} sx={{ borderRadius: 2 }}>Aging summary</Button>
+          </Stack>
         </Stack>
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
@@ -203,9 +217,11 @@ const PayablesList = () => {
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                         {(parseFloat(r.paid_amount) || 0) > 0 && (
-                          <Button size="small" variant="outlined" startIcon={<IconHistory size={14} />} onClick={() => { setHistoryRow(r); setHistoryOpen(true); }} sx={{ borderRadius: 2 }}>History</Button>
+                          <Button size="small" variant="outlined" startIcon={<IconHistory size={14} />} onClick={() => { setHistoryRow(r); setHistoryOpen(true); }} sx={{ borderRadius: 2 }}>Receipts</Button>
                         )}
-                        <Button size="small" variant="contained" color="secondary" onClick={() => openPay(r)} sx={{ borderRadius: 2 }}>Pay</Button>
+                        {(parseFloat(r.balance_due) || 0) > 0.005 && (
+                          <Button size="small" variant="contained" color="secondary" onClick={() => openPay(r)} sx={{ borderRadius: 2 }}>Record receipt</Button>
+                        )}
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -218,7 +234,7 @@ const PayablesList = () => {
       </Box>
       <Dialog open={payOpen} onClose={() => !paySaving && (setPayOpen(false), setPayDialogError(''))} PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle fontWeight={800}>
-          Record payment
+          Record payment receipt
           {payRow && (
             <Typography variant="body2" color="text.secondary" fontWeight={400}>
               PO #{payRow.id} · {payRow.party_name} — balance{' '}
@@ -242,13 +258,14 @@ const PayablesList = () => {
               paidToOptions={paidToOptions}
               onPaidToAdded={addCustomPaidTo}
             />
+            <TextField size="small" label="Reference / cheque no." value={payRef} onChange={(e) => setPayRef(e.target.value)} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
             <TextField size="small" label="Payment date" type="date" InputLabelProps={{ shrink: true }} value={payDate} onChange={(e) => setPayDate(e.target.value)} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
             <TextField size="small" label="Update due date (optional)" type="date" InputLabelProps={{ shrink: true }} helperText="Only fill to change the due date on the PO" value={payDue || ''} onChange={(e) => setPayDue(e.target.value)} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => { setPayOpen(false); setPayDialogError(''); }} disabled={paySaving}>Cancel</Button>
-          <Button variant="contained" color="secondary" onClick={submitPay} disabled={paySaving}>{paySaving ? 'Saving…' : 'Save payment'}</Button>
+          <Button variant="contained" color="secondary" onClick={submitPay} disabled={paySaving}>{paySaving ? 'Saving…' : 'Save receipt'}</Button>
         </DialogActions>
       </Dialog>
 
@@ -257,7 +274,7 @@ const PayablesList = () => {
         onClose={() => { setHistoryOpen(false); setHistoryRow(null); }}
         sourceType="payable"
         sourceId={historyRow?.id}
-        title={historyRow ? `PO #${historyRow.id}` : ''}
+        title={historyRow ? `PO #${historyRow.id} — payment receipts` : ''}
       />
     </PageContainer>
   );

@@ -503,6 +503,14 @@ class ApiService {
     return this.get('/payables/aging-summary', params);
   }
 
+  async getPurchasePaymentReceipts(params) {
+    return this.get('/payables/payment-receipts', params);
+  }
+
+  async getPurchasePaymentReceipt(paymentId) {
+    return this.get(`/payables/payment-receipts/${paymentId}`);
+  }
+
   async getAccountsWorkOrder(id) {
     return this.get(`/accounts/work-orders/${id}`);
   }

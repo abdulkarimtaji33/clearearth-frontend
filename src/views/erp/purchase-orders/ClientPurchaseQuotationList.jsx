@@ -9,15 +9,13 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import {
   IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical,
-  IconFileDownload, IconHammer, IconShoppingCart, IconCheck,
+  IconFileDownload, IconShoppingCart,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
-import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
-import { canDirectManagerApprove } from '../../../utils/recordStatus';
 import { shouldHideDealFinancials } from '../../../utils/authHelpers';
 
 const STATUS_COLOR = {
@@ -26,15 +24,11 @@ const STATUS_COLOR = {
   pending: 'warning', cancelled: 'error',
 };
 
-const PO_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
-
 const ClientPurchaseQuotationList = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, hasPermission } = useAuth();
+  const { user } = useAuth();
   const viewOnly = shouldHideDealFinancials(user);
-  const canAttemptApproval = !viewOnly && hasPermission('purchase_orders.update');
-  const canDirectApprove = canDirectManagerApprove(user);
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [orders, setOrders] = useState([]);
@@ -51,12 +45,6 @@ const ClientPurchaseQuotationList = () => {
   const [pdfLoading, setPdfLoading] = useState(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
-  const [approvalTargetId, setApprovalTargetId] = useState(null);
-  const [approvalLoading, setApprovalLoading] = useState(false);
-  const [approvalError, setApprovalError] = useState('');
-  const [pinConfigured, setPinConfigured] = useState(false);
-  const [approvingPoId, setApprovingPoId] = useState(null);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -78,11 +66,6 @@ const ClientPurchaseQuotationList = () => {
   }, [page, rowsPerPage, search, dateFrom, dateTo]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
-  useEffect(() => {
-    apiService.getTenant().then((res) => {
-      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
-    }).catch(() => {});
-  }, []);
 
   const handleDownloadPdf = async (o) => {
     if (!o?.id) return;
@@ -111,72 +94,6 @@ const ClientPurchaseQuotationList = () => {
   };
 
   const isApproved = (o) => String(o?.status || '').toLowerCase() === 'approved';
-
-  const closeApprovalDialog = () => {
-    setApprovalDialogOpen(false);
-    setApprovalTargetId(null);
-    setApprovalError('');
-  };
-
-  const handleApprovePo = async (poId) => {
-    if (!poId) return;
-    setError('');
-    if (canDirectApprove) {
-      try {
-        setApprovingPoId(poId);
-        await apiService.approvePurchaseOrder(poId);
-        setSuccess('Purchase quotation approved');
-        fetchOrders();
-      } catch (err) {
-        const msg = err.message || '';
-        if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
-          setApprovalTargetId(poId);
-          setApprovalError('');
-          setApprovalDialogOpen(true);
-        } else {
-          setError(msg || 'Failed to approve');
-        }
-      } finally {
-        setApprovingPoId(null);
-      }
-      return;
-    }
-    setApprovalTargetId(poId);
-    setApprovalError('');
-    setApprovalDialogOpen(true);
-  };
-
-  const handleRequestPoApproval = async () => {
-    if (!approvalTargetId) return;
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.requestPurchaseOrderApproval(approvalTargetId);
-      setSuccess('Approval requested. Your manager has been notified.');
-      closeApprovalDialog();
-      fetchOrders();
-    } catch (err) {
-      setApprovalError(err.message || 'Failed to request approval');
-    } finally {
-      setApprovalLoading(false);
-    }
-  };
-
-  const handleApprovePoWithPin = async (pin) => {
-    if (!approvalTargetId) return;
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.approvePurchaseOrderWithPin(approvalTargetId, pin);
-      setSuccess('Purchase quotation approved');
-      closeApprovalDialog();
-      fetchOrders();
-    } catch (err) {
-      setApprovalError(err.message || 'Invalid PIN or approval failed');
-    } finally {
-      setApprovalLoading(false);
-    }
-  };
 
   return (
     <PageContainer title="Client purchase quotations" description="Draft and pending quotations to clients; approve to move to Client Purchase Orders">
@@ -289,18 +206,6 @@ const ClientPurchaseQuotationList = () => {
               <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
             </MenuItem>
           )}
-          {canAttemptApproval && PO_APPROVABLE_STATUSES.includes(String(selectedOrder?.status || '').toLowerCase()) && (
-            <MenuItem
-              onClick={() => {
-                handleApprovePo(selectedOrder.id);
-                setAnchorEl(null);
-              }}
-              disabled={approvingPoId === selectedOrder?.id}
-            >
-              <IconCheck size={16} style={{ marginRight: 10 }} />
-              {approvingPoId === selectedOrder?.id ? 'Approving…' : 'Approve'}
-            </MenuItem>
-          )}
           {!viewOnly && (
             <MenuItem onClick={() => { handleDownloadPdf(selectedOrder); setAnchorEl(null); }} disabled={pdfLoading === selectedOrder?.id}>
               {pdfLoading === selectedOrder?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
@@ -313,19 +218,6 @@ const ClientPurchaseQuotationList = () => {
             </MenuItem>
           )}
         </Menu>
-
-        <ApprovalWorkflowDialogs
-          open={approvalDialogOpen}
-          entityLabel="client purchase quotation"
-          pinConfigured={pinConfigured}
-          loading={approvalLoading}
-          error={approvalError}
-          onClose={closeApprovalDialog}
-          onDecideLater={closeApprovalDialog}
-          onRequestApproval={handleRequestPoApproval}
-          onApproveWithPin={handleApprovePoWithPin}
-          approveButtonLabel="Approve quotation"
-        />
       </Box>
     </PageContainer>
   );

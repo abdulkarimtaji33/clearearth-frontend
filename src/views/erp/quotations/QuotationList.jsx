@@ -36,11 +36,11 @@ import { IconSearch, IconPlus, IconTrash, IconDotsVertical, IconFileDownload, Ic
 import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
-import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
+import QuotationVersionBadge from '../../../components/erp/QuotationVersionBadge';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
-import { canDirectManagerApprove } from '../../../utils/recordStatus';
 import { shouldHideDealFinancials, canCreateWorkOrder, canGenerateInvoice } from '../../../utils/authHelpers';
+import { quotationVersionLabel } from '../../../utils/quotationVersion';
 
 const STATUS_COLOR = {
   new: 'default',
@@ -64,7 +64,6 @@ const QUOTATION_STATUSES = [
   { value: 'rejected', label: 'Rejected', color: 'error' },
 ];
 
-const QUOTATION_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 const QUOTATION_PICKER_STATUSES = ['new', 'sent', 'under_review', 'revised', 'rejected'];
 
 const InlineStatusPicker = ({ quotation, statusLabel: statusLabelFn, onUpdated, onError, readOnly = false }) => {
@@ -144,10 +143,8 @@ const QuotationList = () => {
   const viewOnly = shouldHideDealFinancials(user);
   const canGenerateInvoiceFlag = canGenerateInvoice(user);
   const canCreateWorkOrderFlag = canCreateWorkOrder(user, hasPermission);
-  const canAttemptApproval = !viewOnly && hasPermission('quotations.update');
-  const canDirectApprove = canDirectManagerApprove(user);
   const isOrdersView = location.pathname.includes('/service-orders');
-  const tableHeaders = ['Deal', 'Prepared By', 'Date', 'Items', ...(viewOnly ? [] : ['Amount (AED)']), 'Status', ''];
+  const tableHeaders = ['Deal', 'Ver.', 'Prepared By', 'Date', 'Items', ...(viewOnly ? [] : ['Amount (AED)']), 'Status', ''];
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [quotations, setQuotations] = useState([]);
@@ -166,12 +163,6 @@ const QuotationList = () => {
   const [pdfLoading, setPdfLoading] = useState(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
-  const [approvalTargetId, setApprovalTargetId] = useState(null);
-  const [approvalLoading, setApprovalLoading] = useState(false);
-  const [approvalError, setApprovalError] = useState('');
-  const [pinConfigured, setPinConfigured] = useState(false);
-  const [approvingQuotationId, setApprovingQuotationId] = useState(null);
 
   const fetchDropdowns = useCallback(async () => {
     try {
@@ -206,11 +197,6 @@ const QuotationList = () => {
   }, [page, rowsPerPage, search, statusFilter, dateFrom, dateTo, isOrdersView]);
 
   useEffect(() => { fetchDropdowns(); }, [fetchDropdowns]);
-  useEffect(() => {
-    apiService.getTenant().then((res) => {
-      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
-    }).catch(() => {});
-  }, []);
   useEffect(() => { fetchQuotations(); }, [fetchQuotations]);
 
   const handleDownloadPdf = async (q) => {
@@ -246,72 +232,6 @@ const QuotationList = () => {
     setSuccess('Status updated');
   };
   const isApproved = (q) => String(q?.status || '').toLowerCase() === 'approved';
-
-  const closeApprovalDialog = () => {
-    setApprovalDialogOpen(false);
-    setApprovalTargetId(null);
-    setApprovalError('');
-  };
-
-  const handleApproveQuotation = async (quotationId) => {
-    if (!quotationId) return;
-    setError('');
-    if (canDirectApprove) {
-      try {
-        setApprovingQuotationId(quotationId);
-        await apiService.approveQuotation(quotationId);
-        setSuccess('Quotation approved');
-        fetchQuotations();
-      } catch (err) {
-        const msg = err.message || '';
-        if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
-          setApprovalTargetId(quotationId);
-          setApprovalError('');
-          setApprovalDialogOpen(true);
-        } else {
-          setError(msg || 'Failed to approve quotation');
-        }
-      } finally {
-        setApprovingQuotationId(null);
-      }
-      return;
-    }
-    setApprovalTargetId(quotationId);
-    setApprovalError('');
-    setApprovalDialogOpen(true);
-  };
-
-  const handleRequestQuotationApproval = async () => {
-    if (!approvalTargetId) return;
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.requestQuotationApproval(approvalTargetId);
-      setSuccess('Approval requested. Your manager has been notified.');
-      closeApprovalDialog();
-      fetchQuotations();
-    } catch (err) {
-      setApprovalError(err.message || 'Failed to request approval');
-    } finally {
-      setApprovalLoading(false);
-    }
-  };
-
-  const handleApproveQuotationWithPin = async (pin) => {
-    if (!approvalTargetId) return;
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.approveQuotationWithPin(approvalTargetId, pin);
-      setSuccess('Quotation approved');
-      closeApprovalDialog();
-      fetchQuotations();
-    } catch (err) {
-      setApprovalError(err.message || 'Invalid PIN or approval failed');
-    } finally {
-      setApprovalLoading(false);
-    }
-  };
 
   const pageTitle = isOrdersView ? 'Clients Service Orders' : 'Service Quotations';
   const pageDesc = isOrdersView
@@ -393,13 +313,14 @@ const QuotationList = () => {
                     quotations.map(q => (
                       <TableRow key={q.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }} onClick={() => navigate(`/erp/quotations/view/${q.id}?return=${listReturnEnc}`)}>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" fontWeight={600}>{q.deal?.title || q.deal?.deal_number || '—'}</Typography>
-                            {q.version > 1 && (
-                              <Chip label={`V${q.version}`} size="small" color="primary" variant="outlined"
-                                sx={{ height: 18, fontSize: '0.65rem', fontWeight: 800, px: 0.25 }} />
-                            )}
-                          </Box>
+                          <Typography variant="body2" fontWeight={600}>{q.deal?.title || q.deal?.deal_number || '—'}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          {quotationVersionLabel(q) ? (
+                            <QuotationVersionBadge quotation={q} variant="pill" />
+                          ) : (
+                            <Typography variant="caption" color="text.disabled">—</Typography>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">{q.preparedByUser ? `${q.preparedByUser.first_name || ''} ${q.preparedByUser.last_name || ''}`.trim() : '—'}</Typography>
@@ -451,18 +372,6 @@ const QuotationList = () => {
               {isApproved(selectedQuotation) ? 'Download service order PDF' : 'Download quotation PDF'}
             </MenuItem>
           )}
-          {!isOrdersView && canAttemptApproval && QUOTATION_APPROVABLE_STATUSES.includes(String(selectedQuotation?.status || '').toLowerCase()) && (
-            <MenuItem
-              onClick={() => {
-                handleApproveQuotation(selectedQuotation.id);
-                setAnchorEl(null);
-              }}
-              disabled={approvingQuotationId === selectedQuotation?.id}
-            >
-              <IconCheck size={16} style={{ marginRight: 10 }} />
-              {approvingQuotationId === selectedQuotation?.id ? 'Approving…' : 'Approve'}
-            </MenuItem>
-          )}
           {isApproved(selectedQuotation) && (selectedQuotation?.workOrder || selectedQuotation?.work_order)?.id && (
             <MenuItem onClick={() => { navigate(`/erp/work-orders/view/${(selectedQuotation.workOrder || selectedQuotation.work_order).id}`); setAnchorEl(null); }}>
               <IconHammer size={16} style={{ marginRight: 10 }} /> Open Work Order
@@ -479,19 +388,6 @@ const QuotationList = () => {
             </MenuItem>
           )}
         </Menu>
-
-        <ApprovalWorkflowDialogs
-          open={approvalDialogOpen}
-          entityLabel="quotation"
-          pinConfigured={pinConfigured}
-          loading={approvalLoading}
-          error={approvalError}
-          onClose={closeApprovalDialog}
-          onDecideLater={closeApprovalDialog}
-          onRequestApproval={handleRequestQuotationApproval}
-          onApproveWithPin={handleApproveQuotationWithPin}
-          approveButtonLabel="Approve quotation"
-        />
       </Box>
     </PageContainer>
   );

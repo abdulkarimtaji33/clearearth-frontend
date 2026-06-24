@@ -8,7 +8,9 @@ import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconFileDownload, IconHammer, IconReceipt, IconCheck, IconFileInvoice } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
+import QuotationVersionBadge from '../../../components/erp/QuotationVersionBadge';
 import apiService from '../../../services/api';
+import { sortQuotationsByVersion, quotationVersion, quotationVersionLabel } from '../../../utils/quotationVersion';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
 import { shouldHideDealFinancials, canCreateWorkOrder, canGenerateInvoice, canViewDealDetails } from '../../../utils/authHelpers';
@@ -51,6 +53,7 @@ const QuotationView = () => {
   const [approvalError, setApprovalError] = useState('');
   const [pinConfigured, setPinConfigured] = useState(false);
   const [dealWorkOrders, setDealWorkOrders] = useState([]);
+  const [dealQuotations, setDealQuotations] = useState([]);
 
   const fetchQ = useCallback(async () => {
     if (!id) return;
@@ -63,9 +66,17 @@ const QuotationView = () => {
         const dealId = res.data?.deal?.id;
         if (dealId) {
           try {
-            const woRes = await apiService.getWorkOrders({ dealId, pageSize: 50 });
+            const [woRes, quotRes] = await Promise.all([
+              apiService.getWorkOrders({ dealId, pageSize: 50 }),
+              apiService.getQuotations({ dealId, pageSize: 50 }),
+            ]);
             setDealWorkOrders(Array.isArray(woRes.data) ? woRes.data : woRes.data?.items || []);
+            const siblings = Array.isArray(quotRes.data) ? quotRes.data : quotRes.data?.items || [];
+            setDealQuotations(sortQuotationsByVersion(siblings));
           } catch { /* ignore */ }
+        } else {
+          setDealWorkOrders([]);
+          setDealQuotations([]);
         }
       } else {
         setError('Not found');
@@ -101,6 +112,8 @@ const QuotationView = () => {
   const linkedWorkOrder = q?.workOrder || q?.work_order;
   const anyDealWorkOrder = linkedWorkOrder || dealWorkOrders.find((wo) => wo.id);
   const canAttemptApproval = !viewOnly && q && QUOTATION_APPROVABLE_STATUSES.includes(qStatus);
+  const dealRevisionCount = dealQuotations.length;
+  const showRevisionBar = dealRevisionCount > 1;
 
   const handleApproveQuotation = async () => {
     if (!id) return;
@@ -196,8 +209,11 @@ const QuotationView = () => {
               <IconReceipt size={24} />
             </Box>
             <Box>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap" useFlexGap>
                 <Typography variant="h4" fontWeight={800}>Service quotation</Typography>
+                {quotationVersionLabel(q) && (
+                  <QuotationVersionBadge quotation={q} variant="prominent" totalVersions={dealRevisionCount} />
+                )}
                 <Chip label={(q.status || '—').replace(/_/g, ' ')} size="small" color={STATUS_COLOR[q.status] || 'default'} sx={{ fontWeight: 700, textTransform: 'capitalize' }} />
               </Stack>
               <Typography variant="body2" color="text.secondary">#{q.id}</Typography>
@@ -240,6 +256,42 @@ const QuotationView = () => {
           </Stack>
         </Stack>
 
+        {showRevisionBar && (
+          <Paper
+            variant="outlined"
+            sx={{
+              mb: 2,
+              px: 2,
+              py: 1.5,
+              borderRadius: 2.5,
+              bgcolor: alpha(theme.palette.secondary.main, 0.04),
+              borderColor: alpha(theme.palette.secondary.main, 0.2),
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" fontWeight={700} textTransform="uppercase" letterSpacing={0.6} display="block" mb={1}>
+              Revisions for this deal
+            </Typography>
+            <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+              {dealQuotations.map((rev) => {
+                const isCurrent = String(rev.id) === String(q.id);
+                const revLabel = quotationVersion(rev) > 1 ? `v${quotationVersion(rev)}` : 'Original';
+                return (
+                  <Chip
+                    key={rev.id}
+                    label={revLabel}
+                    size="small"
+                    clickable={!isCurrent}
+                    color={isCurrent ? 'secondary' : 'default'}
+                    variant={isCurrent ? 'filled' : 'outlined'}
+                    onClick={isCurrent ? undefined : () => navigate(`/erp/quotations/view/${rev.id}?return=${encodeURIComponent(returnTo)}`)}
+                    sx={{ fontWeight: 700, fontFamily: isCurrent ? 'monospace' : undefined }}
+                  />
+                );
+              })}
+            </Stack>
+          </Paper>
+        )}
+
         {/* Summary card */}
         <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2, px: 3, py: 2.5, bgcolor: alpha(theme.palette.primary.main, 0.03), borderColor: alpha(theme.palette.primary.main, 0.18) }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
@@ -254,7 +306,6 @@ const QuotationView = () => {
             <Stack spacing={0.5} alignItems={{ xs: 'flex-start', sm: viewOnly ? 'flex-start' : 'flex-end' }}>
               <Typography variant="body2" color="text.secondary">Date: <strong>{q.quotation_date || '—'}</strong></Typography>
               <Typography variant="body2" color="text.secondary">Prepared by: <strong>{preparedName}</strong></Typography>
-              {q.version > 1 && <Typography variant="body2" color="primary.main" fontWeight={700}>Version V{q.version}</Typography>}
             </Stack>
           </Stack>
         </Paper>

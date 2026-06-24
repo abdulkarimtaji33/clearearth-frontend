@@ -65,7 +65,9 @@ import {
 import PageContainer from '../../../components/container/PageContainer';
 import InspectionRequestDetail from '../../../components/erp/InspectionRequestDetail';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
+import QuotationVersionBadge from '../../../components/erp/QuotationVersionBadge';
 import apiService from '../../../services/api';
+import { sortQuotationsByVersion, quotationVersionLabel } from '../../../utils/quotationVersion';
 import config from 'src/context/config';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
@@ -496,7 +498,7 @@ const DealView = () => {
         apiService.getQuotations({ dealId: id, pageSize: 50 }),
         apiService.getPurchaseOrders({ dealId: id, pageSize: 50 }),
       ]);
-      if (quotRes.success) setRelatedQuotations(Array.isArray(quotRes.data) ? quotRes.data : []);
+      if (quotRes.success) setRelatedQuotations(sortQuotationsByVersion(Array.isArray(quotRes.data) ? quotRes.data : []));
       if (poRes.success) setRelatedPOs(Array.isArray(poRes.data) ? poRes.data : []);
     } catch (err) {
       console.error(err);
@@ -1336,6 +1338,7 @@ const DealView = () => {
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
+                        <TableCell sx={{ fontWeight: 700 }}>Version</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
                         {!hideDealAmounts && <TableCell sx={{ fontWeight: 700 }}>Amount</TableCell>}
                         <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
@@ -1346,6 +1349,13 @@ const DealView = () => {
                     <TableBody>
                       {relatedQuotations.map((q) => (
                         <TableRow key={q.id} hover>
+                          <TableCell>
+                            {quotationVersionLabel(q) ? (
+                              <QuotationVersionBadge quotation={q} variant="pill" />
+                            ) : (
+                              <Typography variant="caption" color="text.disabled">Original</Typography>
+                            )}
+                          </TableCell>
                           <TableCell>{q.quotation_date ? new Date(q.quotation_date).toLocaleDateString() : '-'}</TableCell>
                           {!hideDealAmounts && <TableCell>{q.currency || 'AED'} {Number(q.quotation_amount || 0).toFixed(2)}</TableCell>}
                           <TableCell><Chip label={(q.status || '-').replace(/_/g, ' ')} size="small" color={{ new:'default', sent:'info', under_review:'warning', revised:'primary', approved:'success', rejected:'error' }[q.status] || 'default'} sx={{ fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>

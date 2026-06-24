@@ -301,10 +301,14 @@ const DealForm = () => {
     if (companiesRes?.success) setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : companiesRes.data?.items || []);
     if (contactsRes?.success) setContacts(Array.isArray(contactsRes.data) ? contactsRes.data : contactsRes.data?.items || []);
     if (suppliersRes?.success) setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : suppliersRes.data?.items || []);
-    if (productsRes?.success) setProducts(Array.isArray(productsRes.data) ? productsRes.data : productsRes.data?.items || []);
+    const productsList = productsRes?.success
+      ? (Array.isArray(productsRes.data) ? productsRes.data : productsRes.data?.items || [])
+      : [];
+    if (productsRes?.success) setProducts(productsList);
     if (usersRes?.success) setUsers(Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.items || []);
     if (termsRes?.success) setTermsAndConditions(Array.isArray(termsRes.data) ? termsRes.data : termsRes.data?.items || []);
     if (materialTypesRes?.success) setMaterialTypes(Array.isArray(materialTypesRes.data) ? materialTypesRes.data : materialTypesRes.data?.items || []);
+    return { products: productsList };
   }, []);
 
   const fetchDropdowns = useCallback(async () => {
@@ -351,7 +355,7 @@ const DealForm = () => {
     }
   };
 
-  const fetchDeal = useCallback(async () => {
+  const fetchDeal = useCallback(async (catalogProducts = []) => {
     try {
       setLoading(true);
       const response = await apiService.getDeal(id);
@@ -480,7 +484,9 @@ const DealForm = () => {
         setDealImages((d.images || []).map(img => ({ path: img.file_path, url: apiService.getUploadUrl(img.file_path) })));
 
         // Load line items — refresh unit price from current product catalog
-        const currentProducts = Array.isArray(productsRes?.data) ? productsRes.data : productsRes?.data?.items || [];
+        const currentProducts = catalogProducts.length
+          ? catalogProducts
+          : (Array.isArray(products) ? products : []);
         const items = (d.items || []).map(item => {
           const catalogProduct = currentProducts.find(p => p.id === item.product_service_id);
           const unitPrice = catalogProduct?.price != null ? catalogProduct.price : item.unit_price;
@@ -502,7 +508,7 @@ const DealForm = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, products]);
 
   const fetchLeadData = useCallback(async (leadId) => {
     try {
@@ -543,11 +549,11 @@ const DealForm = () => {
     // fetchAllData must finish first so products are loaded before fetchLeadData
     // sets lineItems — otherwise the prefilled product shows as blank and the
     // user thinks the form is empty and adds a duplicate item.
-    fetchAllData().then(() => {
-      if (!isEdit && leadId) fetchLeadData(leadId);
+    fetchAllData().then(({ products: catalogProducts }) => {
+      if (isEdit) fetchDeal(catalogProducts);
+      else if (leadId) fetchLeadData(leadId);
     });
     fetchDropdowns();
-    if (isEdit) fetchDeal();
   }, [isEdit, fetchAllData, fetchDropdowns, fetchDeal, fetchLeadData]);
 
   // Recalculate totals when line items or VAT changes

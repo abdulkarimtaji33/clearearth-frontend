@@ -240,7 +240,6 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
     approximateWeight: '',
     weightUom: 'kg',
     cargoType: '',
-    cargoPackingType: '',
     transportationArrangement: '',
     approximateValue: '',
     images: [],
@@ -274,7 +273,6 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
         approximateWeight: r.approximate_weight ?? '',
         weightUom: r.weight_uom || 'kg',
         cargoType: r.cargo_type || '',
-        cargoPackingType: r.cargo_packing_type || '',
         transportationArrangement: r.transportation_arrangement || '',
         approximateValue: r.approximate_value ?? '',
         images: images.map((p) => ({ path: p, url: apiService.getUploadUrl(p) })),
@@ -285,7 +283,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
     } else {
       setReportForm({
         inspectionDatetime: null, approximateWeight: '', weightUom: 'kg',
-        cargoType: '', cargoPackingType: '', transportationArrangement: '', approximateValue: '',
+        cargoType: '', transportationArrangement: '', approximateValue: '',
         images: [], inspectorId, approvedById: null, notes: '',
       });
     }
@@ -297,7 +295,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
     const errs = {};
     if (!reportForm.inspectionDatetime) errs.inspectionDatetime = 'Inspection date and time is required';
     if (reportForm.weightUom !== 'lumpsum' && (reportForm.approximateWeight === '' || reportForm.approximateWeight == null)) errs.approximateWeight = 'Approximate weight is required';
-    if (!reportForm.cargoType?.trim()) errs.cargoType = 'Cargo type is required';
+    if (!reportForm.cargoType?.trim()) errs.cargoType = 'Cargo packing type is required';
     if (!reportForm.transportationArrangement?.trim()) errs.transportationArrangement = 'Transportation arrangement is required';
     if (reportForm.approximateValue === '' || reportForm.approximateValue == null) errs.approximateValue = 'Approximate value is required';
     if (!reportForm.inspectorId) errs.inspectorId = "Inspector's name is required";
@@ -312,7 +310,6 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
         approximateWeight: reportForm.approximateWeight ? parseFloat(reportForm.approximateWeight) : null,
         weightUom: reportForm.weightUom || null,
         cargoType: reportForm.cargoType || null,
-        cargoPackingType: reportForm.cargoPackingType || null,
         transportationArrangement: reportForm.transportationArrangement || null,
         approximateValue: reportForm.approximateValue ? parseFloat(reportForm.approximateValue) : null,
         images: reportForm.images.map((i) => i.path),
@@ -953,7 +950,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                   )}
                 </Box>
-                <TextField select fullWidth label="Cargo Type (Required)" value={reportForm.cargoType}
+                <TextField select fullWidth label="Cargo Packing Type (Required)" value={reportForm.cargoType}
                   onChange={(e) => setReportForm((f) => ({ ...f, cargoType: e.target.value }))}
                   required error={Boolean(reportFormErrors.cargoType)} helperText={reportFormErrors.cargoType}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
@@ -961,20 +958,6 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                   <MenuItem value="unpacked">Unpacked</MenuItem>
                   <MenuItem value="packed">Packed</MenuItem>
                   <MenuItem value="palletized">Palletized</MenuItem>
-                </TextField>
-                <TextField select fullWidth label="Cargo Packing Type *" value={reportForm.cargoPackingType}
-                  onChange={(e) => setReportForm((f) => ({ ...f, cargoPackingType: e.target.value }))}
-                  required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
-                  <MenuItem value="">—</MenuItem>
-                  <MenuItem value="bags">Bags</MenuItem>
-                  <MenuItem value="drums">Drums</MenuItem>
-                  <MenuItem value="loose">Loose</MenuItem>
-                  <MenuItem value="pallets">Pallets</MenuItem>
-                  <MenuItem value="ibc">IBC</MenuItem>
-                  <MenuItem value="bales">Bales</MenuItem>
-                  <MenuItem value="boxes">Boxes</MenuItem>
-                  <MenuItem value="bulk">Bulk</MenuItem>
-                  <MenuItem value="other">Other</MenuItem>
                 </TextField>
                 <TextField select fullWidth label="Transportation Arrangement (Required)" value={reportForm.transportationArrangement}
                   onChange={(e) => setReportForm((f) => ({ ...f, transportationArrangement: e.target.value }))}

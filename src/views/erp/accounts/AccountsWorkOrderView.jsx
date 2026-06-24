@@ -461,8 +461,7 @@ const AccountsWorkOrderView = () => {
                 const r = wo.deal.inspectionReport;
                 const rows = [
                   ['Inspection Date', r.inspection_datetime ? new Date(r.inspection_datetime).toLocaleString() : '—'],
-                  ['Cargo Type', r.cargo_type || '—'],
-                  ['Cargo Packing Type', r.cargo_packing_type || '—'],
+                  ['Cargo Packing Type', r.cargo_type || '—'],
                   ['Approximate Weight', r.approximate_weight != null ? `${r.approximate_weight} ${r.weight_uom || ''}`.trim() : '—'],
                   ['Approximate Value', r.approximate_value != null ? `AED ${parseFloat(r.approximate_value).toLocaleString()}` : '—'],
                   ['Transportation', r.transportation_arrangement || '—'],

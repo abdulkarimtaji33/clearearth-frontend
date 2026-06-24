@@ -634,7 +634,7 @@ const DealView = () => {
     const errs = {};
     if (!reportForm.inspectionDatetime) errs.inspectionDatetime = 'Inspection date and time is required';
     if (reportForm.approximateWeight === '' || reportForm.approximateWeight == null) errs.approximateWeight = 'Approximate weight is required';
-    if (!reportForm.cargoType?.trim()) errs.cargoType = 'Cargo type is required';
+    if (!reportForm.cargoType?.trim()) errs.cargoType = 'Cargo packing type is required';
     if (!reportForm.transportationArrangement?.trim()) errs.transportationArrangement = 'Transportation arrangement is required';
     if (reportForm.approximateValue === '' || reportForm.approximateValue == null) errs.approximateValue = 'Approximate value is required';
     if (!reportForm.inspectorId) errs.inspectorId = "Inspector's name is required";
@@ -1459,7 +1459,7 @@ const DealView = () => {
                     <MenuItem value="lbs">lbs</MenuItem>
                   </TextField>
                 </Box>
-                <TextField select fullWidth label="Cargo Type (Required)" value={reportForm.cargoType} onChange={(e) => setReportForm((f) => ({ ...f, cargoType: e.target.value }))} required error={Boolean(reportFormErrors.cargoType)} helperText={reportFormErrors.cargoType} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
+                <TextField select fullWidth label="Cargo Packing Type (Required)" value={reportForm.cargoType} onChange={(e) => setReportForm((f) => ({ ...f, cargoType: e.target.value }))} required error={Boolean(reportFormErrors.cargoType)} helperText={reportFormErrors.cargoType} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
                   <MenuItem value="">—</MenuItem>
                   <MenuItem value="unpacked">Unpacked</MenuItem>
                   <MenuItem value="packed">Packed</MenuItem>

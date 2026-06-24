@@ -1052,7 +1052,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                 )}
                 {!isApproved && userIsInspector && (
                   <Typography variant="body2" color="text.secondary">
-                    Approval is done by operations manager or admin after you submit the report.
+                    Approval is done by sales, sales manager, operations manager, or admin after you submit the report.
                   </Typography>
                 )}
                 <TextField fullWidth multiline rows={3} label="Notes" value={reportForm.notes}

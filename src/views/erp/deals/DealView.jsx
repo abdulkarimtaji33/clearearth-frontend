@@ -1513,7 +1513,7 @@ const DealView = () => {
                 )}
                 {isInspectionRole(user) && !deal?.inspectionReport?.approved_by_id && (
                   <Typography variant="body2" color="text.secondary">
-                    Approval is done by operations manager or admin after you submit the report.
+                    Approval is done by sales, sales manager, operations manager, or admin after you submit the report.
                   </Typography>
                 )}
                 <TextField fullWidth multiline rows={3} label="Notes" value={reportForm.notes} onChange={(e) => setReportForm((f) => ({ ...f, notes: e.target.value }))} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />

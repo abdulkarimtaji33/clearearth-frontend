@@ -1,7 +1,7 @@
 import { getUserRole } from './authHelpers';
 
 export const INSPECTION_ROLE_NAMES = ['inspection_team', 'inspection'];
-export const INSPECTION_REPORT_APPROVER_ROLES = ['operations_manager', 'admin', 'tenant_admin', 'super_admin'];
+export const INSPECTION_REPORT_APPROVER_ROLES = ['sales', 'sales_manager', 'operations_manager', 'admin', 'tenant_admin', 'super_admin'];
 
 export const isInspectionRole = (user) => INSPECTION_ROLE_NAMES.includes(getUserRole(user));
 

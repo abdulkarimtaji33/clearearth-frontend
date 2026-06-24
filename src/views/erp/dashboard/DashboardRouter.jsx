@@ -27,7 +27,7 @@ const ROLE_MAP = {
 
 const DashboardRouter = () => {
   const { user } = useAuth();
-  const { on } = useSocket() || {};
+  const { on, connected } = useSocket() || {};
   const roleName = user?.role?.name || user?.Role?.name || 'sales';
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,18 +63,18 @@ const DashboardRouter = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  // Real-time refresh on socket notification
+  // Real-time refresh on socket notification (e.g. approval requests for sales manager)
   useEffect(() => {
-    if (!on) return;
+    if (!connected || !on) return;
     const off = on('notification', silentRefresh);
     return off;
-  }, [on, silentRefresh]);
+  }, [connected, on, silentRefresh]);
 
-  // Polling fallback every 30s for roles that care about live data
+  // Polling fallback every 7s for roles that care about live data
   useEffect(() => {
     const POLLING_ROLES = ['sales_manager', 'inspection_team', 'accounts', 'operations_manager'];
     if (!POLLING_ROLES.includes(roleName)) return;
-    const interval = setInterval(silentRefresh, 30000);
+    const interval = setInterval(silentRefresh, 7000);
     return () => clearInterval(interval);
   }, [roleName, silentRefresh]);
 

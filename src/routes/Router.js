@@ -5,6 +5,9 @@ import Loadable, { lazyWithChunkReload } from '../layouts/full/shared/loadable/L
 import ChunkLoadErrorElement from '../components/ChunkLoadErrorElement';
 import RequireAdmin from '../components/auth/RequireAdmin';
 import RequireQuotationPoEditor from '../components/auth/RequireQuotationPoEditor';
+import RequireWorkOrderCreator from '../components/auth/RequireWorkOrderCreator';
+import RequireInvoiceGenerator from '../components/auth/RequireInvoiceGenerator';
+import RequireDealViewAccess from '../components/auth/RequireDealViewAccess';
 import RequireNotDriver from '../components/auth/RequireNotDriver';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 
@@ -127,7 +130,7 @@ const Router = createBrowserRouter([
       { path: '/erp/deals', element: <RequireNotDriver><DealList /></RequireNotDriver> },
       { path: '/erp/deals/create', element: <RequireNotDriver><DealForm /></RequireNotDriver> },
       { path: '/erp/deals/edit/:id', element: <RequireNotDriver><DealForm /></RequireNotDriver> },
-      { path: '/erp/deals/view/:id', element: <RequireNotDriver><DealView /></RequireNotDriver> },
+      { path: '/erp/deals/view/:id', element: <RequireDealViewAccess><DealView /></RequireDealViewAccess> },
       { path: '/erp/terms', element: <TermsList /> },
       { path: '/erp/terms/create', element: <TermsForm /> },
       { path: '/erp/terms/edit/:id', element: <TermsForm /> },
@@ -137,10 +140,10 @@ const Router = createBrowserRouter([
       { path: '/erp/quotations/view/:id', element: <QuotationView /> },
       { path: '/erp/quotations/edit/:id', element: <RequireQuotationPoEditor><QuotationForm /></RequireQuotationPoEditor> },
       { path: '/erp/proforma-invoices', element: <ProformaInvoiceList /> },
-      { path: '/erp/proforma-invoices/create/:quotationId', element: <ProformaInvoiceCreate /> },
+      { path: '/erp/proforma-invoices/create/:quotationId', element: <RequireInvoiceGenerator><ProformaInvoiceCreate /></RequireInvoiceGenerator> },
       { path: '/erp/proforma-invoices/view/:id', element: <ProformaInvoiceView /> },
       { path: '/erp/tax-invoices', element: <TaxInvoiceList /> },
-      { path: '/erp/tax-invoices/create/:proformaId', element: <TaxInvoiceCreate /> },
+      { path: '/erp/tax-invoices/create/:proformaId', element: <RequireInvoiceGenerator><TaxInvoiceCreate /></RequireInvoiceGenerator> },
       { path: '/erp/tax-invoices/view/:id', element: <TaxInvoiceView /> },
       { path: '/erp/tax-invoices/edit/:id', element: <TaxInvoiceEdit /> },
       { path: '/erp/accounts/expenses', element: <ExpensesList /> },
@@ -168,7 +171,7 @@ const Router = createBrowserRouter([
       { path: '/erp/inspection-requests', element: <InspectionRequestList /> },
       { path: '/erp/inspection-requests/:id', element: <InspectionRequestView /> },
       { path: '/erp/work-orders', element: <WorkOrderList /> },
-      { path: '/erp/work-orders/create', element: <WorkOrderForm /> },
+      { path: '/erp/work-orders/create', element: <RequireWorkOrderCreator><WorkOrderForm /></RequireWorkOrderCreator> },
       { path: '/erp/work-orders/edit/:id', element: <WorkOrderForm /> },
       { path: '/erp/work-orders/view/:id', element: <WorkOrderView /> },
       { path: '/erp/driver/pickups/:taskId', element: <DriverPickupTaskView /> },

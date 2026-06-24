@@ -37,6 +37,8 @@ import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
+import { canCreateWorkOrder } from '../../../utils/authHelpers';
 
 const STATUS_COLOR = {
   new:          'default',
@@ -109,6 +111,8 @@ const POTable = ({ title, icon: Icon, iconColor, rows, loading, onMenu, navigate
 const PurchaseOrderList = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, hasPermission } = useAuth();
+  const allowCreateWorkOrder = canCreateWorkOrder(user, hasPermission);
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [orders, setOrders] = useState([]);
@@ -295,11 +299,11 @@ const PurchaseOrderList = () => {
               <MenuItem onClick={() => { navigate(`/erp/work-orders/view/${(selectedOrder.sourceWorkOrder || selectedOrder.source_work_order).id}`); setAnchorEl(null); }}>
                 <IconHammer size={16} style={{ marginRight: 10 }} /> Open Work Order
               </MenuItem>
-            ) : (
+            ) : allowCreateWorkOrder ? (
               <MenuItem onClick={() => { navigate(`/erp/work-orders/create?purchaseOrderId=${selectedOrder?.id}${selectedOrder?.deal?.id ? `&dealId=${selectedOrder.deal.id}` : ''}`); setAnchorEl(null); }}>
                 <IconHammer size={16} style={{ marginRight: 10 }} /> Create Work Order
               </MenuItem>
-            )
+            ) : null
           )}
           <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
             <IconTrash size={16} style={{ marginRight: 10 }} /> Delete

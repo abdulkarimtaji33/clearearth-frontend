@@ -35,6 +35,8 @@ const ACCOUNTS_ONLY_ROLES = ['accounts'];
 const OPERATIONS_ONLY_ROLES = ['operations_manager'];
 /** Sales users only see items under the CRM sidebar heading. */
 const CRM_ONLY_ROLES = ['sales'];
+/** Sales and sales manager must not access Operations (work orders, GRN). */
+const NO_OPERATIONS_ACCESS_ROLES = ['sales', 'sales_manager'];
 const DRIVER_ONLY_ROLES = ['driver'];
 
 const ErpMenuItems = [
@@ -218,7 +220,7 @@ const ErpMenuItems = [
   {
     navlabel: true,
     subheader: 'Operations',
-    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
+    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...NO_OPERATIONS_ACCESS_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -234,7 +236,7 @@ const ErpMenuItems = [
     icon: IconPackage,
     href: '/erp/grn',
     permission: 'deals.read',
-    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
+    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...NO_OPERATIONS_ACCESS_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),
@@ -242,7 +244,7 @@ const ErpMenuItems = [
     icon: IconHammer,
     href: '/erp/work-orders',
     permission: 'deals.read',
-    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
+    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...NO_OPERATIONS_ACCESS_ROLES, ...DRIVER_ONLY_ROLES],
   },
   {
     id: uniqueId(),

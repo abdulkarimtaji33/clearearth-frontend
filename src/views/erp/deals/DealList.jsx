@@ -44,7 +44,7 @@ import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDia
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
-import { shouldHideDealFinancials } from '../../../utils/authHelpers';
+import { shouldHideDealFinancials, canViewDealDetails } from '../../../utils/authHelpers';
 
 const STATUS_CONFIG = {
   new:            { label: 'New',            color: 'default' },
@@ -231,6 +231,7 @@ const DealList = () => {
   const theme = useTheme();
   const { user, hasPermission } = useAuth();
   const hideDealAmounts = shouldHideDealFinancials(user);
+  const allowDealDetails = canViewDealDetails(user);
   const canEditDeals = hasPermission('deals.update');
   const canDirectApprove = canDirectManagerApprove(user);
   const tableColSpan = hideDealAmounts ? 6 : 7;
@@ -557,9 +558,9 @@ const DealList = () => {
                   deals.map(deal => (
                     <TableRow
                       key={deal.id}
-                      hover
-                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}
-                      onClick={() => navigate(`/erp/deals/view/${deal.id}`)}
+                      hover={allowDealDetails}
+                      sx={{ cursor: allowDealDetails ? 'pointer' : 'default', '&:hover': allowDealDetails ? { bgcolor: alpha(theme.palette.primary.main, 0.02) } : undefined }}
+                      onClick={() => { if (allowDealDetails) navigate(`/erp/deals/view/${deal.id}`); }}
                     >
                       <TableCell>
                         <Typography variant="body2" fontWeight={700} color="primary.main">{deal.deal_number || `#${deal.id}`}</Typography>
@@ -619,9 +620,11 @@ const DealList = () => {
       </Box>
 
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => { setAnchorEl(null); setSelectedDeal(null); }} PaperProps={{ sx: { borderRadius: 2, minWidth: 160 } }}>
+        {allowDealDetails && (
         <MenuItemMui onClick={() => { navigate(`/erp/deals/view/${selectedDeal?.id}`); setAnchorEl(null); }}>
           <IconEye size={16} style={{ marginRight: 10 }} /> View
         </MenuItemMui>
+        )}
         {canEditDeals && (
           <>
             <MenuItemMui onClick={() => { navigate(`/erp/deals/edit/${selectedDeal?.id}`); setAnchorEl(null); }}>

@@ -17,7 +17,7 @@ import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
 import { buildBillCreateUrl, getPoSourceWorkOrderBills } from '../../../utils/purchaseBills';
 import { useAuth } from '../../../context/AuthContext';
-import { shouldHideDealFinancials } from '../../../utils/authHelpers';
+import { shouldHideDealFinancials, canCreateWorkOrder } from '../../../utils/authHelpers';
 
 const STATUS_COLOR = {
   new: 'default', sent: 'info', under_review: 'warning',
@@ -28,8 +28,9 @@ const STATUS_COLOR = {
 const ClientPurchaseOrderList = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const viewOnly = shouldHideDealFinancials(user);
+  const allowCreateWorkOrder = canCreateWorkOrder(user, hasPermission);
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [orders, setOrders] = useState([]);
@@ -218,11 +219,11 @@ const ClientPurchaseOrderList = () => {
               <MenuItem onClick={() => { navigate(`/erp/work-orders/view/${(selectedOrder.sourceWorkOrder || selectedOrder.source_work_order).id}`); setAnchorEl(null); }}>
                 <IconHammer size={16} style={{ marginRight: 10 }} /> Open Work Order
               </MenuItem>
-            ) : (
+            ) : allowCreateWorkOrder ? (
               <MenuItem onClick={() => { navigate(`/erp/work-orders/create?purchaseOrderId=${selectedOrder?.id}${selectedOrder?.deal?.id ? `&dealId=${selectedOrder.deal.id}` : ''}`); setAnchorEl(null); }}>
                 <IconHammer size={16} style={{ marginRight: 10 }} /> Create Work Order
               </MenuItem>
-            )
+            ) : null
           )}
           {!viewOnly && (() => {
             const wo = selectedOrder?.sourceWorkOrder || selectedOrder?.source_work_order;

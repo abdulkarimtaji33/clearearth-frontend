@@ -21,11 +21,16 @@ import { useParams, useNavigate } from 'react-router';
 import { IconArrowLeft, IconFileInvoice, IconReceipt } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
+import { canGenerateInvoice, canViewDealDetails } from '../../../utils/authHelpers';
 
 const ProformaInvoiceView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
+  const { user } = useAuth();
+  const allowGenerateInvoice = canGenerateInvoice(user);
+  const allowDealDetails = canViewDealDetails(user);
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -95,11 +100,11 @@ const ProformaInvoiceView = () => {
               <Button variant="contained" color="primary" startIcon={<IconReceipt size={18} />} onClick={() => navigate(`/erp/tax-invoices/view/${row.taxInvoice.id}`)} sx={{ borderRadius: 2 }}>
                 View tax invoice
               </Button>
-            ) : (
+            ) : allowGenerateInvoice ? (
               <Button variant="contained" color="primary" startIcon={<IconReceipt size={18} />} onClick={() => navigate(`/erp/tax-invoices/create/${row.id}`)} sx={{ borderRadius: 2 }}>
                 Convert to tax invoice
               </Button>
-            )}
+            ) : null}
           </Stack>
         </Stack>
 
@@ -124,6 +129,7 @@ const ProformaInvoiceView = () => {
           </Box>
           <Stack sx={{ px: 2.5, py: 2 }} spacing={1}>
             {row.deal?.id ? (
+              allowDealDetails ? (
               <Link
                 component="button"
                 type="button"
@@ -132,6 +138,11 @@ const ProformaInvoiceView = () => {
               >
                 {row.deal.deal_number ? `${row.deal.deal_number} — ` : ''}{row.deal.title || 'Deal'}
               </Link>
+              ) : (
+                <Typography variant="body2" fontWeight={600}>
+                  {row.deal.deal_number ? `${row.deal.deal_number} — ` : ''}{row.deal.title || 'Deal'}
+                </Typography>
+              )
             ) : (
               <Typography variant="body2" fontWeight={600}>{row.deal?.title || row.deal?.deal_number || '—'}</Typography>
             )}

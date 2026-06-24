@@ -5,13 +5,13 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
-import { IconArrowLeft, IconEdit, IconFileDownload, IconHammer, IconReceipt, IconCheck, IconFileInvoice } from '@tabler/icons-react';
+import { IconArrowLeft, IconFileDownload, IconHammer, IconReceipt, IconCheck, IconFileInvoice } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
-import { shouldHideDealFinancials } from '../../../utils/authHelpers';
+import { shouldHideDealFinancials, canCreateWorkOrder, canGenerateInvoice, canViewDealDetails } from '../../../utils/authHelpers';
 
 const QUOTATION_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 
@@ -32,8 +32,11 @@ const QuotationView = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const viewOnly = shouldHideDealFinancials(user);
+  const allowCreateWorkOrder = canCreateWorkOrder(user, hasPermission);
+  const allowGenerateInvoice = canGenerateInvoice(user);
+  const allowDealDetails = canViewDealDetails(user);
   const canDirectApprove = canDirectManagerApprove(user);
   const returnTo = searchParams.get('return') || '/erp/quotations';
 
@@ -213,14 +216,9 @@ const QuotationView = () => {
                 Approve
               </Button>
             )}
-            {!viewOnly && (
+            {allowGenerateInvoice && (
               <Button variant="outlined" color="secondary" startIcon={<IconFileInvoice size={18} />} onClick={() => navigate(`/erp/proforma-invoices/create/${id}?return=${encodeURIComponent(returnTo)}`)} sx={{ borderRadius: 2 }}>
                 Create proforma invoice
-              </Button>
-            )}
-            {!viewOnly && (
-              <Button variant="outlined" startIcon={<IconEdit size={18} />} onClick={() => navigate(`/erp/quotations/edit/${id}`)} sx={{ borderRadius: 2 }}>
-                Edit
               </Button>
             )}
             {!viewOnly && (
@@ -233,11 +231,11 @@ const QuotationView = () => {
                 <Button variant="contained" color="primary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/view/${anyDealWorkOrder.id}`)} sx={{ borderRadius: 2 }}>
                   Open work order
                 </Button>
-              ) : (
+              ) : allowCreateWorkOrder ? (
                 <Button variant="contained" color="primary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/create?quotationId=${id}${q.deal?.id ? `&dealId=${q.deal.id}` : ''}`)} sx={{ borderRadius: 2 }}>
                   Create work order
                 </Button>
-              )
+              ) : null
             )}
           </Stack>
         </Stack>
@@ -270,9 +268,15 @@ const QuotationView = () => {
             <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1} py={2}>
               <Typography variant="body2" color="text.secondary" fontWeight={600}>Deal</Typography>
               {q.deal ? (
+                allowDealDetails ? (
                 <Link component="button" variant="body2" fontWeight={600} onClick={() => navigate(`/erp/deals/view/${q.deal.id}`)} sx={{ cursor: 'pointer' }}>
                   {q.deal.title || q.deal.deal_number || `Deal #${q.deal.id}`}
                 </Link>
+                ) : (
+                  <Typography variant="body2" fontWeight={600}>
+                    {q.deal.title || q.deal.deal_number || `Deal #${q.deal.id}`}
+                  </Typography>
+                )
               ) : (
                 <Typography variant="body2">—</Typography>
               )}

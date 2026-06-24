@@ -50,8 +50,10 @@ export const SocketProvider = ({ children }) => {
     const socket = socketRef.current;
     if (!socket) return () => {};
     socket.on(event, handler);
-    return () => socket.off(event, handler);
-  }, []);
+    return () => {
+      if (socketRef.current === socket) socket.off(event, handler);
+    };
+  }, [connected]);
 
   return (
     <SocketContext.Provider value={{ connected, on, socket: socketRef }}>

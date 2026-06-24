@@ -16,17 +16,13 @@ import Scrollbar from 'src/components/custom-scroll/Scrollbar';
 import { IconBellRinging } from '@tabler/icons';
 import { Stack } from '@mui/system';
 import apiService from 'src/services/api';
+import { notificationEntityLink } from 'src/utils/notificationLinks';
 
-const entityLink = (n) => {
-  if (n.entity_type === 'deal' && n.entity_id) return `/erp/deals/view/${n.entity_id}`;
-  if (n.entity_type === 'inspection_request' && n.entity_id) return `/erp/inspection-requests/${n.entity_id}`;
-  if (n.entity_type === 'lead' && n.entity_id) return `/erp/leads`;
-  return null;
-};
+const entityLink = (n) => notificationEntityLink(n);
 
 const Notifications = () => {
   const navigate = useNavigate();
-  const { on } = useSocket() || {};
+  const { on, connected } = useSocket() || {};
   const [anchorEl2, setAnchorEl2] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -55,13 +51,13 @@ const Notifications = () => {
 
   // Real-time: increment badge and re-fetch when a notification arrives via socket
   useEffect(() => {
-    if (!on) return;
+    if (!connected || !on) return;
     const off = on('notification', () => {
       setUnreadCount(c => c + 1);
       fetchNotifications();
     });
     return off;
-  }, [on, fetchNotifications]);
+  }, [connected, on, fetchNotifications]);
 
   const handleClick2 = (event) => {
     setAnchorEl2(event.currentTarget);

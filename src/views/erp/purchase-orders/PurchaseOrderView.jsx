@@ -11,7 +11,7 @@ import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDia
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
-import { shouldHideDealFinancials } from '../../../utils/authHelpers';
+import { shouldHideDealFinancials, canCreateWorkOrder, canViewDealDetails } from '../../../utils/authHelpers';
 
 const PO_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 
@@ -25,8 +25,10 @@ const PurchaseOrderView = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const viewOnly = shouldHideDealFinancials(user);
+  const allowCreateWorkOrder = canCreateWorkOrder(user, hasPermission);
+  const allowDealDetails = canViewDealDetails(user);
   const canDirectApprove = canDirectManagerApprove(user);
   const returnParam = searchParams.get('return');
   const defaultListForPo = (p) => {
@@ -217,7 +219,7 @@ const PurchaseOrderView = () => {
                 <Button variant="contained" color="secondary" startIcon={<IconHammer size={18} />} onClick={() => navigate(`/erp/work-orders/view/${linkedWorkOrder.id}`)} sx={{ borderRadius: 2 }}>
                   Open work order
                 </Button>
-              ) : (
+              ) : allowCreateWorkOrder ? (
                 <Button
                   variant="contained"
                   color="secondary"
@@ -227,7 +229,7 @@ const PurchaseOrderView = () => {
                 >
                   Create work order
                 </Button>
-              )
+              ) : null
             )}
           </Stack>
         </Stack>
@@ -260,9 +262,15 @@ const PurchaseOrderView = () => {
             <Stack direction="row" justifyContent="space-between" flexWrap="wrap" gap={1} py={2}>
               <Typography variant="body2" color="text.secondary" fontWeight={600}>Deal</Typography>
               {po.deal ? (
+                allowDealDetails ? (
                 <Link component="button" variant="body2" fontWeight={600} onClick={() => navigate(`/erp/deals/view/${po.deal.id}`)} sx={{ cursor: 'pointer' }}>
                   {po.deal.title || po.deal.deal_number || `Deal #${po.deal.id}`}
                 </Link>
+                ) : (
+                  <Typography variant="body2" fontWeight={600}>
+                    {po.deal.title || po.deal.deal_number || `Deal #${po.deal.id}`}
+                  </Typography>
+                )
               ) : (
                 <Typography variant="body2">—</Typography>
               )}

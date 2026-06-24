@@ -32,7 +32,7 @@ import {
   Popover,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconFileDownload, IconHammer, IconReceipt, IconCheck, IconFileInvoice } from '@tabler/icons-react';
+import { IconSearch, IconPlus, IconTrash, IconDotsVertical, IconFileDownload, IconHammer, IconReceipt, IconCheck, IconFileInvoice } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -40,7 +40,7 @@ import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDia
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
-import { shouldHideDealFinancials, isSalesRole } from '../../../utils/authHelpers';
+import { shouldHideDealFinancials, canCreateWorkOrder, canGenerateInvoice } from '../../../utils/authHelpers';
 
 const STATUS_COLOR = {
   new: 'default',
@@ -142,8 +142,8 @@ const QuotationList = () => {
   const location = useLocation();
   const { user, hasPermission } = useAuth();
   const viewOnly = shouldHideDealFinancials(user);
-  const canGenerateInvoice = !isSalesRole(user);
-  const canCreateWorkOrder = hasPermission('operations.create');
+  const canGenerateInvoiceFlag = canGenerateInvoice(user);
+  const canCreateWorkOrderFlag = canCreateWorkOrder(user, hasPermission);
   const canAttemptApproval = !viewOnly && hasPermission('quotations.update');
   const canDirectApprove = canDirectManagerApprove(user);
   const isOrdersView = location.pathname.includes('/service-orders');
@@ -412,7 +412,7 @@ const QuotationList = () => {
                           </TableCell>
                         )}
                         <TableCell onClick={e => e.stopPropagation()}>
-                          <InlineStatusPicker quotation={q} statusLabel={statusLabel} onUpdated={handleStatusUpdated} onError={setError} readOnly={viewOnly} />
+                          <InlineStatusPicker quotation={q} statusLabel={statusLabel} onUpdated={handleStatusUpdated} onError={setError} readOnly />
                         </TableCell>
                         <TableCell align="right" onClick={e => e.stopPropagation()}>
                           <IconButton size="small" onClick={e => { setAnchorEl(e.currentTarget); setSelectedQuotation(q); }} sx={{ borderRadius: 1.5 }}>
@@ -440,14 +440,15 @@ const QuotationList = () => {
         </Dialog>
 
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => { setAnchorEl(null); setSelectedQuotation(null); }} PaperProps={{ sx: { borderRadius: 2, minWidth: 200 } }}>
-          {!viewOnly && canGenerateInvoice && selectedQuotation?.deal?.deal_type !== 'free_of_charge' && (
+          {!viewOnly && canGenerateInvoiceFlag && selectedQuotation?.deal?.deal_type !== 'free_of_charge' && (
             <MenuItem onClick={() => { navigate(`/erp/proforma-invoices/create/${selectedQuotation?.id}?return=${listReturnEnc}`); setAnchorEl(null); }}>
               <IconFileInvoice size={16} style={{ marginRight: 10 }} /> Create proforma invoice
             </MenuItem>
           )}
           {!viewOnly && (
-            <MenuItem onClick={() => { navigate(`/erp/quotations/edit/${selectedQuotation?.id}`); setAnchorEl(null); }}>
-              <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
+            <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation); setAnchorEl(null); }} disabled={pdfLoading === selectedQuotation?.id}>
+              {pdfLoading === selectedQuotation?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
+              {isApproved(selectedQuotation) ? 'Download service order PDF' : 'Download quotation PDF'}
             </MenuItem>
           )}
           {!isOrdersView && canAttemptApproval && QUOTATION_APPROVABLE_STATUSES.includes(String(selectedQuotation?.status || '').toLowerCase()) && (
@@ -462,18 +463,12 @@ const QuotationList = () => {
               {approvingQuotationId === selectedQuotation?.id ? 'Approving…' : 'Approve'}
             </MenuItem>
           )}
-          {!viewOnly && (
-            <MenuItem onClick={() => { handleDownloadPdf(selectedQuotation); setAnchorEl(null); }} disabled={pdfLoading === selectedQuotation?.id}>
-              {pdfLoading === selectedQuotation?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}
-              {isApproved(selectedQuotation) ? 'Download service order PDF' : 'Download quotation PDF'}
-            </MenuItem>
-          )}
           {isApproved(selectedQuotation) && (selectedQuotation?.workOrder || selectedQuotation?.work_order)?.id && (
             <MenuItem onClick={() => { navigate(`/erp/work-orders/view/${(selectedQuotation.workOrder || selectedQuotation.work_order).id}`); setAnchorEl(null); }}>
               <IconHammer size={16} style={{ marginRight: 10 }} /> Open Work Order
             </MenuItem>
           )}
-          {isApproved(selectedQuotation) && canCreateWorkOrder && !(selectedQuotation?.workOrder || selectedQuotation?.work_order)?.id && (
+          {isApproved(selectedQuotation) && canCreateWorkOrderFlag && !(selectedQuotation?.workOrder || selectedQuotation?.work_order)?.id && (
             <MenuItem onClick={() => { navigate(`/erp/work-orders/create?quotationId=${selectedQuotation?.id}${selectedQuotation?.deal?.id ? `&dealId=${selectedQuotation.deal.id}` : ''}`); setAnchorEl(null); }}>
               <IconHammer size={16} style={{ marginRight: 10 }} /> Create Work Order
             </MenuItem>

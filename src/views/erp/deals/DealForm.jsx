@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Box,
   Card,
@@ -157,6 +157,12 @@ const DealForm = () => {
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
   const [termsAndConditions, setTermsAndConditions] = useState([]);
+  const [addTermsDialogOpen, setAddTermsDialogOpen] = useState(false);
+  const [savingTerms, setSavingTerms] = useState(false);
+  const [newTermsValues, setNewTermsValues] = useState({ title: '', content: '', category: '' });
+  const [newTermsErrors, setNewTermsErrors] = useState({});
+  const setFieldValueRef = useRef(null);
+  const valuesRef = useRef({});
   
   const [dropdowns, setDropdowns] = useState({
     dealStatus: [],
@@ -314,6 +320,36 @@ const DealForm = () => {
       console.error('Failed to fetch dropdowns:', err);
     }
   }, []);
+
+  const handleCreateTerms = async () => {
+    const errors = {};
+    if (!newTermsValues.title?.trim()) errors.title = 'Required';
+    if (!newTermsValues.content?.trim()) errors.content = 'Required';
+    setNewTermsErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      setSavingTerms(true);
+      const res = await apiService.createTermsAndConditions({
+        title: newTermsValues.title.trim(),
+        content: newTermsValues.content.trim(),
+        category: newTermsValues.category?.trim() || undefined,
+        isDefault: false,
+        status: 'active',
+      });
+      const created = res.data;
+      setTermsAndConditions((prev) => [...prev, created]);
+      const currentIds = valuesRef.current?.termsAndConditionsIds || [];
+      setFieldValueRef.current?.('termsAndConditionsIds', [...currentIds, created.id]);
+      setNewTermsValues({ title: '', content: '', category: '' });
+      setAddTermsDialogOpen(false);
+      setNewTermsErrors({});
+    } catch (err) {
+      setNewTermsErrors({ submit: err.message || 'Failed to create terms and conditions' });
+    } finally {
+      setSavingTerms(false);
+    }
+  };
 
   const fetchDeal = useCallback(async () => {
     try {
@@ -825,7 +861,10 @@ const DealForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue, setFieldTouched, submitCount }) => (
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue, setFieldTouched, submitCount }) => {
+            setFieldValueRef.current = setFieldValue;
+            valuesRef.current = values;
+            return (
             <form onSubmit={(e) => {
               formikSubmit(e);
               // Surface Yup validation errors as a top-level alert after first submit attempt
@@ -1098,7 +1137,7 @@ const DealForm = () => {
                           />
                         </Box>
                       )}
-                      <Box>
+                      <Box position="relative">
                         <Autocomplete
                           multiple
                           fullWidth
@@ -1117,6 +1156,39 @@ const DealForm = () => {
                           isOptionEqualToValue={(opt, val) => opt.id === val?.id}
                           ListboxProps={{ style: { maxHeight: '300px' } }}
                         />
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: -8,
+                            right: 12,
+                            backgroundColor: 'background.paper',
+                            px: 1,
+                            zIndex: 1,
+                          }}
+                        >
+                          <Button
+                            size="small"
+                            onClick={() => {
+                              setError('');
+                              setAddTermsDialogOpen(true);
+                            }}
+                            sx={{
+                              textTransform: 'none',
+                              fontSize: '0.75rem',
+                              fontWeight: 500,
+                              minWidth: 'auto',
+                              px: 0.5,
+                              py: 0,
+                              color: 'primary.main',
+                              '&:hover': {
+                                backgroundColor: 'transparent',
+                                textDecoration: 'underline',
+                              },
+                            }}
+                          >
+                            + Add New
+                          </Button>
+                        </Box>
                       </Box>
                     </Box>
                   </Box>
@@ -1868,8 +1940,65 @@ const DealForm = () => {
                 </Button>
               </Stack>
             </form>
-          )}
+          );}}
         </Formik>
+
+        {/* Add Terms & Conditions Dialog */}
+        <Dialog open={addTermsDialogOpen} onClose={() => setAddTermsDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+          <DialogTitle sx={{ pb: 2, pt: 4, px: 4 }}>
+            <Typography variant="h4" fontWeight={700}>Add Terms & Conditions</Typography>
+            <Typography variant="body2" color="text.secondary" mt={1}>Create a template and attach it to this deal</Typography>
+          </DialogTitle>
+          <DialogContent sx={{ pt: 5, px: 4 }}>
+            {newTermsErrors.submit && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{newTermsErrors.submit}</Alert>}
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, sm: 8 }}>
+                <TextField
+                  fullWidth
+                  label="Title"
+                  value={newTermsValues.title}
+                  onChange={(e) => setNewTermsValues((v) => ({ ...v, title: e.target.value }))}
+                  error={Boolean(newTermsErrors.title)}
+                  helperText={newTermsErrors.title}
+                  required
+                  placeholder="e.g. Standard Sales Terms"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <TextField
+                  fullWidth
+                  label="Category"
+                  value={newTermsValues.category}
+                  onChange={(e) => setNewTermsValues((v) => ({ ...v, category: e.target.value }))}
+                  placeholder="e.g. Sales, Service"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid size={12}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={10}
+                  label="Content"
+                  value={newTermsValues.content}
+                  onChange={(e) => setNewTermsValues((v) => ({ ...v, content: e.target.value }))}
+                  error={Boolean(newTermsErrors.content)}
+                  helperText={newTermsErrors.content}
+                  required
+                  placeholder="Enter the full terms and conditions text..."
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ px: 4, pb: 4, pt: 3 }}>
+            <Button onClick={() => { setAddTermsDialogOpen(false); setNewTermsErrors({}); }} sx={{ minWidth: 120, borderRadius: 2 }}>Cancel</Button>
+            <Button variant="contained" disabled={savingTerms} onClick={handleCreateTerms} sx={{ minWidth: 150, borderRadius: 2 }}>
+              {savingTerms ? 'Creating...' : 'Create & Select'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* WDS Details Dialog */}
         <Dialog

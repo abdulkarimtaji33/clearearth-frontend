@@ -26,7 +26,7 @@ import { TextField, InputAdornment, Autocomplete } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
-import { shouldHideDealFinancials } from '../../../utils/authHelpers';
+import { shouldHideDealFinancials, canGenerateInvoice, canViewDealDetails } from '../../../utils/authHelpers';
 import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
 import { buildBillCreateUrl, getWorkOrderPurchaseBills } from '../../../utils/purchaseBills';
@@ -387,6 +387,8 @@ const WorkOrderView = () => {
   const theme = useTheme();
   const { user } = useAuth();
   const hideDealAmounts = shouldHideDealFinancials(user);
+  const allowGenerateInvoice = canGenerateInvoice(user);
+  const allowDealDetails = canViewDealDetails(user);
 
   const [wo, setWo] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -722,8 +724,8 @@ const WorkOrderView = () => {
                 <Typography
                   variant="body2"
                   color="primary.main"
-                  sx={{ ml: 6.5, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-                  onClick={() => navigate(`/erp/deals/view/${wo.deal_id}`)}
+                  sx={{ ml: 6.5, ...(allowDealDetails ? { cursor: 'pointer', '&:hover': { textDecoration: 'underline' } } : {}) }}
+                  onClick={() => { if (allowDealDetails) navigate(`/erp/deals/view/${wo.deal_id}`); }}
                 >
                   {wo.deal.deal_number} — {wo.deal.title}
                 </Typography>
@@ -751,7 +753,7 @@ const WorkOrderView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-            {!hideDealAmounts && wo.status === 'completed' && dealQuotationId && !dealProformaId && (
+            {!hideDealAmounts && allowGenerateInvoice && wo.status === 'completed' && dealQuotationId && !dealProformaId && (
               <Button
                 variant="contained"
                 color="primary"
@@ -762,7 +764,7 @@ const WorkOrderView = () => {
                 Create Proforma Invoice
               </Button>
             )}
-            {!hideDealAmounts && wo.status === 'completed' && dealProformaId && !dealTaxInvoiceId && (
+            {!hideDealAmounts && allowGenerateInvoice && wo.status === 'completed' && dealProformaId && !dealTaxInvoiceId && (
               <Button
                 variant="contained"
                 color="primary"

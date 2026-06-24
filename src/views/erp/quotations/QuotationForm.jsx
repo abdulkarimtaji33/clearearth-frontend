@@ -124,6 +124,12 @@ const QuotationForm = () => {
   }, []);
 
   useEffect(() => {
+    if (isEdit && id) {
+      navigate(`/erp/quotations/view/${id}`, { replace: true });
+    }
+  }, [isEdit, id, navigate]);
+
+  useEffect(() => {
     apiService.getTenant().then((res) => {
       if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
     }).catch(() => {});

@@ -8,7 +8,7 @@ import {
   IconExternalLink, IconNavigation,
 } from '@tabler/icons-react';
 import { alpha, useTheme } from '@mui/material/styles';
-import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
+import { isGoogleMapsConfigured, loadGoogleMapsLibrary } from '../../utils/googleMapsLoader';
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors,
@@ -18,8 +18,6 @@ import {
   useSortable, arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 // Parse lat/lng from a stored Google Maps URL
 function parseCoords(url) {
@@ -197,11 +195,9 @@ export default function RoutePlannerDialog({ open, onClose, pickups }) {
     if (!open || !mapRef.current) return;
     setMapReady(false);
 
-    if (!API_KEY) return;
+    if (!isGoogleMapsConfigured) return;
 
-    setOptions({ apiKey: API_KEY, version: 'weekly' });
-
-    importLibrary('maps').then(() => {
+    loadGoogleMapsLibrary('maps').then(() => {
       if (!mapRef.current) return;
       const map = new window.google.maps.Map(mapRef.current, {
         center: { lat: 25.2048, lng: 55.2708 },

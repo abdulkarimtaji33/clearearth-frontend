@@ -5,10 +5,8 @@ import {
   TextField, InputAdornment, Stack,
 } from '@mui/material';
 import { IconMapPin, IconSearch, IconCurrentLocation, IconCheck, IconAlertCircle } from '@tabler/icons-react';
-import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
+import { isGoogleMapsConfigured, loadGoogleMapsLibraries } from '../../utils/googleMapsLoader';
 import apiService from '../../services/api';
-
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 function parseCoords(url) {
   if (!url) return null;
@@ -89,11 +87,9 @@ export default function ClientLocationPicker() {
   // Load map once page is ready
   useEffect(() => {
     if (pageState !== 'ready' || !mapRef.current) return;
-    if (!API_KEY) return;
+    if (!isGoogleMapsConfigured) return;
 
-    setOptions({ apiKey: API_KEY, version: 'weekly' });
-
-    Promise.all([importLibrary('maps'), importLibrary('places'), importLibrary('geocoding')]).then(() => {
+    loadGoogleMapsLibraries(['maps', 'places', 'geocoding']).then(() => {
       const existingCoords = dealInfo?.currentLocation ? parseCoords(dealInfo.currentLocation) : null;
       const center = existingCoords || { lat: 25.2048, lng: 55.2708 };
 

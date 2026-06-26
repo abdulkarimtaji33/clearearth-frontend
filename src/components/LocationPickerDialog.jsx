@@ -15,11 +15,11 @@ import {
   Tooltip,
 } from '@mui/material';
 import { IconCurrentLocation, IconSearch, IconX, IconMapPin } from '@tabler/icons-react';
-import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
-
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-const PLACEHOLDER_KEY = 'your_google_maps_api_key_here';
-const isMapsKeyConfigured = Boolean(API_KEY && API_KEY !== PLACEHOLDER_KEY);
+import {
+  isGoogleMapsConfigured,
+  MAPS_NOT_CONFIGURED_MSG,
+  loadGoogleMapsLibraries,
+} from '../../utils/googleMapsLoader';
 
 export default function LocationPickerDialog({ open, onClose, onConfirm, initialValue }) {
   const mapRef = useRef(null);
@@ -83,21 +83,13 @@ export default function LocationPickerDialog({ open, onClose, onConfirm, initial
     setError('');
     setLoading(true);
 
-    if (!isMapsKeyConfigured) {
-      setError(
-        'Google Maps API key is not configured on the server. Set VITE_GOOGLE_MAPS_API_KEY in .env.production, enable Maps JavaScript + Places + Geocoding APIs, then rebuild the frontend.',
-      );
+    if (!isGoogleMapsConfigured) {
+      setError(MAPS_NOT_CONFIGURED_MSG);
       setLoading(false);
       return;
     }
 
-    setOptions({ apiKey: API_KEY, version: 'weekly' });
-
-    Promise.all([
-      importLibrary('maps'),
-      importLibrary('places'),
-      importLibrary('geocoding'),
-    ]).then(() => {
+    loadGoogleMapsLibraries(['maps', 'places', 'geocoding']).then(() => {
       setLoading(false);
 
       const initial = parseInitialCoords() || { lat: 25.2048, lng: 55.2708 }; // Default: Dubai

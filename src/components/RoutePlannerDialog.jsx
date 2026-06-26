@@ -8,7 +8,7 @@ import {
   IconExternalLink, IconNavigation,
 } from '@tabler/icons-react';
 import { alpha, useTheme } from '@mui/material/styles';
-import { isGoogleMapsConfigured, loadGoogleMapsLibrary } from '../../utils/googleMapsLoader';
+import { isGoogleMapsConfigured, loadGoogleMapsLibrary } from '../utils/googleMapsLoader';
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors,

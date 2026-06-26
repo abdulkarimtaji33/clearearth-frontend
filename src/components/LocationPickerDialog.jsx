@@ -19,7 +19,7 @@ import {
   isGoogleMapsConfigured,
   MAPS_NOT_CONFIGURED_MSG,
   loadGoogleMapsLibraries,
-} from '../../utils/googleMapsLoader';
+} from '../utils/googleMapsLoader';
 
 export default function LocationPickerDialog({ open, onClose, onConfirm, initialValue }) {
   const mapRef = useRef(null);

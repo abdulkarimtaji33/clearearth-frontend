@@ -541,7 +541,11 @@ class ApiService {
     const res = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
-    if (!res.ok) throw new Error('Failed to download PDF');
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      const msg = text?.match(/"message":"([^"]+)"/)?.[1] || 'Failed to download PDF';
+      throw new Error(msg);
+    }
     const blob = await res.blob();
     if (blob.type !== 'application/pdf' || blob.size < 100) {
       const text = await blob.text();
@@ -596,7 +600,11 @@ class ApiService {
     const res = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
-    if (!res.ok) throw new Error('Failed to download PDF');
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      const msg = text?.match(/"message":"([^"]+)"/)?.[1] || 'Failed to download PDF';
+      throw new Error(msg);
+    }
     const blob = await res.blob();
     if (blob.type !== 'application/pdf' || blob.size < 100) {
       const text = await blob.text();

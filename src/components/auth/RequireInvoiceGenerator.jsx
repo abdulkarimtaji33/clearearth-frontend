@@ -4,7 +4,7 @@ import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
 import { canGenerateInvoice } from '../../utils/authHelpers';
 
-/** Block sales and sales manager from proforma / tax invoice create screens. */
+/** Block sales, sales manager, and operations roles from proforma / tax invoice create screens. */
 const RequireInvoiceGenerator = ({ children }) => {
   const { user, loading } = useAuth();
 

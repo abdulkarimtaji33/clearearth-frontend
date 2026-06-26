@@ -33,8 +33,8 @@ const NO_WORK_ORDER_CREATE_ROLES = ['sales', 'sales_manager'];
 /** Operations roles — must not open the deal detail page. */
 const OPERATIONS_ROLES = ['operations_manager', 'operations'];
 
-/** CRM roles blocked from creating proforma / tax invoices. */
-const INVOICE_GENERATION_BLOCKED_ROLES = ['sales', 'sales_executive', 'sales_manager'];
+/** CRM and operations roles blocked from creating proforma / tax invoices. */
+const INVOICE_GENERATION_BLOCKED_ROLES = ['sales', 'sales_executive', 'sales_manager', 'operations_manager', 'operations'];
 
 /** Sales Executive / Sales (legacy helper — invoice blocking uses canGenerateInvoice). */
 export function isSalesRole(user) {
@@ -50,7 +50,7 @@ export function canViewDealDetails(user) {
   return !isOperationsRole(user);
 }
 
-/** Sales and sales manager must not create proforma or tax invoices. */
+/** Sales, sales manager, and operations roles must not create proforma or tax invoices. */
 export function canGenerateInvoice(user) {
   return !INVOICE_GENERATION_BLOCKED_ROLES.includes(getUserRole(user));
 }

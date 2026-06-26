@@ -753,7 +753,7 @@ const WorkOrderView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-            {!hideDealAmounts && allowGenerateInvoice && wo.status === 'completed' && dealQuotationId && !dealProformaId && (
+            {!hideDealAmounts && allowGenerateInvoice && wo.status === 'completed' && dealQuotationId && !dealProformaId && wo.deal?.deal_type !== 'free_of_charge' && (
               <Button
                 variant="contained"
                 color="primary"

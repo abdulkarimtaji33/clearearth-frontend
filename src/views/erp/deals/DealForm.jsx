@@ -174,6 +174,7 @@ const DealForm = () => {
   const [subtotal, setSubtotal] = useState(0);
   const [vatAmount, setVatAmount] = useState(0);
   const [total, setTotal] = useState(0);
+  const [formDealType, setFormDealType] = useState('offer_to_purchase');
 
   const [initialValues, setInitialValues] = useState({
     leadId: null,
@@ -395,6 +396,7 @@ const DealForm = () => {
           pickupContactNumber: d.pickup_contact_number || '',
           servicePaymentStatus: d.service_payment_status || '',
         });
+        setFormDealType(d.deal_type || 'offer_to_purchase');
         
         const defaultWds = {
           refNo: '',
@@ -559,8 +561,14 @@ const DealForm = () => {
     };
   }, [isEdit, id, fetchAllData, fetchDropdowns, fetchDeal, fetchLeadData]);
 
-  // Recalculate totals when line items or VAT changes
+  // Recalculate totals when line items, VAT, or deal type changes
   useEffect(() => {
+    if (formDealType === 'free_of_charge') {
+      setSubtotal(0);
+      setVatAmount(0);
+      setTotal(0);
+      return;
+    }
     const sub = lineItems.reduce((sum, item) => sum + parseFloat(item.lineTotal || 0), 0);
     setSubtotal(sub);
     
@@ -568,7 +576,7 @@ const DealForm = () => {
     setVatAmount(vat);
     
     setTotal(sub + vat);
-  }, [lineItems, initialValues.vatPercentage]);
+  }, [lineItems, initialValues.vatPercentage, formDealType]);
 
   const handleAddLineItem = () => {
     setLineItems([...lineItems, {
@@ -1223,9 +1231,18 @@ const DealForm = () => {
                       name="dealType"
                       value={values.dealType || ''}
                       onChange={(e) => {
+                        const nextType = e.target.value;
                         handleChange(e);
-                        if (e.target.value !== 'offer_to_purchase') {
+                        setFormDealType(nextType);
+                        if (nextType !== 'offer_to_purchase') {
                           setFieldValue('isRcmApplicable', false);
+                        }
+                        if (nextType === 'free_of_charge') {
+                          setLineItems((prev) => prev.map((item) => ({
+                            ...item,
+                            unitPrice: 0,
+                            lineTotal: '0.00',
+                          })));
                         }
                       }}
                       onBlur={handleBlur}

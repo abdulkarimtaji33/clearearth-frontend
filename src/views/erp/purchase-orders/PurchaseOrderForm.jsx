@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Box,
   Card,
@@ -20,6 +20,10 @@ import {
   TableRow,
   IconButton,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -38,6 +42,7 @@ const initialItem = () => ({
   productServiceId: null,
   itemDescription: '',
   quantity: '',
+  unitOfMeasure: '',
   price: '',
   total: '',
 });
@@ -68,7 +73,13 @@ const PurchaseOrderForm = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [termsAndConditions, setTermsAndConditions] = useState([]);
-  const [dropdowns, setDropdowns] = useState({ purchaseOrderStatus: [] });
+  const [addTermsDialogOpen, setAddTermsDialogOpen] = useState(false);
+  const [savingTerms, setSavingTerms] = useState(false);
+  const [newTermsValues, setNewTermsValues] = useState({ title: '', content: '', category: '' });
+  const [newTermsErrors, setNewTermsErrors] = useState({});
+  const setFieldValueRef = useRef(null);
+  const valuesRef = useRef({});
+  const [dropdowns, setDropdowns] = useState({ purchaseOrderStatus: [], unitsOfMeasure: [] });
   const [items, setItems] = useState([initialItem()]);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
@@ -103,7 +114,12 @@ const PurchaseOrderForm = () => {
       if (suppliersRes.success) setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : []);
       if (productsRes.success) setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
       if (termsRes.success) setTermsAndConditions(Array.isArray(termsRes.data) ? termsRes.data : []);
-      if (dropdownRes.success) setDropdowns({ purchaseOrderStatus: dropdownRes.data.purchase_order_status || [] });
+      if (dropdownRes.success) {
+        setDropdowns({
+          purchaseOrderStatus: dropdownRes.data.purchase_order_status || [],
+          unitsOfMeasure: dropdownRes.data.units_of_measure || [],
+        });
+      }
     } catch (err) {
       console.error(err);
     }
@@ -131,6 +147,7 @@ const PurchaseOrderForm = () => {
               productServiceId: it.product_service_id || null,
               itemDescription: it.item_description || '',
               quantity: String(it.quantity ?? ''),
+              unitOfMeasure: it.unit_of_measure || it.productService?.unit_of_measure || '',
               price: String(it.price ?? ''),
               total: String(it.total ?? ''),
             }))
@@ -168,6 +185,7 @@ const PurchaseOrderForm = () => {
           productServiceId: it.product_service_id || null,
           itemDescription: it.notes || '',
           quantity: String(it.quantity ?? ''),
+          unitOfMeasure: it.unit_of_measure || it.productService?.unit_of_measure || '',
           price: String(it.unit_price ?? ''),
           total: String(it.line_total ?? ''),
         }))
@@ -232,18 +250,49 @@ const PurchaseOrderForm = () => {
     const newItems = [...items];
     newItems[index].productServiceId = product?.id || null;
     if (product?.price) newItems[index].price = String(product.price);
+    newItems[index].unitOfMeasure = product?.unit_of_measure || '';
     const qty = parseFloat(newItems[index].quantity) || 0;
     const price = parseFloat(newItems[index].price) || 0;
     newItems[index].total = (qty * price).toFixed(2);
     setItems(newItems);
   };
 
+  const handleCreateTerms = async () => {
+    const errors = {};
+    if (!newTermsValues.title?.trim()) errors.title = 'Required';
+    if (!newTermsValues.content?.trim()) errors.content = 'Required';
+    setNewTermsErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      setSavingTerms(true);
+      const res = await apiService.createTermsAndConditions({
+        title: newTermsValues.title.trim(),
+        content: newTermsValues.content.trim(),
+        category: newTermsValues.category?.trim() || undefined,
+        isDefault: false,
+        status: 'active',
+      });
+      const created = res.data;
+      setTermsAndConditions((prev) => [...prev, created]);
+      const currentIds = valuesRef.current?.termsAndConditionsIds || [];
+      setFieldValueRef.current?.('termsAndConditionsIds', [...currentIds, created.id]);
+      setNewTermsValues({ title: '', content: '', category: '' });
+      setAddTermsDialogOpen(false);
+      setNewTermsErrors({});
+    } catch (err) {
+      setNewTermsErrors({ submit: err.message || 'Failed to create terms and conditions' });
+    } finally {
+      setSavingTerms(false);
+    }
+  };
+
   const handleSubmit = async (values) => {
     const invalidItems = items.filter(
-      (it) => !it.productServiceId || !it.quantity?.toString().trim() || !it.price?.toString().trim() || !it.total?.toString().trim()
+      (it) => !it.productServiceId || !it.quantity?.toString().trim() || !it.unitOfMeasure?.toString().trim() || !it.price?.toString().trim() || !it.total?.toString().trim()
     );
     if (invalidItems.length > 0) {
-      setError('All items must have Item, Quantity, Price, and Total');
+      setError('All items must have Item, Quantity, UOM, Price, and Total');
       return;
     }
     try {
@@ -264,6 +313,7 @@ const PurchaseOrderForm = () => {
           productServiceId: it.productServiceId,
           itemDescription: it.itemDescription || null,
           quantity: String(it.quantity),
+          unitOfMeasure: it.unitOfMeasure?.toString().trim() || null,
           price: String(it.price),
           total: String(it.total),
         })),
@@ -415,7 +465,10 @@ const PurchaseOrderForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit, setFieldValue }) => (
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit, setFieldValue }) => {
+            setFieldValueRef.current = setFieldValue;
+            valuesRef.current = values;
+            return (
             <form onSubmit={handleSubmit}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
@@ -585,6 +638,7 @@ const PurchaseOrderForm = () => {
                           <TableCell sx={{ fontWeight: 600 }}>Item (Required)</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>Item Description (Optional)</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>Quantity (Required)</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>UOM (Required)</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>Price (Required)</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>Total (Required)</TableCell>
                           <TableCell width={60}></TableCell>
@@ -627,6 +681,26 @@ const PurchaseOrderForm = () => {
                                 sx={{ width: 90 }}
                                 inputProps={{ min: 0, step: 'any' }}
                               />
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                size="small"
+                                select
+                                fullWidth
+                                value={row.unitOfMeasure || ''}
+                                onChange={(e) => handleItemChange(idx, 'unitOfMeasure', e.target.value)}
+                                disabled={isBillMode}
+                                sx={{ minWidth: 110 }}
+                                SelectProps={{
+                                  displayEmpty: true,
+                                  MenuProps: { PaperProps: { style: { maxHeight: 280 } } },
+                                }}
+                              >
+                                <MenuItem value=""><em>Select UOM</em></MenuItem>
+                                {(dropdowns.unitsOfMeasure || []).map((u) => (
+                                  <MenuItem key={u.id} value={u.value}>{u.display_name}</MenuItem>
+                                ))}
+                              </TextField>
                             </TableCell>
                             <TableCell>
                               <TextField
@@ -678,30 +752,65 @@ const PurchaseOrderForm = () => {
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h5" fontWeight={600} mb={3}>Terms & Conditions (Optional)</Typography>
                   <Divider sx={{ mb: 3 }} />
-                  <Autocomplete
-                    multiple
-                    fullWidth
-                    options={termsAndConditions}
-                    getOptionLabel={(opt) => opt.title || ''}
-                    value={termsAndConditions.filter((t) => (values.termsAndConditionsIds || []).includes(t.id))}
-                    onChange={(_, val) => setFieldValue('termsAndConditionsIds', val ? val.map((t) => t.id) : [])}
-                    renderInput={(params) => (
-                      <TextField {...params} label="Terms & Conditions" placeholder="Select terms..." sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
-                    )}
-                    renderTags={(val, getTagProps) =>
-                      val.map((opt, idx) => (
-                        <Chip
-                          key={opt.id}
-                          label={opt.title}
-                          {...getTagProps({ index: idx })}
-                          onDelete={getTagProps({ index: idx }).onDelete}
-                          size="small"
-                          sx={{ borderRadius: 1 }}
-                        />
-                      ))
-                    }
-                    isOptionEqualToValue={(a, b) => a?.id === b?.id}
-                  />
+                  <Box position="relative">
+                    <Autocomplete
+                      multiple
+                      fullWidth
+                      options={termsAndConditions}
+                      getOptionLabel={(opt) => opt.title || ''}
+                      value={termsAndConditions.filter((t) => (values.termsAndConditionsIds || []).includes(t.id))}
+                      onChange={(_, val) => setFieldValue('termsAndConditionsIds', val ? val.map((t) => t.id) : [])}
+                      renderInput={(params) => (
+                        <TextField {...params} label="Terms & Conditions" placeholder="Select terms..." sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                      )}
+                      renderTags={(val, getTagProps) =>
+                        val.map((opt, idx) => (
+                          <Chip
+                            key={opt.id}
+                            label={opt.title}
+                            {...getTagProps({ index: idx })}
+                            onDelete={getTagProps({ index: idx }).onDelete}
+                            size="small"
+                            sx={{ borderRadius: 1 }}
+                          />
+                        ))
+                      }
+                      isOptionEqualToValue={(a, b) => a?.id === b?.id}
+                    />
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: -8,
+                        right: 12,
+                        backgroundColor: 'background.paper',
+                        px: 1,
+                        zIndex: 1,
+                      }}
+                    >
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setError('');
+                          setAddTermsDialogOpen(true);
+                        }}
+                        sx={{
+                          textTransform: 'none',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          minWidth: 'auto',
+                          px: 0.5,
+                          py: 0,
+                          color: 'primary.main',
+                          '&:hover': {
+                            backgroundColor: 'transparent',
+                            textDecoration: 'underline',
+                          },
+                        }}
+                      >
+                        + Add New
+                      </Button>
+                    </Box>
+                  </Box>
                 </CardContent>
               </Card>
 
@@ -714,8 +823,57 @@ const PurchaseOrderForm = () => {
                 </Button>
               </Box>
             </form>
-          )}
+            );
+          }}
         </Formik>
+
+        <Dialog open={addTermsDialogOpen} onClose={() => setAddTermsDialogOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+          <DialogTitle>
+            <Typography variant="h4" fontWeight={700}>Add Terms & Conditions</Typography>
+          </DialogTitle>
+          <DialogContent>
+            {newTermsErrors.submit && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{newTermsErrors.submit}</Alert>}
+            <Stack spacing={2.5} sx={{ pt: 1 }}>
+              <TextField
+                fullWidth
+                label="Title"
+                required
+                value={newTermsValues.title}
+                onChange={(e) => setNewTermsValues((v) => ({ ...v, title: e.target.value }))}
+                error={Boolean(newTermsErrors.title)}
+                helperText={newTermsErrors.title}
+                placeholder="e.g. Standard Purchase Terms"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+              <TextField
+                fullWidth
+                label="Category (Optional)"
+                value={newTermsValues.category}
+                onChange={(e) => setNewTermsValues((v) => ({ ...v, category: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+              <TextField
+                fullWidth
+                label="Content"
+                required
+                multiline
+                minRows={5}
+                value={newTermsValues.content}
+                onChange={(e) => setNewTermsValues((v) => ({ ...v, content: e.target.value }))}
+                error={Boolean(newTermsErrors.content)}
+                helperText={newTermsErrors.content}
+                placeholder="Enter the full terms and conditions text..."
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button onClick={() => { setAddTermsDialogOpen(false); setNewTermsErrors({}); }} sx={{ minWidth: 120, borderRadius: 2 }}>Cancel</Button>
+            <Button variant="contained" disabled={savingTerms} onClick={handleCreateTerms} sx={{ minWidth: 150, borderRadius: 2 }}>
+              {savingTerms ? 'Creating...' : 'Create & Select'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         <ApprovalWorkflowDialogs
           open={approvalDialogOpen}

@@ -70,6 +70,7 @@ const WorkOrderList = Loadable(lazyWithChunkReload(() => import('../views/erp/wo
 const WorkOrderForm = Loadable(lazyWithChunkReload(() => import('../views/erp/work-orders/WorkOrderForm')));
 const WorkOrderView = Loadable(lazyWithChunkReload(() => import('../views/erp/work-orders/WorkOrderView')));
 const CompanySettings = Loadable(lazyWithChunkReload(() => import('../views/erp/settings/CompanySettings')));
+const ChangePassword = Loadable(lazyWithChunkReload(() => import('../views/erp/account/ChangePassword')));
 const FiscalYearManager = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/FiscalYearManager')));
 const ChartOfAccountsList = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/ChartOfAccountsList')));
 const OpeningBalancesForm = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/OpeningBalancesForm')));
@@ -184,6 +185,7 @@ const Router = createBrowserRouter([
       { path: '/erp/grn/edit/:id', element: <GrnForm /> },
       { path: '/erp/grn/view/:id', element: <GrnView /> },
       { path: '/erp/settings/company', element: <RequireAdmin><CompanySettings /></RequireAdmin> },
+      { path: '/erp/account/password', element: <ChangePassword /> },
       { path: '/erp/settings/fiscal-years', element: <FiscalYearManager /> },
       { path: '/erp/chart-of-accounts', element: <ChartOfAccountsList /> },
       { path: '/erp/journal', element: <JournalList /> },

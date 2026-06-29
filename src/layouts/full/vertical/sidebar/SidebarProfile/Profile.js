@@ -4,7 +4,7 @@ import { CustomizerContext } from 'src/context/CustomizerContext';
 import { useContext } from 'react';
 import { useAuth } from 'src/context/AuthContext';
 import img1 from 'src/assets/images/profile/user-1.jpg';
-import { IconPower } from '@tabler/icons';
+import { IconPower, IconLock } from '@tabler/icons';
 import { Link, useNavigate } from "react-router";
 
 export const Profile = () => {
@@ -56,7 +56,18 @@ export const Profile = () => {
             <Typography variant="h6" color="textPrimary">{displayName}</Typography>
             <Typography variant="caption" color="textSecondary">{displayRole}</Typography>
           </Box>
-          <Box sx={{ ml: 'auto' }}>
+          <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
+            <Tooltip title="Change password" placement="top">
+              <IconButton
+                color="primary"
+                component={Link}
+                to="/erp/account/password"
+                aria-label="change password"
+                size="small"
+              >
+                <IconLock size="20" />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Logout" placement="top">
               <IconButton color="primary" onClick={handleLogout} aria-label="logout" size="small">
                 <IconPower size="20" />
@@ -65,11 +76,18 @@ export const Profile = () => {
           </Box>
         </>
       ) : (
-        <Tooltip title="Logout" placement="top">
-          <IconButton color="primary" onClick={handleLogout} aria-label="logout" size="small" sx={{ mx: 'auto' }}>
-            <IconPower size="20" />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mx: 'auto', alignItems: 'center' }}>
+          <Tooltip title="Change password" placement="top">
+            <IconButton color="primary" component={Link} to="/erp/account/password" aria-label="change password" size="small">
+              <IconLock size="20" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Logout" placement="top">
+            <IconButton color="primary" onClick={handleLogout} aria-label="logout" size="small">
+              <IconPower size="20" />
+            </IconButton>
+          </Tooltip>
+        </Box>
       )}
     </Box>
   );

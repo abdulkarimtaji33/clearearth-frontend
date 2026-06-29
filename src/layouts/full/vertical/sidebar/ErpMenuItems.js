@@ -27,6 +27,7 @@ import {
   IconChartBar,
   IconCalendar,
   IconCalculator,
+  IconLock,
 } from '@tabler/icons-react';
 
 // Roles that should only see their designated section (Operations or Accounts).
@@ -45,6 +46,12 @@ const ErpMenuItems = [
     title: 'Dashboard',
     icon: IconLayoutDashboard,
     href: '/erp/dashboard',
+  },
+  {
+    id: uniqueId(),
+    title: 'Change Password',
+    icon: IconLock,
+    href: '/erp/account/password',
   },
   // ─── CRM ────────────────────────────────────────────────────────────────────
   {

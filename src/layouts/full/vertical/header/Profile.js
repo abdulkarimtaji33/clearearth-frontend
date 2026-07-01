@@ -1,24 +1,21 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
-import {
-  Box,
-  Menu,
-  MenuItem,
-  Avatar,
-  Typography,
-  Divider,
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-} from '@mui/material';
-import { IconPower, IconLock } from '@tabler/icons';
+import React from 'react';
+import { Box, Avatar, IconButton } from '@mui/material';
 import { useAuth } from 'src/context/AuthContext';
 import img1 from 'src/assets/images/profile/user-1.jpg';
+import { useAccountMenu } from 'src/hooks/useAccountMenu';
+import AccountProfileMenu from 'src/components/account/AccountProfileMenu';
 
 const Profile = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState(null);
+  const { user } = useAuth();
+  const {
+    anchorEl,
+    menuOpen,
+    openMenu,
+    closeMenu,
+    menuTransitionProps,
+    goToChangePassword,
+    handleLogout,
+  } = useAccountMenu();
 
   const firstName = user?.firstName || user?.first_name || '';
   const lastName = user?.lastName || user?.last_name || '';
@@ -30,14 +27,6 @@ const Profile = () => {
     return 'U';
   };
 
-  const closeMenu = () => setAnchorEl(null);
-
-  const handleLogout = async () => {
-    closeMenu();
-    await logout();
-    navigate('/auth/login');
-  };
-
   return (
     <Box>
       <IconButton
@@ -45,42 +34,28 @@ const Profile = () => {
         aria-label="account menu"
         aria-controls="header-profile-menu"
         aria-haspopup="true"
-        onClick={(e) => setAnchorEl(e.currentTarget)}
+        onClick={openMenu}
         color="inherit"
-        sx={{ ...(anchorEl && { color: 'primary.main' }) }}
+        sx={{ ...(menuOpen && { color: 'primary.main' }) }}
       >
         <Avatar alt={displayName} src={img1} sx={{ width: 35, height: 35 }}>
           {getInitials()}
         </Avatar>
       </IconButton>
-      <Menu
+      <AccountProfileMenu
         id="header-profile-menu"
         anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
+        open={menuOpen}
         onClose={closeMenu}
+        menuTransitionProps={menuTransitionProps}
+        displayName={displayName}
+        email={user?.email}
+        onChangePassword={goToChangePassword}
+        onLogout={handleLogout}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        slotProps={{ paper: { sx: { minWidth: 220, borderRadius: 2, mt: 1 } } }}
-      >
-        <Box sx={{ px: 2, py: 1.5 }}>
-          <Typography variant="subtitle2" fontWeight={600} noWrap>{displayName}</Typography>
-          <Typography variant="caption" color="text.secondary" noWrap>{user?.email}</Typography>
-        </Box>
-        <Divider />
-        <MenuItem
-          onClick={() => {
-            closeMenu();
-            navigate('/erp/account/password');
-          }}
-        >
-          <ListItemIcon><IconLock size={18} /></ListItemIcon>
-          <ListItemText>Change password</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
-          <ListItemIcon sx={{ color: 'error.main' }}><IconPower size={18} /></ListItemIcon>
-          <ListItemText>Logout</ListItemText>
-        </MenuItem>
-      </Menu>
+        paperSx={{ minWidth: 220, borderRadius: 2, mt: 1 }}
+      />
     </Box>
   );
 };

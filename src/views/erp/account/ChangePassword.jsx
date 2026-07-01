@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -32,6 +32,12 @@ const ChangePassword = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Clear scroll-lock / stuck menu backdrops left by MUI Modal when navigating from profile menu
+  useEffect(() => {
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+  }, []);
 
   const displayName = [user?.firstName || user?.first_name, user?.lastName || user?.last_name].filter(Boolean).join(' ')
     || user?.email

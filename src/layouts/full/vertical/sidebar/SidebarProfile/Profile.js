@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext } from 'react';
 import {
   Box,
   Avatar,
@@ -6,23 +6,26 @@ import {
   IconButton,
   Tooltip,
   useMediaQuery,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
 } from '@mui/material';
 import { CustomizerContext } from 'src/context/CustomizerContext';
 import { useAuth } from 'src/context/AuthContext';
 import img1 from 'src/assets/images/profile/user-1.jpg';
-import { IconPower, IconLock, IconChevronUp } from '@tabler/icons';
-import { useNavigate } from 'react-router';
+import { IconChevronUp } from '@tabler/icons';
+import { useAccountMenu } from 'src/hooks/useAccountMenu';
+import AccountProfileMenu from 'src/components/account/AccountProfileMenu';
 
 export const Profile = () => {
   const { isSidebarHover, isCollapse } = useContext(CustomizerContext);
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState(null);
+  const { user } = useAuth();
+  const {
+    anchorEl,
+    menuOpen,
+    openMenu,
+    closeMenu,
+    menuTransitionProps,
+    goToChangePassword,
+    handleLogout,
+  } = useAccountMenu();
 
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up('lg'));
   const hideMenu = lgUp ? isCollapse === 'mini-sidebar' && !isSidebarHover : '';
@@ -38,43 +41,21 @@ export const Profile = () => {
     return 'U';
   };
 
-  const handleLogout = async () => {
-    setAnchorEl(null);
-    await logout();
-    navigate('/auth/login');
-  };
-
-  const openMenu = (event) => setAnchorEl(event.currentTarget);
-  const closeMenu = () => setAnchorEl(null);
-
   const profileMenu = (
-    <Menu
+    <AccountProfileMenu
+      id="sidebar-profile-menu"
       anchorEl={anchorEl}
-      open={Boolean(anchorEl)}
+      open={menuOpen}
       onClose={closeMenu}
+      menuTransitionProps={menuTransitionProps}
+      displayName={displayName}
+      email={user?.email}
+      onChangePassword={goToChangePassword}
+      onLogout={handleLogout}
       anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      slotProps={{ paper: { sx: { minWidth: 200, borderRadius: 2, mt: -1 } } }}
-    >
-      <Box sx={{ px: 2, py: 1.5 }}>
-        <Typography variant="subtitle2" fontWeight={600} noWrap>{displayName}</Typography>
-        <Typography variant="caption" color="text.secondary" noWrap>{user?.email}</Typography>
-      </Box>
-      <Divider />
-      <MenuItem
-        onClick={() => {
-          closeMenu();
-          navigate('/erp/account/password');
-        }}
-      >
-        <ListItemIcon><IconLock size={18} /></ListItemIcon>
-        <ListItemText>Change password</ListItemText>
-      </MenuItem>
-      <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
-        <ListItemIcon sx={{ color: 'error.main' }}><IconPower size={18} /></ListItemIcon>
-        <ListItemText>Logout</ListItemText>
-      </MenuItem>
-    </Menu>
+      paperSx={{ minWidth: 200, borderRadius: 2, mt: -1 }}
+    />
   );
 
   if (hideMenu) {

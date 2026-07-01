@@ -64,7 +64,7 @@ export const Profile = () => {
       <MenuItem
         onClick={() => {
           closeMenu();
-          setTimeout(() => navigate('/erp/account/password'), 0);
+          navigate('/erp/account/password');
         }}
       >
         <ListItemIcon><IconLock size={18} /></ListItemIcon>
@@ -79,43 +79,47 @@ export const Profile = () => {
 
   if (hideMenu) {
     return (
-      <Box sx={{ m: 2, display: 'flex', justifyContent: 'center' }}>
-        <Tooltip title={displayName} placement="right">
-          <IconButton onClick={openMenu} size="small" sx={{ p: 0 }}>
-            <Avatar alt={displayName} src={img1} sx={{ width: 36, height: 36, cursor: 'pointer' }}>
-              {getInitials()}
-            </Avatar>
-          </IconButton>
-        </Tooltip>
+      <>
+        <Box sx={{ m: 2, display: 'flex', justifyContent: 'center' }}>
+          <Tooltip title={displayName} placement="right">
+            <IconButton onClick={openMenu} size="small" sx={{ p: 0 }}>
+              <Avatar alt={displayName} src={img1} sx={{ width: 36, height: 36, cursor: 'pointer' }}>
+                {getInitials()}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
+        </Box>
         {profileMenu}
-      </Box>
+      </>
     );
   }
 
   return (
-    <Box
-      onClick={openMenu}
-      sx={{
-        m: 3,
-        p: 2,
-        bgcolor: 'secondary.light',
-        borderRadius: 2,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-        cursor: 'pointer',
-        '&:hover': { bgcolor: 'action.hover' },
-      }}
-    >
-      <Avatar alt={displayName} src={img1} sx={{ width: 42, height: 42 }}>
-        {getInitials()}
-      </Avatar>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="subtitle2" fontWeight={600} noWrap>{displayName}</Typography>
-        <Typography variant="caption" color="text.secondary" noWrap>{displayRole}</Typography>
+    <>
+      <Box
+        onClick={openMenu}
+        sx={{
+          m: 3,
+          p: 2,
+          bgcolor: 'secondary.light',
+          borderRadius: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          cursor: 'pointer',
+          '&:hover': { bgcolor: 'action.hover' },
+        }}
+      >
+        <Avatar alt={displayName} src={img1} sx={{ width: 42, height: 42 }}>
+          {getInitials()}
+        </Avatar>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="subtitle2" fontWeight={600} noWrap>{displayName}</Typography>
+          <Typography variant="caption" color="text.secondary" noWrap>{displayRole}</Typography>
+        </Box>
+        <IconChevronUp size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
       </Box>
-      <IconChevronUp size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
       {profileMenu}
-    </Box>
+    </>
   );
 };

@@ -95,7 +95,7 @@ const Notifications = () => {
         size="large"
         aria-label="notifications"
         color="inherit"
-        aria-controls="msgs-menu"
+        aria-controls="notifications-menu"
         aria-haspopup="true"
         sx={{ ...(anchorEl2 && { color: 'primary.main' }) }}
         onClick={handleClick2}
@@ -105,7 +105,7 @@ const Notifications = () => {
         </Badge>
       </IconButton>
       <Menu
-        id="msgs-menu"
+        id="notifications-menu"
         anchorEl={anchorEl2}
         keepMounted
         open={Boolean(anchorEl2)}

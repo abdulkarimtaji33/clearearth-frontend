@@ -111,27 +111,30 @@ const Sidebar = () => {
         paper: {
           sx: {
             width: SidebarWidth,
-            // backgroundColor:
-            //   activeMode === 'dark'
-            //     ? darkBackground900
-            //     : activeSidebarBg,
-            // color: activeSidebarBg === '#ffffff' ? '' : 'white',
             border: '0 !important',
             boxShadow: (theme) => theme.shadows[8],
           },
         }
       }}
     >
-      {/* ------------------------------------------- */}
-      {/* Logo */}
-      {/* ------------------------------------------- */}
-      <Box px={2}>
-        <Logo />
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          overflow: 'hidden',
+        }}
+      >
+        <Box px={2} sx={{ flexShrink: 0, pt: 1 }}>
+          <Logo />
+        </Box>
+        <Scrollbar sx={{ flex: 1, minHeight: 0 }}>
+          <SidebarItems />
+        </Scrollbar>
+        <Box sx={{ flexShrink: 0 }}>
+          <Profile />
+        </Box>
       </Box>
-      {/* ------------------------------------------- */}
-      {/* Sidebar For Mobile */}
-      {/* ------------------------------------------- */}
-      <SidebarItems />
     </Drawer>)
   );
 };

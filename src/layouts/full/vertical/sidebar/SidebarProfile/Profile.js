@@ -64,7 +64,7 @@ export const Profile = () => {
       <MenuItem
         onClick={() => {
           closeMenu();
-          navigate('/erp/account/password');
+          setTimeout(() => navigate('/erp/account/password'), 0);
         }}
       >
         <ListItemIcon><IconLock size={18} /></ListItemIcon>

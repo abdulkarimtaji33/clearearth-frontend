@@ -29,7 +29,7 @@ const SupplierPurchaseOrderList = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, hasPermission } = useAuth();
-  const viewOnly = shouldHideDealFinancials(user);
+  const viewOnly = shouldHideDealFinancials(user, hasPermission);
   const allowCreateWorkOrder = canCreateWorkOrder(user, hasPermission);
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();

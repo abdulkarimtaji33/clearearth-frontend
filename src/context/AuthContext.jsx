@@ -109,18 +109,7 @@ export const AuthProvider = ({ children }) => {
     const roleName = getUserRole(user);
     if (roleName === 'super_admin') return true;
     const perms = effectivePermissions();
-    if (perms.includes(permission)) return true;
-    // accounts role: menu uses accounting.read; grant if any accounting.* assigned
-    if (roleName === 'accounts' && permission?.startsWith('accounting.')) {
-      return perms.some((p) => p.startsWith('accounting.'));
-    }
-    if (roleName === 'accounts' && permission?.startsWith('reports.')) {
-      return perms.some((p) => p.startsWith('reports.'));
-    }
-    if (roleName === 'operations_manager' && permission?.startsWith('operations.')) {
-      return perms.some((p) => p.startsWith('operations.'));
-    }
-    return false;
+    return perms.includes(permission);
   };
 
   const hasAnyPermission = (permissionList) => {

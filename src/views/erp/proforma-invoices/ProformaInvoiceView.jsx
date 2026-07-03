@@ -28,9 +28,9 @@ const ProformaInvoiceView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { user } = useAuth();
-  const allowGenerateInvoice = canGenerateInvoice(user);
-  const allowDealDetails = canViewDealDetails(user);
+  const { user, hasPermission } = useAuth();
+  const allowGenerateInvoice = canGenerateInvoice(user, hasPermission);
+  const allowDealDetails = canViewDealDetails(user, hasPermission);
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

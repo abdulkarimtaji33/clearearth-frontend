@@ -420,9 +420,9 @@ const DealView = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { user, hasPermission } = useAuth();
-  const hideDealAmounts = shouldHideDealFinancials(user);
+  const hideDealAmounts = shouldHideDealFinancials(user, hasPermission);
   const showWorkOrderActions = getUserRole(user) !== 'sales';
-  const canEditDeals = hasPermission('deals.update');
+  const canEditDeals = hasPermission('deals.update.own') || hasPermission('deals.update.all');
   const canDirectApprove = canDirectManagerApprove(user);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

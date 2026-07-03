@@ -287,7 +287,7 @@ const LeadList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { user, hasPermission } = useAuth();
-  const canAttemptApproval = hasPermission('leads.update');
+  const canAttemptApproval = hasPermission('leads.update.own') || hasPermission('leads.update.all');
   const canDirectApprove = canDirectManagerApprove(user);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);

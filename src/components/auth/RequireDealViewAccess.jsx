@@ -6,7 +6,7 @@ import { getUserRole, canViewDealDetails } from '../../utils/authHelpers';
 
 /** Block drivers and operations roles from the deal detail page. */
 const RequireDealViewAccess = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, hasPermission } = useAuth();
 
   if (loading) {
     return (
@@ -16,7 +16,7 @@ const RequireDealViewAccess = ({ children }) => {
     );
   }
 
-  if (getUserRole(user) === 'driver' || !canViewDealDetails(user)) {
+  if (getUserRole(user) === 'driver' || !canViewDealDetails(user, hasPermission)) {
     return <Navigate to="/erp/dashboard" replace />;
   }
 

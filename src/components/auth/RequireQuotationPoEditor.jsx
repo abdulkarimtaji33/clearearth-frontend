@@ -6,7 +6,7 @@ import { shouldHideDealFinancials } from '../../utils/authHelpers';
 
 /** Block operations managers from quotation/purchase-order create and edit forms. */
 const RequireQuotationPoEditor = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, hasPermission } = useAuth();
 
   if (loading) {
     return (
@@ -16,7 +16,7 @@ const RequireQuotationPoEditor = ({ children }) => {
     );
   }
 
-  if (shouldHideDealFinancials(user)) {
+  if (shouldHideDealFinancials(user, hasPermission)) {
     return <Navigate to="/erp/dashboard" replace />;
   }
 

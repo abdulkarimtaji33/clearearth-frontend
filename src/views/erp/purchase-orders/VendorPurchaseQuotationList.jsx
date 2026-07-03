@@ -27,8 +27,8 @@ const STATUS_COLOR = {
 const VendorPurchaseQuotationList = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
-  const viewOnly = shouldHideDealFinancials(user);
+  const { user, hasPermission } = useAuth();
+  const viewOnly = shouldHideDealFinancials(user, hasPermission);
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [orders, setOrders] = useState([]);

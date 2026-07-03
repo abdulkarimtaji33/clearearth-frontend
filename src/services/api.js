@@ -935,6 +935,14 @@ class ApiService {
     return this.get('/roles/permissions/all');
   }
 
+  async getPermissionModules() {
+    return this.get('/roles/permissions/modules');
+  }
+
+  async createPermission(data) {
+    return this.post('/roles/permissions', data);
+  }
+
   async deleteRole(id) {
     return this.delete(`/roles/${id}`);
   }

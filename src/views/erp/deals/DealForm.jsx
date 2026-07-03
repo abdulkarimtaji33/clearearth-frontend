@@ -139,7 +139,7 @@ const DealForm = () => {
   const { user, hasPermission } = useAuth();
   const roleName = user?.role?.name ?? user?.role;
   const showAssignedTo = canAssignDeals(roleName);
-  const canEditDeals = hasPermission('deals.update');
+  const canEditDeals = hasPermission('deals.update.own') || hasPermission('deals.update.all');
   const canChangeStatus = canChangeRecordStatus(user, hasPermission, 'deals.approve');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

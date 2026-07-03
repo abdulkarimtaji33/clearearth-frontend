@@ -35,10 +35,10 @@ const QuotationView = () => {
   const [searchParams] = useSearchParams();
   const theme = useTheme();
   const { user, hasPermission } = useAuth();
-  const viewOnly = shouldHideDealFinancials(user);
+  const viewOnly = shouldHideDealFinancials(user, hasPermission);
   const allowCreateWorkOrder = canCreateWorkOrder(user, hasPermission);
-  const allowGenerateInvoice = canGenerateInvoice(user);
-  const allowDealDetails = canViewDealDetails(user);
+  const allowGenerateInvoice = canGenerateInvoice(user, hasPermission);
+  const allowDealDetails = canViewDealDetails(user, hasPermission);
   const canDirectApprove = canDirectManagerApprove(user);
   const returnTo = searchParams.get('return') || '/erp/quotations';
 

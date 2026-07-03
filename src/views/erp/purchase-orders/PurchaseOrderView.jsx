@@ -26,9 +26,9 @@ const PurchaseOrderView = () => {
   const [searchParams] = useSearchParams();
   const theme = useTheme();
   const { user, hasPermission } = useAuth();
-  const viewOnly = shouldHideDealFinancials(user);
+  const viewOnly = shouldHideDealFinancials(user, hasPermission);
   const allowCreateWorkOrder = canCreateWorkOrder(user, hasPermission);
-  const allowDealDetails = canViewDealDetails(user);
+  const allowDealDetails = canViewDealDetails(user, hasPermission);
   const canDirectApprove = canDirectManagerApprove(user);
   const returnParam = searchParams.get('return');
   const defaultListForPo = (p) => {

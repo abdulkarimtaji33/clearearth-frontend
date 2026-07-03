@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -11,17 +11,21 @@ import {
   Divider,
   Stack,
   Switch,
-  FormControlLabel,
   Table,
   TableBody,
   TableCell,
   TableRow,
   Chip,
+  ToggleButton,
+  ToggleButtonGroup,
+  MenuItem,
+  Collapse,
+  IconButton,
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
-import { IconArrowLeft, IconShield } from '@tabler/icons-react';
+import { IconArrowLeft, IconShield, IconPlus, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -34,6 +38,41 @@ const moduleLabels = {
   leads: 'Leads',
   products: 'Products',
   deals: 'Deals',
+  inspection_requests: 'Inspection Requests',
+  inspection_reports: 'Inspection Reports',
+  operations: 'Operations',
+  accounting: 'Accounting',
+  grn: 'Goods Received Notes',
+  quotations: 'Quotations',
+  purchase_orders: 'Purchase Orders',
+  reports: 'Reports',
+  proforma_invoices: 'Proforma Invoices',
+  tax_invoices: 'Tax Invoices',
+};
+
+const PRICE_ACTION = 'view_price';
+
+// Groups a module's flat permission list into: plain (unscoped) actions,
+// scoped actions (own/all pairs keyed by action), and the view_price permission.
+const analyzeModulePermissions = (perms) => {
+  const plain = [];
+  const scopedByAction = {}; // action -> { own: perm|null, all: perm|null }
+  let pricePermission = null;
+
+  perms.forEach((p) => {
+    if (p.action === PRICE_ACTION) {
+      pricePermission = p;
+      return;
+    }
+    if (p.scope === 'own' || p.scope === 'all') {
+      if (!scopedByAction[p.action]) scopedByAction[p.action] = { own: null, all: null };
+      scopedByAction[p.action][p.scope] = p;
+      return;
+    }
+    plain.push(p);
+  });
+
+  return { plain, scopedByAction, pricePermission };
 };
 
 const RoleForm = () => {
@@ -44,6 +83,10 @@ const RoleForm = () => {
   const [success, setSuccess] = useState('');
   const [permissionsGrouped, setPermissionsGrouped] = useState({});
   const [selectedPermissionIds, setSelectedPermissionIds] = useState(new Set());
+  const [moduleRegistry, setModuleRegistry] = useState({ modules: [], actions: [], scopes: [] });
+  const [showCreatePermission, setShowCreatePermission] = useState(false);
+  const [newPermission, setNewPermission] = useState({ module: '', action: '', scope: '', displayName: '' });
+  const [creatingPermission, setCreatingPermission] = useState(false);
 
   const isEdit = Boolean(id);
   const [isSystemRole, setIsSystemRole] = useState(false);
@@ -85,16 +128,41 @@ const RoleForm = () => {
     }
   }, []);
 
+  const fetchModuleRegistry = useCallback(async () => {
+    try {
+      const res = await apiService.getPermissionModules();
+      if (res.success && res.data) {
+        setModuleRegistry(res.data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchPermissions();
+    fetchModuleRegistry();
     if (isEdit) fetchRole();
-  }, [isEdit, fetchRole, fetchPermissions]);
+  }, [isEdit, fetchRole, fetchPermissions, fetchModuleRegistry]);
 
   const togglePermission = (permId) => {
     setSelectedPermissionIds((prev) => {
       const next = new Set(prev);
       if (next.has(permId)) next.delete(permId);
       else next.add(permId);
+      return next;
+    });
+  };
+
+  // For a scoped action pair, selecting 'own' or 'all' is mutually exclusive;
+  // selecting 'none' clears both.
+  const setScopeSelection = (ownPerm, allPerm, value) => {
+    setSelectedPermissionIds((prev) => {
+      const next = new Set(prev);
+      if (ownPerm) next.delete(ownPerm.id);
+      if (allPerm) next.delete(allPerm.id);
+      if (value === 'own' && ownPerm) next.add(ownPerm.id);
+      if (value === 'all' && allPerm) next.add(allPerm.id);
       return next;
     });
   };
@@ -131,6 +199,26 @@ const RoleForm = () => {
       setTimeout(() => navigate('/erp/roles'), 1200);
     } catch (err) {
       setError(err.message || 'Save failed');
+    }
+  };
+
+  const handleCreatePermission = async () => {
+    try {
+      setCreatingPermission(true);
+      setError('');
+      if (!newPermission.module || !newPermission.action) {
+        setError('Module and action are required to create a permission');
+        return;
+      }
+      await apiService.createPermission(newPermission);
+      setNewPermission({ module: '', action: '', scope: '', displayName: '' });
+      setShowCreatePermission(false);
+      await fetchPermissions();
+      setSuccess('Permission created');
+    } catch (err) {
+      setError(err.message || 'Failed to create permission');
+    } finally {
+      setCreatingPermission(false);
     }
   };
 
@@ -225,13 +313,84 @@ const RoleForm = () => {
 
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-                  <Stack direction="row" alignItems="center" spacing={2} mb={3}>
-                    <IconShield size={24} />
-                    <Box>
-                      <Typography variant="h5" fontWeight={600}>Permissions</Typography>
-                      <Typography variant="body2" color="text.secondary">Toggle permissions for this role</Typography>
-                    </Box>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
+                    <Stack direction="row" alignItems="center" spacing={2}>
+                      <IconShield size={24} />
+                      <Box>
+                        <Typography variant="h5" fontWeight={600}>Permissions</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Toggle permissions for this role. Scoped actions let you choose Own (only records this role
+                          created/is assigned to) or All (every record).
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    <Button
+                      size="small"
+                      startIcon={showCreatePermission ? <IconChevronUp size={16} /> : <IconPlus size={16} />}
+                      onClick={() => setShowCreatePermission((v) => !v)}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      New Permission
+                    </Button>
                   </Stack>
+
+                  <Collapse in={showCreatePermission}>
+                    <Box sx={{ p: 2, mb: 3, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
+                      <Typography variant="subtitle2" mb={2}>Create a custom permission</Typography>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
+                        <TextField
+                          select
+                          label="Module"
+                          size="small"
+                          value={newPermission.module}
+                          onChange={(e) => setNewPermission((p) => ({ ...p, module: e.target.value }))}
+                          sx={{ minWidth: 180 }}
+                        >
+                          {moduleRegistry.modules.map((m) => (
+                            <MenuItem key={m} value={m}>{moduleLabels[m] || m}</MenuItem>
+                          ))}
+                        </TextField>
+                        <TextField
+                          label="Action"
+                          size="small"
+                          placeholder="e.g. export, read"
+                          value={newPermission.action}
+                          onChange={(e) => setNewPermission((p) => ({ ...p, action: e.target.value }))}
+                          sx={{ minWidth: 160 }}
+                        />
+                        <TextField
+                          select
+                          label="Scope (optional)"
+                          size="small"
+                          value={newPermission.scope}
+                          onChange={(e) => setNewPermission((p) => ({ ...p, scope: e.target.value }))}
+                          sx={{ minWidth: 160 }}
+                        >
+                          <MenuItem value="">None</MenuItem>
+                          {moduleRegistry.scopes.map((s) => (
+                            <MenuItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</MenuItem>
+                          ))}
+                        </TextField>
+                        <TextField
+                          label="Display Name (optional)"
+                          size="small"
+                          value={newPermission.displayName}
+                          onChange={(e) => setNewPermission((p) => ({ ...p, displayName: e.target.value }))}
+                          sx={{ minWidth: 200 }}
+                        />
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={handleCreatePermission}
+                          disabled={creatingPermission || !newPermission.module || !newPermission.action}
+                          sx={{ mt: { xs: 1, sm: 0 } }}
+                        >
+                          Create
+                        </Button>
+                      </Stack>
+                    </Box>
+                  </Collapse>
+
                   <Divider sx={{ mb: 4 }} />
 
                   {isSystemRole && (
@@ -246,6 +405,8 @@ const RoleForm = () => {
                         const selectedCount = perms.filter((p) => selectedPermissionIds.has(p.id)).length;
                         const allSelected = selectedCount === perms.length;
                         const moduleLabel = moduleLabels[module] || module.charAt(0).toUpperCase() + module.slice(1);
+                        const { plain, scopedByAction, pricePermission } = analyzeModulePermissions(perms);
+                        const scopedActionNames = Object.keys(scopedByAction);
 
                         return (
                           <Box
@@ -287,7 +448,33 @@ const RoleForm = () => {
                             </Box>
                             <Table size="small">
                               <TableBody>
-                                {perms.map((perm) => (
+                                {scopedActionNames.map((action) => {
+                                  const { own, all } = scopedByAction[action];
+                                  const current = all && selectedPermissionIds.has(all.id)
+                                    ? 'all'
+                                    : (own && selectedPermissionIds.has(own.id) ? 'own' : 'none');
+                                  return (
+                                    <TableRow key={action} sx={{ '&:hover': { backgroundColor: 'action.hover' } }}>
+                                      <TableCell sx={{ py: 1.5 }}>
+                                        <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>{action}</Typography>
+                                      </TableCell>
+                                      <TableCell align="right" sx={{ py: 1.5 }}>
+                                        <ToggleButtonGroup
+                                          size="small"
+                                          exclusive
+                                          value={current}
+                                          onChange={(e, value) => value && setScopeSelection(own, all, value)}
+                                          disabled={isSystemRole}
+                                        >
+                                          <ToggleButton value="none" sx={{ textTransform: 'none', px: 1.5 }}>None</ToggleButton>
+                                          <ToggleButton value="own" disabled={!own} sx={{ textTransform: 'none', px: 1.5 }}>Own</ToggleButton>
+                                          <ToggleButton value="all" disabled={!all} sx={{ textTransform: 'none', px: 1.5 }}>All</ToggleButton>
+                                        </ToggleButtonGroup>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                                {plain.map((perm) => (
                                   <TableRow key={perm.id} sx={{ '&:hover': { backgroundColor: 'action.hover' } }}>
                                     <TableCell sx={{ py: 1.5 }}>
                                       <Typography variant="body2">{perm.display_name || perm.name}</Typography>
@@ -303,6 +490,22 @@ const RoleForm = () => {
                                     </TableCell>
                                   </TableRow>
                                 ))}
+                                {pricePermission && (
+                                  <TableRow sx={{ '&:hover': { backgroundColor: 'action.hover' } }}>
+                                    <TableCell sx={{ py: 1.5 }}>
+                                      <Typography variant="body2">View Pricing / Financial Amounts</Typography>
+                                    </TableCell>
+                                    <TableCell align="right" sx={{ py: 1.5, width: 80 }}>
+                                      <Switch
+                                        checked={selectedPermissionIds.has(pricePermission.id)}
+                                        onChange={() => togglePermission(pricePermission.id)}
+                                        color="primary"
+                                        size="small"
+                                        disabled={isSystemRole}
+                                      />
+                                    </TableCell>
+                                  </TableRow>
+                                )}
                               </TableBody>
                             </Table>
                           </Box>

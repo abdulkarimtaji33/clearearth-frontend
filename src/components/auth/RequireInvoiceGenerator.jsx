@@ -6,7 +6,7 @@ import { canGenerateInvoice } from '../../utils/authHelpers';
 
 /** Block sales, sales manager, and operations roles from proforma / tax invoice create screens. */
 const RequireInvoiceGenerator = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, hasPermission } = useAuth();
 
   if (loading) {
     return (
@@ -16,7 +16,7 @@ const RequireInvoiceGenerator = ({ children }) => {
     );
   }
 
-  if (!canGenerateInvoice(user)) {
+  if (!canGenerateInvoice(user, hasPermission)) {
     return <Navigate to="/erp/dashboard" replace />;
   }
 

@@ -385,10 +385,10 @@ const WorkOrderView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { user } = useAuth();
-  const hideDealAmounts = shouldHideDealFinancials(user);
-  const allowGenerateInvoice = canGenerateInvoice(user);
-  const allowDealDetails = canViewDealDetails(user);
+  const { user, hasPermission } = useAuth();
+  const hideDealAmounts = shouldHideDealFinancials(user, hasPermission);
+  const allowGenerateInvoice = canGenerateInvoice(user, hasPermission);
+  const allowDealDetails = canViewDealDetails(user, hasPermission);
 
   const [wo, setWo] = useState(null);
   const [tasks, setTasks] = useState([]);

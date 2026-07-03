@@ -140,8 +140,8 @@ const QuotationList = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, hasPermission } = useAuth();
-  const viewOnly = shouldHideDealFinancials(user);
-  const canGenerateInvoiceFlag = canGenerateInvoice(user);
+  const viewOnly = shouldHideDealFinancials(user, hasPermission);
+  const canGenerateInvoiceFlag = canGenerateInvoice(user, hasPermission);
   const canCreateWorkOrderFlag = canCreateWorkOrder(user, hasPermission);
   const isOrdersView = location.pathname.includes('/service-orders');
   const tableHeaders = ['Deal', 'Ver.', 'Prepared By', 'Date', 'Items', ...(viewOnly ? [] : ['Amount (AED)']), 'Status', ''];

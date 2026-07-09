@@ -338,7 +338,7 @@ const ProformaInvoiceCreate = () => {
                     Unit price
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700, pr: 1, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
-                    Line total
+                    Total
                   </TableCell>
                   <TableCell align="right" sx={{ width: 48, pr: 1.5 }} />
                 </TableRow>

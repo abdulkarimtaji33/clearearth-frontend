@@ -163,7 +163,7 @@ const TaxInvoiceEdit = () => {
                     <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>UOM</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Unit Price</TableCell>
                     <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary', width: 120 }}>Qty</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Line Total</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Total</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

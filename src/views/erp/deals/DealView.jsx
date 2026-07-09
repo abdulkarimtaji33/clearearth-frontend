@@ -1066,7 +1066,7 @@ const DealView = () => {
                       <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Qty</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>UOM</TableCell>
                       {!hideDealAmounts && <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Unit Price</TableCell>}
-                      {!hideDealAmounts && <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Line Total</TableCell>}
+                      {!hideDealAmounts && <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Total</TableCell>}
                     </TableRow>
                   </TableHead>
                   <TableBody>

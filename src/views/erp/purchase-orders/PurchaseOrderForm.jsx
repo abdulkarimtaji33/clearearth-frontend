@@ -656,7 +656,7 @@ const PurchaseOrderForm = () => {
                           <TableCell sx={{ fontWeight: 600 }}>Quantity (Required)</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>UOM (Required)</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>Price (Required)</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>Subtotal (Required)</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Total (Required)</TableCell>
                           <TableCell width={60}></TableCell>
                         </TableRow>
                       </TableHead>

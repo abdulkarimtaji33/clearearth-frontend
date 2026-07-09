@@ -1817,7 +1817,7 @@ const DealForm = () => {
                             />
                           </Box>
 
-                          {/* Row 2: Qty · UOM · Unit Price · Line Total */}
+                          {/* Row 2: Qty · UOM · Unit Price · Total */}
                           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2}>
                             <Box sx={{ flex: '0 0 100px' }}>
                               <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>Quantity</Typography>
@@ -1855,7 +1855,7 @@ const DealForm = () => {
                             </Box>
                             <Box sx={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
                               <Box sx={{ pb: 0.25 }}>
-                                <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>Line total</Typography>
+                                <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>Total</Typography>
                                 <Typography variant="body1" fontWeight={700} color="primary.main">
                                   {values.currency} {parseFloat(item.lineTotal || 0).toFixed(2)}
                                 </Typography>

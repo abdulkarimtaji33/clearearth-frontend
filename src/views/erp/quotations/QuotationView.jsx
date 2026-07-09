@@ -389,7 +389,7 @@ const QuotationView = () => {
                   <TableCell sx={{ fontWeight: 700 }}>UOM</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700 }}>Qty</TableCell>
                   {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700 }}>Unit price</TableCell>}
-                  {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700, pr: 2.5 }}>Subtotal</TableCell>}
+                  {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700, pr: 2.5 }}>Total</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>

@@ -580,7 +580,7 @@ const QuotationForm = () => {
                             <TableCell sx={{ fontWeight: 600 }}>Quantity (Required)</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>UOM (Required)</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Unit Price (Required)</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }}>Subtotal</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Total</TableCell>
                             <TableCell width={60} />
                           </TableRow>
                         </TableHead>

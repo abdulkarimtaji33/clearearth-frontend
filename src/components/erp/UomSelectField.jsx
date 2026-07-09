@@ -4,6 +4,7 @@ import {
   DialogActions, Typography, Alert,
 } from '@mui/material';
 import apiService from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const slugify = (s) =>
   String(s || '')
@@ -31,6 +32,8 @@ const UomSelectField = ({
   required = false,
   extraOptions = [],
 }) => {
+  const { hasAdminDashboardAccess } = useAuth();
+  const canAddUom = hasAdminDashboardAccess();
   const [addOpen, setAddOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [displayName, setDisplayName] = useState('');
@@ -102,7 +105,7 @@ const UomSelectField = ({
             <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
           ))}
         </TextField>
-        {!disabled && (
+        {!disabled && canAddUom && (
           <Box
             sx={{
               position: 'absolute',

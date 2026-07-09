@@ -25,5 +25,7 @@ export const buildBillCreateUrl = ({ dealId, workOrderId, companyId, supplierId 
   if (workOrderId) params.set('workOrderId', String(workOrderId));
   if (companyId) params.set('companyId', String(companyId));
   if (supplierId) params.set('supplierId', String(supplierId));
+  if (supplierId) params.set('side', 'vendor');
+  if (companyId) params.set('side', 'client');
   return `/erp/purchase-orders/create?${params.toString()}`;
 };

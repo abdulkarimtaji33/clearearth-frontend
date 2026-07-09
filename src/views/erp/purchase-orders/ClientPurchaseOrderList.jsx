@@ -115,7 +115,7 @@ const ClientPurchaseOrderList = () => {
             </Typography>
           </Box>
           {!viewOnly && (
-            <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/purchase-orders/create')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
+            <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => navigate('/erp/purchase-orders/create?side=client')} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
               Add Order
             </Button>
           )}

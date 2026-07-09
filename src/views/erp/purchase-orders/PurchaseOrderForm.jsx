@@ -62,6 +62,7 @@ const PurchaseOrderForm = () => {
   const canChangeStatus = canChangeRecordStatus(user, hasPermission, 'purchase_orders.approve');
   const supplierIdFromUrl = searchParams.get('supplierId') ? parseInt(searchParams.get('supplierId'), 10) : null;
   const companyIdFromUrl = searchParams.get('companyId') ? parseInt(searchParams.get('companyId'), 10) : null;
+  const sideFromUrl = searchParams.get('side');
   const dealIdFromUrl = searchParams.get('dealId') ? parseInt(searchParams.get('dealId'), 10) : null;
   const workOrderIdFromUrl = searchParams.get('workOrderId') ? parseInt(searchParams.get('workOrderId'), 10) : null;
   const billFromUrl = searchParams.get('bill') === '1';
@@ -100,6 +101,7 @@ const PurchaseOrderForm = () => {
   });
 
   const isEdit = Boolean(id);
+  const isVendorSide = sideFromUrl === 'vendor' || Boolean(supplierIdFromUrl);
 
   const fetchData = useCallback(async () => {
     try {
@@ -400,11 +402,14 @@ const PurchaseOrderForm = () => {
   }
 
   const isClientBill = isBillMode && Boolean(initialValues.companyId);
+  const isVendorQuotationForm = !isBillMode && (isVendorSide || Boolean(initialValues.supplierId && !initialValues.companyId));
   const pageTitle = isBillMode
     ? (isEdit
       ? (isClientBill ? 'Edit Client Purchase Bill' : 'Edit Vendor Purchase Bill')
       : (isClientBill ? 'Create Client Purchase Bill' : 'Create Vendor Purchase Bill'))
-    : (isEdit ? 'Edit Purchase Quotation' : 'Create Purchase Quotation');
+    : (isEdit
+      ? 'Edit Purchase Quotation'
+      : (isVendorQuotationForm ? 'Create Vendor Purchase Quotation' : (sideFromUrl === 'client' ? 'Create Client Purchase Quotation' : 'Create Purchase Quotation')));
   const pageDesc = isBillMode
     ? 'Adjust quantities on the purchase bill; totals recalculate automatically'
     : (isEdit ? 'Set status to Approved to download a purchase order PDF' : 'After approval, download PDF is a purchase order');
@@ -464,6 +469,10 @@ const PurchaseOrderForm = () => {
             poDate: Yup.string().trim().required('Date is required'),
             status: Yup.string().trim().required('Status is required'),
           }).test('party', 'Select client (company) or supplier', function (vals) {
+            if (isVendorSide && !isBillMode) {
+              if (vals.supplierId != null) return true;
+              return this.createError({ path: 'supplierId', message: 'Select supplier (vendor)' });
+            }
             if (vals.companyId != null || vals.supplierId != null) return true;
             return this.createError({ path: 'companyId', message: 'Select client (company) or supplier' });
           })}
@@ -497,7 +506,7 @@ const PurchaseOrderForm = () => {
                       isOptionEqualToValue={(a, b) => a?.id === b?.id}
                     />
 
-                    {values.supplierId && !values.companyId ? (
+                    {(isVendorSide && !values.companyId) || (values.supplierId && !values.companyId) ? (
                       <TextField
                         fullWidth
                         label="Client (buyer)"
@@ -539,8 +548,8 @@ const PurchaseOrderForm = () => {
                       value={suppliers.find((s) => s.id === values.supplierId) || null}
                       onChange={(_, v) => {
                         setFieldValue('supplierId', v?.id || null);
-                        setFieldValue('companyId', null);
-                        setFieldValue('status', v?.id ? 'approved' : 'new');
+                        if (!isVendorSide) setFieldValue('companyId', null);
+                        setFieldValue('status', v?.id ? 'approved' : (isVendorSide ? 'approved' : 'new'));
                       }}
                       disabled={isBillMode}
                       renderInput={(params) => (
@@ -548,6 +557,12 @@ const PurchaseOrderForm = () => {
                           {...params}
                           label="Supplier (vendor)"
                           placeholder="Downstream / vendor purchase quotation"
+                          required={isVendorSide && !isBillMode}
+                          error={Boolean(isVendorSide && !isBillMode && errors.supplierId)}
+                          helperText={
+                            (isVendorSide && !isBillMode && errors.supplierId && typeof errors.supplierId === 'string' ? errors.supplierId : null)
+                            || (isVendorSide ? 'Select the vendor you are purchasing from' : undefined)
+                          }
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                       )}

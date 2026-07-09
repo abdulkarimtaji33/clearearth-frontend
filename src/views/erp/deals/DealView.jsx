@@ -784,13 +784,13 @@ const DealView = () => {
               slotProps={{ paper: { sx: { borderRadius: 2, minWidth: 280 } } }}
             >
               {deal.deal_type === 'offer_to_purchase' && (
-                <MenuItem dense onClick={() => { navigate(`/erp/purchase-orders/create?dealId=${id}`); setQuotMenuAnchor(null); }}>
+                <MenuItem dense onClick={() => { navigate(`/erp/purchase-orders/create?dealId=${id}&side=client`); setQuotMenuAnchor(null); }}>
                   <ListItemIcon sx={{ minWidth: 36 }}><IconShoppingCart size={18} /></ListItemIcon>
                   <ListItemText primary="Purchase quotation" secondary="Client (company)" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
                 </MenuItem>
               )}
               {deal.downstream_partner_supplier_id && (
-                <MenuItem dense onClick={() => { navigate(`/erp/purchase-orders/create?dealId=${id}&supplierId=${deal.downstream_partner_supplier_id}`); setQuotMenuAnchor(null); }}>
+                <MenuItem dense onClick={() => { navigate(`/erp/purchase-orders/create?dealId=${id}&supplierId=${deal.downstream_partner_supplier_id}&side=vendor`); setQuotMenuAnchor(null); }}>
                   <ListItemIcon sx={{ minWidth: 36 }}><IconShoppingCart size={18} /></ListItemIcon>
                   <ListItemText primary="Purchase quotation" secondary="Downstream supplier" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
                 </MenuItem>

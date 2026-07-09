@@ -30,6 +30,7 @@ import * as Yup from 'yup';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import UomSelectField from '../../../components/erp/UomSelectField';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
@@ -579,7 +580,7 @@ const QuotationForm = () => {
                             <TableCell sx={{ fontWeight: 600 }}>Quantity (Required)</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>UOM (Required)</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Unit Price (Required)</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }}>Line Total</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Subtotal</TableCell>
                             <TableCell width={60} />
                           </TableRow>
                         </TableHead>
@@ -610,23 +611,13 @@ const QuotationForm = () => {
                                 />
                               </TableCell>
                               <TableCell>
-                                <TextField
-                                  size="small"
-                                  select
-                                  fullWidth
+                                <UomSelectField
                                   value={row.unitOfMeasure || ''}
-                                  onChange={(e) => handleLineItemChange(idx, 'unitOfMeasure', e.target.value)}
-                                  sx={{ minWidth: 110 }}
-                                  SelectProps={{
-                                    displayEmpty: true,
-                                    MenuProps: { PaperProps: { style: { maxHeight: 280 } } },
-                                  }}
-                                >
-                                  <MenuItem value=""><em>Select UOM</em></MenuItem>
-                                  {(dropdowns.unitsOfMeasure || []).map((u) => (
-                                    <MenuItem key={u.id} value={u.value}>{u.display_name}</MenuItem>
-                                  ))}
-                                </TextField>
+                                  onChange={(v) => handleLineItemChange(idx, 'unitOfMeasure', v)}
+                                  unitsOfMeasure={dropdowns.unitsOfMeasure || []}
+                                  onUnitsChange={(next) => setDropdowns((d) => ({ ...d, unitsOfMeasure: next }))}
+                                  minWidth={110}
+                                />
                               </TableCell>
                               <TableCell>
                                 <TextField

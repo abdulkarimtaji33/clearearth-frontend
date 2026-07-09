@@ -1,3 +1,5 @@
+import { formatApiErrorMessage } from '../utils/formatApiError';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
 class ApiService {
@@ -54,7 +56,7 @@ class ApiService {
           this.clearTokens();
           window.location.href = '/auth/login';
         }
-        const error = new Error(data.message || 'API request failed');
+        const error = new Error(formatApiErrorMessage(data));
         error.status = response.status;
         error.errors = data.errors || null;
         error.response = data;

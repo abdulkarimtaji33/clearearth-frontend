@@ -31,6 +31,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconTrash, IconFileDownload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
+import UomSelectField from '../../../components/erp/UomSelectField';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
@@ -87,6 +88,7 @@ const PurchaseOrderForm = () => {
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalError, setApprovalError] = useState('');
   const [pinConfigured, setPinConfigured] = useState(false);
+  const [tenantCompanyName, setTenantCompanyName] = useState('Clear Earth Recycling LLC');
   const [initialValues, setInitialValues] = useState({
     dealId: dealIdFromUrl || null,
     companyId: companyIdFromUrl || null,
@@ -210,7 +212,10 @@ const PurchaseOrderForm = () => {
 
   useEffect(() => {
     apiService.getTenant().then((res) => {
-      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+      if (res.success) {
+        setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+        setTenantCompanyName(res.data?.company_name || res.data?.name || 'Clear Earth Recycling LLC');
+      }
     }).catch(() => {});
     fetchData();
     if (isEdit) fetchPO();
@@ -492,29 +497,40 @@ const PurchaseOrderForm = () => {
                       isOptionEqualToValue={(a, b) => a?.id === b?.id}
                     />
 
-                    <Autocomplete
-                      fullWidth
-                      options={companies}
-                      getOptionLabel={(opt) => opt.company_name || ''}
-                      value={companies.find((c) => c.id === values.companyId) || null}
-                      onChange={(_, v) => {
-                        setFieldValue('companyId', v?.id || null);
-                        setFieldValue('supplierId', null);
-                        setFieldValue('status', 'new');
-                      }}
-                      disabled={isBillMode}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Client (company)"
-                          placeholder="Offer to purchase: quotation to client"
-                          helperText={(errors.companyId && typeof errors.companyId === 'string' ? errors.companyId : null) || 'Pick the client company, or use supplier below — not both'}
-                          error={Boolean(errors.companyId)}
-                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        />
-                      )}
-                      isOptionEqualToValue={(a, b) => a?.id === b?.id}
-                    />
+                    {values.supplierId && !values.companyId ? (
+                      <TextField
+                        fullWidth
+                        label="Client (buyer)"
+                        value={tenantCompanyName}
+                        disabled
+                        helperText="Default client for direct vendor purchase orders"
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
+                    ) : (
+                      <Autocomplete
+                        fullWidth
+                        options={companies}
+                        getOptionLabel={(opt) => opt.company_name || ''}
+                        value={companies.find((c) => c.id === values.companyId) || null}
+                        onChange={(_, v) => {
+                          setFieldValue('companyId', v?.id || null);
+                          setFieldValue('supplierId', null);
+                          setFieldValue('status', 'new');
+                        }}
+                        disabled={isBillMode}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Client (company)"
+                            placeholder="Offer to purchase: quotation to client"
+                            helperText={(errors.companyId && typeof errors.companyId === 'string' ? errors.companyId : null) || 'Pick the client company, or use supplier below — not both'}
+                            error={Boolean(errors.companyId)}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                        )}
+                        isOptionEqualToValue={(a, b) => a?.id === b?.id}
+                      />
+                    )}
 
                     <Autocomplete
                       fullWidth
@@ -640,7 +656,7 @@ const PurchaseOrderForm = () => {
                           <TableCell sx={{ fontWeight: 600 }}>Quantity (Required)</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>UOM (Required)</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>Price (Required)</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>Total (Required)</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Subtotal (Required)</TableCell>
                           <TableCell width={60}></TableCell>
                         </TableRow>
                       </TableHead>
@@ -683,24 +699,14 @@ const PurchaseOrderForm = () => {
                               />
                             </TableCell>
                             <TableCell>
-                              <TextField
-                                size="small"
-                                select
-                                fullWidth
+                              <UomSelectField
                                 value={row.unitOfMeasure || ''}
-                                onChange={(e) => handleItemChange(idx, 'unitOfMeasure', e.target.value)}
+                                onChange={(v) => handleItemChange(idx, 'unitOfMeasure', v)}
+                                unitsOfMeasure={dropdowns.unitsOfMeasure || []}
+                                onUnitsChange={(next) => setDropdowns((d) => ({ ...d, unitsOfMeasure: next }))}
                                 disabled={isBillMode}
-                                sx={{ minWidth: 110 }}
-                                SelectProps={{
-                                  displayEmpty: true,
-                                  MenuProps: { PaperProps: { style: { maxHeight: 280 } } },
-                                }}
-                              >
-                                <MenuItem value=""><em>Select UOM</em></MenuItem>
-                                {(dropdowns.unitsOfMeasure || []).map((u) => (
-                                  <MenuItem key={u.id} value={u.value}>{u.display_name}</MenuItem>
-                                ))}
-                              </TextField>
+                                minWidth={110}
+                              />
                             </TableCell>
                             <TableCell>
                               <TextField

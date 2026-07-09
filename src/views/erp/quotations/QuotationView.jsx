@@ -8,6 +8,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconFileDownload, IconHammer, IconReceipt, IconCheck, IconFileInvoice } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
+import ApproveQuotationConfirmDialog from '../../../components/erp/ApproveQuotationConfirmDialog';
 import QuotationVersionBadge from '../../../components/erp/QuotationVersionBadge';
 import apiService from '../../../services/api';
 import { sortQuotationsByVersion, quotationVersion, quotationVersionLabel } from '../../../utils/quotationVersion';
@@ -49,6 +50,7 @@ const QuotationView = () => {
   const [approveLoading, setApproveLoading] = useState(false);
   const [approveError, setApproveError] = useState('');
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalError, setApprovalError] = useState('');
   const [pinConfigured, setPinConfigured] = useState(false);
@@ -116,17 +118,19 @@ const QuotationView = () => {
   const dealRevisionCount = dealQuotations.length;
   const showRevisionBar = dealRevisionCount > 1;
 
-  const handleApproveQuotation = async () => {
+  const executeApproveQuotation = async () => {
     if (!id) return;
     setApproveError('');
     if (canDirectApprove) {
       try {
         setApproveLoading(true);
         await apiService.approveQuotation(id);
+        setApproveConfirmOpen(false);
         await fetchQ();
       } catch (e) {
         const msg = e.message || '';
         if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
+          setApproveConfirmOpen(false);
           setApprovalError('');
           setApprovalDialogOpen(true);
         } else {
@@ -137,8 +141,13 @@ const QuotationView = () => {
       }
       return;
     }
+    setApproveConfirmOpen(false);
     setApprovalError('');
     setApprovalDialogOpen(true);
+  };
+
+  const handleApproveQuotation = () => {
+    setApproveConfirmOpen(true);
   };
 
   const handleRequestQuotationApproval = async () => {
@@ -380,7 +389,7 @@ const QuotationView = () => {
                   <TableCell sx={{ fontWeight: 700 }}>UOM</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700 }}>Qty</TableCell>
                   {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700 }}>Unit price</TableCell>}
-                  {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700, pr: 2.5 }}>Line total</TableCell>}
+                  {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700, pr: 2.5 }}>Subtotal</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -423,6 +432,15 @@ const QuotationView = () => {
           onRequestApproval={handleRequestQuotationApproval}
           onApproveWithPin={handleApproveQuotationWithPin}
           approveButtonLabel="Approve quotation"
+        />
+
+        <ApproveQuotationConfirmDialog
+          open={approveConfirmOpen}
+          onClose={() => setApproveConfirmOpen(false)}
+          onConfirm={executeApproveQuotation}
+          loading={approveLoading}
+          entityLabel="service quotation"
+          ordersLabel="Clients Service Orders"
         />
       </Box>
     </PageContainer>

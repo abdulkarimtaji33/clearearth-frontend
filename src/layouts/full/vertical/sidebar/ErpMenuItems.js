@@ -95,7 +95,7 @@ const ErpMenuItems = [
         children: [
           { id: uniqueId(), title: 'Service Quotation', icon: IconPoint, href: '/erp/quotations', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
           { id: uniqueId(), title: 'Client purchase quotations', icon: IconPoint, href: '/erp/client-purchase-quotations', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-          { id: uniqueId(), title: 'Vendor purchase quotations', icon: IconPoint, href: '/erp/vendor-purchase-quotations', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
+          // { id: uniqueId(), title: 'Vendor purchase quotations', icon: IconPoint, href: '/erp/vendor-purchase-quotations', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
         ],
       },
       {
@@ -159,7 +159,7 @@ const ErpMenuItems = [
         children: [
           { id: uniqueId(), title: 'Service Quotation', icon: IconPoint, href: '/erp/quotations', permission: 'quotations.read', includeRoles: ACCOUNTS_ONLY_ROLES },
           { id: uniqueId(), title: 'Client purchase quotations', icon: IconPoint, href: '/erp/client-purchase-quotations', permission: 'purchase_orders.read', includeRoles: ACCOUNTS_ONLY_ROLES },
-          { id: uniqueId(), title: 'Vendor purchase quotations', icon: IconPoint, href: '/erp/vendor-purchase-quotations', permission: 'purchase_orders.read', includeRoles: ACCOUNTS_ONLY_ROLES },
+          // { id: uniqueId(), title: 'Vendor purchase quotations', icon: IconPoint, href: '/erp/vendor-purchase-quotations', permission: 'purchase_orders.read', includeRoles: ACCOUNTS_ONLY_ROLES },
         ],
       },
       {
@@ -265,7 +265,7 @@ const ErpMenuItems = [
         children: [
           { id: uniqueId(), title: 'Service Quotation', icon: IconPoint, href: '/erp/quotations', permission: 'quotations.read', includeRoles: OPERATIONS_ONLY_ROLES },
           { id: uniqueId(), title: 'Client purchase quotations', icon: IconPoint, href: '/erp/client-purchase-quotations', permission: 'purchase_orders.read', includeRoles: OPERATIONS_ONLY_ROLES },
-          { id: uniqueId(), title: 'Vendor purchase quotations', icon: IconPoint, href: '/erp/vendor-purchase-quotations', permission: 'purchase_orders.read', includeRoles: OPERATIONS_ONLY_ROLES },
+          // { id: uniqueId(), title: 'Vendor purchase quotations', icon: IconPoint, href: '/erp/vendor-purchase-quotations', permission: 'purchase_orders.read', includeRoles: OPERATIONS_ONLY_ROLES },
         ],
       },
       {

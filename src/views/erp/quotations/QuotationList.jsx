@@ -32,7 +32,7 @@ import {
   Popover,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconPlus, IconTrash, IconDotsVertical, IconFileDownload, IconHammer, IconReceipt, IconCheck, IconFileInvoice } from '@tabler/icons-react';
+import { IconSearch, IconPlus, IconTrash, IconDotsVertical, IconFileDownload, IconHammer, IconReceipt, IconCheck, IconFileInvoice, IconEye } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -362,6 +362,9 @@ const QuotationList = () => {
         </Dialog>
 
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => { setAnchorEl(null); setSelectedQuotation(null); }} PaperProps={{ sx: { borderRadius: 2, minWidth: 200 } }}>
+          <MenuItem onClick={() => { navigate(`/erp/quotations/view/${selectedQuotation?.id}?return=${listReturnEnc}`); setAnchorEl(null); }}>
+            <IconEye size={16} style={{ marginRight: 10 }} /> View
+          </MenuItem>
           {!viewOnly && canGenerateInvoiceFlag && selectedQuotation?.deal?.deal_type !== 'free_of_charge' && (
             <MenuItem onClick={() => { navigate(`/erp/proforma-invoices/create/${selectedQuotation?.id}?return=${listReturnEnc}`); setAnchorEl(null); }}>
               <IconFileInvoice size={16} style={{ marginRight: 10 }} /> Create proforma invoice

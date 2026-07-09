@@ -22,7 +22,10 @@ const validationSchema = Yup.object({
     .trim()
     .required('Phone is required')
     .matches(PHONE_REGEX, 'Enter a valid phone number (7–20 digits, may include +, spaces, dashes)'),
-  email: Yup.string().email('Invalid email').nullable().transform(v => v || null),
+  email: Yup.string()
+    .nullable()
+    .transform((v) => (v && String(v).trim()) || null)
+    .test('email', 'Invalid email', (v) => !v || Yup.string().email().isValidSync(v)),
 });
 
 const tfSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };

@@ -8,6 +8,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconEdit, IconFileDownload, IconHammer, IconShoppingCart, IconCheck } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
+import ApproveQuotationConfirmDialog from '../../../components/erp/ApproveQuotationConfirmDialog';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
@@ -45,9 +46,11 @@ const PurchaseOrderView = () => {
   const [approveLoading, setApproveLoading] = useState(false);
   const [approveError, setApproveError] = useState('');
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalError, setApprovalError] = useState('');
   const [pinConfigured, setPinConfigured] = useState(false);
+  const [tenantCompanyName, setTenantCompanyName] = useState('Clear Earth Recycling LLC');
 
   const fetchPo = useCallback(async () => {
     if (!id) return;
@@ -67,7 +70,10 @@ const PurchaseOrderView = () => {
   useEffect(() => { fetchPo(); }, [fetchPo]);
   useEffect(() => {
     apiService.getTenant().then((res) => {
-      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+      if (res.success) {
+        setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
+        setTenantCompanyName(res.data?.company_name || res.data?.name || 'Clear Earth Recycling LLC');
+      }
     }).catch(() => {});
   }, []);
 
@@ -86,17 +92,19 @@ const PurchaseOrderView = () => {
 
   const isClientQuotation = po?.company_id && String(po?.document_type || 'quotation').toLowerCase() === 'quotation';
 
-  const handleApprovePo = async () => {
+  const executeApprovePo = async () => {
     if (!id || !isClientQuotation) return;
     setApproveError('');
     if (canDirectApprove) {
       try {
         setApproveLoading(true);
         await apiService.approvePurchaseOrder(id);
+        setApproveConfirmOpen(false);
         await fetchPo();
       } catch (e) {
         const msg = e.message || '';
         if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
+          setApproveConfirmOpen(false);
           setApprovalError('');
           setApprovalDialogOpen(true);
         } else {
@@ -107,8 +115,14 @@ const PurchaseOrderView = () => {
       }
       return;
     }
+    setApproveConfirmOpen(false);
     setApprovalError('');
     setApprovalDialogOpen(true);
+  };
+
+  const handleApprovePo = () => {
+    if (!isClientQuotation) return;
+    setApproveConfirmOpen(true);
   };
 
   const handleRequestPoApproval = async () => {
@@ -292,6 +306,15 @@ const PurchaseOrderView = () => {
               <Typography variant="body2" color="text.secondary" fontWeight={600}>{partyLabel}</Typography>
               <Typography variant="body2" fontWeight={600}>{partyName}</Typography>
             </Stack>
+            {po.supplier_id && !po.company_id && (
+              <>
+                <Divider />
+                <Stack direction="row" justifyContent="space-between" flexWrap="wrap" gap={1} py={2}>
+                  <Typography variant="body2" color="text.secondary" fontWeight={600}>Client (buyer)</Typography>
+                  <Typography variant="body2" fontWeight={600}>{tenantCompanyName}</Typography>
+                </Stack>
+              </>
+            )}
             <Divider />
             <Stack direction="row" justifyContent="space-between" flexWrap="wrap" gap={1} py={2}>
               <Typography variant="body2" color="text.secondary" fontWeight={600}>PO date</Typography>
@@ -338,7 +361,7 @@ const PurchaseOrderView = () => {
                   <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700 }}>Qty</TableCell>
                   {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700 }}>Unit price</TableCell>}
-                  {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700, pr: 2.5 }}>Total</TableCell>}
+                  {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700, pr: 2.5 }}>Subtotal</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -381,6 +404,15 @@ const PurchaseOrderView = () => {
           onRequestApproval={handleRequestPoApproval}
           onApproveWithPin={handleApprovePoWithPin}
           approveButtonLabel="Approve quotation"
+        />
+
+        <ApproveQuotationConfirmDialog
+          open={approveConfirmOpen}
+          onClose={() => setApproveConfirmOpen(false)}
+          onConfirm={executeApprovePo}
+          loading={approveLoading}
+          entityLabel="client purchase quotation"
+          ordersLabel="Clients Purchase Orders"
         />
       </Box>
     </PageContainer>

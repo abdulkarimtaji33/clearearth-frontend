@@ -9,7 +9,7 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import {
   IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical,
-  IconFileDownload, IconHammer, IconTruck,
+  IconFileDownload, IconHammer, IconTruck, IconEye,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
@@ -201,6 +201,9 @@ const VendorPurchaseQuotationList = () => {
         </Dialog>
 
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => { setAnchorEl(null); setSelectedOrder(null); }} PaperProps={{ sx: { borderRadius: 2, minWidth: 210 } }}>
+          <MenuItem onClick={() => { navigate(`/erp/purchase-orders/view/${selectedOrder?.id}?return=${listReturnEnc}`); setAnchorEl(null); }}>
+            <IconEye size={16} style={{ marginRight: 10 }} /> View
+          </MenuItem>
           {!viewOnly && (
             <MenuItem onClick={() => { navigate(`/erp/purchase-orders/edit/${selectedOrder?.id}`); setAnchorEl(null); }}>
               <IconEdit size={16} style={{ marginRight: 10 }} /> Edit

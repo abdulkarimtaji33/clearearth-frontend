@@ -242,7 +242,7 @@ const QuotationView = () => {
                 Approve
               </Button>
             )}
-            {allowGenerateInvoice && quotation?.deal?.deal_type !== 'free_of_charge' && (
+            {allowGenerateInvoice && q?.deal?.deal_type !== 'free_of_charge' && (
               <Button variant="outlined" color="secondary" startIcon={<IconFileInvoice size={18} />} onClick={() => navigate(`/erp/proforma-invoices/create/${id}?return=${encodeURIComponent(returnTo)}`)} sx={{ borderRadius: 2 }}>
                 Create proforma invoice
               </Button>

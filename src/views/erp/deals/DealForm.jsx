@@ -37,6 +37,11 @@ import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import UomSelectField from '../../../components/erp/UomSelectField';
 import { parseSupportingDocuments, isImageDocumentPath } from '../../../utils/inspectionRequestHelpers';
+import {
+  INSPECTION_DOC_ACCEPT,
+  validateInspectionDocument,
+  inspectionDocumentAcceptLabel,
+} from '../../../utils/uploadFileTypes';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
@@ -152,20 +157,16 @@ const WdsAttachmentDropzone = ({ onDrop }) => {
   );
 };
 
-const INSPECTION_DOC_ACCEPT = {
-  'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'],
-  'application/pdf': ['.pdf'],
-  'application/msword': ['.doc'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-  'application/vnd.ms-excel': ['.xls'],
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-};
-
-const InspectionDocumentDropzone = ({ onDrop, uploading }) => {
+const InspectionDocumentDropzone = ({ onDrop, uploading, onReject }) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: INSPECTION_DOC_ACCEPT,
     multiple: true,
+    validator: validateInspectionDocument,
     onDrop: (acceptedFiles) => { if (acceptedFiles.length) onDrop(acceptedFiles); },
+    onDropRejected: (rejections) => {
+      const msg = rejections[0]?.errors?.[0]?.message;
+      if (msg && onReject) onReject(msg);
+    },
   });
   return (
     <Box
@@ -188,7 +189,7 @@ const InspectionDocumentDropzone = ({ onDrop, uploading }) => {
         {uploading ? 'Uploading…' : 'Drag and drop files here, or click to choose'}
       </Typography>
       <Typography variant="caption" color="text.disabled" display="block" mt={0.5}>
-        Images, PDF, Word (.doc/.docx), Excel (.xls/.xlsx)
+        {inspectionDocumentAcceptLabel}
       </Typography>
     </Box>
   );
@@ -2474,6 +2475,7 @@ const DealForm = () => {
                 </Typography>
                 <InspectionDocumentDropzone
                   uploading={inspectionDocUploading}
+                  onReject={(msg) => setError(msg)}
                   onDrop={async (files) => {
                     setInspectionDocUploading(true);
                     try {

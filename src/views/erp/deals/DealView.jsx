@@ -1066,19 +1066,24 @@ const DealView = () => {
                       <TableCell sx={{ fontWeight: 700 }}>UOM</TableCell>
                       {!hideDealAmounts && <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Unit Price</TableCell>}
                       {!hideDealAmounts && <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Line Total</TableCell>}
-                      <TableCell sx={{ fontWeight: 700 }}>Notes</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {deal.items.map((item) => (
                       <TableRow key={item.id} hover>
-                        <TableCell><Typography variant="body2" fontWeight={600}>{item.productService?.name || '-'}</Typography></TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600}>{item.productService?.name || '-'}</Typography>
+                          {item.notes?.trim() ? (
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, whiteSpace: 'pre-wrap' }}>
+                              {item.notes.trim()}
+                            </Typography>
+                          ) : null}
+                        </TableCell>
                         <TableCell><Chip label={item.productService?.category || '-'} size="small" variant="outlined" /></TableCell>
                         <TableCell align="right"><Typography variant="body2">{Number(item.quantity).toFixed(2)}</Typography></TableCell>
                         <TableCell><Typography variant="body2" color="text.secondary">{formatDealItemUom(item)}</Typography></TableCell>
                         {!hideDealAmounts && <TableCell align="right"><Typography variant="body2">{deal.currency} {Number(item.unit_price).toFixed(2)}</Typography></TableCell>}
                         {!hideDealAmounts && <TableCell align="right"><Typography variant="body2" fontWeight={600}>{deal.currency} {Number(item.line_total).toFixed(2)}</Typography></TableCell>}
-                        <TableCell><Typography variant="caption" color="text.secondary">{item.notes || '-'}</Typography></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1174,8 +1179,18 @@ const DealView = () => {
 
             <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>General</Typography>
             <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Container type" value={deal.container_type} /></Grid>
-              <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Location type" value={deal.location_type} /></Grid>
+              {(deal.container_type === 'LCL' || deal.container_type === 'FCL') && (
+                <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Logistics type" value="Cargo" /></Grid>
+              )}
+              {(deal.container_type === 'LCL' || deal.container_type === 'FCL') && (
+                <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Cargo type" value={deal.container_type} /></Grid>
+              )}
+              {deal.location_type && (
+                <>
+                  <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Logistics type" value="Container" /></Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Location type" value={deal.location_type} /></Grid>
+                </>
+              )}
               <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="WDS required" value={deal.wds_required ? 'Yes' : 'No'} /></Grid>
               <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Inspection required" value={deal.inspection_required ? 'Yes' : 'No'} /></Grid>
               {deal.deal_type === 'offer_to_charge' && (

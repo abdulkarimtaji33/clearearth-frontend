@@ -15,7 +15,6 @@ import {
   Alert,
   CircularProgress,
   Divider,
-  MenuItem,
   Autocomplete,
   IconButton,
 } from '@mui/material';
@@ -23,6 +22,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconFileInvoice, IconPlus, IconTrash } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import UomSelectField from '../../../components/erp/UomSelectField';
 import apiService from '../../../services/api';
 
 const num = (v) => {
@@ -357,10 +357,6 @@ const ProformaInvoiceCreate = () => {
                   </TableRow>
                 ) : (
                   items.map((row, idx) => {
-                    const uomList = dropdowns.unitsOfMeasure || [];
-                    const uomVal = row.unitOfMeasure || '';
-                    const uomInList = uomList.some((u) => u.value === uomVal);
-                    const uomLabel = (u) => u.display_name ?? u.displayName ?? u.value;
                     const selectedProduct =
                       products.find((p) => p.id === row.productServiceId || String(p.id) === String(row.productServiceId)) ||
                       null;
@@ -393,30 +389,13 @@ const ProformaInvoiceCreate = () => {
                           </Stack>
                         </TableCell>
                         <TableCell sx={{ minWidth: 140, maxWidth: 200 }}>
-                          <TextField
-                            select
-                            size="small"
-                            fullWidth
-                            value={uomVal}
-                            onChange={(e) => updateLine(idx, 'unitOfMeasure', e.target.value)}
-                            SelectProps={{
-                              displayEmpty: true,
-                              MenuProps: { PaperProps: { style: { maxHeight: 280 } } },
-                            }}
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          >
-                            <MenuItem value="">
-                              <em>Select UOM</em>
-                            </MenuItem>
-                            {!uomInList && uomVal ? (
-                              <MenuItem value={uomVal}>{uomVal}</MenuItem>
-                            ) : null}
-                            {uomList.map((u) => (
-                              <MenuItem key={u.id} value={u.value}>
-                                {uomLabel(u)}
-                              </MenuItem>
-                            ))}
-                          </TextField>
+                          <UomSelectField
+                            value={row.unitOfMeasure || ''}
+                            onChange={(v) => updateLine(idx, 'unitOfMeasure', v)}
+                            unitsOfMeasure={dropdowns.unitsOfMeasure || []}
+                            onUnitsChange={(next) => setDropdowns((d) => ({ ...d, unitsOfMeasure: next }))}
+                            minWidth={130}
+                          />
                         </TableCell>
                         <TableCell align="right" sx={{ maxWidth: 120 }}>
                           <TextField

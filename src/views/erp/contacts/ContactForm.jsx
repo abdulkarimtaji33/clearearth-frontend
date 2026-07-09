@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Box, Card, CardContent, Typography, Button, Grid, TextField,
   MenuItem, Alert, CircularProgress, Autocomplete, Dialog, DialogTitle,
@@ -16,7 +16,7 @@ const PHONE_REGEX = /^\+?[0-9\s\-().]{7,20}$/;
 
 const validationSchema = Yup.object({
   firstName: Yup.string().trim().required('First name is required'),
-  contactType: Yup.string().oneOf(['clients', 'vendors']).required('Contact type is required'),
+  contactType: Yup.string().oneOf(['clients', 'vendors', 'both']).required('Contact type is required'),
   lastName: Yup.string().trim().nullable().transform(v => v || ''),
   phone: Yup.string()
     .trim()
@@ -47,6 +47,7 @@ const ContactForm = () => {
   });
   const [newCompanyErrors, setNewCompanyErrors] = useState({});
   const [formikSetFieldValue, setFormikSetFieldValue] = useState(null);
+  const contactTypeRef = useRef('');
   const [createdCompanyId, setCreatedCompanyId] = useState(null);
   const [createdSupplierId, setCreatedSupplierId] = useState(null);
   const [dropdowns, setDropdowns] = useState({ designations: [], industryTypes: [], cities: [], countries: [] });
@@ -97,7 +98,8 @@ const ContactForm = () => {
           companyId: c.company_id || null, supplierId: c.supplier_id || null,
           phone: c.phone || '', email: c.email || '',
           status: c.status || 'active',
-          contactType: c.contact_type || '',
+          contactType: c.contact_type
+            || (c.company_id && c.supplier_id ? 'both' : c.company_id ? 'clients' : c.supplier_id ? 'vendors' : ''),
         });
       }
     } catch (err) {
@@ -159,7 +161,12 @@ const ContactForm = () => {
           const c = r.data;
           setSuppliers(p => [...p, c]);
           setCreatedSupplierId(c.id);
-          if (formikSetFieldValue) { formikSetFieldValue('supplierId', c.id); formikSetFieldValue('companyId', null); }
+          if (formikSetFieldValue) {
+            formikSetFieldValue('supplierId', c.id);
+            if (contactTypeRef.current !== 'both') {
+              formikSetFieldValue('companyId', null);
+            }
+          }
         }
       } else {
         const r = await apiService.createCompany(newCompanyValues);
@@ -167,7 +174,12 @@ const ContactForm = () => {
           const c = r.data;
           setCompanies(p => [...p, c]);
           setCreatedCompanyId(c.id);
-          if (formikSetFieldValue) { formikSetFieldValue('companyId', c.id); formikSetFieldValue('supplierId', null); }
+          if (formikSetFieldValue) {
+            formikSetFieldValue('companyId', c.id);
+            if (contactTypeRef.current !== 'both') {
+              formikSetFieldValue('supplierId', null);
+            }
+          }
         }
       }
       setNewCompanyValues({ addAs: 'client', companyName: '', type: 'organization', email: '', phone: '', country: 'UAE', city: '', address: '', industryType: '', website: '', vatNumber: '' });
@@ -212,15 +224,12 @@ const ContactForm = () => {
         <Formik initialValues={initialValues} validationSchema={validationSchema} enableReinitialize onSubmit={handleSubmit}>
           {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => {
             if (!formikSetFieldValue) setFormikSetFieldValue(() => setFieldValue);
+            contactTypeRef.current = values.contactType;
 
-            const combinedOptions = [
-              ...(companies || []).map(c => ({ ...c, _type: 'company' })),
-              ...(suppliers || []).map(s => ({ ...s, _type: 'supplier' })),
-            ].sort((a, b) => (a.company_name || '').localeCompare(b.company_name || ''));
-
-            const selectedOrg = combinedOptions.find(
-              o => (o._type === 'company' && o.id === values.companyId) || (o._type === 'supplier' && o.id === values.supplierId)
-            ) || null;
+            const selectedCompany = companies.find(c => c.id === values.companyId) || null;
+            const selectedSupplier = suppliers.find(s => s.id === values.supplierId) || null;
+            const showClientOrg = values.contactType === 'clients' || values.contactType === 'both';
+            const showVendorOrg = values.contactType === 'vendors' || values.contactType === 'both';
 
             return (
               <form onSubmit={formikSubmit}>
@@ -230,7 +239,7 @@ const ContactForm = () => {
                       Contact Information
                     </Typography>
                     <Typography variant="body2" color="text.secondary" mb={4}>
-                      Name, type, contact details, role, and linked company or supplier
+                      Name, type, contact details, role, and linked client company or vendor supplier
                     </Typography>
                     <Divider sx={{ mb: 4 }} />
 
@@ -271,6 +280,7 @@ const ContactForm = () => {
                           <MenuItem value="">Select type</MenuItem>
                           <MenuItem value="clients">Client</MenuItem>
                           <MenuItem value="vendors">Vendor</MenuItem>
+                          <MenuItem value="both">Client & Vendor</MenuItem>
                         </TextField>
                       </Grid>
                       <Grid size={{ xs: 12, md: 6 }}>
@@ -284,47 +294,82 @@ const ContactForm = () => {
                           inputProps={{ maxLength: 20 }}
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <Box position="relative" sx={{ width: '100%' }}>
-                          <Autocomplete
-                            fullWidth
-                            options={combinedOptions}
-                            getOptionLabel={o => (typeof o === 'object' ? o.company_name || '' : '')}
-                            groupBy={o => (o._type === 'company' ? 'Clients' : 'Vendors')}
-                            value={selectedOrg}
-                            onChange={(_, val) => {
-                              if (!val) { setFieldValue('companyId', null); setFieldValue('supplierId', null); }
-                              else if (val._type === 'company') { setFieldValue('companyId', val.id); setFieldValue('supplierId', null); }
-                              else { setFieldValue('supplierId', val.id); setFieldValue('companyId', null); }
-                            }}
-                            renderInput={params => (
-                              <TextField
-                                {...params}
-                                label="Company / Supplier"
-                                placeholder="Search or select…"
-                                sx={tfSx}
-                              />
-                            )}
-                            isOptionEqualToValue={(o, v) => o?.id === v?.id && o?._type === v?._type}
-                            ListboxProps={{ style: { maxHeight: 300 } }}
-                          />
-                          <Box sx={{ position: 'absolute', top: -8, right: 12, bgcolor: 'background.paper', px: 1, zIndex: 1 }}>
-                            <Button
-                              size="small"
-                              onClick={() => {
-                                if (values.contactType === 'vendors') setNewCompanyValues(v => ({ ...v, addAs: 'vendor' }));
-                                setAddCompanyDialogOpen(true);
-                              }}
-                              sx={{
-                                textTransform: 'none', fontSize: '0.75rem', fontWeight: 500, minWidth: 'auto', px: 0.5, py: 0,
-                                color: 'primary.main', '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' },
-                              }}
-                            >
-                              + Add New
-                            </Button>
+                      {showClientOrg && (
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <Box position="relative" sx={{ width: '100%' }}>
+                            <Autocomplete
+                              fullWidth
+                              options={companies}
+                              getOptionLabel={o => (typeof o === 'object' ? o.company_name || '' : '')}
+                              value={selectedCompany}
+                              onChange={(_, val) => setFieldValue('companyId', val?.id || null)}
+                              renderInput={params => (
+                                <TextField
+                                  {...params}
+                                  label={values.contactType === 'both' ? 'Client Company' : 'Company'}
+                                  placeholder="Search or select…"
+                                  sx={tfSx}
+                                />
+                              )}
+                              isOptionEqualToValue={(o, v) => o?.id === v?.id}
+                              ListboxProps={{ style: { maxHeight: 300 } }}
+                            />
+                            <Box sx={{ position: 'absolute', top: -8, right: 12, bgcolor: 'background.paper', px: 1, zIndex: 1 }}>
+                              <Button
+                                size="small"
+                                onClick={() => {
+                                  setNewCompanyValues(v => ({ ...v, addAs: 'client' }));
+                                  setAddCompanyDialogOpen(true);
+                                }}
+                                sx={{
+                                  textTransform: 'none', fontSize: '0.75rem', fontWeight: 500, minWidth: 'auto', px: 0.5, py: 0,
+                                  color: 'primary.main', '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' },
+                                }}
+                              >
+                                + Add New
+                              </Button>
+                            </Box>
                           </Box>
-                        </Box>
-                      </Grid>
+                        </Grid>
+                      )}
+                      {showVendorOrg && (
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <Box position="relative" sx={{ width: '100%' }}>
+                            <Autocomplete
+                              fullWidth
+                              options={suppliers}
+                              getOptionLabel={o => (typeof o === 'object' ? o.company_name || '' : '')}
+                              value={selectedSupplier}
+                              onChange={(_, val) => setFieldValue('supplierId', val?.id || null)}
+                              renderInput={params => (
+                                <TextField
+                                  {...params}
+                                  label={values.contactType === 'both' ? 'Vendor Supplier' : 'Supplier'}
+                                  placeholder="Search or select…"
+                                  sx={tfSx}
+                                />
+                              )}
+                              isOptionEqualToValue={(o, v) => o?.id === v?.id}
+                              ListboxProps={{ style: { maxHeight: 300 } }}
+                            />
+                            <Box sx={{ position: 'absolute', top: -8, right: 12, bgcolor: 'background.paper', px: 1, zIndex: 1 }}>
+                              <Button
+                                size="small"
+                                onClick={() => {
+                                  setNewCompanyValues(v => ({ ...v, addAs: 'vendor' }));
+                                  setAddCompanyDialogOpen(true);
+                                }}
+                                sx={{
+                                  textTransform: 'none', fontSize: '0.75rem', fontWeight: 500, minWidth: 'auto', px: 0.5, py: 0,
+                                  color: 'primary.main', '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' },
+                                }}
+                              >
+                                + Add New
+                              </Button>
+                            </Box>
+                          </Box>
+                        </Grid>
+                      )}
                       <Grid size={{ xs: 12, md: 6 }}>
                         <TextField
                           fullWidth label="Email" name="email" type="email"

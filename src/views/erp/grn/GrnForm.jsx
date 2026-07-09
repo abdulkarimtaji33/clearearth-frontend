@@ -7,6 +7,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { IconPlus, IconTrash, IconArrowLeft, IconUpload, IconPackage, IconHammer } from '@tabler/icons-react';
 import { useNavigate, useSearchParams, useParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import UomSelectField from '../../../components/erp/UomSelectField';
 import apiService from '../../../services/api';
 import GrnEvidenceThumbs from './GrnEvidenceThumbs';
 
@@ -345,22 +346,14 @@ const GrnForm = () => {
                     sx={{ width: 100 }}
                     inputProps={{ min: 0, step: 'any' }}
                   />
-                  <TextField
-                    select
-                    size="small"
+                  <UomSelectField
                     label="UOM"
                     value={it.unitOfMeasure}
-                    onChange={(e) => updateItem(idx, 'unitOfMeasure', e.target.value)}
-                    sx={{ width: 110 }}
-                  >
-                    {unitsOfMeasure.length > 0
-                      ? unitsOfMeasure.map((u) => (
-                          <MenuItem key={u.id} value={u.value}>{u.display_name}</MenuItem>
-                        ))
-                      : ['kg', 'ton', 'liter', 'm3', 'pcs', 'bag', 'drum'].map((u) => (
-                          <MenuItem key={u} value={u}>{u}</MenuItem>
-                        ))}
-                  </TextField>
+                    onChange={(v) => updateItem(idx, 'unitOfMeasure', v)}
+                    unitsOfMeasure={unitsOfMeasure}
+                    onUnitsChange={setUnitsOfMeasure}
+                    minWidth={110}
+                  />
                   <IconButton
                     color="error"
                     size="small"

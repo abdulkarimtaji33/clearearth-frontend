@@ -5,10 +5,9 @@ import Spinner from './views/spinner/Spinner';
 import './utils/i18n';
 import { CustomizerContextProvider } from './context/CustomizerContext';
 import { AuthProvider } from './context/AuthContext';
-import { clearChunkReloadFlag, installGlobalChunkReloadHandlers } from './utils/chunkReload';
+import { installGlobalChunkReloadHandlers } from './utils/chunkReload';
 import { SocketProvider } from './context/SocketContext';
 
-clearChunkReloadFlag();
 installGlobalChunkReloadHandlers();
 
 async function deferRender() {

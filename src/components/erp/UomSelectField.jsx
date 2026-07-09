@@ -25,6 +25,11 @@ const UomSelectField = ({
   fullWidth = true,
   sx,
   minWidth,
+  label,
+  error = false,
+  helperText,
+  required = false,
+  extraOptions = [],
 }) => {
   const [addOpen, setAddOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -64,6 +69,10 @@ const UomSelectField = ({
     }
   };
 
+  const val = value || '';
+  const inList = unitsOfMeasure.some((u) => u.value === val)
+    || extraOptions.some((o) => o.value === val);
+
   return (
     <>
       <Box position="relative" sx={{ minWidth, ...sx }}>
@@ -71,17 +80,26 @@ const UomSelectField = ({
           size={size}
           select
           fullWidth={fullWidth}
-          value={value || ''}
+          label={label}
+          required={required}
+          error={error}
+          helperText={helperText}
+          value={val}
           onChange={(e) => onChange?.(e.target.value)}
           disabled={disabled}
           SelectProps={{
             displayEmpty: true,
             MenuProps: { PaperProps: { style: { maxHeight: 280 } } },
           }}
+          sx={label ? { '& .MuiOutlinedInput-root': { borderRadius: 2 } } : undefined}
         >
           <MenuItem value=""><em>Select UOM</em></MenuItem>
+          {!inList && val ? <MenuItem value={val}>{val}</MenuItem> : null}
           {unitsOfMeasure.map((u) => (
             <MenuItem key={u.id} value={u.value}>{u.display_name}</MenuItem>
+          ))}
+          {extraOptions.map((o) => (
+            <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
           ))}
         </TextField>
         {!disabled && (

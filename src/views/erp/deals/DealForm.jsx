@@ -17,6 +17,10 @@ import {
   IconButton,
   Checkbox,
   FormControlLabel,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  Radio,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -31,6 +35,7 @@ import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import Tooltip from '@mui/material/Tooltip';
 import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
+import UomSelectField from '../../../components/erp/UomSelectField';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
@@ -43,14 +48,14 @@ const validationSchema = Yup.object({
   companyId: Yup.number().nullable().required('Company is required'),
   contactId: Yup.number().nullable().required('Contact person is required'),
   dealType: Yup.string().trim().required('Deal type is required'),
-  isContainerType: Yup.boolean(),
-  containerType: Yup.string().nullable().when(['dealType', 'isContainerType'], {
-    is: (dealType, isContainerType) => dealType === 'offer_to_charge' && isContainerType,
-    then: (s) => s.required('Container type is required'),
+  logisticsKind: Yup.string().oneOf(['', 'container', 'cargo']).nullable(),
+  containerType: Yup.string().nullable().when(['dealType', 'logisticsKind'], {
+    is: (dealType, logisticsKind) => dealType === 'offer_to_charge' && logisticsKind === 'cargo',
+    then: (s) => s.oneOf(['LCL', 'FCL']).required('Cargo type (LCL or FCL) is required'),
     otherwise: (s) => s.nullable(),
   }),
-  locationType: Yup.string().nullable().when(['dealType', 'isContainerType'], {
-    is: (dealType, isContainerType) => dealType === 'offer_to_charge' && isContainerType,
+  locationType: Yup.string().nullable().when(['dealType', 'logisticsKind'], {
+    is: (dealType, logisticsKind) => dealType === 'offer_to_charge' && logisticsKind === 'container',
     then: (s) => s.required('Location type is required'),
     otherwise: (s) => s.nullable(),
   }),
@@ -91,6 +96,15 @@ const DealImageDropzone = ({ onDrop }) => {
       </Typography>
     </Box>
   );
+};
+
+const resolveLogisticsKind = (deal) => {
+  if (deal?.deal_type !== 'offer_to_charge') return '';
+  if (deal.container_type === 'LCL' || deal.container_type === 'FCL') return 'cargo';
+  if (deal.location_type || deal.wds_required || deal.custom_inspection || deal.trakhees_inspection || deal.dubai_municipality_inspection) {
+    return 'container';
+  }
+  return '';
 };
 
 const hasWdsContent = (wds, attachments = []) => {
@@ -193,7 +207,7 @@ const DealForm = () => {
     assignedTo: null,
     termsAndConditionsIds: [],
     dealType: 'offer_to_purchase',
-    isContainerType: false,
+    logisticsKind: '',
     containerType: null,
     locationType: null,
     wdsRequired: false,
@@ -381,7 +395,7 @@ const DealForm = () => {
             ? d.termsList.map((t) => t.id)
             : (d.terms_and_conditions_id ? [d.terms_and_conditions_id] : []),
           dealType: d.deal_type || 'offer_to_purchase',
-          isContainerType: d.deal_type === 'offer_to_charge' ? !!(d.container_type || d.location_type) : false,
+          logisticsKind: resolveLogisticsKind(d),
           containerType: d.container_type || null,
           locationType: d.location_type || null,
           wdsRequired: d.wds_required || false,
@@ -499,6 +513,7 @@ const DealForm = () => {
             unitOfMeasure: item.unit_of_measure || item.productService?.unit_of_measure || '',
             unitPrice,
             lineTotal: (qty * parseFloat(unitPrice || 0)).toFixed(2),
+            notes: item.notes || '',
           };
         });
         setLineItems(items);
@@ -535,6 +550,7 @@ const DealForm = () => {
             unitOfMeasure: ps.unit_of_measure || '',
             unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
             lineTotal: (Number.isFinite(unitPrice) ? unitPrice : 0).toFixed(2),
+            notes: '',
           }]);
         }
       }
@@ -586,6 +602,7 @@ const DealForm = () => {
       unitOfMeasure: '',
       unitPrice: 0,
       lineTotal: 0,
+      notes: '',
     }]);
   };
 
@@ -711,13 +728,14 @@ const DealForm = () => {
         }
       }
 
-      const isOtcContainer = values.dealType === 'offer_to_charge' && values.isContainerType;
-      const { hasDownstreamPartner, downstreamPartnerSupplierId, paymentStatus, paidAmount, status, ...restValues } = values;
+      const isOtcContainer = values.dealType === 'offer_to_charge' && values.logisticsKind === 'container';
+      const isOtcCargo = values.dealType === 'offer_to_charge' && values.logisticsKind === 'cargo';
+      const { hasDownstreamPartner, downstreamPartnerSupplierId, paymentStatus, paidAmount, status, logisticsKind, ...restValues } = values;
       const payload = {
         ...restValues,
         ...(canChangeStatus && status !== initialValues.status ? { status } : {}),
         downstreamPartnerSupplierId: hasDownstreamPartner ? downstreamPartnerSupplierId : null,
-        containerType: isOtcContainer ? values.containerType : null,
+        containerType: isOtcCargo ? values.containerType : null,
         locationType: isOtcContainer ? values.locationType : null,
         wdsRequired: isOtcContainer ? values.wdsRequired : false,
         customInspection: isOtcContainer ? values.customInspection : false,
@@ -728,6 +746,7 @@ const DealForm = () => {
           quantity: parseFloat(item.quantity),
           unitPrice: parseFloat(item.unitPrice),
           unitOfMeasure: item.unitOfMeasure?.toString().trim() || null,
+          notes: item.notes?.toString().trim() || null,
         })),
         wdsDetails: values.wdsRequired && hasWdsContent(wdsDetails, wdsAttachments)
           ? { ...wdsDetails, attachments: wdsAttachments.map(a => ({ path: a.path, fileName: a.fileName })) }
@@ -1237,6 +1256,15 @@ const DealForm = () => {
                         if (nextType !== 'offer_to_purchase') {
                           setFieldValue('isRcmApplicable', false);
                         }
+                        if (nextType !== 'offer_to_charge') {
+                          setFieldValue('logisticsKind', '');
+                          setFieldValue('containerType', null);
+                          setFieldValue('locationType', null);
+                          setFieldValue('wdsRequired', false);
+                          setFieldValue('customInspection', false);
+                          setFieldValue('trakheesInspection', false);
+                          setFieldValue('dubaiMunicipalityInspection', false);
+                        }
                         if (nextType === 'free_of_charge') {
                           setLineItems((prev) => prev.map((item) => ({
                             ...item,
@@ -1285,46 +1313,58 @@ const DealForm = () => {
 
                     {values.dealType === 'offer_to_charge' && (
                       <>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={values.isContainerType || false}
-                              onChange={(e) => {
-                                setFieldValue('isContainerType', e.target.checked);
-                                if (!e.target.checked) {
-                                  setFieldValue('containerType', null);
-                                  setFieldValue('locationType', null);
-                                  setFieldValue('wdsRequired', false);
-                                  setFieldValue('customInspection', false);
-                                  setFieldValue('trakheesInspection', false);
-                                  setFieldValue('dubaiMunicipalityInspection', false);
-                                }
-                              }}
-                              name="isContainerType"
-                            />
-                          }
-                          label="Is container type?"
-                        />
-                        {values.isContainerType && (
+                        <FormControl component="fieldset" sx={{ mb: 1 }}>
+                          <FormLabel component="legend" sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+                            Logistics type (WDS)
+                          </FormLabel>
+                          <RadioGroup
+                            row
+                            value={values.logisticsKind || ''}
+                            onChange={(e) => {
+                              const kind = e.target.value;
+                              setFieldValue('logisticsKind', kind);
+                              if (kind !== 'container') {
+                                setFieldValue('locationType', null);
+                                setFieldValue('wdsRequired', false);
+                                setFieldValue('customInspection', false);
+                                setFieldValue('trakheesInspection', false);
+                                setFieldValue('dubaiMunicipalityInspection', false);
+                              }
+                              if (kind !== 'cargo') {
+                                setFieldValue('containerType', null);
+                              }
+                            }}
+                          >
+                            <FormControlLabel value="container" control={<Radio size="small" />} label="Is container type?" />
+                            <FormControlLabel value="cargo" control={<Radio size="small" />} label="Is cargo type?" />
+                          </RadioGroup>
+                        </FormControl>
+
+                        {values.logisticsKind === 'cargo' && (
+                          <FormControl component="fieldset" sx={{ mb: 2 }}>
+                            <FormLabel component="legend" sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+                              Cargo type
+                            </FormLabel>
+                            <RadioGroup
+                              row
+                              name="containerType"
+                              value={values.containerType || ''}
+                              onChange={handleChange}
+                            >
+                              <FormControlLabel value="LCL" control={<Radio size="small" />} label="LCL" />
+                              <FormControlLabel value="FCL" control={<Radio size="small" />} label="FCL" />
+                            </RadioGroup>
+                            {touched.containerType && errors.containerType && (
+                              <Typography variant="caption" color="error" display="block" mt={0.5}>
+                                {errors.containerType}
+                              </Typography>
+                            )}
+                          </FormControl>
+                        )}
+
+                        {values.logisticsKind === 'container' && (
                         <>
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-                          <TextField
-                            fullWidth
-                            select
-                            label="Container Type"
-                            name="containerType"
-                            value={values.containerType || ''}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            error={touched.containerType && Boolean(errors.containerType)}
-                            helperText={touched.containerType ? errors.containerType : ' '}
-                            required
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          >
-                            <MenuItem value="LCL">LCL</MenuItem>
-                            <MenuItem value="FCL">FCL</MenuItem>
-                          </TextField>
-
                           <TextField
                             fullWidth
                             select
@@ -1698,6 +1738,21 @@ const DealForm = () => {
                             />
                           </Box>
 
+                          <Box mb={2}>
+                            <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>
+                              Brief description (optional)
+                            </Typography>
+                            <TextField
+                              size="small"
+                              fullWidth
+                              placeholder="Short note for this line — visible on the deal only"
+                              value={item.notes || ''}
+                              onChange={(e) => handleLineItemChange(index, 'notes', e.target.value)}
+                              inputProps={{ maxLength: 500 }}
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                            />
+                          </Box>
+
                           {/* Row 2: Qty · UOM · Unit Price · Line Total */}
                           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2}>
                             <Box sx={{ flex: '0 0 100px' }}>
@@ -1714,23 +1769,13 @@ const DealForm = () => {
                             </Box>
                             <Box sx={{ flex: '0 0 140px' }}>
                               <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>Unit of measure</Typography>
-                              <TextField
-                                size="small"
-                                fullWidth
-                                select
+                              <UomSelectField
                                 value={item.unitOfMeasure || ''}
-                                onChange={(e) => handleLineItemChange(index, 'unitOfMeasure', e.target.value)}
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
-                                SelectProps={{
-                                  displayEmpty: true,
-                                  MenuProps: { PaperProps: { style: { maxHeight: 280 } } },
-                                }}
-                              >
-                                <MenuItem value=""><em>Select UOM</em></MenuItem>
-                                {(dropdowns.unitsOfMeasure || []).map((u) => (
-                                  <MenuItem key={u.id} value={u.value}>{u.display_name}</MenuItem>
-                                ))}
-                              </TextField>
+                                onChange={(v) => handleLineItemChange(index, 'unitOfMeasure', v)}
+                                unitsOfMeasure={dropdowns.unitsOfMeasure || []}
+                                onUnitsChange={(next) => setDropdowns((d) => ({ ...d, unitsOfMeasure: next }))}
+                                minWidth={140}
+                              />
                             </Box>
                             <Box sx={{ flex: '0 0 140px' }}>
                               <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>Unit price ({values.currency})</Typography>
@@ -2331,20 +2376,15 @@ const DealForm = () => {
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
                 )}
-                <TextField
-                  fullWidth
-                  select
+                <UomSelectField
                   label="UOM"
                   value={inspectionDetails.quantityUom || ''}
-                  onChange={(e) => setInspectionDetails({ ...inspectionDetails, quantityUom: e.target.value })}
+                  onChange={(v) => setInspectionDetails({ ...inspectionDetails, quantityUom: v })}
+                  unitsOfMeasure={dropdowns.unitsOfMeasure || []}
+                  onUnitsChange={(next) => setDropdowns((d) => ({ ...d, unitsOfMeasure: next }))}
+                  extraOptions={[{ value: 'lumpsum', label: 'Lumpsum' }]}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 250 } } } }}
-                >
-                  <MenuItem value="">—</MenuItem>
-                  {dropdowns.unitsOfMeasure?.map((u) => (
-                    <MenuItem key={u.id} value={u.value}>{u.display_name}</MenuItem>
-                  ))}
-                </TextField>
+                />
               </Box>
               <Autocomplete
                 multiple

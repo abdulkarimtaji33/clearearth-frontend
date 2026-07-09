@@ -46,6 +46,7 @@ import {
 } from '@tabler/icons-react';
 import { useAuth } from '../../context/AuthContext';
 import apiService from '../../services/api';
+import UomSelectField from './UomSelectField';
 import {
   isInspectionRole,
   canApproveInspectionReport,
@@ -235,6 +236,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
   const [reportFormErrors, setReportFormErrors] = useState({});
   const [reportSaving, setReportSaving] = useState(false);
   const [users, setUsers] = useState([]);
+  const [unitsOfMeasure, setUnitsOfMeasure] = useState([]);
   const [reportForm, setReportForm] = useState({
     inspectionDatetime: null,
     approximateWeight: '',
@@ -258,6 +260,13 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
     try {
       const res = await apiService.getInspectors();
       if (res.success) setUsers(Array.isArray(res.data) ? res.data : []);
+    } catch (err) { console.error(err); }
+  }, []);
+
+  const fetchUnitsOfMeasure = useCallback(async () => {
+    try {
+      const res = await apiService.getAllDropdowns();
+      if (res.success) setUnitsOfMeasure(res.data?.units_of_measure || []);
     } catch (err) { console.error(err); }
   }, []);
 
@@ -288,6 +297,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
       });
     }
     fetchUsers();
+    fetchUnitsOfMeasure();
     setReportDialogOpen(true);
   };
 
@@ -933,15 +943,15 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                   slotProps={{ textField: { fullWidth: true, required: true, error: Boolean(reportFormErrors.inspectionDatetime), helperText: reportFormErrors.inspectionDatetime, sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }}
                 />
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 2 }}>
-                  <TextField select label="UOM" value={reportForm.weightUom}
-                    onChange={(e) => setReportForm((f) => ({ ...f, weightUom: e.target.value }))}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}>
-                    <MenuItem value="kg">kg</MenuItem>
-                    <MenuItem value="tons">tons</MenuItem>
-                    <MenuItem value="lbs">lbs</MenuItem>
-                    <MenuItem value="nos">nos</MenuItem>
-                    <MenuItem value="lumpsum">Lumpsum</MenuItem>
-                  </TextField>
+                  <UomSelectField
+                    label="UOM"
+                    value={reportForm.weightUom}
+                    onChange={(v) => setReportForm((f) => ({ ...f, weightUom: v }))}
+                    unitsOfMeasure={unitsOfMeasure}
+                    onUnitsChange={setUnitsOfMeasure}
+                    extraOptions={[{ value: 'lumpsum', label: 'Lumpsum' }]}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
                   {reportForm.weightUom !== 'lumpsum' && (
                     <TextField label="Approximate Weight" type="number" value={reportForm.approximateWeight}
                       onChange={(e) => setReportForm((f) => ({ ...f, approximateWeight: e.target.value }))}

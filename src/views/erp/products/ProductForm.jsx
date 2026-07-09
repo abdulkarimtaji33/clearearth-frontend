@@ -18,6 +18,7 @@ import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import UomSelectField from '../../../components/erp/UomSelectField';
 import apiService from '../../../services/api';
 
 const validationSchema = Yup.object({
@@ -179,7 +180,7 @@ const ProductForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting }) => (
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => (
             <form onSubmit={formikSubmit}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
@@ -264,31 +265,16 @@ const ProductForm = () => {
                   
                   <Grid container spacing={3}>
                     <Grid size={{ xs: 12, md: 4 }}>
-                      <TextField
-                        fullWidth
-                        select
+                      <UomSelectField
                         label="Unit of Measure"
-                        name="unitOfMeasure"
+                        required
                         value={values.unitOfMeasure}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
+                        onChange={(v) => setFieldValue('unitOfMeasure', v)}
+                        unitsOfMeasure={dropdowns.unitsOfMeasure || []}
+                        onUnitsChange={(next) => setDropdowns((d) => ({ ...d, unitsOfMeasure: next }))}
                         error={touched.unitOfMeasure && Boolean(errors.unitOfMeasure)}
                         helperText={touched.unitOfMeasure ? errors.unitOfMeasure : ' '}
-                        required
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        SelectProps={{
-                          MenuProps: {
-                            PaperProps: {
-                              style: { maxHeight: 300 }
-                            }
-                          }
-                        }}
-                      >
-                        <MenuItem value="">Select Unit</MenuItem>
-                        {dropdowns.unitsOfMeasure.map((unit) => (
-                          <MenuItem key={unit.id} value={unit.value}>{unit.display_name}</MenuItem>
-                        ))}
-                      </TextField>
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
                       <TextField

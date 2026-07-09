@@ -4,12 +4,17 @@ import { clearChunkReloadFlag, handleChunkLoadError, isChunkLoadError } from "..
 
 export function lazyWithChunkReload(importFn) {
   return lazy(() =>
-    importFn().catch((error) => {
-      if (handleChunkLoadError(error)) {
-        return new Promise(() => {});
-      }
-      throw error;
-    })
+    importFn()
+      .then((module) => {
+        clearChunkReloadFlag();
+        return module;
+      })
+      .catch((error) => {
+        if (handleChunkLoadError(error)) {
+          return new Promise(() => {});
+        }
+        throw error;
+      })
   );
 }
 
@@ -29,10 +34,6 @@ class ChunkErrorBoundary extends Component {
   componentDidUpdate(_, prevState) {
     if (!this.state.hasError || prevState.hasError) return;
     handleChunkLoadError(new Error('chunk load failed'));
-  }
-
-  componentDidMount() {
-    clearChunkReloadFlag();
   }
 
   render() {

@@ -20,6 +20,8 @@ import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import RecordDetailDrawer from '../../../components/erp/RecordDetailDrawer';
 import apiService from '../../../services/api';
 
+const contactTypeLabel = (type) => ({ clients: 'Client', vendors: 'Vendor', both: 'Client & Vendor' }[type] || type);
+
 const ContactDrawerContent = ({ contact, onEdit, onNavigateCompany }) => {
   const theme = useTheme();
   const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(' ') || 'Unknown';
@@ -35,7 +37,7 @@ const ContactDrawerContent = ({ contact, onEdit, onNavigateCompany }) => {
         {contact.designation && <Typography variant="body2" color="text.secondary" mb={1}>{contact.designation}</Typography>}
         <Stack direction="row" gap={0.75} flexWrap="wrap" justifyContent="center">
           <Chip label={contact.status?.toUpperCase() || 'UNKNOWN'} size="small" color={contact.status === 'active' ? 'success' : 'default'} sx={{ fontWeight: 700, fontSize: '0.68rem', letterSpacing: 0.5 }} />
-          {contact.contact_type && <Chip label={contact.contact_type.charAt(0).toUpperCase() + contact.contact_type.slice(1)} size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: '0.68rem' }} />}
+          {contact.contact_type && <Chip label={contactTypeLabel(contact.contact_type)} size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: '0.68rem' }} />}
         </Stack>
       </Box>
 
@@ -74,18 +76,23 @@ const ContactDrawerContent = ({ contact, onEdit, onNavigateCompany }) => {
           </Box>
         )}
         {(contact.company || contact.supplier) && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.75 }}>
-            <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, py: 1.75 }}>
+            <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: alpha(theme.palette.primary.main, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.25 }}>
               <IconBuilding size={15} color={theme.palette.primary.main} />
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5}>Company</Typography>
-              {contact.company?.id ? (
+              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" textTransform="uppercase" letterSpacing={0.5}>
+                {contact.company && contact.supplier ? 'Organizations' : 'Company'}
+              </Typography>
+              {contact.company?.id && (
                 <Typography variant="body2" fontWeight={600} color="primary.main" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }} onClick={() => onNavigateCompany(contact.company.id)} noWrap>
-                  {contact.company.company_name}
+                  {contact.contact_type === 'both' ? `Client: ${contact.company.company_name}` : contact.company.company_name}
                 </Typography>
-              ) : (
-                <Typography variant="body2" fontWeight={500}>{contact.supplier?.company_name || '—'}</Typography>
+              )}
+              {contact.supplier?.company_name && (
+                <Typography variant="body2" fontWeight={contact.company ? 500 : 600} color={contact.company ? 'text.primary' : 'primary.main'} sx={{ mt: contact.company ? 0.5 : 0 }} noWrap>
+                  {contact.contact_type === 'both' ? `Vendor: ${contact.supplier.company_name}` : contact.supplier.company_name}
+                </Typography>
               )}
             </Box>
           </Box>
@@ -214,7 +221,16 @@ const ContactList = () => {
     return n.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || '?';
   };
 
-  const TYPE_COLOR = { clients: 'primary', vendors: 'secondary' };
+  const TYPE_COLOR = { clients: 'primary', vendors: 'secondary', both: 'info' };
+
+  const formatOrganization = (contact) => {
+    const parts = [];
+    if (contact.company?.company_name) parts.push(contact.company.company_name);
+    if (contact.supplier?.company_name && contact.supplier.company_name !== contact.company?.company_name) {
+      parts.push(contact.supplier.company_name);
+    }
+    return parts.join(' · ') || null;
+  };
 
   return (
     <PageContainer title="Contacts" description="Manage contacts">
@@ -291,6 +307,7 @@ const ContactList = () => {
                         <MenuItem value="">All</MenuItem>
                         <MenuItem value="clients">Clients</MenuItem>
                         <MenuItem value="vendors">Vendors</MenuItem>
+                        <MenuItem value="both">Client & Vendor</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
@@ -373,7 +390,7 @@ const ContactList = () => {
                         <TableCell>
                           {contact.contact_type ? (
                             <Chip
-                              label={contact.contact_type === 'clients' ? 'Client' : 'Vendor'}
+                              label={contactTypeLabel(contact.contact_type)}
                               size="small"
                               color={TYPE_COLOR[contact.contact_type] || 'default'}
                               variant="outlined"
@@ -383,7 +400,7 @@ const ContactList = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" noWrap>
-                            {contact.company?.company_name || contact.supplier?.company_name || <Box component="span" sx={{ color: 'text.disabled' }}>—</Box>}
+                            {formatOrganization(contact) || <Box component="span" sx={{ color: 'text.disabled' }}>—</Box>}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -448,7 +465,7 @@ const ContactList = () => {
           open={viewOpen}
           onClose={() => { setViewOpen(false); setViewContact(null); }}
           title={viewContact ? [viewContact.first_name, viewContact.last_name].filter(Boolean).join(' ') || 'Contact' : 'Contact'}
-          subtitle={viewContact?.designation || viewContact?.contact_type || undefined}
+          subtitle={viewContact?.designation || (viewContact?.contact_type ? contactTypeLabel(viewContact.contact_type) : undefined)}
           loading={viewLoading}
         >
           {viewContact && (

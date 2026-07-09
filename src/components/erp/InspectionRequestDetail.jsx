@@ -44,6 +44,7 @@ import {
   IconCheck,
   IconX,
   IconDownload,
+  IconFileDescription,
 } from '@tabler/icons-react';
 import { useAuth } from '../../context/AuthContext';
 import apiService from '../../services/api';
@@ -54,6 +55,7 @@ import {
   formatUserDisplayName,
   resolveInspectorIdForReport,
 } from '../../utils/inspectionReportHelpers';
+import { parseSupportingDocuments, isImageDocumentPath } from '../../utils/inspectionRequestHelpers';
 
 const SAFETY_TOOL_LABELS = {
   safety_jacket: 'Safety Jacket',
@@ -426,6 +428,8 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
     }))
     .filter((item) => item.notes);
 
+  const supportingDocuments = parseSupportingDocuments(request.supporting_documents);
+
   return (
     <Box>
         {/* ── page title row ── */}
@@ -662,20 +666,60 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                     </Stack>
                   </Box>
 
-                  {request.supporting_documents && (
+                  {supportingDocuments.length > 0 && (
                     <Box>
-                      <SmallLabel>Supporting document</SmallLabel>
-                      <Button
-                        size="small"
-                        startIcon={<IconDownload size={15} />}
-                        href={apiService.getUploadUrl(request.supporting_documents)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download
-                        sx={{ mt: 0.5, borderRadius: 2 }}
-                      >
-                        View document
-                      </Button>
+                      <SmallLabel>Supporting documents</SmallLabel>
+                      <Stack spacing={1} mt={0.75}>
+                        {supportingDocuments.map((doc, idx) => (
+                          <Stack
+                            key={`${doc.path}-${idx}`}
+                            direction="row"
+                            spacing={1}
+                            alignItems="center"
+                            sx={{
+                              p: 1,
+                              borderRadius: 1.5,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                            }}
+                          >
+                            <IconFileDescription size={16} style={{ opacity: 0.65, flexShrink: 0 }} />
+                            <Button
+                              size="small"
+                              startIcon={<IconDownload size={14} />}
+                              href={apiService.getUploadUrl(doc.path)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download
+                              sx={{ borderRadius: 2, textTransform: 'none', justifyContent: 'flex-start' }}
+                            >
+                              {doc.fileName}
+                            </Button>
+                          </Stack>
+                        ))}
+                        {supportingDocuments.some((doc) => isImageDocumentPath(doc.path)) && (
+                          <Stack direction="row" flexWrap="wrap" gap={1} mt={0.5}>
+                            {supportingDocuments
+                              .filter((doc) => isImageDocumentPath(doc.path))
+                              .map((doc, idx) => (
+                                <Box
+                                  key={`img-${doc.path}-${idx}`}
+                                  component="img"
+                                  src={apiService.getUploadUrl(doc.path)}
+                                  alt={doc.fileName}
+                                  sx={{
+                                    width: 72,
+                                    height: 72,
+                                    objectFit: 'cover',
+                                    borderRadius: 1,
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                  }}
+                                />
+                              ))}
+                          </Stack>
+                        )}
+                      </Stack>
                     </Box>
                   )}
 

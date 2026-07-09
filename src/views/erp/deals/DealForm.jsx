@@ -36,6 +36,7 @@ import Tooltip from '@mui/material/Tooltip';
 import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import UomSelectField from '../../../components/erp/UomSelectField';
+import { parseSupportingDocuments, isImageDocumentPath } from '../../../utils/inspectionRequestHelpers';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
@@ -140,6 +141,48 @@ const WdsAttachmentDropzone = ({ onDrop }) => {
       <IconFileDescription size={32} style={{ opacity: 0.5, marginBottom: 6 }} />
       <Typography variant="body2" color="text.secondary">
         Drag and drop files (PDF, images) or click to select
+      </Typography>
+    </Box>
+  );
+};
+
+const INSPECTION_DOC_ACCEPT = {
+  'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'],
+  'application/pdf': ['.pdf'],
+  'application/msword': ['.doc'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'application/vnd.ms-excel': ['.xls'],
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+};
+
+const InspectionDocumentDropzone = ({ onDrop, uploading }) => {
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: INSPECTION_DOC_ACCEPT,
+    multiple: true,
+    onDrop: (acceptedFiles) => { if (acceptedFiles.length) onDrop(acceptedFiles); },
+  });
+  return (
+    <Box
+      {...getRootProps()}
+      sx={{
+        border: '2px dashed',
+        borderColor: isDragActive ? 'primary.main' : 'divider',
+        borderRadius: 2,
+        p: 3,
+        textAlign: 'center',
+        cursor: uploading ? 'wait' : 'pointer',
+        opacity: uploading ? 0.7 : 1,
+        bgcolor: isDragActive ? 'action.hover' : 'transparent',
+        '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
+      }}
+    >
+      <input {...getInputProps()} disabled={uploading} />
+      <IconFileDescription size={32} style={{ opacity: 0.5, marginBottom: 6 }} />
+      <Typography variant="body2" color="text.secondary">
+        {uploading ? 'Uploading…' : 'Drag and drop files here, or click to choose'}
+      </Typography>
+      <Typography variant="caption" color="text.disabled" display="block" mt={0.5}>
+        Images, PDF, Word (.doc/.docx), Excel (.xls/.xlsx)
       </Typography>
     </Box>
   );
@@ -261,8 +304,7 @@ const DealForm = () => {
     quantityUom: '',
     lumpsumPrice: '',
     safetyTools: [],
-    supportingDocuments: '',
-    supportingDocumentName: '',
+    supportingDocuments: [],
     requestedBy: null,
     notes: '',
     priority: 'medium',
@@ -283,6 +325,7 @@ const DealForm = () => {
     borNo: '',
   });
   const [wdsAttachments, setWdsAttachments] = useState([]);
+  const [inspectionDocUploading, setInspectionDocUploading] = useState(false);
 
   const isEdit = Boolean(id);
 
@@ -474,8 +517,7 @@ const DealForm = () => {
             quantityUom: i.quantity_uom || '',
             lumpsumPrice: i.lumpsum_price || '',
             safetyTools: safetyTools || [],
-            supportingDocuments: i.supporting_documents || '',
-            supportingDocumentName: i.supporting_documents ? (i.supporting_documents.split('/').pop() || '') : '',
+            supportingDocuments: parseSupportingDocuments(i.supporting_documents),
             requestedBy: i.requested_by || null,
             notes: i.notes || '',
             priority: i.priority || 'medium',
@@ -490,8 +532,7 @@ const DealForm = () => {
             quantity: '',
             quantityUom: '',
             safetyTools: [],
-            supportingDocuments: '',
-            supportingDocumentName: '',
+            supportingDocuments: [],
             requestedBy: null,
             notes: '',
             priority: 'medium',
@@ -2403,73 +2444,104 @@ const DealForm = () => {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   Supporting documents
                 </Typography>
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      try {
+                <InspectionDocumentDropzone
+                  uploading={inspectionDocUploading}
+                  onDrop={async (files) => {
+                    setInspectionDocUploading(true);
+                    try {
+                      for (const file of files) {
                         const res = await apiService.uploadInspectionDocument(file);
                         if (res.success && res.data?.path) {
-                          setInspectionDetails({
-                            ...inspectionDetails,
-                            supportingDocuments: res.data.path,
-                            supportingDocumentName: file.name,
-                          });
+                          setInspectionDetails((prev) => ({
+                            ...prev,
+                            supportingDocuments: [
+                              ...prev.supportingDocuments,
+                              {
+                                path: res.data.path,
+                                fileName: res.data.fileName || file.name,
+                              },
+                            ],
+                          }));
                         }
-                      } catch (err) {
-                        setError(err.message || 'Upload failed');
                       }
+                    } catch (err) {
+                      setError(err.message || 'Upload failed');
+                    } finally {
+                      setInspectionDocUploading(false);
                     }
-                    e.target.value = '';
                   }}
-                  style={{ display: 'block' }}
                 />
-                {inspectionDetails.supportingDocuments && (
-                  <Stack spacing={1} sx={{ mt: 1.5 }}>
-                    <Typography variant="caption" color="success.main">
-                      File uploaded — you can view it before saving the deal
-                    </Typography>
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        startIcon={<IconExternalLink size={16} />}
-                        href={apiService.getUploadUrl(inspectionDetails.supportingDocuments)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        sx={{ borderRadius: 2, textTransform: 'none' }}
-                      >
-                        View {inspectionDetails.supportingDocumentName || 'document'}
-                      </Button>
-                      <Button
-                        size="small"
-                        color="error"
-                        onClick={() => setInspectionDetails({
-                          ...inspectionDetails,
-                          supportingDocuments: '',
-                          supportingDocumentName: '',
-                        })}
-                        sx={{ borderRadius: 2, textTransform: 'none' }}
-                      >
-                        Remove
-                      </Button>
-                    </Stack>
-                    {/\.(jpe?g|png|gif|webp)$/i.test(inspectionDetails.supportingDocuments) && (
+                {inspectionDetails.supportingDocuments.length > 0 && (
+                  <Stack spacing={1.5} sx={{ mt: 2 }}>
+                    {inspectionDetails.supportingDocuments.map((doc, idx) => (
                       <Box
-                        component="img"
-                        src={apiService.getUploadUrl(inspectionDetails.supportingDocuments)}
-                        alt={inspectionDetails.supportingDocumentName || 'Supporting document'}
+                        key={`${doc.path}-${idx}`}
                         sx={{
-                          maxWidth: '100%',
-                          maxHeight: 200,
-                          objectFit: 'contain',
-                          borderRadius: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          p: 1.25,
+                          borderRadius: 2,
                           border: '1px solid',
                           borderColor: 'divider',
+                          bgcolor: 'action.hover',
                         }}
-                      />
+                      >
+                        <IconFileDescription size={18} style={{ flexShrink: 0, opacity: 0.7 }} />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography
+                            component="a"
+                            href={apiService.getUploadUrl(doc.path)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            variant="body2"
+                            fontWeight={600}
+                            sx={{
+                              display: 'block',
+                              textDecoration: 'none',
+                              color: 'primary.main',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {doc.fileName || doc.path.split('/').pop() || 'Document'}
+                          </Typography>
+                        </Box>
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() => setInspectionDetails((prev) => ({
+                            ...prev,
+                            supportingDocuments: prev.supportingDocuments.filter((_, i) => i !== idx),
+                          }))}
+                          sx={{ borderRadius: 2, textTransform: 'none', flexShrink: 0 }}
+                        >
+                          Remove
+                        </Button>
+                      </Box>
+                    ))}
+                    {inspectionDetails.supportingDocuments.some((doc) => isImageDocumentPath(doc.path)) && (
+                      <Stack direction="row" flexWrap="wrap" gap={1}>
+                        {inspectionDetails.supportingDocuments
+                          .filter((doc) => isImageDocumentPath(doc.path))
+                          .map((doc, idx) => (
+                            <Box
+                              key={`preview-${doc.path}-${idx}`}
+                              component="img"
+                              src={apiService.getUploadUrl(doc.path)}
+                              alt={doc.fileName}
+                              sx={{
+                                width: 96,
+                                height: 96,
+                                objectFit: 'cover',
+                                borderRadius: 1,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                              }}
+                            />
+                          ))}
+                      </Stack>
                     )}
                   </Stack>
                 )}

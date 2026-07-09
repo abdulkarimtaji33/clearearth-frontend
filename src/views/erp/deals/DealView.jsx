@@ -77,6 +77,7 @@ import {
   formatUserDisplayName,
   resolveInspectorIdForReport,
 } from '../../../utils/inspectionReportHelpers';
+import { parseSupportingDocuments } from '../../../utils/inspectionRequestHelpers';
 
 const DEAL_APPROVABLE_STATUSES = ['new', 'pending_approval'];
 const DEAL_QUOTABLE_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
@@ -1280,13 +1281,26 @@ const DealView = () => {
                     <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Quantity" value={deal.inspectionRequest.quantity} /></Grid>
                     <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Safety tools" value={(() => { const st = deal.inspectionRequest.safety_tools; if (!st) return null; try { const arr = typeof st === 'string' ? JSON.parse(st) : (Array.isArray(st) ? st : []); const labels = { safety_jacket: 'Safety Jacket', safety_shoes: 'Safety Shoes', safety_coverall: 'Safety Coverall', safety_helmet: 'Safety Helmet', safety_tools_required: 'Safety Tools Required', safety_mask: 'Safety Mask', safety_goggles: 'Safety Goggles', safety_gloves: 'Safety Gloves' }; return arr.map((v) => labels[v] || v).join(', ') || null; } catch { return null; } })()} /></Grid>
                     <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Requested by" value={deal.inspectionRequest.requestedByUser ? [deal.inspectionRequest.requestedByUser.first_name, deal.inspectionRequest.requestedByUser.last_name].filter(Boolean).join(' ') : null} /></Grid>
-                    {deal.inspectionRequest.supporting_documents && (
+                    {parseSupportingDocuments(deal.inspectionRequest.supporting_documents).length > 0 && (
                       <Grid size={12}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Typography variant="body2" color="text.secondary" fontWeight={600}>Supporting docs:</Typography>
-                          <Button size="small" startIcon={<IconDownload size={15} />} href={apiService.getUploadUrl(deal.inspectionRequest.supporting_documents)} target="_blank" rel="noopener noreferrer" download sx={{ borderRadius: 2 }}>
-                            Download
-                          </Button>
+                        <Typography variant="body2" color="text.secondary" fontWeight={600} mb={0.75}>
+                          Supporting documents
+                        </Typography>
+                        <Stack spacing={0.75}>
+                          {parseSupportingDocuments(deal.inspectionRequest.supporting_documents).map((doc, idx) => (
+                            <Button
+                              key={`${doc.path}-${idx}`}
+                              size="small"
+                              startIcon={<IconDownload size={15} />}
+                              href={apiService.getUploadUrl(doc.path)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download
+                              sx={{ borderRadius: 2, justifyContent: 'flex-start', textTransform: 'none', alignSelf: 'flex-start' }}
+                            >
+                              {doc.fileName}
+                            </Button>
+                          ))}
                         </Stack>
                       </Grid>
                     )}

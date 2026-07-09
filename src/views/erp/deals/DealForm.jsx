@@ -2491,7 +2491,8 @@ const DealForm = () => {
                 fullWidth
                 multiline
                 rows={3}
-                label="Notes"
+                label="Extra notes"
+                placeholder="Special instructions for the inspection team..."
                 value={inspectionDetails.notes}
                 onChange={(e) => setInspectionDetails({ ...inspectionDetails, notes: e.target.value })}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}

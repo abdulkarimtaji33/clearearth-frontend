@@ -43,6 +43,7 @@ import {
   IconClipboardList,
   IconCheck,
   IconX,
+  IconDownload,
 } from '@tabler/icons-react';
 import { useAuth } from '../../context/AuthContext';
 import apiService from '../../services/api';
@@ -75,6 +76,25 @@ const SmallLabel = ({ children }) => (
 
 const FieldVal = ({ children }) => (
   <Typography variant="body2" fontWeight={600} color="text.primary">{children || '—'}</Typography>
+);
+
+const formatRequestQuantity = (request) => {
+  if (request?.quantity_uom === 'lumpsum') {
+    return request.lumpsum_price != null ? `${request.lumpsum_price} (lumpsum)` : 'Lumpsum';
+  }
+  if (request?.quantity != null) {
+    return `${request.quantity}${request.quantity_uom ? ` ${request.quantity_uom}` : ''}`;
+  }
+  return '—';
+};
+
+const NotesBlock = ({ label, value }) => (
+  <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+    <SmallLabel>{label}</SmallLabel>
+    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, mt: 0.25 }}>
+      {value?.trim() ? value.trim() : '—'}
+    </Typography>
+  </Box>
 );
 
 /* stat card used in report section */
@@ -399,6 +419,13 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
 
   const clientName = deal?.company?.company_name || deal?.supplier?.company_name || null;
 
+  const lineItemNotes = (deal?.items || [])
+    .map((item) => ({
+      productName: item.productService?.name || 'Product',
+      notes: item.notes?.trim() || '',
+    }))
+    .filter((item) => item.notes);
+
   return (
     <Box>
         {/* ── page title row ── */}
@@ -570,11 +597,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                   <Grid container spacing={2}>
                     <Grid size={6}>
                       <SmallLabel>Quantity</SmallLabel>
-                      <FieldVal>
-                        {request.quantity != null
-                          ? `${request.quantity}${request.quantity_uom ? ' ' + request.quantity_uom : ''}`
-                          : '—'}
-                      </FieldVal>
+                      <FieldVal>{formatRequestQuantity(request)}</FieldVal>
                     </Grid>
                     <Grid size={6}>
                       <SmallLabel>Service Type</SmallLabel>
@@ -639,13 +662,42 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                     </Stack>
                   </Box>
 
-                  {/* notes */}
-                  {request.notes && (
-                    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
-                      <SmallLabel>Notes</SmallLabel>
-                      <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, mt: 0.25 }}>
-                        {request.notes}
-                      </Typography>
+                  {request.supporting_documents && (
+                    <Box>
+                      <SmallLabel>Supporting document</SmallLabel>
+                      <Button
+                        size="small"
+                        startIcon={<IconDownload size={15} />}
+                        href={apiService.getUploadUrl(request.supporting_documents)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download
+                        sx={{ mt: 0.5, borderRadius: 2 }}
+                      >
+                        View document
+                      </Button>
+                    </Box>
+                  )}
+
+                  <NotesBlock label="Extra notes" value={request.notes} />
+
+                  {deal?.notes?.trim() && (
+                    <NotesBlock label="Additional deal notes" value={deal.notes} />
+                  )}
+
+                  {lineItemNotes.length > 0 && (
+                    <Box sx={{ p: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                      <SmallLabel>Product brief descriptions</SmallLabel>
+                      <Stack spacing={1.25} mt={0.75}>
+                        {lineItemNotes.map((item, idx) => (
+                          <Box key={`${item.productName}-${idx}`}>
+                            <Typography variant="body2" fontWeight={700}>{item.productName}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                              {item.notes}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Stack>
                     </Box>
                   )}
 

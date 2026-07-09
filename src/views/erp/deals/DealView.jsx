@@ -1290,7 +1290,7 @@ const DealView = () => {
                         </Stack>
                       </Grid>
                     )}
-                    <Grid size={12}><InfoRow label="Notes" value={deal.inspectionRequest.notes} /></Grid>
+                    <Grid size={12}><InfoRow label="Extra notes" value={deal.inspectionRequest.notes} /></Grid>
                   </Grid>
                 </>
               )}

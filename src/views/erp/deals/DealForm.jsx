@@ -55,7 +55,8 @@ const validationSchema = Yup.object({
     otherwise: (s) => s.nullable(),
   }),
   locationType: Yup.string().nullable().when(['dealType', 'logisticsKind'], {
-    is: (dealType, logisticsKind) => dealType === 'offer_to_charge' && logisticsKind === 'container',
+    is: (dealType, logisticsKind) =>
+      dealType === 'offer_to_charge' && (logisticsKind === 'container' || logisticsKind === 'cargo'),
     then: (s) => s.required('Location type is required'),
     otherwise: (s) => s.nullable(),
   }),
@@ -728,19 +729,20 @@ const DealForm = () => {
         }
       }
 
-      const isOtcContainer = values.dealType === 'offer_to_charge' && values.logisticsKind === 'container';
       const isOtcCargo = values.dealType === 'offer_to_charge' && values.logisticsKind === 'cargo';
+      const isOtcLogistics = values.dealType === 'offer_to_charge'
+        && (values.logisticsKind === 'container' || values.logisticsKind === 'cargo');
       const { hasDownstreamPartner, downstreamPartnerSupplierId, paymentStatus, paidAmount, status, logisticsKind, ...restValues } = values;
       const payload = {
         ...restValues,
         ...(canChangeStatus && status !== initialValues.status ? { status } : {}),
         downstreamPartnerSupplierId: hasDownstreamPartner ? downstreamPartnerSupplierId : null,
         containerType: isOtcCargo ? values.containerType : null,
-        locationType: isOtcContainer ? values.locationType : null,
-        wdsRequired: isOtcContainer ? values.wdsRequired : false,
-        customInspection: isOtcContainer ? values.customInspection : false,
-        trakheesInspection: isOtcContainer ? values.trakheesInspection : false,
-        dubaiMunicipalityInspection: isOtcContainer ? values.dubaiMunicipalityInspection : false,
+        locationType: isOtcLogistics ? values.locationType : null,
+        wdsRequired: isOtcLogistics ? values.wdsRequired : false,
+        customInspection: isOtcLogistics ? values.customInspection : false,
+        trakheesInspection: isOtcLogistics ? values.trakheesInspection : false,
+        dubaiMunicipalityInspection: isOtcLogistics ? values.dubaiMunicipalityInspection : false,
         items: lineItems.map(item => ({
           productServiceId: item.productServiceId,
           quantity: parseFloat(item.quantity),
@@ -1323,13 +1325,6 @@ const DealForm = () => {
                             onChange={(e) => {
                               const kind = e.target.value;
                               setFieldValue('logisticsKind', kind);
-                              if (kind !== 'container') {
-                                setFieldValue('locationType', null);
-                                setFieldValue('wdsRequired', false);
-                                setFieldValue('customInspection', false);
-                                setFieldValue('trakheesInspection', false);
-                                setFieldValue('dubaiMunicipalityInspection', false);
-                              }
                               if (kind !== 'cargo') {
                                 setFieldValue('containerType', null);
                               }
@@ -1362,7 +1357,7 @@ const DealForm = () => {
                           </FormControl>
                         )}
 
-                        {values.logisticsKind === 'container' && (
+                        {(values.logisticsKind === 'container' || values.logisticsKind === 'cargo') && (
                         <>
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
                           <TextField

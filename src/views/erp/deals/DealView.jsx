@@ -1179,17 +1179,21 @@ const DealView = () => {
 
             <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1} display="block" mb={1.5}>General</Typography>
             <Grid container spacing={2} sx={{ mb: 2 }}>
-              {(deal.container_type === 'LCL' || deal.container_type === 'FCL') && (
-                <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Logistics type" value="Cargo" /></Grid>
-              )}
+              {(() => {
+                const isCargo = deal.container_type === 'LCL' || deal.container_type === 'FCL';
+                const isContainer = !isCargo && Boolean(deal.location_type);
+                if (!isCargo && !isContainer) return null;
+                return (
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <InfoRow label="Logistics type" value={isCargo ? 'Cargo' : 'Container'} />
+                  </Grid>
+                );
+              })()}
               {(deal.container_type === 'LCL' || deal.container_type === 'FCL') && (
                 <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Cargo type" value={deal.container_type} /></Grid>
               )}
               {deal.location_type && (
-                <>
-                  <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Logistics type" value="Container" /></Grid>
-                  <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Location type" value={deal.location_type} /></Grid>
-                </>
+                <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Location type" value={deal.location_type} /></Grid>
               )}
               <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="WDS required" value={deal.wds_required ? 'Yes' : 'No'} /></Grid>
               <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Inspection required" value={deal.inspection_required ? 'Yes' : 'No'} /></Grid>

@@ -428,6 +428,10 @@ class ApiService {
     return this.get(`/tax-invoices/${id}`);
   }
 
+  async downloadTaxInvoicePdf(id) {
+    return this._downloadPdf(`${this.baseURL}/tax-invoices/${id}/pdf`, `tax-invoice-${id}.pdf`);
+  }
+
   async createTaxInvoice(data) {
     return this.post('/tax-invoices', data);
   }
@@ -485,6 +489,18 @@ class ApiService {
     return this.get(`/receivables/${id}/payments`);
   }
 
+  async downloadReceivableReceiptPdf(paymentId) {
+    return this._downloadPdf(`${this.baseURL}/receivables/payments/${paymentId}/receipt/pdf`, `receipt-${paymentId}.pdf`);
+  }
+
+  async downloadStatementOfAccountPdf(companyId, { dateFrom, dateTo } = {}) {
+    const qs = new URLSearchParams();
+    if (dateFrom) qs.set('dateFrom', dateFrom);
+    if (dateTo) qs.set('dateTo', dateTo);
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return this._downloadPdf(`${this.baseURL}/receivables/companies/${companyId}/statement/pdf${suffix}`, `statement-of-account-${companyId}.pdf`);
+  }
+
   async getReceivablesAgingSummary(params) {
     return this.get('/receivables/aging-summary', params);
   }
@@ -534,6 +550,30 @@ class ApiService {
     } catch {
       return m[1].replace(/"/g, '').trim() || fallback;
     }
+  }
+
+  async _downloadPdf(url, fallbackName) {
+    const token = this.getAuthToken();
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      const msg = text?.match(/"message":"([^"]+)"/)?.[1] || 'Failed to download PDF';
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    if (blob.type !== 'application/pdf' || blob.size < 100) {
+      const text = await blob.text();
+      const err = text?.match(/"message":"([^"]+)"/)?.[1] || 'Invalid PDF response';
+      throw new Error(err);
+    }
+    const fname = this._filenameFromContentDisposition(res.headers.get('Content-Disposition'), fallbackName);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    a.click();
+    URL.revokeObjectURL(a.href);
   }
 
   async downloadQuotationPdf(id, { documentType } = {}) {

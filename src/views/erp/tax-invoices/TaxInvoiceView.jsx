@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router';
-import { IconArrowLeft, IconReceipt, IconFileInvoice, IconEdit, IconCoin } from '@tabler/icons-react';
+import { IconArrowLeft, IconReceipt, IconFileInvoice, IconEdit, IconCoin, IconDownload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 
@@ -46,6 +46,20 @@ const TaxInvoiceView = () => {
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [pdfError, setPdfError] = useState('');
+
+  const handleDownloadPdf = async () => {
+    try {
+      setPdfDownloading(true);
+      setPdfError('');
+      await apiService.downloadTaxInvoicePdf(id);
+    } catch (e) {
+      setPdfError(e.message || 'Failed to download PDF');
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
 
   const fetchRow = useCallback(async () => {
     if (!id) return;
@@ -129,11 +143,16 @@ const TaxInvoiceView = () => {
                 View Proforma
               </Button>
             )}
+            <Button variant="outlined" startIcon={<IconDownload size={16} />} onClick={handleDownloadPdf} disabled={pdfDownloading} sx={{ borderRadius: 2 }}>
+              {pdfDownloading ? 'Downloading…' : 'Download PDF'}
+            </Button>
             <Button variant="contained" startIcon={<IconEdit size={16} />} onClick={() => navigate(`/erp/tax-invoices/edit/${id}`)} sx={{ borderRadius: 2 }}>
               Edit
             </Button>
           </Stack>
         </Stack>
+
+        {pdfError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setPdfError('')}>{pdfError}</Alert>}
 
         {/* Summary */}
         <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2, overflow: 'hidden' }}>

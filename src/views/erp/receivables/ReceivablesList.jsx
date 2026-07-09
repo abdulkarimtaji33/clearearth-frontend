@@ -5,7 +5,7 @@ import {
   DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconCoin, IconChartHistogram, IconHistory } from '@tabler/icons-react';
+import { IconSearch, IconCoin, IconChartHistogram, IconHistory, IconFileDescription } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -52,6 +52,19 @@ const ReceivablesList = () => {
   const [paySaving, setPaySaving] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRow, setHistoryRow] = useState(null);
+  const [statementLoadingId, setStatementLoadingId] = useState(null);
+
+  const downloadStatement = async (companyId) => {
+    if (!companyId) return;
+    try {
+      setStatementLoadingId(companyId);
+      await apiService.downloadStatementOfAccountPdf(companyId);
+    } catch (err) {
+      setError(err.message || 'Failed to download statement');
+    } finally {
+      setStatementLoadingId(null);
+    }
+  };
 
   const fetchRows = useCallback(async () => {
     try {
@@ -197,6 +210,7 @@ const ReceivablesList = () => {
                   <TableRow><TableCell colSpan={10} align="center" sx={{ py: 6 }}><Typography color="text.secondary">No open receivables</Typography></TableCell></TableRow>
                 ) : rows.map((r) => {
                   const cur = r.currency || 'AED';
+                  const companyId = r.proformaInvoice?.deal?.company?.id;
                   const client = r.proformaInvoice?.deal?.company?.company_name || r.proformaInvoice?.deal?.title || '—';
                   return (
                     <TableRow key={r.id} hover>
@@ -211,6 +225,11 @@ const ReceivablesList = () => {
                       <TableCell>{r.days_open ?? '—'}</TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                          {companyId && (
+                            <Button size="small" variant="outlined" startIcon={<IconFileDescription size={14} />} disabled={statementLoadingId === companyId} onClick={() => downloadStatement(companyId)} sx={{ borderRadius: 2 }}>
+                              Statement
+                            </Button>
+                          )}
                           {(parseFloat(r.paid_amount) || 0) > 0 && (
                             <Button size="small" variant="outlined" startIcon={<IconHistory size={14} />} onClick={() => { setHistoryRow(r); setHistoryOpen(true); }} sx={{ borderRadius: 2 }}>
                               History

@@ -4,7 +4,7 @@ import {
   CircularProgress, Alert, Box, Chip, IconButton, Tooltip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconHistory, IconCoin, IconEye, IconPrinter } from '@tabler/icons-react';
+import { IconHistory, IconCoin, IconEye, IconPrinter, IconDownload } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import apiService from '../../services/api';
 
@@ -22,6 +22,18 @@ const PaymentHistoryDialog = ({ open, onClose, sourceType, sourceId, title, curr
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  const downloadReceipt = async (paymentId) => {
+    try {
+      setDownloadingId(paymentId);
+      await apiService.downloadReceivableReceiptPdf(paymentId);
+    } catch (e) {
+      setError(e.message || 'Failed to download receipt');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   useEffect(() => {
     if (!open || !sourceId) return;
@@ -207,6 +219,15 @@ const PaymentHistoryDialog = ({ open, onClose, sourceType, sourceId, title, curr
                       <Tooltip title="Print receipt">
                         <IconButton size="small" onClick={() => { onClose(); navigate(`/erp/payment-receipts/${r.id}?print=1`); }} sx={{ borderRadius: 1.5 }}>
                           <IconPrinter size={16} />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  )}
+                  {sourceType === 'receivable' && (
+                    <Stack direction="row" spacing={0.5} mt={1}>
+                      <Tooltip title="Download receipt">
+                        <IconButton size="small" disabled={downloadingId === r.id} onClick={() => downloadReceipt(r.id)} sx={{ borderRadius: 1.5 }}>
+                          <IconDownload size={16} />
                         </IconButton>
                       </Tooltip>
                     </Stack>

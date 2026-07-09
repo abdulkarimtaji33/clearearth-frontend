@@ -49,15 +49,21 @@ const validationSchema = Yup.object({
   companyId: Yup.number().nullable().required('Company is required'),
   contactId: Yup.number().nullable().required('Contact person is required'),
   dealType: Yup.string().trim().required('Deal type is required'),
-  logisticsKind: Yup.string().oneOf(['', 'container', 'cargo']).nullable(),
-  containerType: Yup.string().nullable().when(['dealType', 'logisticsKind'], {
-    is: (dealType, logisticsKind) => dealType === 'offer_to_charge' && logisticsKind === 'cargo',
+  logisticsKind: Yup.string().nullable().when(['dealType', 'wdsRequired'], {
+    is: (dealType, wdsRequired) => dealType === 'offer_to_charge' && wdsRequired,
+    then: (s) => s.oneOf(['container', 'cargo']).required('Select container or cargo type'),
+    otherwise: (s) => s.oneOf(['', 'container', 'cargo']).nullable(),
+  }),
+  containerType: Yup.string().nullable().when(['dealType', 'wdsRequired', 'logisticsKind'], {
+    is: (dealType, wdsRequired, logisticsKind) =>
+      dealType === 'offer_to_charge' && wdsRequired && logisticsKind === 'cargo',
     then: (s) => s.oneOf(['LCL', 'FCL']).required('Cargo type (LCL or FCL) is required'),
     otherwise: (s) => s.nullable(),
   }),
-  locationType: Yup.string().nullable().when(['dealType', 'logisticsKind'], {
-    is: (dealType, logisticsKind) =>
-      dealType === 'offer_to_charge' && (logisticsKind === 'container' || logisticsKind === 'cargo'),
+  locationType: Yup.string().nullable().when(['dealType', 'wdsRequired', 'logisticsKind'], {
+    is: (dealType, wdsRequired, logisticsKind) =>
+      dealType === 'offer_to_charge' && wdsRequired
+      && (logisticsKind === 'container' || logisticsKind === 'cargo'),
     then: (s) => s.required('Location type is required'),
     otherwise: (s) => s.nullable(),
   }),
@@ -101,9 +107,9 @@ const DealImageDropzone = ({ onDrop }) => {
 };
 
 const resolveLogisticsKind = (deal) => {
-  if (deal?.deal_type !== 'offer_to_charge') return '';
+  if (deal?.deal_type !== 'offer_to_charge' || !deal.wds_required) return '';
   if (deal.container_type === 'LCL' || deal.container_type === 'FCL') return 'cargo';
-  if (deal.location_type || deal.wds_required || deal.custom_inspection || deal.trakhees_inspection || deal.dubai_municipality_inspection) {
+  if (deal.location_type || deal.custom_inspection || deal.trakhees_inspection || deal.dubai_municipality_inspection) {
     return 'container';
   }
   return '';
@@ -770,8 +776,10 @@ const DealForm = () => {
         }
       }
 
-      const isOtcCargo = values.dealType === 'offer_to_charge' && values.logisticsKind === 'cargo';
-      const isOtcLogistics = values.dealType === 'offer_to_charge'
+      const isOtc = values.dealType === 'offer_to_charge';
+      const isOtcWds = isOtc && values.wdsRequired;
+      const isOtcCargo = isOtcWds && values.logisticsKind === 'cargo';
+      const hasOtcLogistics = isOtcWds
         && (values.logisticsKind === 'container' || values.logisticsKind === 'cargo');
       const { hasDownstreamPartner, downstreamPartnerSupplierId, paymentStatus, paidAmount, status, logisticsKind, ...restValues } = values;
       const payload = {
@@ -779,11 +787,11 @@ const DealForm = () => {
         ...(canChangeStatus && status !== initialValues.status ? { status } : {}),
         downstreamPartnerSupplierId: hasDownstreamPartner ? downstreamPartnerSupplierId : null,
         containerType: isOtcCargo ? values.containerType : null,
-        locationType: isOtcLogistics ? values.locationType : null,
-        wdsRequired: isOtcLogistics ? values.wdsRequired : false,
-        customInspection: isOtcLogistics ? values.customInspection : false,
-        trakheesInspection: isOtcLogistics ? values.trakheesInspection : false,
-        dubaiMunicipalityInspection: isOtcLogistics ? values.dubaiMunicipalityInspection : false,
+        locationType: hasOtcLogistics ? values.locationType : null,
+        wdsRequired: isOtc ? values.wdsRequired : false,
+        customInspection: hasOtcLogistics ? values.customInspection : false,
+        trakheesInspection: hasOtcLogistics ? values.trakheesInspection : false,
+        dubaiMunicipalityInspection: hasOtcLogistics ? values.dubaiMunicipalityInspection : false,
         items: lineItems.map(item => ({
           productServiceId: item.productServiceId,
           quantity: parseFloat(item.quantity),
@@ -1356,75 +1364,23 @@ const DealForm = () => {
 
                     {values.dealType === 'offer_to_charge' && (
                       <>
-                        <FormControl component="fieldset" sx={{ mb: 1 }}>
-                          <FormLabel component="legend" sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
-                            Logistics type (WDS)
-                          </FormLabel>
-                          <RadioGroup
-                            row
-                            value={values.logisticsKind || ''}
-                            onChange={(e) => {
-                              const kind = e.target.value;
-                              setFieldValue('logisticsKind', kind);
-                              if (kind !== 'cargo') {
-                                setFieldValue('containerType', null);
-                              }
-                            }}
-                          >
-                            <FormControlLabel value="container" control={<Radio size="small" />} label="Is container type?" />
-                            <FormControlLabel value="cargo" control={<Radio size="small" />} label="Is cargo type?" />
-                          </RadioGroup>
-                        </FormControl>
-
-                        {values.logisticsKind === 'cargo' && (
-                          <FormControl component="fieldset" sx={{ mb: 2 }}>
-                            <FormLabel component="legend" sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
-                              Cargo type
-                            </FormLabel>
-                            <RadioGroup
-                              row
-                              name="containerType"
-                              value={values.containerType || ''}
-                              onChange={handleChange}
-                            >
-                              <FormControlLabel value="LCL" control={<Radio size="small" />} label="LCL" />
-                              <FormControlLabel value="FCL" control={<Radio size="small" />} label="FCL" />
-                            </RadioGroup>
-                            {touched.containerType && errors.containerType && (
-                              <Typography variant="caption" color="error" display="block" mt={0.5}>
-                                {errors.containerType}
-                              </Typography>
-                            )}
-                          </FormControl>
-                        )}
-
-                        {(values.logisticsKind === 'container' || values.logisticsKind === 'cargo') && (
-                        <>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-                          <TextField
-                            fullWidth
-                            select
-                            label="Location Type"
-                            name="locationType"
-                            value={values.locationType || ''}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            error={touched.locationType && Boolean(errors.locationType)}
-                            helperText={touched.locationType ? errors.locationType : ' '}
-                            required
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          >
-                            <MenuItem value="Main Land">Main Land</MenuItem>
-                            <MenuItem value="Free Zone">Free Zone</MenuItem>
-                          </TextField>
-                        </Box>
-
                         <Box>
                           <FormControlLabel
                             control={
                               <Checkbox
                                 checked={values.wdsRequired}
-                                onChange={(e) => setFieldValue('wdsRequired', e.target.checked)}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setFieldValue('wdsRequired', checked);
+                                  if (!checked) {
+                                    setFieldValue('logisticsKind', '');
+                                    setFieldValue('containerType', null);
+                                    setFieldValue('locationType', null);
+                                    setFieldValue('customInspection', false);
+                                    setFieldValue('trakheesInspection', false);
+                                    setFieldValue('dubaiMunicipalityInspection', false);
+                                  }
+                                }}
                                 name="wdsRequired"
                               />
                             }
@@ -1442,39 +1398,111 @@ const DealForm = () => {
                           )}
                         </Box>
 
-                        <Box sx={{ ml: 0, mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={values.customInspection}
-                                onChange={(e) => setFieldValue('customInspection', e.target.checked)}
-                                name="customInspection"
+                        {values.wdsRequired && (
+                          <>
+                            <FormControl component="fieldset" sx={{ mb: 1, mt: 1 }}>
+                              <FormLabel component="legend" sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+                                Logistics type
+                              </FormLabel>
+                              <RadioGroup
+                                row
+                                value={values.logisticsKind || ''}
+                                onChange={(e) => {
+                                  const kind = e.target.value;
+                                  setFieldValue('logisticsKind', kind);
+                                  if (kind !== 'cargo') {
+                                    setFieldValue('containerType', null);
+                                  }
+                                }}
+                              >
+                                <FormControlLabel value="container" control={<Radio size="small" />} label="Is container type?" />
+                                <FormControlLabel value="cargo" control={<Radio size="small" />} label="Is cargo type?" />
+                              </RadioGroup>
+                              {touched.logisticsKind && errors.logisticsKind && (
+                                <Typography variant="caption" color="error" display="block" mt={0.5}>
+                                  {errors.logisticsKind}
+                                </Typography>
+                              )}
+                            </FormControl>
+
+                            {values.logisticsKind === 'cargo' && (
+                              <FormControl component="fieldset" sx={{ mb: 2 }}>
+                                <FormLabel component="legend" sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+                                  Cargo type
+                                </FormLabel>
+                                <RadioGroup
+                                  row
+                                  name="containerType"
+                                  value={values.containerType || ''}
+                                  onChange={handleChange}
+                                >
+                                  <FormControlLabel value="LCL" control={<Radio size="small" />} label="LCL" />
+                                  <FormControlLabel value="FCL" control={<Radio size="small" />} label="FCL" />
+                                </RadioGroup>
+                                {touched.containerType && errors.containerType && (
+                                  <Typography variant="caption" color="error" display="block" mt={0.5}>
+                                    {errors.containerType}
+                                  </Typography>
+                                )}
+                              </FormControl>
+                            )}
+
+                            {(values.logisticsKind === 'container' || values.logisticsKind === 'cargo') && (
+                            <>
+                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                              <TextField
+                                fullWidth
+                                select
+                                label="Location Type"
+                                name="locationType"
+                                value={values.locationType || ''}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                error={touched.locationType && Boolean(errors.locationType)}
+                                helperText={touched.locationType ? errors.locationType : ' '}
+                                required
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                              >
+                                <MenuItem value="Main Land">Main Land</MenuItem>
+                                <MenuItem value="Free Zone">Free Zone</MenuItem>
+                              </TextField>
+                            </Box>
+
+                            <Box sx={{ ml: 0, mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    checked={values.customInspection}
+                                    onChange={(e) => setFieldValue('customInspection', e.target.checked)}
+                                    name="customInspection"
+                                  />
+                                }
+                                label="Custom Inspection"
                               />
-                            }
-                            label="Custom Inspection"
-                          />
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={values.trakheesInspection}
-                                onChange={(e) => setFieldValue('trakheesInspection', e.target.checked)}
-                                name="trakheesInspection"
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    checked={values.trakheesInspection}
+                                    onChange={(e) => setFieldValue('trakheesInspection', e.target.checked)}
+                                    name="trakheesInspection"
+                                  />
+                                }
+                                label="Trakhees Inspection"
                               />
-                            }
-                            label="Trakhees Inspection"
-                          />
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={values.dubaiMunicipalityInspection}
-                                onChange={(e) => setFieldValue('dubaiMunicipalityInspection', e.target.checked)}
-                                name="dubaiMunicipalityInspection"
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    checked={values.dubaiMunicipalityInspection}
+                                    onChange={(e) => setFieldValue('dubaiMunicipalityInspection', e.target.checked)}
+                                    name="dubaiMunicipalityInspection"
+                                  />
+                                }
+                                label="Dubai Municipality Inspection"
                               />
-                            }
-                            label="Dubai Municipality Inspection"
-                          />
-                        </Box>
-                        </>
+                            </Box>
+                            </>
+                            )}
+                          </>
                         )}
                       </>
                     )}

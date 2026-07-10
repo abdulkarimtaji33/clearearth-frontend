@@ -28,7 +28,7 @@ import {
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { useDropzone } from 'react-dropzone';
 import { IconArrowLeft, IconPlus, IconTrash, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription, IconInfoCircle, IconMapPin, IconExternalLink, IconShare, IconCopy, IconCheck } from '@tabler/icons-react';
 import LocationPickerDialog from '../../../components/LocationPickerDialog';
@@ -198,8 +198,15 @@ const InspectionDocumentDropzone = ({ onDrop, uploading, onReject }) => {
 const canAssignDeals = (roleName) =>
   ['sales_manager', 'admin', 'tenant_admin', 'super_admin'].includes(roleName);
 
+const mergeById = (list, item) => {
+  if (!item?.id) return list;
+  return list.some((entry) => entry.id === item.id) ? list : [item, ...list];
+};
+
 const DealForm = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const leadIdFromUrl = searchParams.get('leadId');
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
   const roleName = user?.role?.name ?? user?.role;
@@ -574,57 +581,85 @@ const DealForm = () => {
     }
   }, [id]);
 
-  const fetchLeadData = useCallback(async (leadId) => {
+  const prefillFromLead = useCallback(async (leadId) => {
     try {
       const response = await apiService.getLead(leadId);
-      if (response.success) {
-        const lead = response.data;
-        setInitialValues(prev => ({
-          ...prev,
-          leadId: lead.id,
-          companyId: lead.company_id || null,
-          contactId: lead.contact_id || null,
-          assignedTo: lead.assigned_to || null,
-          title: `Deal from Lead ${lead.lead_number}`,
-          description: lead.notes || '',
-        }));
+      if (!response.success) return;
 
-        const ps = lead.productService;
-        if (lead.product_service_id && ps) {
-          const unitPrice = ps.price != null ? parseFloat(ps.price) : (lead.estimated_value ? parseFloat(lead.estimated_value) : 0);
-          setLineItems([{
-            productServiceId: lead.product_service_id,
-            productName: ps.name || '',
-            quantity: 1,
-            unitOfMeasure: ps.unit_of_measure || '',
-            unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
-            lineTotal: (Number.isFinite(unitPrice) ? unitPrice : 0).toFixed(2),
-            notes: '',
-          }]);
-        }
+      const lead = response.data;
+      const companyId = lead.company_id ?? lead.company?.id ?? null;
+      const contactId = lead.contact_id ?? lead.contact?.id ?? null;
+      const assignedTo = lead.assigned_to ?? lead.assignedUser?.id ?? null;
+
+      setLeads((prev) => mergeById(prev, lead));
+      if (lead.company) setCompanies((prev) => mergeById(prev, lead.company));
+      if (lead.contact) setContacts((prev) => mergeById(prev, lead.contact));
+      if (lead.assignedUser) setUsers((prev) => mergeById(prev, lead.assignedUser));
+
+      if (companyId && !lead.company) {
+        try {
+          const companyRes = await apiService.getCompany(companyId);
+          if (companyRes.success) setCompanies((prev) => mergeById(prev, companyRes.data));
+        } catch (_) { /* optional fallback */ }
+      }
+      if (contactId && !lead.contact) {
+        try {
+          const contactRes = await apiService.getContact(contactId);
+          if (contactRes.success) setContacts((prev) => mergeById(prev, contactRes.data));
+        } catch (_) { /* optional fallback */ }
+      }
+
+      const contactName = lead.contact
+        ? `${lead.contact.first_name || ''} ${lead.contact.last_name || ''}`.trim()
+        : '';
+
+      setInitialValues((prev) => ({
+        ...prev,
+        leadId: lead.id,
+        companyId,
+        contactId,
+        assignedTo,
+        title: prev.title?.trim() ? prev.title : `Deal from Lead ${lead.lead_number || lead.id}`,
+        description: prev.description?.trim() ? prev.description : (lead.notes || ''),
+        pickupContactName: contactName || prev.pickupContactName,
+        pickupContactNumber: lead.contact?.phone || lead.phone || prev.pickupContactNumber,
+      }));
+
+      const ps = lead.productService;
+      if (lead.product_service_id && ps) {
+        const unitPrice = ps.price != null ? parseFloat(ps.price) : (lead.estimated_value ? parseFloat(lead.estimated_value) : 0);
+        setLineItems([{
+          productServiceId: lead.product_service_id,
+          productName: ps.name || '',
+          quantity: 1,
+          unitOfMeasure: ps.unit_of_measure || '',
+          unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
+          lineTotal: (Number.isFinite(unitPrice) ? unitPrice : 0).toFixed(2),
+          notes: '',
+        }]);
       }
     } catch (err) {
       console.error('Failed to load lead:', err);
+      setError(err.message || 'Failed to load lead for deal prefill');
     }
   }, []);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const leadId = urlParams.get('leadId');
     let cancelled = false;
-    // fetchAllData must finish first so products are loaded before fetchLeadData
+    // fetchAllData must finish first so products are loaded before prefillFromLead
     // sets lineItems — otherwise the prefilled product shows as blank and the
     // user thinks the form is empty and adds a duplicate item.
-    fetchAllData().then(({ products: catalogProducts }) => {
+    (async () => {
+      const { products: catalogProducts } = await fetchAllData();
       if (cancelled) return;
-      if (isEdit) fetchDeal(catalogProducts);
-      else if (leadId) fetchLeadData(leadId);
-    });
+      if (isEdit) await fetchDeal(catalogProducts);
+      else if (leadIdFromUrl) await prefillFromLead(leadIdFromUrl);
+    })();
     fetchDropdowns();
     return () => {
       cancelled = true;
     };
-  }, [isEdit, id, fetchAllData, fetchDropdowns, fetchDeal, fetchLeadData]);
+  }, [isEdit, id, leadIdFromUrl, fetchAllData, fetchDropdowns, fetchDeal, prefillFromLead]);
 
   // Recalculate totals when line items, VAT, or deal type changes
   useEffect(() => {

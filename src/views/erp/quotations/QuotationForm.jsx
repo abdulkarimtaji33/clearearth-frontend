@@ -31,13 +31,11 @@ import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconTrash } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import UomSelectField from '../../../components/erp/UomSelectField';
-import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 
 const QUOTABLE_DEAL_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
-const QUOTATION_APPROVAL_ELIGIBLE_STATUSES = ['new', 'sent', 'under_review', 'revised'];
 
 const initialLineItem = () => ({
   productServiceId: null,
@@ -81,11 +79,6 @@ const QuotationForm = () => {
   const [lineItems, setLineItems] = useState([]);
   const [dealMeta, setDealMeta] = useState({ vatPercentage: 5, dealType: 'offer_to_charge' });
   const [dropdowns, setDropdowns] = useState({ quotationStatus: [], unitsOfMeasure: [] });
-  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
-  const [savedQuotationId, setSavedQuotationId] = useState(null);
-  const [approvalLoading, setApprovalLoading] = useState(false);
-  const [approvalError, setApprovalError] = useState('');
-  const [pinConfigured, setPinConfigured] = useState(false);
   const [initialValues, setInitialValues] = useState({
     dealId: dealIdFromUrl || null,
     preparedBy: null,
@@ -272,9 +265,6 @@ const QuotationForm = () => {
   }, [isEdit, id, navigate]);
 
   useEffect(() => {
-    apiService.getTenant().then((res) => {
-      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
-    }).catch(() => {});
     fetchData();
     if (isEdit) fetchQuotation();
     else if (dealIdFromUrl) {
@@ -345,52 +335,13 @@ const QuotationForm = () => {
       }
 
       const quotationId = savedQuotation?.id || (isEdit ? Number(id) : null);
-      const quotationStatus = String(savedQuotation?.status || payload.status || 'new').toLowerCase();
-      if (quotationId && QUOTATION_APPROVAL_ELIGIBLE_STATUSES.includes(quotationStatus)) {
-        setSavedQuotationId(quotationId);
-        setApprovalDialogOpen(true);
+      if (quotationId) {
+        navigate(`/erp/quotations/view/${quotationId}`);
       } else {
-        setTimeout(() => navigate('/erp/quotations'), 1500);
+        navigate('/erp/quotations');
       }
     } catch (err) {
       setError(err.message || 'Save failed');
-    }
-  };
-
-  const finishAndNavigate = () => {
-    setApprovalDialogOpen(false);
-    setSavedQuotationId(null);
-    setApprovalError('');
-    navigate('/erp/quotations');
-  };
-
-  const handleRequestQuotationApproval = async () => {
-    if (!savedQuotationId) return;
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.requestQuotationApproval(savedQuotationId);
-      setSuccess('Approval requested. Your manager has been notified.');
-      setTimeout(finishAndNavigate, 1200);
-    } catch (err) {
-      setApprovalError(err.message || 'Failed to request approval');
-    } finally {
-      setApprovalLoading(false);
-    }
-  };
-
-  const handleApproveQuotationWithPin = async (pin) => {
-    if (!savedQuotationId) return;
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.approveQuotationWithPin(savedQuotationId, pin);
-      setSuccess('Quotation approved successfully!');
-      setTimeout(finishAndNavigate, 1200);
-    } catch (err) {
-      setApprovalError(err.message || 'Invalid PIN or approval failed');
-    } finally {
-      setApprovalLoading(false);
     }
   };
 
@@ -780,19 +731,6 @@ const QuotationForm = () => {
             </Button>
           </DialogActions>
         </Dialog>
-
-        <ApprovalWorkflowDialogs
-          open={approvalDialogOpen}
-          entityLabel="quotation"
-          pinConfigured={pinConfigured}
-          loading={approvalLoading}
-          error={approvalError}
-          onClose={() => !approvalLoading && finishAndNavigate()}
-          onDecideLater={finishAndNavigate}
-          onRequestApproval={handleRequestQuotationApproval}
-          onApproveWithPin={handleApproveQuotationWithPin}
-          approveButtonLabel="Approve quotation"
-        />
       </Box>
     </PageContainer>
   );

@@ -307,7 +307,6 @@ const ContactList = () => {
                         <MenuItem value="">All</MenuItem>
                         <MenuItem value="clients">Clients</MenuItem>
                         <MenuItem value="vendors">Vendors</MenuItem>
-                        <MenuItem value="both">Client & Vendor</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>

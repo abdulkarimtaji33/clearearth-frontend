@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box, Card, CardContent, Typography, Button, Grid, TextField,
   MenuItem, Alert, CircularProgress, Autocomplete, Dialog, DialogTitle,
@@ -16,7 +16,7 @@ const PHONE_REGEX = /^\+?[0-9\s\-().]{7,20}$/;
 
 const validationSchema = Yup.object({
   firstName: Yup.string().trim().required('First name is required'),
-  contactType: Yup.string().oneOf(['clients', 'vendors', 'both']).required('Contact type is required'),
+  contactType: Yup.string().oneOf(['clients', 'vendors']).required('Contact type is required'),
   lastName: Yup.string().trim().nullable().transform(v => v || ''),
   phone: Yup.string()
     .trim()
@@ -47,7 +47,6 @@ const ContactForm = () => {
   });
   const [newCompanyErrors, setNewCompanyErrors] = useState({});
   const [formikSetFieldValue, setFormikSetFieldValue] = useState(null);
-  const contactTypeRef = useRef('');
   const [createdCompanyId, setCreatedCompanyId] = useState(null);
   const [createdSupplierId, setCreatedSupplierId] = useState(null);
   const [dropdowns, setDropdowns] = useState({ designations: [], industryTypes: [], cities: [], countries: [] });
@@ -98,8 +97,10 @@ const ContactForm = () => {
           companyId: c.company_id || null, supplierId: c.supplier_id || null,
           phone: c.phone || '', email: c.email || '',
           status: c.status || 'active',
-          contactType: c.contact_type
-            || (c.company_id && c.supplier_id ? 'both' : c.company_id ? 'clients' : c.supplier_id ? 'vendors' : ''),
+          contactType: c.contact_type === 'both'
+            ? (c.company_id ? 'clients' : 'vendors')
+            : (c.contact_type
+              || (c.company_id && c.supplier_id ? 'clients' : c.company_id ? 'clients' : c.supplier_id ? 'vendors' : '')),
         });
       }
     } catch (err) {
@@ -163,9 +164,7 @@ const ContactForm = () => {
           setCreatedSupplierId(c.id);
           if (formikSetFieldValue) {
             formikSetFieldValue('supplierId', c.id);
-            if (contactTypeRef.current !== 'both') {
-              formikSetFieldValue('companyId', null);
-            }
+            formikSetFieldValue('companyId', null);
           }
         }
       } else {
@@ -176,9 +175,7 @@ const ContactForm = () => {
           setCreatedCompanyId(c.id);
           if (formikSetFieldValue) {
             formikSetFieldValue('companyId', c.id);
-            if (contactTypeRef.current !== 'both') {
-              formikSetFieldValue('supplierId', null);
-            }
+            formikSetFieldValue('supplierId', null);
           }
         }
       }
@@ -224,12 +221,11 @@ const ContactForm = () => {
         <Formik initialValues={initialValues} validationSchema={validationSchema} enableReinitialize onSubmit={handleSubmit}>
           {({ values, errors, touched, handleChange, handleBlur, handleSubmit: formikSubmit, isSubmitting, setFieldValue }) => {
             if (!formikSetFieldValue) setFormikSetFieldValue(() => setFieldValue);
-            contactTypeRef.current = values.contactType;
 
             const selectedCompany = companies.find(c => c.id === values.companyId) || null;
             const selectedSupplier = suppliers.find(s => s.id === values.supplierId) || null;
-            const showClientOrg = values.contactType === 'clients' || values.contactType === 'both';
-            const showVendorOrg = values.contactType === 'vendors' || values.contactType === 'both';
+            const showClientOrg = values.contactType === 'clients';
+            const showVendorOrg = values.contactType === 'vendors';
 
             return (
               <form onSubmit={formikSubmit}>
@@ -280,7 +276,6 @@ const ContactForm = () => {
                           <MenuItem value="">Select type</MenuItem>
                           <MenuItem value="clients">Client</MenuItem>
                           <MenuItem value="vendors">Vendor</MenuItem>
-                          <MenuItem value="both">Client & Vendor</MenuItem>
                         </TextField>
                       </Grid>
                       <Grid size={{ xs: 12, md: 6 }}>
@@ -306,7 +301,7 @@ const ContactForm = () => {
                               renderInput={params => (
                                 <TextField
                                   {...params}
-                                  label={values.contactType === 'both' ? 'Client Company' : 'Company'}
+                                  label="Company"
                                   placeholder="Search or select…"
                                   sx={tfSx}
                                 />
@@ -344,7 +339,7 @@ const ContactForm = () => {
                               renderInput={params => (
                                 <TextField
                                   {...params}
-                                  label={values.contactType === 'both' ? 'Vendor Supplier' : 'Supplier'}
+                                  label="Supplier"
                                   placeholder="Search or select…"
                                   sx={tfSx}
                                 />

@@ -412,7 +412,8 @@ const PurchaseOrderView = () => {
           onConfirm={executeApprovePo}
           loading={approveLoading}
           entityLabel="client purchase quotation"
-          ordersLabel="Clients Purchase Orders"
+          orderCreatedLabel="A Purchase Order will be created."
+          listLabel="The quotation will be removed from the Purchase Quotation List."
         />
       </Box>
     </PageContainer>

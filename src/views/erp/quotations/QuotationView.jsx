@@ -386,6 +386,7 @@ const QuotationView = () => {
               <TableHead>
                 <TableRow sx={{ bgcolor: alpha(theme.palette.background.default, 0.8) }}>
                   <TableCell sx={{ fontWeight: 700, pl: 2.5 }}>Item</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>UOM</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700 }}>Qty</TableCell>
                   {!viewOnly && <TableCell align="right" sx={{ fontWeight: 700 }}>Unit price</TableCell>}
@@ -395,7 +396,7 @@ const QuotationView = () => {
               <TableBody>
                 {dealItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={viewOnly ? 3 : 5} sx={{ py: 4, textAlign: 'center' }}>
+                    <TableCell colSpan={viewOnly ? 4 : 6} sx={{ py: 4, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary">No line items on the linked deal</Typography>
                     </TableCell>
                   </TableRow>
@@ -403,6 +404,11 @@ const QuotationView = () => {
                   dealItems.map((it) => (
                     <TableRow key={it.id} sx={{ '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}>
                       <TableCell sx={{ pl: 2.5 }}><Typography variant="body2" fontWeight={600}>{it.productService?.name || '—'}</Typography></TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {it.notes?.trim() || '—'}
+                        </Typography>
+                      </TableCell>
                       <TableCell><Typography variant="body2" color="text.secondary">{it.unit_of_measure || it.productService?.unit_of_measure || '—'}</Typography></TableCell>
                       <TableCell align="right"><Typography variant="body2">{Number(it.quantity || 0).toLocaleString()}</Typography></TableCell>
                       {!viewOnly && <TableCell align="right"><Typography variant="body2">{Number(it.unit_price || 0).toFixed(2)}</Typography></TableCell>}
@@ -440,7 +446,6 @@ const QuotationView = () => {
           onConfirm={executeApproveQuotation}
           loading={approveLoading}
           entityLabel="service quotation"
-          ordersLabel="Clients Service Orders"
         />
       </Box>
     </PageContainer>

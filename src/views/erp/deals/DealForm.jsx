@@ -1810,7 +1810,7 @@ const DealForm = () => {
                             <TextField
                               size="small"
                               fullWidth
-                              placeholder="Short note for this line — visible on the deal only"
+                              placeholder="Short note for this line — shown on quotations and service orders"
                               value={item.notes || ''}
                               onChange={(e) => handleLineItemChange(index, 'notes', e.target.value)}
                               inputProps={{ maxLength: 500 }}

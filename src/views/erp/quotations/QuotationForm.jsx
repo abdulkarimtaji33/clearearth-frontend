@@ -42,6 +42,7 @@ const QUOTATION_APPROVAL_ELIGIBLE_STATUSES = ['new', 'sent', 'under_review', 're
 const initialLineItem = () => ({
   productServiceId: null,
   productName: '',
+  notes: '',
   quantity: '',
   unitOfMeasure: '',
   unitPrice: '',
@@ -114,6 +115,7 @@ const QuotationForm = () => {
       ? deal.items.map((it) => ({
           productServiceId: it.product_service_id || it.productService?.id || null,
           productName: it.productService?.name || '',
+          notes: it.notes || '',
           quantity: String(it.quantity ?? ''),
           unitOfMeasure: it.unit_of_measure || it.productService?.unit_of_measure || '',
           unitPrice: String(it.unit_price ?? ''),
@@ -318,6 +320,7 @@ const QuotationForm = () => {
           quantity: parseFloat(item.quantity),
           unitPrice: parseFloat(item.unitPrice),
           unitOfMeasure: item.unitOfMeasure?.toString().trim() || null,
+          notes: item.notes?.toString().trim() || null,
         })),
         termsAndConditionsIds: values.termsAndConditionsIds || [],
       });
@@ -577,6 +580,7 @@ const QuotationForm = () => {
                         <TableHead>
                           <TableRow sx={{ backgroundColor: 'action.hover' }}>
                             <TableCell sx={{ fontWeight: 600 }}>Item (Required)</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Quantity (Required)</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>UOM (Required)</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Unit Price (Required)</TableCell>
@@ -597,6 +601,16 @@ const QuotationForm = () => {
                                   renderInput={(params) => <TextField {...params} placeholder="Select item" />}
                                   isOptionEqualToValue={(a, b) => a?.id === b?.id}
                                   sx={{ minWidth: 200 }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  placeholder="Brief description"
+                                  value={row.notes || ''}
+                                  onChange={(e) => handleLineItemChange(idx, 'notes', e.target.value)}
+                                  inputProps={{ maxLength: 500 }}
+                                  sx={{ minWidth: 160 }}
                                 />
                               </TableCell>
                               <TableCell>

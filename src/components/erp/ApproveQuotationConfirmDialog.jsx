@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button,
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Box,
 } from '@mui/material';
 
 /**
@@ -12,13 +12,19 @@ const ApproveQuotationConfirmDialog = ({
   onConfirm,
   loading = false,
   entityLabel = 'quotation',
-  ordersLabel = 'Orders',
+  orderCreatedLabel = 'A Service Order will be created.',
+  listLabel = 'The quotation will be removed from the Quotation List.',
 }) => (
   <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
     <DialogTitle fontWeight={700}>Approve {entityLabel}?</DialogTitle>
     <DialogContent>
-      <DialogContentText>
-        Approving this {entityLabel} will move it to <strong>{ordersLabel}</strong> and remove it from the quotations list. This action cannot be undone from the quotations view.
+      <DialogContentText component="div">
+        Once you approve this quotation:
+        <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
+          <li>{orderCreatedLabel}</li>
+          <li>{listLabel}</li>
+          <li>The quotation can no longer be edited or reverted.</li>
+        </Box>
       </DialogContentText>
       <DialogContentText sx={{ mt: 2 }}>
         Do you want to continue?

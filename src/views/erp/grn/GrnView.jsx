@@ -379,7 +379,7 @@ const GrnView = () => {
       <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', mb: 2.5 }}>
         <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="subtitle2" fontWeight={800}>
-            Line items
+            Items
           </Typography>
           <Stack direction="row" spacing={1}>
             <Chip
@@ -424,7 +424,7 @@ const GrnView = () => {
             {(grn.items || []).length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} align="center" sx={{ py: 5 }}>
-                  <Typography variant="body2" color="text.disabled">No line items</Typography>
+                  <Typography variant="body2" color="text.disabled">No items</Typography>
                 </TableCell>
               </TableRow>
             ) : (grn.items || []).map((it, i) => (

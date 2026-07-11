@@ -286,7 +286,7 @@ const GrnForm = () => {
           }}
         >
           <Typography variant="subtitle2" fontWeight={800}>
-            Line items
+            Items
           </Typography>
           <Chip size="small" label={`${items.length} item${items.length !== 1 ? 's' : ''}`} variant="outlined" />
         </Box>

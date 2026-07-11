@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import {
-  IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical,
+  IconSearch, IconPlus, IconTrash, IconDotsVertical,
   IconFileDownload, IconShoppingCart, IconEye,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router';
@@ -204,11 +204,6 @@ const ClientPurchaseQuotationList = () => {
           <MenuItem onClick={() => { navigate(`/erp/purchase-orders/view/${selectedOrder?.id}?return=${listReturnEnc}`); setAnchorEl(null); }}>
             <IconEye size={16} style={{ marginRight: 10 }} /> View
           </MenuItem>
-          {!viewOnly && (
-            <MenuItem onClick={() => { navigate(`/erp/purchase-orders/edit/${selectedOrder?.id}`); setAnchorEl(null); }}>
-              <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
-            </MenuItem>
-          )}
           {!viewOnly && (
             <MenuItem onClick={() => { handleDownloadPdf(selectedOrder); setAnchorEl(null); }} disabled={pdfLoading === selectedOrder?.id}>
               {pdfLoading === selectedOrder?.id ? <CircularProgress size={16} sx={{ mr: 1.25 }} /> : <IconFileDownload size={16} style={{ marginRight: 10 }} />}

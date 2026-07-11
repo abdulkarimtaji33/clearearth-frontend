@@ -30,14 +30,12 @@ import * as Yup from 'yup';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconTrash, IconFileDownload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
-import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import UomSelectField from '../../../components/erp/UomSelectField';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 import { billListPath } from '../../../utils/purchaseBills';
 
-const CLIENT_PO_APPROVAL_ELIGIBLE = ['new', 'sent', 'under_review', 'revised'];
 
 const initialItem = () => ({
   productServiceId: null,
@@ -84,11 +82,6 @@ const PurchaseOrderForm = () => {
   const [dropdowns, setDropdowns] = useState({ purchaseOrderStatus: [], unitsOfMeasure: [] });
   const [items, setItems] = useState([initialItem()]);
   const [pdfLoading, setPdfLoading] = useState(false);
-  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
-  const [savedPoId, setSavedPoId] = useState(null);
-  const [approvalLoading, setApprovalLoading] = useState(false);
-  const [approvalError, setApprovalError] = useState('');
-  const [pinConfigured, setPinConfigured] = useState(false);
   const [tenantCompanyName, setTenantCompanyName] = useState('Clear Earth Recycling LLC');
   const [initialValues, setInitialValues] = useState({
     dealId: dealIdFromUrl || null,
@@ -213,9 +206,27 @@ const PurchaseOrderForm = () => {
   }, [applyDealPreFill]);
 
   useEffect(() => {
+    if (!isEdit || !id || isBillMode) return;
+    (async () => {
+      try {
+        const res = await apiService.getPurchaseOrder(id);
+        const po = res.data;
+        if (
+          res.success
+          && po?.company_id
+          && String(po.document_type || 'quotation').toLowerCase() === 'quotation'
+        ) {
+          navigate(`/erp/purchase-orders/view/${id}`, { replace: true });
+        }
+      } catch (_) {
+        /* keep form if load fails */
+      }
+    })();
+  }, [isEdit, id, isBillMode, navigate]);
+
+  useEffect(() => {
     apiService.getTenant().then((res) => {
       if (res.success) {
-        setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
         setTenantCompanyName(res.data?.company_name || res.data?.name || 'Clear Earth Recycling LLC');
       }
     }).catch(() => {});
@@ -337,57 +348,18 @@ const PurchaseOrderForm = () => {
       }
 
       const poId = savedPo?.id || (isEdit ? Number(id) : null);
-      const poStatus = String(savedPo?.status || (isVendorQuotation ? 'approved' : 'new')).toLowerCase();
-      const listPath = isBillMode
-        ? billListPath({ company_id: values.companyId, supplier_id: values.supplierId })
-        : quotationListPath(values.companyId, values.supplierId);
-
-      if (isClientQuotation && poId && CLIENT_PO_APPROVAL_ELIGIBLE.includes(poStatus)) {
-        setSavedPoId(poId);
-        setApprovalDialogOpen(true);
+      if (poId && !isBillMode && isClientQuotation) {
+        navigate(`/erp/purchase-orders/view/${poId}`);
+      } else if (poId && isBillMode) {
+        navigate(`/erp/purchase-orders/view/${poId}`);
       } else {
+        const listPath = isBillMode
+          ? billListPath({ company_id: values.companyId, supplier_id: values.supplierId })
+          : quotationListPath(values.companyId, values.supplierId);
         setTimeout(() => navigate(listPath), 1500);
       }
     } catch (err) {
       setError(err.message || 'Save failed');
-    }
-  };
-
-  const finishAndNavigate = () => {
-    setApprovalDialogOpen(false);
-    setSavedPoId(null);
-    setApprovalError('');
-    const listPath = quotationListPath(initialValues.companyId, initialValues.supplierId);
-    navigate(isBillMode ? billListPath({ company_id: initialValues.companyId, supplier_id: initialValues.supplierId }) : listPath);
-  };
-
-  const handleRequestPoApproval = async () => {
-    if (!savedPoId) return;
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.requestPurchaseOrderApproval(savedPoId);
-      setSuccess('Approval requested. Your manager has been notified.');
-      setTimeout(finishAndNavigate, 1200);
-    } catch (err) {
-      setApprovalError(err.message || 'Failed to request approval');
-    } finally {
-      setApprovalLoading(false);
-    }
-  };
-
-  const handleApprovePoWithPin = async (pin) => {
-    if (!savedPoId) return;
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.approvePurchaseOrderWithPin(savedPoId, pin);
-      setSuccess('Purchase quotation approved!');
-      setTimeout(finishAndNavigate, 1200);
-    } catch (err) {
-      setApprovalError(err.message || 'Invalid PIN or approval failed');
-    } finally {
-      setApprovalLoading(false);
     }
   };
 
@@ -667,7 +639,7 @@ const PurchaseOrderForm = () => {
                       <TableHead>
                         <TableRow sx={{ backgroundColor: 'action.hover' }}>
                           <TableCell sx={{ fontWeight: 600 }}>Item (Required)</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>Item Description (Optional)</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>Quantity (Required)</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>UOM (Required)</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>Price (Required)</TableCell>
@@ -695,10 +667,11 @@ const PurchaseOrderForm = () => {
                               <TextField
                                 size="small"
                                 fullWidth
-                                placeholder="Description"
+                                placeholder="Brief description"
                                 value={row.itemDescription}
                                 onChange={(e) => handleItemChange(idx, 'itemDescription', e.target.value)}
                                 disabled={isBillMode}
+                                inputProps={{ maxLength: 500 }}
                                 sx={{ minWidth: 180 }}
                               />
                             </TableCell>
@@ -895,19 +868,6 @@ const PurchaseOrderForm = () => {
             </Button>
           </DialogActions>
         </Dialog>
-
-        <ApprovalWorkflowDialogs
-          open={approvalDialogOpen}
-          entityLabel="client purchase quotation"
-          pinConfigured={pinConfigured}
-          loading={approvalLoading}
-          error={approvalError}
-          onClose={() => !approvalLoading && finishAndNavigate()}
-          onDecideLater={finishAndNavigate}
-          onRequestApproval={handleRequestPoApproval}
-          onApproveWithPin={handleApprovePoWithPin}
-          approveButtonLabel="Approve quotation"
-        />
       </Box>
     </PageContainer>
   );

@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box, Typography, Stack, Paper, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Chip, CircularProgress, Alert, TablePagination, TextField, MenuItem, Link,
+  TableHead, TableRow, Chip, CircularProgress, Alert, TablePagination, TextField, MenuItem, Link, InputAdornment,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconPackage, IconFileCheck } from '@tabler/icons-react';
+import { IconPackage, IconFileCheck, IconFilter } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -66,6 +66,14 @@ const GrnList = () => {
             </Typography>
           </Box>
         </Stack>
+        <Stack direction="row" spacing={1}>
+          <Chip
+            size="small"
+            label={`${total} total`}
+            variant="outlined"
+            sx={{ fontWeight: 700, borderRadius: 1.5 }}
+          />
+        </Stack>
       </Stack>
 
       {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
@@ -85,7 +93,14 @@ const GrnList = () => {
             label="Filter by status"
             value={status}
             onChange={(e) => { setStatus(e.target.value); setPage(0); }}
-            sx={{ width: 200 }}
+            sx={{ width: 220 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <IconFilter size={16} />
+                </InputAdornment>
+              ),
+            }}
           >
             <MenuItem value="">All statuses</MenuItem>
             <MenuItem value="new">New</MenuItem>
@@ -97,11 +112,11 @@ const GrnList = () => {
         <TableContainer sx={{ overflowX: 'auto' }}>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
+              <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
                 {['GRN #', 'Deal', 'Client / Lead', 'Contact', 'Sales person', 'Work Order', 'Items', 'Status', 'Created', ''].map((h) => (
                   <TableCell
                     key={h || 'actions'}
-                    sx={{ fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: 0.4, py: 1.5, whiteSpace: 'nowrap' }}
+                    sx={{ fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, py: 1.5, whiteSpace: 'nowrap', color: 'text.secondary' }}
                   >
                     {h}
                   </TableCell>
@@ -142,17 +157,25 @@ const GrnList = () => {
                     <TableRow
                       key={r.id}
                       hover
-                      sx={{ cursor: 'pointer', transition: 'background 0.14s' }}
+                      sx={{
+                        cursor: 'pointer',
+                        transition: 'background 0.14s',
+                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.035) },
+                      }}
                       onClick={() => navigate(`/erp/grn/view/${r.id}`)}
                     >
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          fontWeight={700}
-                          sx={{ fontFamily: 'monospace', color: 'primary.main' }}
-                        >
-                          {r.grn_number}
-                        </Typography>
+                        <Chip
+                          size="small"
+                          label={r.grn_number}
+                          sx={{
+                            fontFamily: 'monospace',
+                            fontWeight: 700,
+                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            color: 'primary.main',
+                            borderRadius: 1.5,
+                          }}
+                        />
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         {deal ? (
@@ -244,7 +267,12 @@ const GrnList = () => {
                           size="small"
                           label={r.status}
                           color={STATUS_COLOR[r.status] || 'default'}
-                          sx={{ textTransform: 'capitalize', fontWeight: 700 }}
+                          sx={{
+                            textTransform: 'capitalize',
+                            fontWeight: 700,
+                            borderRadius: 1.5,
+                            '& .MuiChip-label': { px: 1.2 },
+                          }}
                         />
                       </TableCell>
                       <TableCell>

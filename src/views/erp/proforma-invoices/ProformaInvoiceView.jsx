@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router';
-import { IconArrowLeft, IconFileInvoice, IconReceipt } from '@tabler/icons-react';
+import { IconArrowLeft, IconFileInvoice, IconReceipt, IconDownload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
@@ -34,6 +34,20 @@ const ProformaInvoiceView = () => {
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [pdfError, setPdfError] = useState('');
+
+  const handleDownloadPdf = async () => {
+    try {
+      setPdfDownloading(true);
+      setPdfError('');
+      await apiService.downloadProformaInvoicePdf(id);
+    } catch (e) {
+      setPdfError(e.message || 'Failed to download PDF');
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
 
   const fetchRow = useCallback(async () => {
     if (!id) return;
@@ -96,6 +110,9 @@ const ProformaInvoiceView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Button variant="outlined" startIcon={<IconDownload size={18} />} onClick={handleDownloadPdf} disabled={pdfDownloading} sx={{ borderRadius: 2 }}>
+              {pdfDownloading ? 'Downloading…' : 'Download PDF'}
+            </Button>
             {row.taxInvoice?.id ? (
               <Button variant="contained" color="primary" startIcon={<IconReceipt size={18} />} onClick={() => navigate(`/erp/tax-invoices/view/${row.taxInvoice.id}`)} sx={{ borderRadius: 2 }}>
                 View tax invoice
@@ -107,6 +124,8 @@ const ProformaInvoiceView = () => {
             ) : null}
           </Stack>
         </Stack>
+
+        {pdfError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setPdfError('')}>{pdfError}</Alert>}
 
         <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2, px: 3, py: 2.5, bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
           <Stack direction="row" justifyContent="space-between" flexWrap="wrap" gap={2}>

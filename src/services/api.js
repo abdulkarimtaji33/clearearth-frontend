@@ -404,6 +404,10 @@ class ApiService {
     return this.get(`/proforma-invoices/${id}`);
   }
 
+  async downloadProformaInvoicePdf(id) {
+    return this._downloadPdf(`${this.baseURL}/proforma-invoices/${id}/pdf`, `proforma-invoice-${id}.pdf`);
+  }
+
   async createProformaInvoice(data) {
     return this.post('/proforma-invoices', data);
   }

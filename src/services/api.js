@@ -942,6 +942,31 @@ class ApiService {
     return this.post(`/grn/${id}/approve`);
   }
 
+  async downloadGrnPdf(id) {
+    const url = `${this.baseURL}/grn/${id}/pdf`;
+    const token = this.getAuthToken();
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      const msg = text?.match(/"message":"([^"]+)"/)?.[1] || 'Failed to download GRN report';
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    if (blob.type !== 'application/pdf' || blob.size < 100) {
+      const text = await blob.text();
+      const err = text?.match(/"message":"([^"]+)"/)?.[1] || 'Invalid PDF response';
+      throw new Error(err);
+    }
+    const fname = this._filenameFromContentDisposition(res.headers.get('Content-Disposition'), `grn-${id}.pdf`);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   async getDashboardOverview() {
     return this.get('/dashboard/overview');
   }

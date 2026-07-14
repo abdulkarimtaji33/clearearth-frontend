@@ -644,6 +644,63 @@ const DealForm = () => {
     }
   }, []);
 
+  const applyLeadToForm = useCallback(async (leadId, setFieldValue) => {
+    if (!leadId) {
+      setFieldValue('companyId', null);
+      setFieldValue('contactId', null);
+      return;
+    }
+    try {
+      const response = await apiService.getLead(leadId);
+      if (!response.success) return;
+
+      const lead = response.data;
+      const companyId = lead.company_id ?? lead.company?.id ?? null;
+      const contactId = lead.contact_id ?? lead.contact?.id ?? null;
+      const assignedTo = lead.assigned_to ?? lead.assignedUser?.id ?? null;
+
+      setLeads((prev) => mergeById(prev, lead));
+      if (lead.company) setCompanies((prev) => mergeById(prev, lead.company));
+      if (lead.contact) setContacts((prev) => mergeById(prev, lead.contact));
+      if (lead.assignedUser) setUsers((prev) => mergeById(prev, lead.assignedUser));
+
+      if (companyId && !lead.company) {
+        try {
+          const companyRes = await apiService.getCompany(companyId);
+          if (companyRes.success) setCompanies((prev) => mergeById(prev, companyRes.data));
+        } catch (_) { /* optional */ }
+      }
+      if (contactId && !lead.contact) {
+        try {
+          const contactRes = await apiService.getContact(contactId);
+          if (contactRes.success) setContacts((prev) => mergeById(prev, contactRes.data));
+        } catch (_) { /* optional */ }
+      }
+
+      const contactName = lead.contact
+        ? `${lead.contact.first_name || ''} ${lead.contact.last_name || ''}`.trim()
+        : '';
+
+      setFieldValue('leadId', lead.id);
+      setFieldValue('companyId', companyId);
+      setFieldValue('contactId', contactId);
+      if (assignedTo) setFieldValue('assignedTo', assignedTo);
+      if (!valuesRef.current?.title?.trim()) {
+        setFieldValue('title', `Deal from Lead ${lead.lead_number || lead.id}`);
+      }
+      if (!valuesRef.current?.description?.trim()) {
+        setFieldValue('description', lead.notes || '');
+      }
+      if (contactName) setFieldValue('pickupContactName', contactName);
+      if (lead.contact?.phone || lead.phone) {
+        setFieldValue('pickupContactNumber', lead.contact?.phone || lead.phone || '');
+      }
+    } catch (err) {
+      console.error('Failed to apply lead:', err);
+      setError(err.message || 'Failed to load lead details');
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     // fetchAllData must finish first so products are loaded before prefillFromLead
@@ -1114,7 +1171,11 @@ const DealForm = () => {
                           options={leads}
                           getOptionLabel={(opt) => `${opt.lead_number || ''} - ${opt.email || ''}`}
                           value={leads.find((l) => l.id === values.leadId) || null}
-                          onChange={(_, val) => setFieldValue('leadId', val?.id || null)}
+                          onChange={async (_, val) => {
+                            const nextLeadId = val?.id || null;
+                            setFieldValue('leadId', nextLeadId);
+                            await applyLeadToForm(nextLeadId, setFieldValue);
+                          }}
                           onBlur={() => setFieldTouched('leadId', true)}
                           renderInput={(params) => (
                             <TextField
@@ -1135,10 +1196,26 @@ const DealForm = () => {
                       <Box>
                         <Autocomplete
                           fullWidth
-                          options={companies}
+                          options={(() => {
+                            const selectedLead = leads.find((l) => l.id === values.leadId);
+                            const leadCompanyId = selectedLead?.company_id ?? selectedLead?.company?.id ?? null;
+                            if (values.leadId && leadCompanyId) {
+                              return companies.filter((c) => c.id === leadCompanyId);
+                            }
+                            if (values.leadId) return [];
+                            return companies;
+                          })()}
                           getOptionLabel={(opt) => opt.company_name || ''}
                           value={companies.find((c) => c.id === values.companyId) || null}
-                          onChange={(_, val) => setFieldValue('companyId', val?.id || null)}
+                          onChange={(_, val) => {
+                            const newCompanyId = val?.id || null;
+                            setFieldValue('companyId', newCompanyId);
+                            const pool = newCompanyId ? contacts.filter((c) => c.company_id === newCompanyId) : [];
+                            if (!pool.some((c) => c.id === values.contactId)) {
+                              setFieldValue('contactId', null);
+                            }
+                          }}
+                          noOptionsText={values.leadId ? 'No company linked to this lead' : 'No companies found'}
                           onBlur={() => setFieldTouched('companyId', true)}
                           renderInput={(params) => (
                             <TextField
@@ -1161,9 +1238,14 @@ const DealForm = () => {
                       <Box>
                         <Autocomplete
                           fullWidth
-                          options={contacts}
+                          options={values.companyId ? contacts.filter((c) => c.company_id === values.companyId) : []}
                           getOptionLabel={(opt) => `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` (${opt.email})` : '')}
-                          value={contacts.find((c) => c.id === values.contactId) || null}
+                          value={
+                            values.companyId
+                              ? contacts.find((c) => c.id === values.contactId && c.company_id === values.companyId) || null
+                              : null
+                          }
+                          noOptionsText={values.companyId ? 'No contacts for this company' : 'Select a company first'}
                           onChange={(_, val) => setFieldValue('contactId', val?.id || null)}
                           onBlur={() => setFieldTouched('contactId', true)}
                           renderInput={(params) => (

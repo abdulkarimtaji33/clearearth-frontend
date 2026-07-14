@@ -11,7 +11,10 @@ import UomSelectField from '../../../components/erp/UomSelectField';
 import apiService from '../../../services/api';
 import GrnEvidenceThumbs from './GrnEvidenceThumbs';
 
-const emptyItem = () => ({ itemName: '', materialTypeId: '', quantity: '', unitOfMeasure: 'kg', notes: '', images: [] });
+const emptyItem = () => ({
+  itemName: '', materialTypeId: '', quantity: '', unitOfMeasure: 'kg',
+  make: '', model: '', serialNumber: '', units: '', notes: '', images: [],
+});
 
 const GrnForm = () => {
   const navigate = useNavigate();
@@ -75,6 +78,10 @@ const GrnForm = () => {
                   materialTypeId: it.material_type_id ? String(it.material_type_id) : '',
                   quantity: String(it.quantity || ''),
                   unitOfMeasure: it.unit_of_measure || 'kg',
+                  make: it.make || '',
+                  model: it.model || '',
+                  serialNumber: it.serial_number || '',
+                  units: it.units != null ? String(it.units) : '',
                   notes: it.notes || '',
                   images: (it.images || []).map((img) => ({
                     imageUrl: img.image_url,
@@ -156,6 +163,10 @@ const GrnForm = () => {
         materialTypeId: it.materialTypeId ? parseInt(it.materialTypeId, 10) : undefined,
         quantity: parseFloat(it.quantity),
         unitOfMeasure: it.unitOfMeasure || 'kg',
+        make: it.make?.trim() || undefined,
+        model: it.model?.trim() || undefined,
+        serialNumber: it.serialNumber?.trim() || undefined,
+        units: it.units !== '' && it.units != null ? parseInt(it.units, 10) : undefined,
         notes: it.notes || undefined,
         images: (it.images || []).map((img) => ({
           imageUrl: img.imageUrl,
@@ -275,7 +286,7 @@ const GrnForm = () => {
           }}
         >
           <Typography variant="subtitle2" fontWeight={800}>
-            Line items
+            Items
           </Typography>
           <Chip size="small" label={`${items.length} item${items.length !== 1 ? 's' : ''}`} variant="outlined" />
         </Box>
@@ -364,6 +375,43 @@ const GrnForm = () => {
                     <IconTrash size={18} />
                   </IconButton>
                 </Stack>
+                <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px dashed', borderColor: 'divider' }}>
+                  <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                    Additional details (optional)
+                  </Typography>
+                  <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems="flex-start">
+                    <TextField
+                      size="small"
+                      label="Make"
+                      value={it.make}
+                      onChange={(e) => updateItem(idx, 'make', e.target.value)}
+                      sx={{ flex: 1, minWidth: 140 }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Model"
+                      value={it.model}
+                      onChange={(e) => updateItem(idx, 'model', e.target.value)}
+                      sx={{ flex: 1, minWidth: 140 }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Serial number"
+                      value={it.serialNumber}
+                      onChange={(e) => updateItem(idx, 'serialNumber', e.target.value)}
+                      sx={{ flex: 1.5, minWidth: 160 }}
+                    />
+                    <TextField
+                      size="small"
+                      label="Units / pieces"
+                      type="number"
+                      value={it.units}
+                      onChange={(e) => updateItem(idx, 'units', e.target.value)}
+                      sx={{ width: 150 }}
+                      inputProps={{ min: 0, step: 1 }}
+                    />
+                  </Stack>
+                </Box>
                 <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px dashed', borderColor: 'divider' }}>
                   <Stack direction="row" alignItems="center" spacing={1.5} mb={(it.images || []).length ? 1.5 : 0}>
                     <Button

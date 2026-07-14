@@ -220,7 +220,7 @@ const PurchaseOrderView = () => {
                 Approve
               </Button>
             )}
-            {!viewOnly && (
+            {!viewOnly && !isClientQuotation && (
               <Button variant="outlined" startIcon={<IconEdit size={18} />} onClick={() => navigate(`/erp/purchase-orders/edit/${id}`)} sx={{ borderRadius: 2 }}>
                 Edit
               </Button>
@@ -375,7 +375,11 @@ const PurchaseOrderView = () => {
                   items.map((it) => (
                     <TableRow key={it.id} sx={{ '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.02) } }}>
                       <TableCell sx={{ pl: 2.5 }}><Typography variant="body2" fontWeight={600}>{it.productService?.name || '—'}</Typography></TableCell>
-                      <TableCell><Typography variant="body2" color="text.secondary">{it.item_description || '—'}</Typography></TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {it.item_description?.trim() || '—'}
+                        </Typography>
+                      </TableCell>
                       <TableCell align="right"><Typography variant="body2">{Number(it.quantity || 0).toLocaleString()}</Typography></TableCell>
                       {!viewOnly && <TableCell align="right"><Typography variant="body2">{Number(it.price || 0).toFixed(2)}</Typography></TableCell>}
                       {!viewOnly && <TableCell align="right" sx={{ pr: 2.5 }}><Typography variant="body2" fontWeight={700}>{Number(it.total || 0).toFixed(2)}</Typography></TableCell>}

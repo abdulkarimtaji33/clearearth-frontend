@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell, TableHead, TableRow,
-  Chip, Alert, CircularProgress, Grid,
+  Chip, Alert, CircularProgress, Grid, Tooltip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import {
-  IconArrowLeft, IconCheck, IconPackage, IconEdit, IconSend,
-  IconBriefcase, IconUser, IconHammer, IconReceipt, IconBuilding,
+  IconArrowLeft, IconCheck, IconPackage, IconEdit, IconSend, IconDownload,
+  IconBriefcase, IconUser, IconHammer, IconReceipt, IconBuilding, IconBox, IconStack2,
 } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
@@ -32,6 +32,7 @@ const GrnView = () => {
   const [error, setError] = useState('');
   const [approving, setApproving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const load = async () => {
     try {
@@ -75,6 +76,18 @@ const GrnView = () => {
     }
   };
 
+  const handleDownloadPdf = async () => {
+    try {
+      setPdfLoading(true);
+      setError('');
+      await apiService.downloadGrnPdf(id);
+    } catch (e) {
+      setError(e.message || 'Failed to download GRN report');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <PageContainer title="GRN">
@@ -92,6 +105,9 @@ const GrnView = () => {
       </PageContainer>
     );
   }
+
+  const totalQuantity = (grn.items || []).reduce((s, it) => s + (parseFloat(it.quantity) || 0), 0);
+  const totalUnits = (grn.items || []).reduce((s, it) => s + (it.units != null ? parseInt(it.units, 10) || 0 : 0), 0);
 
   return (
     <PageContainer title={`GRN ${grn.grn_number}`}>
@@ -156,6 +172,15 @@ const GrnView = () => {
             </Box>
           </Stack>
           <Stack direction="row" spacing={1.5} flexWrap="wrap">
+            <Button
+              variant="outlined"
+              startIcon={pdfLoading ? <CircularProgress size={16} color="inherit" /> : <IconDownload size={16} />}
+              onClick={handleDownloadPdf}
+              disabled={pdfLoading}
+              sx={{ borderRadius: 2.5 }}
+            >
+              {pdfLoading ? 'Downloading…' : 'Download GRN report'}
+            </Button>
             {grn.status === 'new' && (
               <Button
                 variant="outlined"
@@ -352,43 +377,125 @@ const GrnView = () => {
       )}
 
       <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', mb: 2.5 }}>
-        <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
+        <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="subtitle2" fontWeight={800}>
-            Line items
+            Items
           </Typography>
+          <Stack direction="row" spacing={1}>
+            <Chip
+              size="small"
+              icon={<IconBox size={14} />}
+              label={`${(grn.items || []).length} item${(grn.items || []).length !== 1 ? 's' : ''}`}
+              variant="outlined"
+              sx={{ fontWeight: 700 }}
+            />
+            <Chip
+              size="small"
+              icon={<IconStack2 size={14} />}
+              label={`${fmt(totalQuantity)} qty`}
+              variant="outlined"
+              sx={{ fontWeight: 700 }}
+            />
+            {totalUnits > 0 && (
+              <Chip
+                size="small"
+                label={`${totalUnits} pcs`}
+                variant="outlined"
+                sx={{ fontWeight: 700 }}
+              />
+            )}
+          </Stack>
         </Box>
         <Table size="small">
           <TableHead>
             <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
-              {['#', 'Product', 'Material type', 'Quantity', 'UOM', 'Notes', 'Evidence'].map((h) => (
-                <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+              {['#', 'Product', 'Material type', 'Make / Model', 'Serial number', 'Quantity', 'UOM', 'Units (pcs)', 'Notes', 'Evidence'].map((h, idx) => (
+                <TableCell
+                  key={h}
+                  align={idx === 5 || idx === 7 ? 'right' : 'left'}
+                  sx={{ fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}
+                >
                   {h}
                 </TableCell>
               ))}
             </TableRow>
           </TableHead>
           <TableBody>
-            {(grn.items || []).map((it, i) => (
+            {(grn.items || []).length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={10} align="center" sx={{ py: 5 }}>
+                  <Typography variant="body2" color="text.disabled">No items</Typography>
+                </TableCell>
+              </TableRow>
+            ) : (grn.items || []).map((it, i) => (
               <TableRow key={it.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                 <TableCell>
-                  <Typography variant="caption" fontWeight={700} color="text.disabled">
-                    {i + 1}
-                  </Typography>
+                  <Box
+                    sx={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 1,
+                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Typography variant="caption" fontWeight={700} color="primary.main">
+                      {i + 1}
+                    </Typography>
+                  </Box>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography variant="body2" fontWeight={700}>
                     {it.item_name}
                   </Typography>
                 </TableCell>
-                <TableCell>{it.materialType?.display_name || '—'}</TableCell>
                 <TableCell>
+                  {it.materialType?.display_name ? (
+                    <Chip label={it.materialType.display_name} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
+                  ) : (
+                    <Typography variant="body2" color="text.disabled">—</Typography>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {(it.make || it.model) ? (
+                    <Box>
+                      {it.make && <Typography variant="body2" fontWeight={600}>{it.make}</Typography>}
+                      {it.model && <Typography variant="caption" color="text.secondary">{it.model}</Typography>}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.disabled">—</Typography>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {it.serial_number ? (
+                    <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace' }}>
+                      {it.serial_number}
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.disabled">—</Typography>
+                  )}
+                </TableCell>
+                <TableCell align="right">
                   <Typography fontWeight={700}>{fmt(it.quantity)}</Typography>
                 </TableCell>
-                <TableCell>{it.unit_of_measure}</TableCell>
                 <TableCell>
-                  <Typography variant="body2" color="text.secondary">
-                    {it.notes || '—'}
-                  </Typography>
+                  <Chip label={it.unit_of_measure} size="small" sx={{ fontWeight: 700, height: 20, fontSize: '0.68rem' }} />
+                </TableCell>
+                <TableCell align="right">
+                  {it.units != null && it.units !== '' ? (
+                    <Typography fontWeight={700}>{it.units}</Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.disabled">—</Typography>
+                  )}
+                </TableCell>
+                <TableCell sx={{ maxWidth: 180 }}>
+                  <Tooltip title={it.notes || ''} disableHoverListener={!it.notes}>
+                    <Typography variant="body2" color="text.secondary" noWrap>
+                      {it.notes || '—'}
+                    </Typography>
+                  </Tooltip>
                 </TableCell>
                 <TableCell>
                   {(it.images || []).length > 0 ? (
@@ -398,7 +505,7 @@ const GrnView = () => {
                         imageUrl: img.image_url,
                         originalName: img.original_name,
                       }))}
-                      size={48}
+                      size={44}
                     />
                   ) : (
                     <Typography variant="caption" color="text.disabled">—</Typography>

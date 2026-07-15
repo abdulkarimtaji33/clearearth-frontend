@@ -243,9 +243,15 @@ const QuotationView = () => {
               </Button>
             )}
             {allowGenerateInvoice && q?.deal?.deal_type !== 'free_of_charge' && (
-              <Button variant="outlined" color="secondary" startIcon={<IconFileInvoice size={18} />} onClick={() => navigate(`/erp/proforma-invoices/create/${id}?return=${encodeURIComponent(returnTo)}`)} sx={{ borderRadius: 2 }}>
-                Create proforma invoice
-              </Button>
+              q?.proformaInvoice?.id ? (
+                <Button variant="outlined" color="secondary" startIcon={<IconFileInvoice size={18} />} onClick={() => navigate(`/erp/proforma-invoices/view/${q.proformaInvoice.id}`)} sx={{ borderRadius: 2 }}>
+                  View proforma invoice
+                </Button>
+              ) : (
+                <Button variant="outlined" color="secondary" startIcon={<IconFileInvoice size={18} />} onClick={() => navigate(`/erp/proforma-invoices/create/${id}?return=${encodeURIComponent(returnTo)}`)} sx={{ borderRadius: 2 }}>
+                  Create proforma invoice
+                </Button>
+              )
             )}
             {!viewOnly && isApproved && (
               <>

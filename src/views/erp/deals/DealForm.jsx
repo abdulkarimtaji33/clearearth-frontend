@@ -44,7 +44,7 @@ import {
 } from '../../../utils/uploadFileTypes';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
-import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
+import { formatStatusLabel } from '../../../utils/recordStatus';
 
 const DEAL_APPROVAL_ELIGIBLE_STATUSES = ['new'];
 const DEAL_QUOTABLE_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
@@ -212,7 +212,8 @@ const DealForm = () => {
   const roleName = user?.role?.name ?? user?.role;
   const showAssignedTo = canAssignDeals(roleName);
   const canEditDeals = hasPermission('deals.update');
-  const canChangeStatus = canChangeRecordStatus(user, hasPermission, 'deals.approve');
+  // Sales can change pipeline status; "approved" is never offered here — only managers approve via workflow
+  const canChangeStatus = canEditDeals;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -2086,7 +2087,7 @@ const DealForm = () => {
                           label="Status"
                           value={formatStatusLabel(values.status || 'new')}
                           disabled
-                          helperText="Status is managed through the approval workflow"
+                          helperText="You don't have permission to change deal status"
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
                       )}

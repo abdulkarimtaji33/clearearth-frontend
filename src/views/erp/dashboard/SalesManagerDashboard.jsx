@@ -26,6 +26,7 @@ const STAGE_META = {
 
 const KPI_ICONS = {
   'Pipeline value': IconCurrencyDollar,
+  'Won this month': IconTrophy,
   'Won deals': IconTrophy,
   'Stale deals (10d+)': IconAlertTriangle,
   'Active deals': IconClipboardList,

@@ -22,6 +22,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
   TextField,
   MenuItem,
@@ -61,6 +62,8 @@ import {
   IconLoader2,
   IconCircle,
   IconAlertCircle,
+  IconTrophy,
+  IconX,
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import InspectionRequestDetail from '../../../components/erp/InspectionRequestDetail';
@@ -81,6 +84,9 @@ import { parseSupportingDocuments } from '../../../utils/inspectionRequestHelper
 
 const DEAL_APPROVABLE_STATUSES = ['new', 'pending_approval'];
 const DEAL_QUOTABLE_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
+/** Statuses from which a deal may be marked won (matches backend PIPELINE_STATUSES). */
+const DEAL_WON_ELIGIBLE_STATUSES = ['approved', 'quotation_sent', 'negotiation'];
+const DEAL_CLOSED_STATUSES = ['won', 'lost'];
 
 const isWdsPending = (deal) => {
   if (!deal?.wds_required) return false;
@@ -462,6 +468,10 @@ const DealView = () => {
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalError, setApprovalError] = useState('');
   const [pinConfigured, setPinConfigured] = useState(false);
+  const [outcomeLoading, setOutcomeLoading] = useState(false);
+  const [lossDialogOpen, setLossDialogOpen] = useState(false);
+  const [lossReason, setLossReason] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     apiService.getAllDropdowns().then((r) => {
@@ -549,6 +559,47 @@ const DealView = () => {
   const dealStatusLower = String(deal?.status || '').toLowerCase();
   const canAttemptApproval = canEditDeals && deal && DEAL_APPROVABLE_STATUSES.includes(dealStatusLower);
   const canCreateQuotation = canEditDeals && deal && DEAL_QUOTABLE_STATUSES.includes(dealStatusLower);
+  const canFlagOutcome = canEditDeals && deal && !DEAL_CLOSED_STATUSES.includes(dealStatusLower);
+  const canMarkWon = canFlagOutcome && DEAL_WON_ELIGIBLE_STATUSES.includes(dealStatusLower);
+
+  const handleMarkWon = async () => {
+    if (!id || !canMarkWon) return;
+    setError('');
+    setSuccess('');
+    try {
+      setOutcomeLoading(true);
+      await apiService.updateDeal(id, { status: 'won' });
+      setSuccess('Deal marked as won — this will show on the dashboard.');
+      await fetchDeal();
+    } catch (err) {
+      setError(err.message || 'Failed to mark deal as won');
+    } finally {
+      setOutcomeLoading(false);
+    }
+  };
+
+  const handleOpenLostDialog = () => {
+    setLossReason('');
+    setError('');
+    setLossDialogOpen(true);
+  };
+
+  const handleMarkLost = async () => {
+    if (!id) return;
+    setError('');
+    setSuccess('');
+    try {
+      setOutcomeLoading(true);
+      await apiService.updateDeal(id, { status: 'lost', lossReason: lossReason.trim() || null });
+      setLossDialogOpen(false);
+      setSuccess('Deal marked as lost.');
+      await fetchDeal();
+    } catch (err) {
+      setError(err.message || 'Failed to mark deal as lost');
+    } finally {
+      setOutcomeLoading(false);
+    }
+  };
 
   const handleApproveDeal = async () => {
     if (!id || !deal) return;
@@ -722,7 +773,7 @@ const DealView = () => {
     );
   }
 
-  if (error || !deal) {
+  if (!deal) {
     return (
       <PageContainer title="Deal Not Found">
         <Box sx={{ maxWidth: 'min(5000px, 100%)', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
@@ -816,6 +867,33 @@ const DealView = () => {
                 Approve
               </Button>
             )}
+            {canFlagOutcome && (
+              <>
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="small"
+                  startIcon={outcomeLoading ? <CircularProgress size={14} color="inherit" /> : <IconTrophy size={16} />}
+                  onClick={handleMarkWon}
+                  disabled={outcomeLoading || !canMarkWon}
+                  title={canMarkWon ? 'Flag this deal as won' : 'Deal must be approved before it can be marked won'}
+                  sx={{ borderRadius: 2, fontWeight: 600 }}
+                >
+                  Mark as Won
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  startIcon={<IconX size={16} />}
+                  onClick={handleOpenLostDialog}
+                  disabled={outcomeLoading}
+                  sx={{ borderRadius: 2, fontWeight: 600 }}
+                >
+                  Mark as Lost
+                </Button>
+              </>
+            )}
             {canEditDeals && (
               <Button
                 variant="contained"
@@ -830,6 +908,16 @@ const DealView = () => {
           </Stack>
         </Stack>
 
+        {error && (
+          <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2, borderRadius: 2 }}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert severity="success" onClose={() => setSuccess('')} sx={{ mb: 2, borderRadius: 2 }}>
+            {success}
+          </Alert>
+        )}
         {wdsPending && (
           <Alert
             severity="warning"
@@ -1573,6 +1661,45 @@ const DealView = () => {
           onApproveWithPin={handleApproveDealWithPin}
           approveButtonLabel="Approve deal"
         />
+
+        <Dialog
+          open={lossDialogOpen}
+          onClose={() => !outcomeLoading && setLossDialogOpen(false)}
+          PaperProps={{ sx: { borderRadius: 3 } }}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle fontWeight={700}>Mark as Lost</DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ mb: 2 }}>
+              Optionally provide a reason for losing this deal.
+            </DialogContentText>
+            <TextField
+              autoFocus
+              fullWidth
+              multiline
+              minRows={2}
+              label="Reason for loss"
+              value={lossReason}
+              onChange={(e) => setLossReason(e.target.value)}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2.5 }}>
+            <Button onClick={() => setLossDialogOpen(false)} disabled={outcomeLoading} sx={{ borderRadius: 2 }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleMarkLost}
+              color="error"
+              variant="contained"
+              disabled={outcomeLoading}
+              sx={{ borderRadius: 2 }}
+            >
+              {outcomeLoading ? 'Saving…' : 'Confirm Lost'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </PageContainer>
   );

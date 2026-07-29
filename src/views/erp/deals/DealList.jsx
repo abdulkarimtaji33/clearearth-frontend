@@ -36,7 +36,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconPlus, IconEdit, IconTrash, IconSearch, IconEye, IconFilterOff, IconFilter, IconChevronDown, IconChevronUp, IconDotsVertical, IconBriefcase, IconCheck } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconSearch, IconEye, IconFilterOff, IconFilter, IconChevronDown, IconChevronUp, IconDotsVertical, IconBriefcase, IconCheck, IconX } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -253,6 +253,9 @@ const DealList = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dealToDelete, setDealToDelete] = useState(null);
+  const [dealToMarkLost, setDealToMarkLost] = useState(null);
+  const [listLossReason, setListLossReason] = useState('');
+  const [markingLost, setMarkingLost] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [companies, setCompanies] = useState([]);
@@ -642,6 +645,38 @@ const DealList = () => {
                 {approvingDealId === selectedDeal?.id ? 'Approving…' : 'Approve'}
               </MenuItemMui>
             )}
+            {['approved', 'quotation_sent', 'negotiation'].includes(String(selectedDeal?.status || '').toLowerCase()) && (
+              <MenuItemMui
+                onClick={async () => {
+                  const dealId = selectedDeal?.id;
+                  setAnchorEl(null);
+                  setSelectedDeal(null);
+                  if (!dealId) return;
+                  try {
+                    await apiService.updateDeal(dealId, { status: 'won' });
+                    setSuccess('Deal marked as won');
+                    fetchDeals();
+                  } catch (err) {
+                    setError(err.message || 'Failed to mark deal as won');
+                  }
+                }}
+              >
+                <IconBriefcase size={16} style={{ marginRight: 10 }} /> Mark as Won
+              </MenuItemMui>
+            )}
+            {!['won', 'lost'].includes(String(selectedDeal?.status || '').toLowerCase()) && (
+              <MenuItemMui
+                onClick={() => {
+                  setDealToMarkLost(selectedDeal);
+                  setListLossReason('');
+                  setAnchorEl(null);
+                  setSelectedDeal(null);
+                }}
+                sx={{ color: 'error.main' }}
+              >
+                <IconX size={16} style={{ marginRight: 10 }} /> Mark as Lost
+              </MenuItemMui>
+            )}
             <MenuItemMui onClick={() => { setDealToDelete(selectedDeal); setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
               <IconTrash size={16} style={{ marginRight: 10 }} /> Delete
             </MenuItemMui>
@@ -670,6 +705,59 @@ const DealList = () => {
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button onClick={() => setDeleteDialogOpen(false)} sx={{ borderRadius: 2 }}>Cancel</Button>
           <Button onClick={handleDelete} color="error" variant="contained" sx={{ borderRadius: 2 }}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(dealToMarkLost)}
+        onClose={() => !markingLost && setDealToMarkLost(null)}
+        PaperProps={{ sx: { borderRadius: 3 } }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle fontWeight={700}>Mark as Lost</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Optionally provide a reason for losing <strong>"{dealToMarkLost?.title}"</strong>.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            fullWidth
+            multiline
+            minRows={2}
+            label="Reason for loss"
+            value={listLossReason}
+            onChange={(e) => setListLossReason(e.target.value)}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setDealToMarkLost(null)} disabled={markingLost} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={markingLost}
+            sx={{ borderRadius: 2 }}
+            onClick={async () => {
+              if (!dealToMarkLost?.id) return;
+              try {
+                setMarkingLost(true);
+                await apiService.updateDeal(dealToMarkLost.id, {
+                  status: 'lost',
+                  lossReason: listLossReason.trim() || null,
+                });
+                setSuccess('Deal marked as lost');
+                setDealToMarkLost(null);
+                fetchDeals();
+              } catch (err) {
+                setError(err.message || 'Failed to mark deal as lost');
+              } finally {
+                setMarkingLost(false);
+              }
+            }}
+          >
+            {markingLost ? 'Saving…' : 'Confirm Lost'}
+          </Button>
         </DialogActions>
       </Dialog>
     </PageContainer>

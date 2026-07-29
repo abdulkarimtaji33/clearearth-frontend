@@ -5,6 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
+    this._refreshPromise = null;
   }
 
   getUploadUrl(path) {
@@ -15,6 +16,10 @@ class ApiService {
 
   getAuthToken() {
     return localStorage.getItem('accessToken');
+  }
+
+  getRefreshToken() {
+    return localStorage.getItem('refreshToken');
   }
 
   setAuthToken(token) {
@@ -28,6 +33,57 @@ class ApiService {
   clearTokens() {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+  }
+
+  /** Endpoints where 401 means bad credentials / invalid refresh — do not force logout redirect. */
+  _isAuthCredentialEndpoint(endpoint) {
+    return [
+      '/auth/login',
+      '/auth/register',
+      '/auth/refresh-token',
+      '/auth/forgot-password',
+      '/auth/reset-password',
+    ].some((path) => endpoint.startsWith(path));
+  }
+
+  async tryRefreshToken() {
+    if (this._refreshPromise) return this._refreshPromise;
+
+    this._refreshPromise = (async () => {
+      const refreshToken = this.getRefreshToken();
+      if (!refreshToken) return false;
+
+      try {
+        const response = await fetch(`${this.baseURL}/auth/refresh-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.data?.accessToken) return false;
+
+        this.setAuthToken(data.data.accessToken);
+        if (data.data.refreshToken) {
+          this.setRefreshToken(data.data.refreshToken);
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+
+    try {
+      return await this._refreshPromise;
+    } finally {
+      this._refreshPromise = null;
+    }
+  }
+
+  _forceLoginRedirect() {
+    this.clearTokens();
+    if (!window.location.pathname.startsWith('/auth/')) {
+      window.location.href = '/auth/login';
+    }
   }
 
   async request(endpoint, options = {}) {
@@ -52,9 +108,12 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401) {
-          this.clearTokens();
-          window.location.href = '/auth/login';
+        if (response.status === 401 && !options._retry && !this._isAuthCredentialEndpoint(endpoint)) {
+          const refreshed = await this.tryRefreshToken();
+          if (refreshed) {
+            return this.request(endpoint, { ...options, _retry: true });
+          }
+          this._forceLoginRedirect();
         }
         const error = new Error(formatApiErrorMessage(data));
         error.status = response.status;

@@ -36,8 +36,14 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to load user:', error);
-      apiService.clearTokens();
-      setIsAuthenticated(false);
+      // Only wipe the session on auth failures — keep tokens on network/server blips
+      if (error?.status === 401 || error?.status === 403) {
+        apiService.clearTokens();
+        setIsAuthenticated(false);
+        setUser(null);
+        setTenant(null);
+        setPermissions([]);
+      }
     } finally {
       setLoading(false);
     }

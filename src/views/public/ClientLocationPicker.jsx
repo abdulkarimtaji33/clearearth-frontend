@@ -50,8 +50,9 @@ export default function ClientLocationPicker() {
       })
       .catch((e) => {
         const msg = e.message || '';
-        setPageError(msg.includes('expired') || e.status === 410 ? 'expired' : msg || 'Link not found');
-        setPageState(msg.includes('expired') || e.status === 410 ? 'expired' : 'error');
+        const isExpired = e.status === 410;
+        setPageError(isExpired ? 'expired' : msg || 'Link not found');
+        setPageState(isExpired ? 'expired' : 'error');
       });
   }, [token]);
 

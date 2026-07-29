@@ -13,6 +13,7 @@ import {
   Alert,
   InputAdornment,
   Tooltip,
+  GlobalStyles,
 } from '@mui/material';
 import { IconCurrentLocation, IconSearch, IconX, IconMapPin } from '@tabler/icons-react';
 import {
@@ -180,7 +181,11 @@ export default function LocationPickerDialog({ open, onClose, onConfirm, initial
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+    <>
+      {/* Google's autocomplete dropdown is appended to <body> with its own low z-index,
+          which puts it behind MUI's Dialog (z-index 1300) unless overridden here. */}
+      <GlobalStyles styles={{ '.pac-container': { zIndex: 1400 } }} />
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <IconMapPin size={20} />
@@ -261,6 +266,7 @@ export default function LocationPickerDialog({ open, onClose, onConfirm, initial
           Confirm Location
         </Button>
       </DialogActions>
-    </Dialog>
+      </Dialog>
+    </>
   );
 }

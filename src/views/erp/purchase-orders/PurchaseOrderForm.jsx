@@ -19,7 +19,6 @@ import {
   TableHead,
   TableRow,
   IconButton,
-  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -32,6 +31,7 @@ import { IconArrowLeft, IconPlus, IconTrash, IconFileDownload } from '@tabler/ic
 import PageContainer from '../../../components/container/PageContainer';
 import UomSelectField from '../../../components/erp/UomSelectField';
 import apiService from '../../../services/api';
+import TermsOrderSelector from '../../../components/erp/TermsOrderSelector';
 import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 import { billListPath } from '../../../utils/purchaseBills';
@@ -747,29 +747,10 @@ const PurchaseOrderForm = () => {
                   <Typography variant="h5" fontWeight={600} mb={3}>Terms & Conditions (Optional)</Typography>
                   <Divider sx={{ mb: 3 }} />
                   <Box position="relative">
-                    <Autocomplete
-                      multiple
-                      fullWidth
+                    <TermsOrderSelector
                       options={termsAndConditions}
-                      getOptionLabel={(opt) => opt.title || ''}
-                      value={termsAndConditions.filter((t) => (values.termsAndConditionsIds || []).includes(t.id))}
-                      onChange={(_, val) => setFieldValue('termsAndConditionsIds', val ? val.map((t) => t.id) : [])}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Terms & Conditions" placeholder="Select terms..." sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
-                      )}
-                      renderTags={(val, getTagProps) =>
-                        val.map((opt, idx) => (
-                          <Chip
-                            key={opt.id}
-                            label={opt.title}
-                            {...getTagProps({ index: idx })}
-                            onDelete={getTagProps({ index: idx }).onDelete}
-                            size="small"
-                            sx={{ borderRadius: 1 }}
-                          />
-                        ))
-                      }
-                      isOptionEqualToValue={(a, b) => a?.id === b?.id}
+                      value={values.termsAndConditionsIds || []}
+                      onChange={(ids) => setFieldValue('termsAndConditionsIds', ids)}
                     />
                     <Box
                       sx={{

@@ -35,6 +35,7 @@ import {
 } from '@tabler/icons-react';
 import { useAuth } from '../../../context/AuthContext';
 import apiService from '../../../services/api';
+import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 
 const CONDITIONS = ['Good', 'Fair', 'Poor', 'Damaged'];
 
@@ -122,6 +123,10 @@ const DriverPickupTaskView = () => {
   const [quantity, setQuantity] = useState('');
   const [uom, setUom] = useState('');
   const [uomOptions, setUomOptions] = useState([]);
+  // `uom` holds the raw catalog value (submitted with the pickup); resolve it to the
+  // display name only where it is shown to the driver.
+  const { format: formatUomValue } = useUnitsOfMeasure();
+  const uomLabel = formatUomValue(uom, '');
   const [condition, setCondition] = useState('');
   const [remarks, setRemarks] = useState('');
   const [newPhotos, setNewPhotos] = useState([]); // { file, preview }
@@ -363,14 +368,14 @@ const DriverPickupTaskView = () => {
               <Box minWidth={100}>
                 <Typography variant="caption" color="text.disabled">Expected Qty</Typography>
                 <Typography variant="body2" fontWeight={700}>
-                  {pickup.material.quantity}{uom ? ` ${uom}` : ''}
+                  {pickup.material.quantity}{uomLabel ? ` ${uomLabel}` : ''}
                 </Typography>
               </Box>
             )}
             {uom && (
               <Box minWidth={80}>
                 <Typography variant="caption" color="text.disabled">UOM</Typography>
-                <Typography variant="body2" fontWeight={700}>{uom}</Typography>
+                <Typography variant="body2" fontWeight={700}>{uomLabel}</Typography>
               </Box>
             )}
             {pickup.material?.specification && (

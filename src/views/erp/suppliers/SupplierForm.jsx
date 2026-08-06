@@ -34,12 +34,13 @@ import { IconArrowLeft, IconPlus, IconTrash, IconUserPlus } from '@tabler/icons-
 import PageContainer from '../../../components/container/PageContainer';
 import OrganizationDocumentationSection from '../../../components/erp/OrganizationDocumentationSection';
 import apiService from '../../../services/api';
+import { phoneYup, validatePhone, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 
 // Suppliers: Name, Contact, Country, City, Address, Email (required), Website (optional)
 const validationSchema = Yup.object({
   companyName: Yup.string().trim().required('Supplier name is required'),
   primaryContactId: Yup.number().nullable().required('Contact is required'),
-  phone: Yup.string().trim().required('Phone is required'),
+  phone: phoneYup(Yup, { required: true, label: 'Phone number' }),
   country: Yup.string().trim().required('Country is required'),
   city: Yup.string().trim().required('City is required'),
   address: Yup.string().trim().required('Address is required'),
@@ -251,7 +252,8 @@ const SupplierForm = () => {
     try {
       const errors = {};
       if (!newContactValues.firstName) errors.firstName = 'Required';
-      if (!newContactValues.phone?.trim()) errors.phone = 'Required';
+      const contactPhoneError = validatePhone(newContactValues.phone, { required: true, label: 'Phone number' });
+      if (contactPhoneError) errors.phone = contactPhoneError;
       if (newContactValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newContactValues.email)) {
         errors.email = 'Invalid email';
       }

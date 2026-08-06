@@ -23,12 +23,14 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canGenerateInvoice, canViewDealDetails } from '../../../utils/authHelpers';
+import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 
 const ProformaInvoiceView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
   const { user } = useAuth();
+  const { formatItem: formatItemUom } = useUnitsOfMeasure();
   const allowGenerateInvoice = canGenerateInvoice(user);
   const allowDealDetails = canViewDealDetails(user);
   const [row, setRow] = useState(null);
@@ -190,7 +192,7 @@ const ProformaInvoiceView = () => {
                   items.map((it) => (
                     <TableRow key={it.id}>
                       <TableCell sx={{ pl: 2.5 }}>{it.description || it.productService?.name || '—'}</TableCell>
-                      <TableCell>{it.unit_of_measure || it.productService?.unit_of_measure || '—'}</TableCell>
+                      <TableCell>{formatItemUom(it)}</TableCell>
                       <TableCell align="right">{fmt(it.quantity)}</TableCell>
                       <TableCell align="right">{fmt(it.unit_price)}</TableCell>
                       <TableCell align="right" sx={{ pr: 2.5 }}>{fmt(it.line_total)}</TableCell>

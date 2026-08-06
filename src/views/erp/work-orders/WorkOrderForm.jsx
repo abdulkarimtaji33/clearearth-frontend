@@ -22,6 +22,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { validatePhone, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 import WorkTypesManageDialog from './WorkTypesManageDialog';
@@ -193,6 +194,8 @@ const WorkOrderForm = () => {
   const [collectionFields, setCollectionFields] = useState({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' });
   const [collectionSaving, setCollectionSaving] = useState(false);
   const [collectionError, setCollectionError] = useState('');
+  // Surfaced under the field itself so the driver's number is fixed before saving.
+  const collectionPhoneError = validatePhone(collectionFields.pickup_contact_number, { label: 'Contact number' });
   const pendingDriverId = useRef(null);
 
   const sensors = useSensors(
@@ -472,6 +475,11 @@ const WorkOrderForm = () => {
   const saveCollectionDetails = async () => {
     if (!collectionFields.pickup_location && !collectionFields.pickup_contact_name && !collectionFields.pickup_contact_number) {
       setCollectionError('Fill in at least one collection detail (Maps link, contact name, or phone number)');
+      return;
+    }
+    const phoneError = validatePhone(collectionFields.pickup_contact_number, { label: 'Contact number' });
+    if (phoneError) {
+      setCollectionError(phoneError);
       return;
     }
     if (!form.dealId) {
@@ -1106,9 +1114,13 @@ const WorkOrderForm = () => {
             <TextField
               fullWidth
               label="Contact number"
-              placeholder="+971 50 000 0000"
+              type="tel"
+              autoComplete="tel"
+              placeholder={PHONE_PLACEHOLDER}
               value={collectionFields.pickup_contact_number}
               onChange={e => setCollectionFields(f => ({ ...f, pickup_contact_number: e.target.value }))}
+              error={Boolean(collectionPhoneError)}
+              helperText={collectionPhoneError || PHONE_HELP_TEXT}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
           </Stack>

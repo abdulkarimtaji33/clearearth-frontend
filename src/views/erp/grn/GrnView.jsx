@@ -11,6 +11,7 @@ import {
 import { useNavigate, useParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 import { useAuth } from '../../../context/AuthContext';
 import { getUserRole } from '../../../utils/authHelpers';
 import GrnEvidenceThumbs from './GrnEvidenceThumbs';
@@ -24,6 +25,7 @@ const GrnView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
+  const { formatItem: formatItemUom } = useUnitsOfMeasure();
   const { user } = useAuth();
   const roleName = getUserRole(user);
   const canApprove = APPROVER_ROLES.includes(roleName);
@@ -481,7 +483,7 @@ const GrnView = () => {
                   <Typography fontWeight={700}>{fmt(it.quantity)}</Typography>
                 </TableCell>
                 <TableCell>
-                  <Chip label={it.unit_of_measure} size="small" sx={{ fontWeight: 700, height: 20, fontSize: '0.68rem' }} />
+                  <Chip label={formatItemUom(it)} size="small" sx={{ fontWeight: 700, height: 20, fontSize: '0.68rem' }} />
                 </TableCell>
                 <TableCell align="right">
                   {it.units != null && it.units !== '' ? (

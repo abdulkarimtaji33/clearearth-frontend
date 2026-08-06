@@ -43,6 +43,8 @@ import {
   inspectionDocumentAcceptLabel,
 } from '../../../utils/uploadFileTypes';
 import apiService from '../../../services/api';
+import TermsOrderSelector from '../../../components/erp/TermsOrderSelector';
+import { phoneYup, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
 import { formatStatusLabel } from '../../../utils/recordStatus';
 
@@ -54,6 +56,7 @@ const validationSchema = Yup.object({
   companyId: Yup.number().nullable().required('Company is required'),
   contactId: Yup.number().nullable().required('Contact person is required'),
   dealType: Yup.string().trim().required('Deal type is required'),
+  pickupContactNumber: phoneYup(Yup, { label: 'Contact number' }),
   logisticsKind: Yup.string().nullable().when(['dealType', 'wdsRequired'], {
     is: (dealType, wdsRequired) => dealType === 'offer_to_charge' && wdsRequired,
     then: (s) => s.oneOf(['container', 'cargo']).required('Select container or cargo type'),
@@ -1344,23 +1347,10 @@ const DealForm = () => {
                         </Box>
                       )}
                       <Box position="relative">
-                        <Autocomplete
-                          multiple
-                          fullWidth
+                        <TermsOrderSelector
                           options={termsAndConditions}
-                          getOptionLabel={(opt) => opt.title || ''}
-                          value={termsAndConditions.filter((t) => (values.termsAndConditionsIds || []).includes(t.id))}
-                          onChange={(_, val) => setFieldValue('termsAndConditionsIds', val ? val.map((t) => t.id) : [])}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Terms & Conditions"
-                              placeholder="Select terms..."
-                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                            />
-                          )}
-                          isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                          ListboxProps={{ style: { maxHeight: '300px' } }}
+                          value={values.termsAndConditionsIds || []}
+                          onChange={(ids) => setFieldValue('termsAndConditionsIds', ids)}
                         />
                         <Box
                           sx={{
@@ -1718,9 +1708,16 @@ const DealForm = () => {
                           fullWidth
                           label="Contact number"
                           name="pickupContactNumber"
+                          type="tel"
+                          autoComplete="tel"
                           value={values.pickupContactNumber || ''}
                           onChange={handleChange}
-                          placeholder="+971 50 000 0000"
+                          onBlur={handleBlur}
+                          error={touched.pickupContactNumber && Boolean(errors.pickupContactNumber)}
+                          helperText={touched.pickupContactNumber && errors.pickupContactNumber
+                            ? errors.pickupContactNumber
+                            : PHONE_HELP_TEXT}
+                          placeholder={PHONE_PLACEHOLDER}
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
 

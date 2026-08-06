@@ -48,6 +48,7 @@ import {
 } from '@tabler/icons-react';
 import { useAuth } from '../../context/AuthContext';
 import apiService from '../../services/api';
+import useUnitsOfMeasure from '../../hooks/useUnitsOfMeasure';
 import UomSelectField from './UomSelectField';
 import {
   isInspectionRole,
@@ -80,12 +81,13 @@ const FieldVal = ({ children }) => (
   <Typography variant="body2" fontWeight={600} color="text.primary">{children || '—'}</Typography>
 );
 
-const formatRequestQuantity = (request) => {
+const formatRequestQuantity = (request, formatUomValue = (v) => v || '') => {
   if (request?.quantity_uom === 'lumpsum') {
     return request.lumpsum_price != null ? `${request.lumpsum_price} (lumpsum)` : 'Lumpsum';
   }
   if (request?.quantity != null) {
-    return `${request.quantity}${request.quantity_uom ? ` ${request.quantity_uom}` : ''}`;
+    const unit = formatUomValue(request.quantity_uom, '');
+    return `${request.quantity}${unit ? ` ${unit}` : ''}`;
   }
   return '—';
 };
@@ -248,6 +250,7 @@ const InspectionStageStepper = ({ currentStatus, requestId, onUpdated }) => {
 const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButton = false }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { format: formatUomValue } = useUnitsOfMeasure();
 
   const [error, setError] = useState('');
 
@@ -601,7 +604,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                   <Grid container spacing={2}>
                     <Grid size={6}>
                       <SmallLabel>Quantity</SmallLabel>
-                      <FieldVal>{formatRequestQuantity(request)}</FieldVal>
+                      <FieldVal>{formatRequestQuantity(request, formatUomValue)}</FieldVal>
                     </Grid>
                     <Grid size={6}>
                       <SmallLabel>Service Type</SmallLabel>
@@ -878,7 +881,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                           icon={<IconWeight size={16} />}
                           label="Approx. Weight"
                           value={report.approximate_weight != null
-                            ? `${parseFloat(report.approximate_weight).toFixed(2)} ${report.weight_uom || 'kg'}`
+                            ? `${parseFloat(report.approximate_weight).toFixed(2)} ${formatUomValue(report.weight_uom || 'kg', 'kg')}`
                             : '—'}
                         />
                       </Grid>

@@ -22,6 +22,7 @@ import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconUsers } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { phoneYup, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
 
 const UserForm = () => {
@@ -89,6 +90,7 @@ const UserForm = () => {
     lastName: Yup.string().trim().required('Last name is required'),
     email: Yup.string().email('Valid email required').required('Email is required'),
     roleId: Yup.number().nullable().required('Role is required'),
+    phone: phoneYup(Yup, { label: 'Phone number' }),
     ...(isEdit
       ? {
           password: Yup.string().test(
@@ -223,8 +225,14 @@ const UserForm = () => {
                       fullWidth
                       label="Phone (optional)"
                       name="phone"
+                      type="tel"
+                      autoComplete="tel"
+                      placeholder={PHONE_PLACEHOLDER}
                       value={values.phone}
                       onChange={handleChange}
+                      onBlur={handleBlur}
+                      error={touched.phone && Boolean(errors.phone)}
+                      helperText={touched.phone && errors.phone ? errors.phone : PHONE_HELP_TEXT}
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 320 }}
                     />
                     <Autocomplete

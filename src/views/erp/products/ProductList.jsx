@@ -38,10 +38,12 @@ import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
+import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 
 const ProductList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { format: formatUomValue } = useUnitsOfMeasure();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -265,7 +267,7 @@ const ProductList = () => {
                         {product.description && <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 240, display: 'block' }}>{product.description.substring(0, 60)}{product.description.length > 60 ? '…' : ''}</Typography>}
                       </TableCell>
                       <TableCell><Chip label={product.category} size="small" color="primary" variant="outlined" sx={{ fontWeight: 600 }} /></TableCell>
-                      <TableCell><Typography variant="body2" color="text.secondary">{product.unit_of_measure || '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" color="text.secondary">{formatUomValue(product.unit_of_measure)}</Typography></TableCell>
                       <TableCell><Typography variant="body2" fontWeight={600}>{product.price ? Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}</Typography></TableCell>
                       <TableCell><Chip label={product.status} size="small" color={product.status === 'active' ? 'success' : 'default'} sx={{ fontWeight: 600 }} /></TableCell>
                       <TableCell align="right" onClick={e => e.stopPropagation()}>

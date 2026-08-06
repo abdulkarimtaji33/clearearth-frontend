@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import apiService from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { invalidateUnitsOfMeasure } from '../../hooks/useUnitsOfMeasure';
 
 const slugify = (s) =>
   String(s || '')
@@ -56,6 +57,9 @@ const UomSelectField = ({
       });
       if (res.success && res.data) {
         const created = res.data;
+        // Drop the shared catalog cache so read-only views resolve the new unit's
+        // display name without a page reload.
+        invalidateUnitsOfMeasure();
         const next = [...unitsOfMeasure, created].sort(
           (a, b) => (a.display_order || 0) - (b.display_order || 0) || String(a.display_name).localeCompare(String(b.display_name)),
         );

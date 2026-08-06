@@ -11,17 +11,13 @@ import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconX, IconBuilding } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-
-const PHONE_REGEX = /^\+?[0-9\s\-().]{7,20}$/;
+import { phoneYup, validatePhone, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 
 const validationSchema = Yup.object({
   firstName: Yup.string().trim().required('First name is required'),
   contactType: Yup.string().oneOf(['clients', 'vendors']).required('Contact type is required'),
   lastName: Yup.string().trim().nullable().transform(v => v || ''),
-  phone: Yup.string()
-    .trim()
-    .required('Phone is required')
-    .matches(PHONE_REGEX, 'Enter a valid phone number (7–20 digits, may include +, spaces, dashes)'),
+  phone: phoneYup(Yup, { required: true, label: 'Phone number' }),
   email: Yup.string()
     .nullable()
     .transform((v) => (v && String(v).trim()) || null)
@@ -146,7 +142,8 @@ const ContactForm = () => {
   const handleCreateCompany = async () => {
     const errs = {};
     if (!newCompanyValues.companyName?.trim()) errs.companyName = 'Required';
-    if (!newCompanyValues.phone?.trim()) errs.phone = 'Required';
+    const companyPhoneError = validatePhone(newCompanyValues.phone, { required: true, label: 'Phone number' });
+    if (companyPhoneError) errs.phone = companyPhoneError;
     if (!newCompanyValues.country?.trim()) errs.country = 'Required';
     if (!newCompanyValues.city?.trim()) errs.city = 'Required';
     if (!newCompanyValues.address?.trim()) errs.address = 'Required';
@@ -281,12 +278,14 @@ const ContactForm = () => {
                       <Grid size={{ xs: 12, md: 6 }}>
                         <TextField
                           fullWidth required label="Phone" name="phone"
-                          placeholder="+971 50 000 0000"
+                          placeholder={PHONE_PLACEHOLDER}
                           value={values.phone} onChange={handleChange} onBlur={handleBlur}
                           error={touched.phone && Boolean(errors.phone)}
-                          helperText={touched.phone ? errors.phone : 'e.g. +971 50 000 0000'}
+                          helperText={touched.phone && errors.phone ? errors.phone : PHONE_HELP_TEXT}
                           sx={tfSx}
-                          inputProps={{ maxLength: 20 }}
+                          type="tel"
+                          autoComplete="tel"
+                          inputProps={{ maxLength: 25, inputMode: 'tel' }}
                         />
                       </Grid>
                       {showClientOrg && (

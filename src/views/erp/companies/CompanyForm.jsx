@@ -34,6 +34,7 @@ import { IconArrowLeft, IconPlus, IconTrash, IconUserPlus } from '@tabler/icons-
 import PageContainer from '../../../components/container/PageContainer';
 import OrganizationDocumentationSection from '../../../components/erp/OrganizationDocumentationSection';
 import apiService from '../../../services/api';
+import { phoneYup, validatePhone, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 
 // Clients: Name, Primary Contact, Country, City, Address, Email (required), Website (optional)
 const validationSchema = Yup.object({
@@ -43,6 +44,7 @@ const validationSchema = Yup.object({
   city: Yup.string().trim().required('City is required'),
   address: Yup.string().trim().required('Address is required'),
   email: Yup.string().email('Invalid email').required('Email is required'),
+  phone: phoneYup(Yup, { label: 'Phone number' }),
   website: Yup.string().url('Invalid URL').nullable().transform((v) => v || null),
   vatNumber: Yup.string().trim().nullable().transform((v) => v || null),
 });
@@ -51,6 +53,7 @@ const contactValidationSchema = Yup.object({
   firstName: Yup.string().required('First name is required'),
   lastName: Yup.string().required('Last name is required'),
   email: Yup.string().email('Invalid email').nullable(),
+  phone: phoneYup(Yup, { required: true, label: 'Phone number' }),
 });
 
 const CompanyForm = () => {
@@ -260,7 +263,8 @@ const CompanyForm = () => {
     try {
       const errors = {};
       if (!newContactValues.firstName) errors.firstName = 'Required';
-      if (!newContactValues.phone?.trim()) errors.phone = 'Required';
+      const contactPhoneError = validatePhone(newContactValues.phone, { required: true, label: 'Phone number' });
+      if (contactPhoneError) errors.phone = contactPhoneError;
       if (newContactValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newContactValues.email)) {
         errors.email = 'Invalid email';
       }
@@ -423,12 +427,14 @@ const CompanyForm = () => {
                         fullWidth
                         label="Phone"
                         name="phone"
-                        placeholder="Optional"
+                        type="tel"
+                        autoComplete="tel"
+                        placeholder={PHONE_PLACEHOLDER}
                         value={values.phone || ''}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         error={touched.phone && Boolean(errors.phone)}
-                        helperText={touched.phone ? errors.phone : ' '}
+                        helperText={touched.phone && errors.phone ? errors.phone : `Optional. ${PHONE_HELP_TEXT}`}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                     </Grid>

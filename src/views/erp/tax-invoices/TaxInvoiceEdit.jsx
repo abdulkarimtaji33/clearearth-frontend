@@ -25,11 +25,13 @@ import { IconArrowLeft, IconReceipt } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { paymentMethodSelectOptions } from '../../../constants/paymentMethods';
+import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 
 const TaxInvoiceEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
+  const { formatItem: formatItemUom } = useUnitsOfMeasure();
 
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -173,7 +175,7 @@ const TaxInvoiceEdit = () => {
                     return (
                       <TableRow key={item.id}>
                         <TableCell sx={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.name}</TableCell>
-                        <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{item.unitOfMeasure || '—'}</TableCell>
+                        <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>{formatItemUom(item)}</TableCell>
                         <TableCell align="right" sx={{ fontSize: '0.85rem' }}>{cur} {item.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell align="center">
                           <TextField

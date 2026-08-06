@@ -18,9 +18,10 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
-import { IconArrowLeft, IconUpload, IconPhoto } from '@tabler/icons-react';
+import { IconArrowLeft, IconUpload, IconPhoto, IconSignature, IconTrash } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { phoneYup, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
 
 const ADMIN_ROLES = ['admin', 'tenant_admin', 'super_admin'];
@@ -29,7 +30,7 @@ const validationSchema = Yup.object({
   name: Yup.string().trim().required('Tenant name is required'),
   company_name: Yup.string().trim().required('Company name is required'),
   email: Yup.string().email('Invalid email').required('Email is required'),
-  phone: Yup.string().nullable(),
+  phone: phoneYup(Yup, { label: 'Phone number' }),
   address: Yup.string().nullable(),
   city: Yup.string().nullable(),
   country: Yup.string().trim().nullable(),
@@ -50,6 +51,10 @@ const CompanySettings = () => {
   const [success, setSuccess] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [logoUploading, setLogoUploading] = useState(false);
+  const signatureInputRef = useRef(null);
+  const [signatureUrl, setSignatureUrl] = useState('');
+  const [signatureUploading, setSignatureUploading] = useState(false);
+  const [signatureRemoving, setSignatureRemoving] = useState(false);
   const [dropdowns, setDropdowns] = useState({ countries: [], cities: [] });
   const [leadApprovalPin, setLeadApprovalPin] = useState('');
   const [leadApprovalPinConfirm, setLeadApprovalPinConfirm] = useState('');
@@ -96,6 +101,9 @@ const CompanySettings = () => {
           if (t.logo) {
             setLogoUrl(apiService.getUploadUrl(t.logo));
           }
+          if (t.signature) {
+            setSignatureUrl(apiService.getUploadUrl(t.signature));
+          }
           setPinConfigured(Boolean(t.lead_approval_pin_configured));
         }
         if (dropdownRes.success && dropdownRes.data) {
@@ -130,6 +138,57 @@ const CompanySettings = () => {
       setError(err.message || 'Failed to upload logo');
     } finally {
       setLogoUploading(false);
+    }
+  };
+
+  const SIGNATURE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+  const SIGNATURE_MAX_BYTES = 2 * 1024 * 1024;
+
+  const handleSignatureUpload = async (e) => {
+    const file = e.target.files?.[0];
+    // Reset so re-picking the same file still fires onChange.
+    e.target.value = '';
+    if (!file) return;
+
+    if (!SIGNATURE_TYPES.includes(file.type)) {
+      setError('Signature must be a PNG, JPG or WebP image. A transparent PNG works best.');
+      return;
+    }
+    if (file.size > SIGNATURE_MAX_BYTES) {
+      setError('Signature image is too large — choose a file under 2 MB.');
+      return;
+    }
+
+    try {
+      setSignatureUploading(true);
+      setError('');
+      const res = await apiService.uploadTenantSignature(file);
+      if (res.success && res.data?.url) {
+        setSignatureUrl(res.data.url);
+        setSuccess('Signature updated. It will appear on new quotations and purchase orders.');
+        setTimeout(() => setSuccess(''), 4000);
+      }
+    } catch (err) {
+      setError(err.message || 'Could not upload the signature. Please try again.');
+    } finally {
+      setSignatureUploading(false);
+    }
+  };
+
+  const handleSignatureRemove = async () => {
+    try {
+      setSignatureRemoving(true);
+      setError('');
+      const res = await apiService.deleteTenantSignature();
+      if (res.success) {
+        setSignatureUrl('');
+        setSuccess('Signature removed. Documents will show a blank signing line.');
+        setTimeout(() => setSuccess(''), 4000);
+      }
+    } catch (err) {
+      setError(err.message || 'Could not remove the signature. Please try again.');
+    } finally {
+      setSignatureRemoving(false);
     }
   };
 
@@ -207,6 +266,78 @@ const CompanySettings = () => {
           </CardContent>
         </Card>
 
+        {/* Authorised signature card */}
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3, overflow: 'hidden' }}>
+          <Box sx={{ px: { xs: 2.5, sm: 3 }, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
+            <Typography variant="subtitle1" fontWeight={700}>Authorised Signature</Typography>
+            <Typography variant="body2" color="text.secondary">Printed beside the company stamp on quotations and purchase orders</Typography>
+          </Box>
+          <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={3}>
+              <Box
+                sx={{
+                  width: 180,
+                  height: 100,
+                  borderRadius: 3,
+                  border: '2px dashed',
+                  borderColor: signatureUrl ? 'primary.main' : 'divider',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  // A light backdrop keeps a transparent-PNG signature visible in dark mode.
+                  bgcolor: signatureUrl ? '#fff' : alpha(theme.palette.primary.main, 0.04),
+                  flexShrink: 0,
+                }}
+              >
+                {signatureUrl ? (
+                  <Box component="img" src={signatureUrl} alt="Authorised signature" sx={{ width: '100%', height: '100%', objectFit: 'contain', p: 1 }} />
+                ) : (
+                  <Stack alignItems="center" spacing={0.5}>
+                    <IconSignature size={28} style={{ opacity: 0.3 }} />
+                    <Typography variant="caption" color="text.secondary">No signature yet</Typography>
+                  </Stack>
+                )}
+              </Box>
+              <Box>
+                <input
+                  ref={signatureInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  style={{ display: 'none' }}
+                  onChange={handleSignatureUpload}
+                />
+                <Stack direction="row" spacing={1} mb={1} flexWrap="wrap" useFlexGap>
+                  <Button
+                    variant="outlined"
+                    startIcon={signatureUploading ? <CircularProgress size={16} /> : <IconUpload size={16} />}
+                    onClick={() => signatureInputRef.current?.click()}
+                    disabled={signatureUploading || signatureRemoving}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    {signatureUploading ? 'Uploading…' : signatureUrl ? 'Change signature' : 'Upload signature'}
+                  </Button>
+                  {signatureUrl && (
+                    <Button
+                      variant="text"
+                      color="error"
+                      startIcon={signatureRemoving ? <CircularProgress size={16} /> : <IconTrash size={16} />}
+                      onClick={handleSignatureRemove}
+                      disabled={signatureUploading || signatureRemoving}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      {signatureRemoving ? 'Removing…' : 'Remove'}
+                    </Button>
+                  )}
+                </Stack>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  PNG, JPG or WebP up to 2 MB. A transparent PNG of a dark-ink signature gives the cleanest result over the stamp.
+                </Typography>
+              </Box>
+            </Stack>
+          </CardContent>
+        </Card>
+
         <Formik
           initialValues={initialValues}
           validationSchema={validationSchema}
@@ -242,7 +373,20 @@ const CompanySettings = () => {
                       <TextField fullWidth label="Email" name="email" type="email" value={values.email} onChange={handleChange} onBlur={handleBlur} error={touched.email && Boolean(errors.email)} helperText={touched.email ? errors.email : ' '} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>
-                      <TextField fullWidth label="Phone" name="phone" value={values.phone || ''} onChange={handleChange} onBlur={handleBlur} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                      <TextField
+                    fullWidth
+                    label="Phone"
+                    name="phone"
+                    type="tel"
+                    autoComplete="tel"
+                    placeholder={PHONE_PLACEHOLDER}
+                    value={values.phone || ''}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    error={touched.phone && Boolean(errors.phone)}
+                    helperText={touched.phone && errors.phone ? errors.phone : PHONE_HELP_TEXT}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
                     </Grid>
                     <Grid size={12}>
                       <TextField fullWidth label="Address" name="address" multiline rows={2} value={values.address || ''} onChange={handleChange} onBlur={handleBlur} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />

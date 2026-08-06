@@ -25,6 +25,7 @@ import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { phoneYup, validatePhone, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
 import { formatStatusLabel } from '../../../utils/recordStatus';
 
@@ -41,7 +42,7 @@ const validationSchema = Yup.object({
   status: Yup.string().trim().required('Status is required'),
   productServiceId: Yup.number().nullable().required('Item is required'),
   email: Yup.string().email('Invalid email').nullable().transform((v) => v || null),
-  phone: Yup.string().nullable().transform((v) => v || null),
+  phone: phoneYup(Yup, { label: 'Phone number' }),
   notes: Yup.string().trim().nullable(),
 });
 
@@ -179,7 +180,8 @@ const LeadForm = () => {
     const setFieldValue = setFieldValueRef.current;
     const errors = {};
     if (!newCompanyValues.companyName) errors.companyName = 'Required';
-    if (!newCompanyValues.phone) errors.phone = 'Required';
+    const companyPhoneError = validatePhone(newCompanyValues.phone, { required: true, label: 'Phone number' });
+    if (companyPhoneError) errors.phone = companyPhoneError;
     if (!newCompanyValues.country) errors.country = 'Required';
     if (!newCompanyValues.city) errors.city = 'Required';
     if (!newCompanyValues.address) errors.address = 'Required';
@@ -217,7 +219,8 @@ const LeadForm = () => {
     const companyId = valuesRef.current.companyId;
     const errors = {};
     if (!newContactValues.firstName) errors.firstName = 'Required';
-    if (!newContactValues.phone?.trim()) errors.phone = 'Required';
+    const contactPhoneError = validatePhone(newContactValues.phone, { required: true, label: 'Phone number' });
+    if (contactPhoneError) errors.phone = contactPhoneError;
     if (newContactValues.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newContactValues.email)) errors.email = 'Invalid email';
     setNewContactErrors(errors);
     if (Object.keys(errors).length > 0) return;

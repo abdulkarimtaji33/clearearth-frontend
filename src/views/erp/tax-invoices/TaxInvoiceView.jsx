@@ -22,6 +22,7 @@ import { useParams, useNavigate } from 'react-router';
 import { IconArrowLeft, IconReceipt, IconFileInvoice, IconEdit, IconCoin, IconDownload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 
 const PAYMENT_COLOR = { unpaid: 'warning', partial: 'info', paid: 'success' };
 
@@ -43,6 +44,7 @@ const TaxInvoiceView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
+  const { formatItem: formatItemUom } = useUnitsOfMeasure();
   const [row, setRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -286,7 +288,7 @@ const TaxInvoiceView = () => {
                             <Typography variant="caption" color="text.secondary">{ps.name}</Typography>
                           )}
                         </TableCell>
-                        <TableCell sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{it.unit_of_measure || ps?.unit_of_measure || '—'}</TableCell>
+                        <TableCell sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{formatItemUom({ ...it, productService: ps })}</TableCell>
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{fmtQty(it.quantity)}</TableCell>
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{cur} {fmt(it.unit_price)}</TableCell>
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{cur} {fmt(it.line_total)}</TableCell>

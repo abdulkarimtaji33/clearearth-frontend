@@ -27,6 +27,7 @@ import { IconArrowLeft, IconHammer, IconCheck, IconX, IconClipboardList } from '
 import PageContainer from '../../../components/container/PageContainer';
 import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
 import apiService from '../../../services/api';
+import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
 import {
   PAID_TO_OPTIONS,
@@ -59,6 +60,7 @@ const AccountsWorkOrderView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
+  const { format: formatUomValue } = useUnitsOfMeasure();
   const [wo, setWo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -462,7 +464,7 @@ const AccountsWorkOrderView = () => {
                 const rows = [
                   ['Inspection Date', r.inspection_datetime ? new Date(r.inspection_datetime).toLocaleString() : '—'],
                   ['Cargo Packing Type', r.cargo_type || '—'],
-                  ['Approximate Weight', r.approximate_weight != null ? `${r.approximate_weight} ${r.weight_uom || ''}`.trim() : '—'],
+                  ['Approximate Weight', r.approximate_weight != null ? `${r.approximate_weight} ${formatUomValue(r.weight_uom, '')}`.trim() : '—'],
                   ['Approximate Value', r.approximate_value != null ? `AED ${parseFloat(r.approximate_value).toLocaleString()}` : '—'],
                   ['Transportation', r.transportation_arrangement || '—'],
                   ['Notes', r.notes || '—'],

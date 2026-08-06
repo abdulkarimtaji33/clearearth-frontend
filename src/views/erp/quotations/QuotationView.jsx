@@ -15,6 +15,7 @@ import { sortQuotationsByVersion, quotationVersion, quotationVersionLabel } from
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
 import { shouldHideDealFinancials, canCreateWorkOrder, canGenerateInvoice, canViewDealDetails } from '../../../utils/authHelpers';
+import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 
 const QUOTATION_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 
@@ -36,6 +37,7 @@ const QuotationView = () => {
   const [searchParams] = useSearchParams();
   const theme = useTheme();
   const { user, hasPermission } = useAuth();
+  const { formatItem: formatItemUom } = useUnitsOfMeasure();
   const viewOnly = shouldHideDealFinancials(user);
   const allowCreateWorkOrder = canCreateWorkOrder(user, hasPermission);
   const allowGenerateInvoice = canGenerateInvoice(user);
@@ -415,7 +417,7 @@ const QuotationView = () => {
                           {it.notes?.trim() || '—'}
                         </Typography>
                       </TableCell>
-                      <TableCell><Typography variant="body2" color="text.secondary">{it.unit_of_measure || it.productService?.unit_of_measure || '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" color="text.secondary">{formatItemUom(it)}</Typography></TableCell>
                       <TableCell align="right"><Typography variant="body2">{Number(it.quantity || 0).toLocaleString()}</Typography></TableCell>
                       {!viewOnly && <TableCell align="right"><Typography variant="body2">{Number(it.unit_price || 0).toFixed(2)}</Typography></TableCell>}
                       {!viewOnly && <TableCell align="right" sx={{ pr: 2.5 }}><Typography variant="body2" fontWeight={700}>{Number(it.line_total || 0).toFixed(2)}</Typography></TableCell>}

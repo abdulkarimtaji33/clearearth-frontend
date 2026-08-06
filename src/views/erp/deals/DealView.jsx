@@ -70,6 +70,7 @@ import InspectionRequestDetail from '../../../components/erp/InspectionRequestDe
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import QuotationVersionBadge from '../../../components/erp/QuotationVersionBadge';
 import apiService from '../../../services/api';
+import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 import { sortQuotationsByVersion, quotationVersionLabel } from '../../../utils/quotationVersion';
 import config from 'src/context/config';
 import { useAuth } from '../../../context/AuthContext';
@@ -462,7 +463,7 @@ const DealView = () => {
   const [inspectionPopupOpen, setInspectionPopupOpen] = useState(false);
   const [inspectionPopupData, setInspectionPopupData] = useState(null);
   const [inspectionPopupLoading, setInspectionPopupLoading] = useState(false);
-  const [uomList, setUomList] = useState([]);
+  const { formatItem: formatDealItemUom } = useUnitsOfMeasure();
   const [approveLoading, setApproveLoading] = useState(false);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [approvalLoading, setApprovalLoading] = useState(false);
@@ -474,20 +475,10 @@ const DealView = () => {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    apiService.getAllDropdowns().then((r) => {
-      if (r.success) setUomList(r.data.units_of_measure || []);
-    });
     apiService.getTenant().then((res) => {
       if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
     }).catch(() => {});
   }, []);
-
-  const formatDealItemUom = (item) => {
-    const v = item.unit_of_measure || item.productService?.unit_of_measure;
-    if (!v) return '—';
-    const o = uomList.find((u) => u.value === v);
-    return o?.display_name || v;
-  };
 
   const fetchDeal = useCallback(async () => {
     if (!id) return;

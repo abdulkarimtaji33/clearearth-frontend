@@ -22,7 +22,7 @@ import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconUsers } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { phoneYup, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
+import { phoneYup, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
 
 const UserForm = () => {
@@ -229,8 +229,9 @@ const UserForm = () => {
                       autoComplete="tel"
                       placeholder={PHONE_PLACEHOLDER}
                       value={values.phone}
-                      onChange={handleChange}
+                      onChange={(e) => setFieldValue('phone', sanitizePhoneInput(e.target.value))}
                       onBlur={handleBlur}
+                      inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
                       error={touched.phone && Boolean(errors.phone)}
                       helperText={touched.phone && errors.phone ? errors.phone : PHONE_HELP_TEXT}
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 320 }}

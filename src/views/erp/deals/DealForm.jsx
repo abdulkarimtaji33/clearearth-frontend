@@ -44,7 +44,7 @@ import {
 } from '../../../utils/uploadFileTypes';
 import apiService from '../../../services/api';
 import TermsOrderSelector from '../../../components/erp/TermsOrderSelector';
-import { phoneYup, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
+import { phoneYup, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
 import { formatStatusLabel } from '../../../utils/recordStatus';
 
@@ -1326,7 +1326,7 @@ const DealForm = () => {
                     
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: showAssignedTo ? '1fr 1fr' : '1fr' }, gap: 3 }}>
                       {showAssignedTo && (
-                        <Box>
+                        <Box sx={{ minWidth: 0 }}>
                           <Autocomplete
                             fullWidth
                             options={users}
@@ -1346,7 +1346,7 @@ const DealForm = () => {
                           />
                         </Box>
                       )}
-                      <Box position="relative">
+                      <Box position="relative" sx={{ minWidth: 0 }}>
                         <TermsOrderSelector
                           options={termsAndConditions}
                           value={values.termsAndConditionsIds || []}
@@ -1711,8 +1711,9 @@ const DealForm = () => {
                           type="tel"
                           autoComplete="tel"
                           value={values.pickupContactNumber || ''}
-                          onChange={handleChange}
+                          onChange={(e) => setFieldValue('pickupContactNumber', sanitizePhoneInput(e.target.value))}
                           onBlur={handleBlur}
+                          inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
                           error={touched.pickupContactNumber && Boolean(errors.pickupContactNumber)}
                           helperText={touched.pickupContactNumber && errors.pickupContactNumber
                             ? errors.pickupContactNumber

@@ -11,7 +11,7 @@ import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconX, IconBuilding } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { phoneYup, validatePhone, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
+import { phoneYup, validatePhone, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 
 const validationSchema = Yup.object({
   firstName: Yup.string().trim().required('First name is required'),
@@ -279,7 +279,8 @@ const ContactForm = () => {
                         <TextField
                           fullWidth required label="Phone" name="phone"
                           placeholder={PHONE_PLACEHOLDER}
-                          value={values.phone} onChange={handleChange} onBlur={handleBlur}
+                          value={values.phone} onChange={(e) => setFieldValue('phone', sanitizePhoneInput(e.target.value))} onBlur={handleBlur}
+                          inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
                           error={touched.phone && Boolean(errors.phone)}
                           helperText={touched.phone && errors.phone ? errors.phone : PHONE_HELP_TEXT}
                           sx={tfSx}
@@ -446,7 +447,7 @@ const ContactForm = () => {
               <TextField fullWidth required label="Company Name" value={newCompanyValues.companyName} onChange={e => setNewCompanyValues(v => ({ ...v, companyName: e.target.value }))} error={Boolean(newCompanyErrors.companyName)} helperText={newCompanyErrors.companyName || ' '} sx={tfSx} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField fullWidth required label="Phone" value={newCompanyValues.phone} onChange={e => setNewCompanyValues(v => ({ ...v, phone: e.target.value }))} error={Boolean(newCompanyErrors.phone)} helperText={newCompanyErrors.phone || ' '} sx={tfSx} />
+              <TextField fullWidth required label="Phone" value={newCompanyValues.phone} onChange={e => setNewCompanyValues(v => ({ ...v, phone: sanitizePhoneInput(e.target.value) }))} inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }} error={Boolean(newCompanyErrors.phone)} helperText={newCompanyErrors.phone || ' '} sx={tfSx} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField fullWidth label="Email" type="email" value={newCompanyValues.email} onChange={e => setNewCompanyValues(v => ({ ...v, email: e.target.value }))} error={Boolean(newCompanyErrors.email)} helperText={newCompanyErrors.email || ' '} sx={tfSx} />

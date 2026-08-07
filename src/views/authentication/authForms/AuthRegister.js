@@ -8,6 +8,7 @@ import CustomTextField from '../../../components/forms/theme-elements/CustomText
 import CustomFormLabel from '../../../components/forms/theme-elements/CustomFormLabel';
 import { Stack } from '@mui/system';
 import { useAuth } from '../../../context/AuthContext';
+import { phoneYup, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 
 const validationSchema = Yup.object({
   tenantName: Yup.string().required('Tenant name is required'),
@@ -23,7 +24,7 @@ const validationSchema = Yup.object({
     .required('Confirm password is required'),
   firstName: Yup.string().required('First name is required'),
   lastName: Yup.string().required('Last name is required'),
-  phone: Yup.string().required('Phone is required'),
+  phone: phoneYup(Yup, { required: true, label: 'Phone' }),
 });
 
 const AuthRegister = ({ title, subtitle, subtext }) => {
@@ -75,7 +76,7 @@ const AuthRegister = ({ title, subtitle, subtext }) => {
         validationSchema={validationSchema}
         onSubmit={handleSubmit}
       >
-        {({ values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting }) => (
+        {({ values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting, setFieldValue }) => (
           <form onSubmit={handleSubmit}>
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>
@@ -165,11 +166,13 @@ const AuthRegister = ({ title, subtitle, subtext }) => {
                   name="phone"
                   variant="outlined"
                   fullWidth
+                  placeholder={PHONE_PLACEHOLDER}
                   value={values.phone}
-                  onChange={handleChange}
+                  onChange={(e) => setFieldValue('phone', sanitizePhoneInput(e.target.value))}
                   onBlur={handleBlur}
+                  inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
                   error={touched.phone && Boolean(errors.phone)}
-                  helperText={touched.phone && errors.phone}
+                  helperText={touched.phone && errors.phone ? errors.phone : PHONE_HELP_TEXT}
                 />
               </Box>
 

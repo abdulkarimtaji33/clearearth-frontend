@@ -25,7 +25,7 @@ import {
 import { TextField, InputAdornment, Autocomplete } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { validatePhone, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
+import { validatePhone, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
 import { shouldHideDealFinancials, canGenerateInvoice, canViewDealDetails } from '../../../utils/authHelpers';
 import LocationPickerDialog from '../../../components/LocationPickerDialog';
@@ -1262,7 +1262,8 @@ const WorkOrderView = () => {
               type="tel"
               autoComplete="tel"
               value={collectionFields.pickup_contact_number}
-              onChange={e => setCollectionFields(f => ({ ...f, pickup_contact_number: e.target.value }))}
+              onChange={e => setCollectionFields(f => ({ ...f, pickup_contact_number: sanitizePhoneInput(e.target.value) }))}
+              inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
               placeholder={PHONE_PLACEHOLDER}
               error={Boolean(collectionPhoneError)}
               helperText={collectionPhoneError || PHONE_HELP_TEXT}

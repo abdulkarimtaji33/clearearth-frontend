@@ -34,7 +34,7 @@ import { IconArrowLeft, IconPlus, IconTrash, IconUserPlus } from '@tabler/icons-
 import PageContainer from '../../../components/container/PageContainer';
 import OrganizationDocumentationSection from '../../../components/erp/OrganizationDocumentationSection';
 import apiService from '../../../services/api';
-import { phoneYup, validatePhone, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
+import { phoneYup, validatePhone, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 
 // Suppliers: Name, Contact, Country, City, Address, Email (required), Website (optional)
 const validationSchema = Yup.object({
@@ -440,8 +440,9 @@ const SupplierForm = () => {
                         name="phone"
                         placeholder="Required"
                         value={values.phone || ''}
-                        onChange={handleChange}
+                        onChange={(e) => setFieldValue('phone', sanitizePhoneInput(e.target.value))}
                         onBlur={handleBlur}
+                        inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
                         error={touched.phone && Boolean(errors.phone)}
                         helperText={touched.phone ? errors.phone : ' '}
                         required
@@ -923,7 +924,8 @@ const SupplierForm = () => {
                 fullWidth
                 label="Phone"
                 value={newContactValues.phone}
-                onChange={(e) => setNewContactValues((v) => ({ ...v, phone: e.target.value }))}
+                onChange={(e) => setNewContactValues((v) => ({ ...v, phone: sanitizePhoneInput(e.target.value) }))}
+                inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
                 error={Boolean(newContactErrors.phone)}
                 helperText={newContactErrors.phone}
                 required

@@ -181,7 +181,7 @@ const TermsOrderSelector = ({
   const handleRemove = (id) => onChange(value.filter((v) => v !== id));
 
   return (
-    <Box>
+    <Box sx={{ minWidth: 0 }}>
       <Autocomplete
         fullWidth
         disabled={disabled}

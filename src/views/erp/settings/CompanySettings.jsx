@@ -21,7 +21,7 @@ import * as Yup from 'yup';
 import { IconArrowLeft, IconUpload, IconPhoto, IconSignature, IconTrash } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { phoneYup, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
+import { phoneYup, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
 
 const ADMIN_ROLES = ['admin', 'tenant_admin', 'super_admin'];
@@ -353,7 +353,7 @@ const CompanySettings = () => {
             }
           }}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting }) => (
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit, isSubmitting, setFieldValue }) => (
             <form onSubmit={handleSubmit}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3, overflow: 'hidden' }}>
                 <Box sx={{ px: { xs: 2.5, sm: 3 }, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
@@ -381,8 +381,9 @@ const CompanySettings = () => {
                     autoComplete="tel"
                     placeholder={PHONE_PLACEHOLDER}
                     value={values.phone || ''}
-                    onChange={handleChange}
+                    onChange={(e) => setFieldValue('phone', sanitizePhoneInput(e.target.value))}
                     onBlur={handleBlur}
+                    inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
                     error={touched.phone && Boolean(errors.phone)}
                     helperText={touched.phone && errors.phone ? errors.phone : PHONE_HELP_TEXT}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}

@@ -25,7 +25,7 @@ import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { phoneYup, validatePhone, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
+import { phoneYup, validatePhone, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
 import { formatStatusLabel } from '../../../utils/recordStatus';
 
@@ -539,8 +539,9 @@ const LeadForm = () => {
                         name="phone"
                         placeholder="Optional"
                         value={values.phone || ''}
-                        onChange={handleChange}
+                        onChange={(e) => setFieldValue('phone', sanitizePhoneInput(e.target.value))}
                         onBlur={handleBlur}
+                        inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
                         error={touched.phone && Boolean(errors.phone)}
                         helperText={touched.phone ? errors.phone : ' '}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -734,7 +735,8 @@ const LeadForm = () => {
                 </TextField>
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField fullWidth label="Phone" required value={newCompanyValues.phone} onChange={(e) => setNewCompanyValues((v) => ({ ...v, phone: e.target.value }))}
+                <TextField fullWidth label="Phone" required value={newCompanyValues.phone} onChange={(e) => setNewCompanyValues((v) => ({ ...v, phone: sanitizePhoneInput(e.target.value) }))}
+                  inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
                   error={Boolean(newCompanyErrors.phone)} helperText={newCompanyErrors.phone} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
@@ -797,7 +799,8 @@ const LeadForm = () => {
                   error={Boolean(newContactErrors.lastName)} helperText={newContactErrors.lastName} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField fullWidth label="Phone" value={newContactValues.phone} onChange={(e) => setNewContactValues((v) => ({ ...v, phone: e.target.value }))}
+                <TextField fullWidth label="Phone" value={newContactValues.phone} onChange={(e) => setNewContactValues((v) => ({ ...v, phone: sanitizePhoneInput(e.target.value) }))}
+                  inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
                   error={Boolean(newContactErrors.phone)} helperText={newContactErrors.phone} required sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>

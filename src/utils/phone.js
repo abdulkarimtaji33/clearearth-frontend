@@ -1,19 +1,17 @@
 /**
  * Phone number validation shared by every form in the app.
  *
- * Kept deliberately permissive about formatting (users paste numbers with spaces,
- * dashes, brackets and a leading +) but strict about the thing that actually matters:
- * the count of digits. UAE numbers are 9 digits after the country code, so the 7–15
- * range covers local and international numbers alike — 15 is the E.164 maximum.
+ * Only digits and a single leading "+" (country code) are accepted — no spaces,
+ * dashes, brackets or letters. Digit count must be 9–16.
  *
  * Mirrors clearearth-backend/src/utils/phone.js — keep both in sync.
  */
 
-export const PHONE_MIN_DIGITS = 7;
-export const PHONE_MAX_DIGITS = 15;
+export const PHONE_MIN_DIGITS = 9;
+export const PHONE_MAX_DIGITS = 16;
 
-/** Characters we accept in raw input: digits, spaces, +, -, (), and dots. */
-const ALLOWED_CHARS = /^[+()\d\s.-]+$/;
+/** Characters we accept in raw input: digits and a leading +. */
+const ALLOWED_CHARS = /^[+\d]+$/;
 
 /** Strip formatting down to digits so length rules apply to the number itself. */
 export function phoneDigits(value) {
@@ -32,22 +30,22 @@ export function validatePhone(value, { required = false, label = 'Phone number' 
   }
 
   if (!ALLOWED_CHARS.test(raw)) {
-    return `${label} can only contain digits, spaces and + ( ) -  — remove any letters or other symbols.`;
+    return `${label} can only contain numbers and a leading + — remove any spaces, letters or other symbols.`;
   }
 
   // A "+" is only meaningful as a country-code prefix at the very start.
   if (raw.includes('+') && !raw.startsWith('+')) {
-    return `${label} can only use + at the start, for the country code (e.g. +971 50 123 4567).`;
+    return `${label} can only use + at the start, for the country code (e.g. +971501234567).`;
   }
 
   const digits = phoneDigits(raw);
 
   if (digits.length < PHONE_MIN_DIGITS) {
-    return `${label} is too short — enter at least ${PHONE_MIN_DIGITS} digits (e.g. +971 50 123 4567).`;
+    return `${label} is too short — enter at least ${PHONE_MIN_DIGITS} digits (e.g. +971501234567).`;
   }
 
   if (digits.length > PHONE_MAX_DIGITS) {
-    return `${label} is too long — enter no more than ${PHONE_MAX_DIGITS} digits (e.g. +971 50 123 4567).`;
+    return `${label} is too long — enter no more than ${PHONE_MAX_DIGITS} digits (e.g. +971501234567).`;
   }
 
   return null;
@@ -56,6 +54,18 @@ export function validatePhone(value, { required = false, label = 'Phone number' 
 /** Convenience boolean form. */
 export function isValidPhone(value, options) {
   return validatePhone(value, options) === null;
+}
+
+/**
+ * Strip a raw input value down to what's allowed as the user types: an optional
+ * leading + followed by digits, capped at the max digit count. Wire this into a
+ * field's onChange so invalid characters can never be typed in the first place.
+ */
+export function sanitizePhoneInput(value) {
+  const str = String(value ?? '');
+  const hasLeadingPlus = str.trimStart().startsWith('+');
+  const digits = str.replace(/\D/g, '').slice(0, PHONE_MAX_DIGITS);
+  return (hasLeadingPlus ? '+' : '') + digits;
 }
 
 /**
@@ -74,7 +84,7 @@ export function phoneYup(Yup, { required = false, label = 'Phone number' } = {})
 }
 
 /** Placeholder/help text so every phone field teaches the same format. */
-export const PHONE_PLACEHOLDER = '+971 50 123 4567';
-export const PHONE_HELP_TEXT = 'Include the country code, e.g. +971 50 123 4567';
+export const PHONE_PLACEHOLDER = '+971501234567';
+export const PHONE_HELP_TEXT = 'Numbers only, with an optional leading + for the country code, e.g. +971501234567';
 
 export default validatePhone;

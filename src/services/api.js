@@ -840,6 +840,16 @@ class ApiService {
     return this.post('/upload/tenant-logo', formData);
   }
 
+  async uploadMySignature(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.post('/upload/my-signature', formData);
+  }
+
+  async deleteMySignature() {
+    return this.delete('/upload/my-signature');
+  }
+
   async uploadTenantSignature(file) {
     const formData = new FormData();
     formData.append('file', file);

@@ -36,6 +36,10 @@ export function useAccountMenu() {
     runAfterMenuClose(() => navigate('/erp/account/password'));
   };
 
+  const goToMySignature = () => {
+    runAfterMenuClose(() => navigate('/erp/account/signature'));
+  };
+
   const handleLogout = () => {
     runAfterMenuClose(async () => {
       await logout();
@@ -50,6 +54,7 @@ export function useAccountMenu() {
     closeMenu,
     menuTransitionProps,
     goToChangePassword,
+    goToMySignature,
     handleLogout,
   };
 }

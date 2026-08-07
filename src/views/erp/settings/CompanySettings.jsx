@@ -269,8 +269,8 @@ const CompanySettings = () => {
         {/* Authorised signature card */}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3, overflow: 'hidden' }}>
           <Box sx={{ px: { xs: 2.5, sm: 3 }, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.primary.main, 0.03) }}>
-            <Typography variant="subtitle1" fontWeight={700}>Authorised Signature</Typography>
-            <Typography variant="body2" color="text.secondary">Printed beside the company stamp on quotations and purchase orders</Typography>
+            <Typography variant="subtitle1" fontWeight={700}>Default Company Signature</Typography>
+            <Typography variant="body2" color="text.secondary">Fallback only — used when the person preparing a document has not uploaded their own signature under My Signature</Typography>
           </Box>
           <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={3}>

@@ -24,6 +24,7 @@ export const Profile = () => {
     closeMenu,
     menuTransitionProps,
     goToChangePassword,
+    goToMySignature,
     handleLogout,
   } = useAccountMenu();
 
@@ -51,6 +52,7 @@ export const Profile = () => {
       displayName={displayName}
       email={user?.email}
       onChangePassword={goToChangePassword}
+        onMySignature={goToMySignature}
       onLogout={handleLogout}
       anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}

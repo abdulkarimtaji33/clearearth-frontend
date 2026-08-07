@@ -7,7 +7,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
-import { IconPower, IconLock } from '@tabler/icons';
+import { IconPower, IconLock, IconSignature } from '@tabler/icons';
 
 const AccountProfileMenu = ({
   id,
@@ -18,6 +18,7 @@ const AccountProfileMenu = ({
   displayName,
   email,
   onChangePassword,
+  onMySignature,
   onLogout,
   anchorOrigin,
   transformOrigin,
@@ -42,6 +43,10 @@ const AccountProfileMenu = ({
     <MenuItem onClick={onChangePassword}>
       <ListItemIcon><IconLock size={18} /></ListItemIcon>
       <ListItemText>Change password</ListItemText>
+    </MenuItem>
+    <MenuItem onClick={onMySignature}>
+      <ListItemIcon><IconSignature size={18} /></ListItemIcon>
+      <ListItemText>My signature</ListItemText>
     </MenuItem>
     <MenuItem onClick={onLogout} sx={{ color: 'error.main' }}>
       <ListItemIcon sx={{ color: 'error.main' }}><IconPower size={18} /></ListItemIcon>

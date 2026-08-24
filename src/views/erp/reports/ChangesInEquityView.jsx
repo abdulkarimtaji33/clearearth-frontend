@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, CircularProgress, Alert, TextField,
@@ -6,8 +6,9 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconChartBar } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
-import { normalizeChangesInEquity, buildChangesInEquityRows } from '../../../utils/reportApi';
+import { normalizeChangesInEquity, buildChangesInEquityRows, asArray } from '../../../utils/reportApi';
 
 const fmt = (n) => {
   const v = Number(n || 0);
@@ -27,6 +28,20 @@ const ChangesInEquityView = () => {
   const [error, setError] = useState('');
   const [dateFrom, setDateFrom] = useState(firstOfYear);
   const [dateTo, setDateTo] = useState(today);
+  const [accountIds, setAccountIds] = useState({ capital: null, retained: null, drawings: null });
+
+  useEffect(() => {
+    apiService.getChartOfAccounts({}).then((res) => {
+      if (res.success) {
+        const list = asArray(res.data);
+        setAccountIds({
+          capital: list.find((a) => String(a.code) === '3000')?.id ?? null,
+          retained: list.find((a) => String(a.code) === '3100')?.id ?? null,
+          drawings: list.find((a) => String(a.code) === '3200')?.id ?? null,
+        });
+      }
+    });
+  }, []);
 
   const load = useCallback(async () => {
     if (!dateFrom || !dateTo) return;
@@ -85,14 +100,14 @@ const ChangesInEquityView = () => {
                 {equityTableRows.map((row) => (
                   <TableRow key={row.label} sx={row.isTotal ? { bgcolor: alpha(theme.palette.primary.main, 0.06) } : {}}>
                     <TableCell sx={{ fontWeight: row.isTotal ? 800 : 400 }}>{row.label}</TableCell>
-                    <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: row.isTotal ? 800 : 400, borderTop: row.isTotal ? '2px solid' : 'none', borderColor: 'divider' }}>
-                      {row.capital != null ? fmt(row.capital) : '—'}
+                    <TableCell align="right" sx={{ fontWeight: row.isTotal ? 800 : 400, borderTop: row.isTotal ? '2px solid' : 'none', borderColor: 'divider' }}>
+                      {row.capital != null ? <GlAmountLink accountId={accountIds.capital} dateTo={dateTo} fontWeight={row.isTotal ? 800 : 400}>{fmt(row.capital)}</GlAmountLink> : '—'}
                     </TableCell>
-                    <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: row.isTotal ? 800 : 400, borderTop: row.isTotal ? '2px solid' : 'none', borderColor: 'divider' }}>
-                      {row.retained != null ? fmt(row.retained) : '—'}
+                    <TableCell align="right" sx={{ fontWeight: row.isTotal ? 800 : 400, borderTop: row.isTotal ? '2px solid' : 'none', borderColor: 'divider' }}>
+                      {row.retained != null ? <GlAmountLink accountId={accountIds.retained} dateTo={dateTo} fontWeight={row.isTotal ? 800 : 400}>{fmt(row.retained)}</GlAmountLink> : '—'}
                     </TableCell>
-                    <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: row.isTotal ? 800 : 400, borderTop: row.isTotal ? '2px solid' : 'none', borderColor: 'divider' }}>
-                      {row.drawings != null ? fmt(row.drawings) : '—'}
+                    <TableCell align="right" sx={{ fontWeight: row.isTotal ? 800 : 400, borderTop: row.isTotal ? '2px solid' : 'none', borderColor: 'divider' }}>
+                      {row.drawings != null ? <GlAmountLink accountId={accountIds.drawings} dateTo={dateTo} fontWeight={row.isTotal ? 800 : 400}>{fmt(row.drawings)}</GlAmountLink> : '—'}
                     </TableCell>
                     <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: row.isTotal ? 800 : 400, borderTop: row.isTotal ? '2px solid' : 'none', borderColor: 'divider' }}>
                       {row.total != null ? fmt(row.total) : '—'}

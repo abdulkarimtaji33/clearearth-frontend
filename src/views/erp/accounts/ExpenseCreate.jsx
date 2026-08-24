@@ -6,7 +6,6 @@ import {
   Typography,
   Button,
   TextField,
-  MenuItem,
   Stack,
   Alert,
 } from '@mui/material';
@@ -15,9 +14,10 @@ import { useNavigate } from 'react-router';
 import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
+import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
 import apiService from '../../../services/api';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
-import { accountLabel } from '../../../constants/paymentAccounts';
+import { filterActiveByType, isPostable } from '../../../utils/accountTree';
 import {
   PAID_TO_OPTIONS,
   PAID_TO_STORAGE_KEY,
@@ -63,16 +63,18 @@ const ExpenseCreate = () => {
     apiService.getChartOfAccounts({}).then((res) => {
       if (res.success) {
         const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
-        setExpenseAccounts(list.filter((a) => a.type === 'expense' && !a.is_group && a.is_active));
+        setExpenseAccounts(filterActiveByType(list, 'expense'));
       }
     });
   }, []);
 
-  // Default the account from the category map, but don't clobber an explicit user choice
+  // Default the account from the category map, but don't clobber an explicit user choice.
+  // Only postable (non-group) accounts are valid defaults/leaves.
   useEffect(() => {
     if (expenseAccountTouched || expenseAccounts.length === 0) return;
+    const postable = expenseAccounts.filter(isPostable);
     const code = EXPENSE_CATEGORY_TO_CODE[category] || '5100';
-    const match = expenseAccounts.find((a) => String(a.code) === code) || expenseAccounts[0];
+    const match = postable.find((a) => String(a.code) === code) || postable[0];
     if (match) setExpenseAccountId(String(match.id));
   }, [category, expenseAccounts, expenseAccountTouched]);
 
@@ -230,20 +232,14 @@ const ExpenseCreate = () => {
                 onOptionAdded={addExpenseCategory}
               />
               {expenseAccounts.length > 0 && (
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  label="Expense account"
+                <CascadingAccountSelect
+                  accounts={expenseAccounts}
                   value={expenseAccountId}
-                  onChange={(e) => { setExpenseAccountId(e.target.value); setExpenseAccountTouched(true); }}
+                  onChange={(id) => { setExpenseAccountId(id); setExpenseAccountTouched(true); }}
+                  parentLabel="Expense account"
+                  childLabel="Expense sub-account"
                   helperText="GL account debited by this expense — defaults from the category"
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                >
-                  {expenseAccounts.map((a) => (
-                    <MenuItem key={a.id} value={String(a.id)}>{accountLabel(a)}</MenuItem>
-                  ))}
-                </TextField>
+                />
               )}
               <TextField
                 required

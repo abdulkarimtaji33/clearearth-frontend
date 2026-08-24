@@ -6,6 +6,7 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconReportMoney } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
 import { normalizeIncomeStatement, asArray } from '../../../utils/reportApi';
 
@@ -16,15 +17,18 @@ const fmt = (n, parens = false) => {
   return v < 0 ? `(${s})` : s;
 };
 
-const SectionRow = ({ label, value, indent = 0, bold = false, color }) => {
-  const theme = useTheme();
+const SectionRow = ({ label, value, accountId, dateFrom, dateTo, indent = 0, bold = false, color }) => {
   return (
     <TableRow>
       <TableCell sx={{ pl: 2 + indent * 3, fontWeight: bold ? 700 : 400, color: color || 'inherit' }}>
         {label}
       </TableCell>
       <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: bold ? 700 : 400, color: color || 'inherit', width: 180 }}>
-        {value !== null && value !== undefined ? fmt(value) : ''}
+        {value !== null && value !== undefined ? (
+          accountId != null ? (
+            <GlAmountLink accountId={accountId} dateFrom={dateFrom} dateTo={dateTo} title="View postings that make up this balance">{fmt(value)}</GlAmountLink>
+          ) : fmt(value)
+        ) : ''}
       </TableCell>
       <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: bold ? 700 : 400, color: color || 'inherit', width: 180 }} />
     </TableRow>
@@ -112,7 +116,7 @@ const IncomeStatementView = () => {
                   <TableCell colSpan={3} sx={{ fontWeight: 800, letterSpacing: 0.5 }}>REVENUE</TableCell>
                 </TableRow>
                 {asArray(revenue.accounts).map((a) => (
-                  <SectionRow key={a.account_id} label={a.name} value={a.balance} indent={1} />
+                  <SectionRow key={a.account_id} label={a.name} value={a.balance} accountId={a.account_id} dateFrom={dateFrom} dateTo={dateTo} indent={1} />
                 ))}
                 <TotalRow label="Total Revenue" value={revenue.total} />
 
@@ -121,7 +125,7 @@ const IncomeStatementView = () => {
                   <TableCell colSpan={3} sx={{ fontWeight: 800, letterSpacing: 0.5, pt: 1.5 }}>COST OF REVENUE</TableCell>
                 </TableRow>
                 {asArray(cogs.accounts).map((a) => (
-                  <SectionRow key={a.account_id} label={a.name} value={a.balance} indent={1} />
+                  <SectionRow key={a.account_id} label={a.name} value={a.balance} accountId={a.account_id} dateFrom={dateFrom} dateTo={dateTo} indent={1} />
                 ))}
                 <TotalRow label="Total Cost of Revenue" value={cogs.total} />
                 <TotalRow label="Gross Profit" value={d.gross_profit} highlight />
@@ -131,7 +135,7 @@ const IncomeStatementView = () => {
                   <TableCell colSpan={3} sx={{ fontWeight: 800, letterSpacing: 0.5, pt: 1.5 }}>OPERATING EXPENSES</TableCell>
                 </TableRow>
                 {asArray(opex.accounts).map((a) => (
-                  <SectionRow key={a.account_id} label={a.name} value={a.balance} indent={1} />
+                  <SectionRow key={a.account_id} label={a.name} value={a.balance} accountId={a.account_id} dateFrom={dateFrom} dateTo={dateTo} indent={1} />
                 ))}
                 <TotalRow label="Total Operating Expenses" value={opex.total} />
                 <TotalRow label="Operating Income (EBIT)" value={d.operating_income} highlight />
@@ -143,7 +147,7 @@ const IncomeStatementView = () => {
                       <TableCell colSpan={3} sx={{ fontWeight: 800, letterSpacing: 0.5, pt: 1.5 }}>FINANCE COSTS</TableCell>
                     </TableRow>
                     {asArray(finance.accounts).map((a) => (
-                      <SectionRow key={a.account_id} label={a.name} value={a.balance} indent={1} />
+                      <SectionRow key={a.account_id} label={a.name} value={a.balance} accountId={a.account_id} dateFrom={dateFrom} dateTo={dateTo} indent={1} />
                     ))}
                     <TotalRow label="Total Finance Costs" value={finance.total} />
                   </>

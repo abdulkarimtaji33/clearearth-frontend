@@ -6,23 +6,27 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconBuildingBank } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
 import { normalizeBalanceSheet, asArray } from '../../../utils/reportApi';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const Row = ({ label, value, indent = 0, bold = false, total = false, sectionHeader = false }) => {
+const Row = ({ label, value, accountId, dateTo, indent = 0, bold = false, total = false, sectionHeader = false }) => {
   const theme = useTheme();
+  const showValue = value !== null && value !== undefined;
   return (
     <TableRow sx={sectionHeader ? { bgcolor: alpha(theme.palette.grey[500], 0.06) } : total ? { bgcolor: alpha(theme.palette.grey[500], 0.04) } : {}}>
       <TableCell sx={{ pl: 2 + indent * 3, fontWeight: bold || total ? 700 : 400, letterSpacing: sectionHeader ? 0.5 : 0 }}>
         {label}
       </TableCell>
       <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: bold || total ? 700 : 400, width: 180 }}>
-        {!total && value !== null && value !== undefined ? fmt(value) : ''}
+        {!total && showValue ? (
+          accountId != null ? <GlAmountLink accountId={accountId} dateTo={dateTo} title="View postings that make up this balance">{fmt(value)}</GlAmountLink> : fmt(value)
+        ) : ''}
       </TableCell>
       <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: bold || total ? 800 : 400, width: 180, borderTop: total ? '2px solid' : 'none', borderColor: 'divider' }}>
-        {total && value !== null && value !== undefined ? fmt(value) : ''}
+        {total && showValue ? fmt(value) : ''}
       </TableCell>
     </TableRow>
   );
@@ -96,13 +100,13 @@ const BalanceSheetView = () => {
                   <Row label="ASSETS" sectionHeader bold />
 
                   <Row label="Current Assets" indent={0} bold />
-                  {asArray(assets.current_asset).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} indent={2} />)}
+                  {asArray(assets.current_asset).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} accountId={a.account_id} dateTo={asOfDate} indent={2} />)}
                   <Row label="Total Current Assets" value={assets.total_current} total indent={1} bold />
 
                   {asArray(assets.fixed_asset).length > 0 && (
                     <>
                       <Row label="Fixed Assets" indent={0} bold />
-                      {asArray(assets.fixed_asset).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} indent={2} />)}
+                      {asArray(assets.fixed_asset).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} accountId={a.account_id} dateTo={asOfDate} indent={2} />)}
                       <Row label="Total Fixed Assets" value={assets.total_fixed} total indent={1} bold />
                     </>
                   )}
@@ -110,7 +114,7 @@ const BalanceSheetView = () => {
                   {asArray(assets.other_asset).length > 0 && (
                     <>
                       <Row label="Other Assets" indent={0} bold />
-                      {asArray(assets.other_asset).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} indent={2} />)}
+                      {asArray(assets.other_asset).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} accountId={a.account_id} dateTo={asOfDate} indent={2} />)}
                     </>
                   )}
 
@@ -126,13 +130,13 @@ const BalanceSheetView = () => {
                   <Row label="LIABILITIES" sectionHeader bold />
 
                   <Row label="Current Liabilities" indent={0} bold />
-                  {asArray(liabilities.current_liability).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} indent={2} />)}
+                  {asArray(liabilities.current_liability).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} accountId={a.account_id} dateTo={asOfDate} indent={2} />)}
                   <Row label="Total Current Liabilities" value={liabilities.total_current} total indent={1} bold />
 
                   {asArray(liabilities.long_term_liability).length > 0 && (
                     <>
                       <Row label="Long-term Liabilities" indent={0} bold />
-                      {asArray(liabilities.long_term_liability).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} indent={2} />)}
+                      {asArray(liabilities.long_term_liability).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} accountId={a.account_id} dateTo={asOfDate} indent={2} />)}
                       <Row label="Total Long-term Liabilities" value={liabilities.total_long_term} total indent={1} bold />
                     </>
                   )}
@@ -143,7 +147,7 @@ const BalanceSheetView = () => {
 
                   {/* EQUITY */}
                   <Row label="EQUITY" sectionHeader bold />
-                  {asArray(equity.accounts).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} indent={1} />)}
+                  {asArray(equity.accounts).map((a) => <Row key={a.account_id} label={a.name} value={a.balance} accountId={a.account_id} dateTo={asOfDate} indent={1} />)}
                   {equity.net_income != null && (
                     <Row label="Add: Net Income (current period)" value={equity.net_income} indent={1} />
                   )}

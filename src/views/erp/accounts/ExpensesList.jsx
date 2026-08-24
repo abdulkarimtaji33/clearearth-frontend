@@ -127,7 +127,7 @@ const ExpensesList = () => {
     apiService.getChartOfAccounts({}).then((res) => {
       if (res.success) {
         const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
-        setPaymentAccounts(list.filter((a) => !a.is_group && a.is_active));
+        setPaymentAccounts(list.filter((a) => a.is_active));
       }
     });
   }, []);

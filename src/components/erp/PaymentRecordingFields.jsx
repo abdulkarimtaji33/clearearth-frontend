@@ -1,14 +1,13 @@
 import React, { useMemo, useEffect, useCallback } from 'react';
 import {
   Box,
-  Typography,
   TextField,
-  MenuItem,
   Chip,
   Stack,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import SelectWithAddNew from './SelectWithAddNew';
+import CascadingAccountSelect from './CascadingAccountSelect';
 import { PAYMENT_METHOD_OPTIONS } from '../../constants/paymentMethods';
 import {
   PAYMENT_METHOD_STORAGE_KEY,
@@ -22,6 +21,7 @@ import {
   accountLabel,
   defaultAccountCodeForMethod,
 } from '../../constants/paymentAccounts';
+import { isPostable } from '../../utils/accountTree';
 
 /**
  * Shared payment method dropdown + GL account picker for record-payment dialogs.
@@ -57,7 +57,7 @@ const PaymentRecordingFields = ({
 
   const paymentAccounts = useMemo(() => filterPaymentAccounts(accounts), [accounts]);
   const defaultCode = defaultAccountCodeForMethod(paymentMethod);
-  const defaultAccount = paymentAccounts.find((a) => String(a.code) === defaultCode);
+  const defaultAccount = paymentAccounts.filter(isPostable).find((a) => String(a.code) === defaultCode);
 
   const addCustomPaymentMethod = useCallback((v) => {
     setCustomPaymentMethods((prev) => {
@@ -95,27 +95,18 @@ const PaymentRecordingFields = ({
 
       {paymentAccounts.length > 0 && onPaymentAccountChange && (
         <Box>
-          <TextField
-            select
-            size="small"
-            fullWidth
-            label="Deposit / pay from account"
-            value={paymentAccountId || ''}
-            onChange={(e) => onPaymentAccountChange(e.target.value)}
+          <CascadingAccountSelect
+            accounts={paymentAccounts}
+            value={paymentAccountId}
+            onChange={onPaymentAccountChange}
+            parentLabel="Deposit / pay from account"
+            childLabel="Sub-account"
             helperText={
               defaultAccount
                 ? `Default for ${paymentMethod || 'this method'}: ${accountLabel(defaultAccount)}`
                 : 'Choose which cash or bank account this amount posts to'
             }
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-          >
-            {paymentAccounts.map((a) => (
-              <MenuItem key={a.id} value={String(a.id)}>
-                {accountLabel(a)}
-                {String(a.code) === defaultCode ? ' (default)' : ''}
-              </MenuItem>
-            ))}
-          </TextField>
+          />
           {selectedAccount && (
             <Chip
               size="small"

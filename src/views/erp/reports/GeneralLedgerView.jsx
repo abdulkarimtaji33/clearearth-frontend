@@ -65,8 +65,8 @@ const GeneralLedgerView = () => {
 
   const initialAccount = searchParams.get('accountId') || 'all';
   const [accountId, setAccountId] = useState(initialAccount);
-  const [dateFrom, setDateFrom] = useState(firstOfYear);
-  const [dateTo, setDateTo] = useState(today);
+  const [dateFrom, setDateFrom] = useState(searchParams.get('dateFrom') || firstOfYear);
+  const [dateTo, setDateTo] = useState(searchParams.get('dateTo') || today);
   const [search, setSearch] = useState('');
   const [paidToFilter, setPaidToFilter] = useState('');
   const [receivedFromFilter, setReceivedFromFilter] = useState('');

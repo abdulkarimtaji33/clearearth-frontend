@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, CircularProgress, Alert, TextField, Divider, Chip,
@@ -6,8 +6,9 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconReceipt } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
-import { normalizeVatReport } from '../../../utils/reportApi';
+import { normalizeVatReport, asArray } from '../../../utils/reportApi';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -26,6 +27,18 @@ const VatReportView = () => {
 
   const [dateFrom, setDateFrom] = useState(getQtrStart());
   const [dateTo, setDateTo] = useState(today);
+  const [outputVatAccountId, setOutputVatAccountId] = useState(null);
+  const [inputVatAccountId, setInputVatAccountId] = useState(null);
+
+  useEffect(() => {
+    apiService.getChartOfAccounts({}).then((res) => {
+      if (res.success) {
+        const list = asArray(res.data);
+        setOutputVatAccountId(list.find((a) => String(a.code) === '2100')?.id ?? null);
+        setInputVatAccountId(list.find((a) => String(a.code) === '1200')?.id ?? null);
+      }
+    });
+  }, []);
 
   const load = useCallback(async () => {
     if (!dateFrom || !dateTo) return;
@@ -74,12 +87,16 @@ const VatReportView = () => {
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, flex: 1, borderColor: alpha(theme.palette.error.main, 0.3) }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700}>OUTPUT VAT (Tax Collected from Customers)</Typography>
-              <Typography variant="h5" fontWeight={800} color="error.main" sx={{ mt: 0.5 }}>AED {fmt(d.output_vat)}</Typography>
+              <Typography variant="h5" fontWeight={800} color="error.main" sx={{ mt: 0.5 }}>
+                AED <GlAmountLink accountId={outputVatAccountId} dateFrom={dateFrom} dateTo={dateTo} fontWeight={800} title="View postings to VAT Payable (2100)">{fmt(d.output_vat)}</GlAmountLink>
+              </Typography>
               <Typography variant="caption" color="text.secondary">on taxable sales of AED {fmt(d.taxable_sales)}</Typography>
             </Paper>
             <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, flex: 1, borderColor: alpha(theme.palette.success.main, 0.3) }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700}>INPUT VAT (Tax Paid to Suppliers)</Typography>
-              <Typography variant="h5" fontWeight={800} color="success.main" sx={{ mt: 0.5 }}>AED {fmt(d.input_vat)}</Typography>
+              <Typography variant="h5" fontWeight={800} color="success.main" sx={{ mt: 0.5 }}>
+                AED <GlAmountLink accountId={inputVatAccountId} dateFrom={dateFrom} dateTo={dateTo} fontWeight={800} title="View postings to VAT Receivable (1200)">{fmt(d.input_vat)}</GlAmountLink>
+              </Typography>
               <Typography variant="caption" color="text.secondary">on taxable purchases of AED {fmt(d.taxable_purchases)}</Typography>
             </Paper>
             <Paper
@@ -124,12 +141,12 @@ const VatReportView = () => {
                   <TableRow>
                     <TableCell sx={{ pl: 4 }}>Standard Rated Sales (5%)</TableCell>
                     <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{fmt(d.taxable_sales)}</TableCell>
-                    <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{fmt(d.output_vat)}</TableCell>
+                    <TableCell align="right"><GlAmountLink accountId={outputVatAccountId} dateFrom={dateFrom} dateTo={dateTo}>{fmt(d.output_vat)}</GlAmountLink></TableCell>
                   </TableRow>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.grey[500], 0.04) }}>
                     <TableCell sx={{ fontWeight: 700 }}>Total Output Tax</TableCell>
                     <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{fmt(d.taxable_sales)}</TableCell>
-                    <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{fmt(d.output_vat)}</TableCell>
+                    <TableCell align="right"><GlAmountLink accountId={outputVatAccountId} dateFrom={dateFrom} dateTo={dateTo} fontWeight={700}>{fmt(d.output_vat)}</GlAmountLink></TableCell>
                   </TableRow>
 
                   <TableRow><TableCell colSpan={3} sx={{ py: 0.5 }} /></TableRow>
@@ -142,12 +159,12 @@ const VatReportView = () => {
                   <TableRow>
                     <TableCell sx={{ pl: 4 }}>Standard Rated Purchases (5%)</TableCell>
                     <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{fmt(d.taxable_purchases)}</TableCell>
-                    <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{fmt(d.input_vat)}</TableCell>
+                    <TableCell align="right"><GlAmountLink accountId={inputVatAccountId} dateFrom={dateFrom} dateTo={dateTo}>{fmt(d.input_vat)}</GlAmountLink></TableCell>
                   </TableRow>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.grey[500], 0.04) }}>
                     <TableCell sx={{ fontWeight: 700 }}>Total Input Tax</TableCell>
                     <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{fmt(d.taxable_purchases)}</TableCell>
-                    <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{fmt(d.input_vat)}</TableCell>
+                    <TableCell align="right"><GlAmountLink accountId={inputVatAccountId} dateFrom={dateFrom} dateTo={dateTo} fontWeight={700}>{fmt(d.input_vat)}</GlAmountLink></TableCell>
                   </TableRow>
 
                   <TableRow><TableCell colSpan={3} sx={{ py: 0.5 }} /></TableRow>

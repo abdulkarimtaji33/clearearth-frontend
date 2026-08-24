@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell,
   TableContainer, TableRow, CircularProgress, Alert, TextField, Divider,
@@ -6,8 +6,9 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconCashBanknote } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
-import { normalizeCashFlow } from '../../../utils/reportApi';
+import { normalizeCashFlow, asArray } from '../../../utils/reportApi';
 
 const fmt = (n) => {
   const v = Number(n || 0);
@@ -15,18 +16,23 @@ const fmt = (n) => {
   return v < 0 ? `(${s})` : s;
 };
 
-const Row = ({ label, value, indent = 0, bold = false, total = false, sectionHeader = false }) => {
+const Row = ({ label, value, accountId, dateFrom, dateTo, indent = 0, bold = false, total = false, sectionHeader = false }) => {
   const theme = useTheme();
+  const showValue = value !== null && value !== undefined;
   return (
     <TableRow sx={sectionHeader ? { bgcolor: alpha(theme.palette.grey[500], 0.06) } : total ? { bgcolor: alpha(theme.palette.grey[500], 0.04) } : {}}>
       <TableCell sx={{ pl: 2 + indent * 3, fontWeight: bold || total || sectionHeader ? 700 : 400, letterSpacing: sectionHeader ? 0.5 : 0 }}>
         {label}
       </TableCell>
       <TableCell align="right" sx={{ fontFamily: 'monospace', width: 180, fontWeight: bold || total ? 700 : 400 }}>
-        {!total && value !== null && value !== undefined ? fmt(value) : ''}
+        {!total && showValue ? (
+          accountId != null ? <GlAmountLink accountId={accountId} dateFrom={dateFrom} dateTo={dateTo}>{fmt(value)}</GlAmountLink> : fmt(value)
+        ) : ''}
       </TableCell>
       <TableCell align="right" sx={{ fontFamily: 'monospace', width: 180, fontWeight: bold || total ? 800 : 400, borderTop: total ? '2px solid' : 'none', borderColor: 'divider' }}>
-        {total && value !== null && value !== undefined ? fmt(value) : ''}
+        {total && showValue ? (
+          accountId != null ? <GlAmountLink accountId={accountId} dateFrom={dateFrom} dateTo={dateTo} fontWeight={800}>{fmt(value)}</GlAmountLink> : fmt(value)
+        ) : ''}
       </TableCell>
     </TableRow>
   );
@@ -42,6 +48,16 @@ const CashFlowView = () => {
   const [error, setError] = useState('');
   const [dateFrom, setDateFrom] = useState(firstOfYear);
   const [dateTo, setDateTo] = useState(today);
+  const [cashAccountId, setCashAccountId] = useState(null);
+
+  useEffect(() => {
+    apiService.getChartOfAccounts({}).then((res) => {
+      if (res.success) {
+        const list = asArray(res.data);
+        setCashAccountId(list.find((a) => String(a.code) === '1000')?.id ?? null);
+      }
+    });
+  }, []);
 
   const load = useCallback(async () => {
     if (!dateFrom || !dateTo) return;
@@ -128,12 +144,12 @@ const CashFlowView = () => {
 
                 {/* Summary */}
                 <Row label="Net Change in Cash" value={d.net_cash_change} indent={0} bold />
-                <Row label="Opening Cash Balance" value={d.opening_cash} indent={0} />
+                <Row label="Opening Cash Balance" value={d.opening_cash} accountId={cashAccountId} dateTo={dateFrom} indent={0} />
                 <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.06) }}>
                   <TableCell sx={{ fontWeight: 900 }}>CLOSING CASH BALANCE</TableCell>
                   <TableCell />
                   <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '1rem', borderTop: '3px double', borderColor: 'divider' }}>
-                    {fmt(d.closing_cash)}
+                    <GlAmountLink accountId={cashAccountId} dateTo={dateTo} fontWeight={900} title="View all Cash and Cash Equivalents postings">{fmt(d.closing_cash)}</GlAmountLink>
                   </TableCell>
                 </TableRow>
               </TableBody>

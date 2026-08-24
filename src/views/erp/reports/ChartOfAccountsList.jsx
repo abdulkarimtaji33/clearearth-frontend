@@ -10,6 +10,7 @@ import {
   IconList, IconPlus, IconSeeding, IconEdit, IconTrash, IconCornerDownRight,
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
 import { asArray } from '../../../utils/reportApi';
 
@@ -262,10 +263,10 @@ const ChartOfAccountsList = () => {
                           </TableCell>
                           <TableCell><Typography variant="caption" color="text.secondary">{acc.sub_type || '—'}</Typography></TableCell>
                           <TableCell><Chip label={acc.normal_balance} size="small" variant="outlined" /></TableCell>
-                          <TableCell align="right" sx={{ fontFamily: 'monospace' }}>
+                          <TableCell align="right">
                             {acc.is_group
-                              ? (acc.rollup_balance != null ? <strong>{fmt(acc.rollup_balance)}</strong> : '—')
-                              : (acc.balance != null ? fmt(acc.balance) : '—')}
+                              ? (acc.rollup_balance != null ? <strong style={{ fontFamily: 'monospace' }}>{fmt(acc.rollup_balance)}</strong> : '—')
+                              : (acc.balance != null ? <GlAmountLink accountId={acc.id} title="View postings that make up this balance">{fmt(acc.balance)}</GlAmountLink> : '—')}
                           </TableCell>
                           <TableCell>
                             {!acc.is_active

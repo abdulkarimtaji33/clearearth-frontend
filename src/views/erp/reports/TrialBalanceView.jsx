@@ -5,8 +5,8 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconScale, IconDownload } from '@tabler/icons-react';
-import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
+import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
 import { normalizeTrialBalance, asArray } from '../../../utils/reportApi';
 
@@ -17,7 +17,6 @@ const TYPE_COLOR = {
 };
 
 const TrialBalanceView = () => {
-  const navigate = useNavigate();
   const theme = useTheme();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -110,17 +109,26 @@ const TrialBalanceView = () => {
                 <TableBody>
                   {asArray(data.accounts).map((acc) => (
                     <TableRow key={acc.account_id} hover>
-                      <TableCell sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
-                        <Button size="small" variant="text" sx={{ p: 0, fontFamily: 'monospace', fontWeight: 600 }}
-                          onClick={() => navigate(`/erp/reports/general-ledger?accountId=${acc.account_id}`)}>
+                      <TableCell sx={{ fontWeight: 600 }}>
+                        <GlAmountLink accountId={acc.account_id} dateTo={asOfDate} title="View postings in the General Ledger">
                           {acc.code}
-                        </Button>
+                        </GlAmountLink>
                       </TableCell>
                       <TableCell>{acc.name}</TableCell>
                       <TableCell><Chip label={acc.type} size="small" color={TYPE_COLOR[acc.type] || 'default'} /></TableCell>
-                      <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{parseFloat(acc.total_debit) > 0 ? fmt(acc.total_debit) : '—'}</TableCell>
-                      <TableCell align="right" sx={{ fontFamily: 'monospace' }}>{parseFloat(acc.total_credit) > 0 ? fmt(acc.total_credit) : '—'}</TableCell>
-                      <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmt(acc.balance)}</TableCell>
+                      <TableCell align="right">
+                        {parseFloat(acc.total_debit) > 0 ? (
+                          <GlAmountLink accountId={acc.account_id} dateTo={asOfDate} title="View debit postings">{fmt(acc.total_debit)}</GlAmountLink>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell align="right">
+                        {parseFloat(acc.total_credit) > 0 ? (
+                          <GlAmountLink accountId={acc.account_id} dateTo={asOfDate} title="View credit postings">{fmt(acc.total_credit)}</GlAmountLink>
+                        ) : '—'}
+                      </TableCell>
+                      <TableCell align="right">
+                        <GlAmountLink accountId={acc.account_id} dateTo={asOfDate} fontWeight={700} title="View postings that make up this balance">{fmt(acc.balance)}</GlAmountLink>
+                      </TableCell>
                     </TableRow>
                   ))}
                   <TableRow sx={{ bgcolor: alpha(theme.palette.grey[500], 0.08) }}>

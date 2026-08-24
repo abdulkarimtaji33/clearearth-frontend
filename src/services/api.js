@@ -566,6 +566,10 @@ class ApiService {
     return this._downloadPdf(`${this.baseURL}/receivables/companies/${companyId}/statement/pdf${suffix}`, `statement-of-account-${companyId}.pdf`);
   }
 
+  async getStatementOfAccount(companyId, { dateFrom, dateTo } = {}) {
+    return this.get(`/receivables/companies/${companyId}/statement`, { dateFrom, dateTo });
+  }
+
   async getReceivablesAgingSummary(params) {
     return this.get('/receivables/aging-summary', params);
   }

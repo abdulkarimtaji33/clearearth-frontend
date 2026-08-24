@@ -321,10 +321,10 @@ const ExpensesList = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.success.main, 0.06) }}>
-                    {['Date', 'Category', 'Amount (AED)', 'Settlement', 'Paid to', 'Method', 'Work order', 'Deal', 'Link', ''].map((h, i) => (
+                    {['Date', 'Category', 'GL account', 'Amount (AED)', 'Settlement', 'Paid to', 'Method', 'Work order', 'Deal', 'Link', ''].map((h, i) => (
                       <TableCell
                         key={h || 'actions'}
-                        align={i === 2 || i === 9 ? 'right' : 'left'}
+                        align={i === 3 || i === 10 ? 'right' : 'left'}
                         sx={{
                           fontWeight: 700,
                           color: 'text.secondary',
@@ -341,13 +341,13 @@ const ExpensesList = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
+                      <TableCell colSpan={11} align="center" sx={{ py: 8 }}>
                         <CircularProgress />
                       </TableCell>
                     </TableRow>
                   ) : rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
+                      <TableCell colSpan={11} align="center" sx={{ py: 8 }}>
                         <IconWallet size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
                         <Typography variant="body2" color="text.secondary" display="block" gutterBottom>
                           No posted expenses yet.
@@ -408,6 +408,11 @@ const ExpensesList = () => {
                               variant="outlined"
                               sx={{ fontWeight: 700, textTransform: 'capitalize' }}
                             />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                              {ex.expenseAccount ? `${ex.expenseAccount.code} — ${ex.expenseAccount.name}` : '—'}
+                            </Typography>
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2" fontWeight={700}>

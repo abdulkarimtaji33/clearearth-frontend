@@ -6,6 +6,7 @@ import {
   Typography,
   Button,
   TextField,
+  MenuItem,
   Stack,
   Alert,
 } from '@mui/material';
@@ -16,6 +17,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
 import apiService from '../../../services/api';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
+import { accountLabel } from '../../../constants/paymentAccounts';
 import {
   PAID_TO_OPTIONS,
   PAID_TO_STORAGE_KEY,
@@ -24,6 +26,18 @@ import {
   saveStoredOptions,
   mergeSelectOptions,
 } from '../../../constants/expenseFormOptions';
+
+/** Mirrors chartOfAccounts.service.EXPENSE_CATEGORY_TO_CODE on the backend */
+const EXPENSE_CATEGORY_TO_CODE = {
+  work_orders: '5000',
+  materials: '5200',
+  equipment: '5200',
+  professional: '5300',
+  travel: '5400',
+  fuel: '5400',
+  utility: '5500',
+  other: '5100',
+};
 
 const ExpenseCreate = () => {
   const navigate = useNavigate();
@@ -41,6 +55,26 @@ const ExpenseCreate = () => {
   const [paidAt, setPaidAt] = useState('');
   const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
   const [customPaymentMethods, setCustomPaymentMethods] = useState(() => loadStoredOptions(PAYMENT_METHOD_STORAGE_KEY));
+  const [expenseAccounts, setExpenseAccounts] = useState([]);
+  const [expenseAccountId, setExpenseAccountId] = useState('');
+  const [expenseAccountTouched, setExpenseAccountTouched] = useState(false);
+
+  useEffect(() => {
+    apiService.getChartOfAccounts({}).then((res) => {
+      if (res.success) {
+        const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
+        setExpenseAccounts(list.filter((a) => a.type === 'expense' && !a.is_group && a.is_active));
+      }
+    });
+  }, []);
+
+  // Default the account from the category map, but don't clobber an explicit user choice
+  useEffect(() => {
+    if (expenseAccountTouched || expenseAccounts.length === 0) return;
+    const code = EXPENSE_CATEGORY_TO_CODE[category] || '5100';
+    const match = expenseAccounts.find((a) => String(a.code) === code) || expenseAccounts[0];
+    if (match) setExpenseAccountId(String(match.id));
+  }, [category, expenseAccounts, expenseAccountTouched]);
 
   const paidToOptions = useMemo(
     () => mergeSelectOptions(PAID_TO_OPTIONS, customPaidTo, paidTo),
@@ -131,6 +165,7 @@ const ExpenseCreate = () => {
       };
       if (paidAmount !== '') payload.paidAmount = paid;
       if (paidAt) payload.paidAt = paidAt;
+      if (expenseAccountId) payload.expenseAccountId = parseInt(expenseAccountId, 10);
       const res = await apiService.createAccountsExpense(payload);
       if (res.success === false) throw new Error(res.message || 'Failed to create expense');
       navigate('/erp/accounts/expenses');
@@ -194,6 +229,22 @@ const ExpenseCreate = () => {
                 addFieldLabel="Category name"
                 onOptionAdded={addExpenseCategory}
               />
+              {expenseAccounts.length > 0 && (
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Expense account"
+                  value={expenseAccountId}
+                  onChange={(e) => { setExpenseAccountId(e.target.value); setExpenseAccountTouched(true); }}
+                  helperText="GL account debited by this expense — defaults from the category"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                >
+                  {expenseAccounts.map((a) => (
+                    <MenuItem key={a.id} value={String(a.id)}>{accountLabel(a)}</MenuItem>
+                  ))}
+                </TextField>
+              )}
               <TextField
                 required
                 fullWidth

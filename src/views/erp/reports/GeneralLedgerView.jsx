@@ -387,8 +387,8 @@ const GeneralLedgerView = () => {
 
           {/* Table */}
           <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
-            <TableContainer sx={{ maxHeight: '68vh' }}>
-              <Table size="small" stickyHeader>
+            <TableContainer sx={{ overflowX: 'auto' }}>
+              <Table size="small">
                 <TableHead>
                   <TableRow>
                     {colHeaders.map((h) => (
@@ -396,9 +396,11 @@ const GeneralLedgerView = () => {
                         key={h}
                         align={rightCols.has(h) ? 'right' : 'left'}
                         sx={{
+                          position: 'sticky', top: 0, zIndex: 2,
                           fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: 0.6,
                           color: 'text.secondary', whiteSpace: 'nowrap', py: 1.5,
-                          bgcolor: isDark ? alpha(theme.palette.primary.main, 0.08) : alpha(theme.palette.primary.main, 0.04),
+                          // Solid (non-alpha) background so the sticky header opaquely covers rows scrolling beneath it
+                          bgcolor: theme.palette.background.paper,
                           borderBottom: `2px solid ${alpha(theme.palette.primary.main, 0.15)}`,
                         }}
                       >

@@ -52,19 +52,6 @@ const ReceivablesList = () => {
   const [paySaving, setPaySaving] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRow, setHistoryRow] = useState(null);
-  const [statementLoadingId, setStatementLoadingId] = useState(null);
-
-  const downloadStatement = async (companyId) => {
-    if (!companyId) return;
-    try {
-      setStatementLoadingId(companyId);
-      await apiService.downloadStatementOfAccountPdf(companyId);
-    } catch (err) {
-      setError(err.message || 'Failed to download statement');
-    } finally {
-      setStatementLoadingId(null);
-    }
-  };
 
   const fetchRows = useCallback(async () => {
     try {
@@ -226,7 +213,7 @@ const ReceivablesList = () => {
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                           {companyId && (
-                            <Button size="small" variant="outlined" startIcon={<IconFileDescription size={14} />} disabled={statementLoadingId === companyId} onClick={() => downloadStatement(companyId)} sx={{ borderRadius: 2 }}>
+                            <Button size="small" variant="outlined" startIcon={<IconFileDescription size={14} />} onClick={() => navigate(`/erp/receivables/statement/${companyId}`)} sx={{ borderRadius: 2 }}>
                               Statement
                             </Button>
                           )}

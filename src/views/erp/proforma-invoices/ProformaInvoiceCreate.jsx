@@ -195,11 +195,6 @@ const ProformaInvoiceCreate = () => {
     setTotal(Number((sub + v).toFixed(2)));
   };
 
-  const syncTotalFromParts = () => {
-    const sub = items.reduce((s, r) => s + num(r.lineTotal), 0);
-    setTotal(Number((sub + num(vatAmount)).toFixed(2)));
-  };
-
   useEffect(() => {
     const sub = items.reduce((s, r) => s + num(r.lineTotal), 0);
     setTotal(Number((sub + num(vatAmount)).toFixed(2)));
@@ -442,7 +437,7 @@ const ProformaInvoiceCreate = () => {
 
         <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, mb: 2 }}>
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>Amounts &amp; tax</Typography>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>Override VAT amount or total if needed; totals stay in sync with line subtotal.</Typography>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>VAT is calculated automatically from VAT % × line subtotal; override the total if needed.</Typography>
           <Stack spacing={2} alignItems="flex-start" maxWidth={420}>
             <Typography variant="body2" color="text.secondary">
               Subtotal (sum of lines): <strong>{currency} {linesSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
@@ -463,15 +458,12 @@ const ProformaInvoiceCreate = () => {
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
                 sx={{ width: 120 }}
               />
-              <TextField
-                label="VAT amount"
-                size="small"
-                value={vatAmount}
-                onChange={(e) => { setVatAmount(e.target.value); }}
-                onBlur={syncTotalFromParts}
-                sx={{ width: 160 }}
-                helperText="Auto-calculated from %"
-              />
+              <Box sx={{ minWidth: 160 }}>
+                <Typography variant="caption" color="text.secondary" display="block">VAT amount</Typography>
+                <Typography variant="body1" fontWeight={700}>
+                  {currency} {num(vatAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </Typography>
+              </Box>
               <TextField
                 label="Total"
                 size="small"

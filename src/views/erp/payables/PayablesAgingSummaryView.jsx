@@ -44,14 +44,18 @@ const PayablesAgingSummaryView = () => {
 
   const b = data?.buckets || {};
   const cards = [
-    { label: 'Current (0–30 days)', value: b.current, color: theme.palette.success.main },
-    { label: '31–60 days', value: b.bucket_31_60, color: theme.palette.info.main },
-    { label: '61–90 days', value: b.bucket_61_90, color: theme.palette.warning.main },
-    { label: 'Over 90 days', value: b.bucket_over_90, color: theme.palette.error.main },
+    { label: 'Current (not yet due)', value: b.current, color: theme.palette.success.main },
+    { label: '1–30 days overdue', value: b.bucket_1_30, color: theme.palette.info.main },
+    { label: '31–60 days overdue', value: b.bucket_31_60, color: theme.palette.info.dark },
+    { label: '61–90 days overdue', value: b.bucket_61_90, color: theme.palette.warning.main },
+    { label: 'Over 90 days overdue', value: b.bucket_over_90, color: theme.palette.error.main },
   ];
+  if (parseFloat(b.bucket_no_due_date) > 0) {
+    cards.push({ label: 'No due date', value: b.bucket_no_due_date, color: theme.palette.grey[600] });
+  }
 
   return (
-    <PageContainer title="Payables aging" description="Open AP by days from due date (or PO date)">
+    <PageContainer title="Payables aging" description="Open AP by days overdue vs due date">
       <Stack direction="row" alignItems="center" spacing={2} mb={3}>
         <Button startIcon={<IconArrowLeft size={18} />} onClick={() => navigate('/erp/payables')} variant="outlined" sx={{ borderRadius: 2 }}>Back</Button>
         <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: alpha(theme.palette.secondary.main, 0.12), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -78,20 +82,21 @@ const PayablesAgingSummaryView = () => {
           <Table size="small">
             <TableHead>
               <TableRow>
-                {['Party', 'Role', 'Total', '0–30', '31–60', '61–90', '90+'].map((h) => (
+                {['Party', 'Role', 'Total', 'Current', '1–30', '31–60', '61–90', '90+'].map((h) => (
                   <TableCell key={h} align={h === 'Party' || h === 'Role' ? 'left' : 'right'} sx={{ fontWeight: 700 }}>{h}</TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {(data?.byParty || []).length === 0 ? (
-                <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4 }}><Typography color="text.secondary">{error ? 'Could not load data' : 'No open payables'}</Typography></TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} align="center" sx={{ py: 4 }}><Typography color="text.secondary">{error ? 'Could not load data' : 'No open payables'}</Typography></TableCell></TableRow>
               ) : data.byParty.map((row) => (
                 <TableRow key={`${row.supplierId ?? 'c'}-${row.companyId ?? 'n'}-${row.partyName}`}>
                   <TableCell>{row.partyName}</TableCell>
                   <TableCell>{row.partyLabel}</TableCell>
                   <TableCell align="right">{fmt(row.total)}</TableCell>
                   <TableCell align="right">{fmt(row.current)}</TableCell>
+                  <TableCell align="right">{fmt(row.bucket_1_30)}</TableCell>
                   <TableCell align="right">{fmt(row.bucket_31_60)}</TableCell>
                   <TableCell align="right">{fmt(row.bucket_61_90)}</TableCell>
                   <TableCell align="right">{fmt(row.bucket_over_90)}</TableCell>

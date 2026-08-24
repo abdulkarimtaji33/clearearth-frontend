@@ -23,7 +23,10 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router';
-import { IconArrowLeft, IconHammer, IconCheck, IconX, IconClipboardList } from '@tabler/icons-react';
+import {
+  IconArrowLeft, IconHammer, IconCheck, IconX, IconClipboardList,
+  IconBuilding, IconTruckDelivery, IconUser, IconFileDescription, IconMapPin,
+} from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
 import apiService from '../../../services/api';
@@ -269,6 +272,124 @@ const AccountsWorkOrderView = () => {
             Operations view
           </Button>
         </Stack>
+
+        {wo.deal && (
+          <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, mb: 3 }}>
+            <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+              <IconFileDescription size={18} style={{ opacity: 0.7 }} />
+              <Typography variant="subtitle2" fontWeight={700}>Deal details</Typography>
+              {wo.deal.is_rcm_applicable ? (
+                <Chip size="small" label="RCM applicable" color="info" variant="outlined" sx={{ fontWeight: 700 }} />
+              ) : null}
+            </Stack>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
+                gap: 2.5,
+              }}
+            >
+              <Box>
+                <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.68rem' }}>Deal</Typography>
+                <Typography variant="body2" fontWeight={600}>{wo.deal.deal_number} — {wo.deal.title}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                  {(wo.deal.deal_type || '').replace(/_/g, ' ')} · {(wo.deal.status || '').replace(/_/g, ' ')}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <IconBuilding size={14} style={{ opacity: 0.6 }} />
+                  <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.68rem' }}>Client</Typography>
+                </Stack>
+                <Typography variant="body2" fontWeight={600}>{wo.deal.company?.company_name || '—'}</Typography>
+                {wo.deal.contact && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    {[wo.deal.contact.first_name, wo.deal.contact.last_name].filter(Boolean).join(' ')}
+                    {wo.deal.contact.phone ? ` · ${wo.deal.contact.phone}` : ''}
+                  </Typography>
+                )}
+              </Box>
+
+              <Box>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <IconTruckDelivery size={14} style={{ opacity: 0.6 }} />
+                  <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.68rem' }}>Vendor</Typography>
+                </Stack>
+                <Typography variant="body2" fontWeight={600}>{wo.deal.supplier?.company_name || '—'}</Typography>
+                {wo.deal.downstreamPartner && (
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Downstream: {wo.deal.downstreamPartner.company_name}
+                  </Typography>
+                )}
+              </Box>
+
+              <Box>
+                <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.68rem' }}>Financials</Typography>
+                <Typography variant="body2">
+                  Subtotal: <strong>{wo.deal.currency || 'AED'} {num(wo.deal.subtotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+                </Typography>
+                <Typography variant="body2">
+                  VAT ({num(wo.deal.vat_percentage)}%): <strong>{wo.deal.currency || 'AED'} {num(wo.deal.vat_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+                </Typography>
+                <Typography variant="body2">
+                  Total: <strong>{wo.deal.currency || 'AED'} {num(wo.deal.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.68rem' }}>Source document</Typography>
+                {wo.quotation ? (
+                  <Typography
+                    variant="body2"
+                    color="primary.main"
+                    sx={{ cursor: 'pointer', fontWeight: 600 }}
+                    onClick={() => navigate(`/erp/quotations/view/${wo.quotation.id}`)}
+                  >
+                    Quotation #{wo.quotation.id} ({wo.quotation.quotation_date || '—'})
+                  </Typography>
+                ) : wo.sourcePurchaseOrder ? (
+                  <Typography
+                    variant="body2"
+                    color="primary.main"
+                    sx={{ cursor: 'pointer', fontWeight: 600 }}
+                    onClick={() => navigate(`/erp/purchase-orders/view/${wo.sourcePurchaseOrder.id}`)}
+                  >
+                    PO #{wo.sourcePurchaseOrder.id} ({wo.sourcePurchaseOrder.po_date || '—'})
+                  </Typography>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">—</Typography>
+                )}
+                {purchaseBills.length > 0 && (
+                  <Typography
+                    variant="caption"
+                    color="primary.main"
+                    display="block"
+                    sx={{ cursor: 'pointer', fontWeight: 600, mt: 0.5 }}
+                    onClick={() => navigate(`/erp/purchase-orders/view/${purchaseBills[0].id}`)}
+                  >
+                    {purchaseBills.length} purchase bill{purchaseBills.length !== 1 ? 's' : ''} →
+                  </Typography>
+                )}
+              </Box>
+
+              {(wo.deal.pickup_location || wo.deal.pickup_contact_name || wo.deal.pickup_contact_number) && (
+                <Box>
+                  <Stack direction="row" alignItems="center" spacing={0.5}>
+                    <IconMapPin size={14} style={{ opacity: 0.6 }} />
+                    <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', fontSize: '0.68rem' }}>Collection</Typography>
+                  </Stack>
+                  <Typography variant="body2">{wo.deal.pickup_location || '—'}</Typography>
+                  {(wo.deal.pickup_contact_name || wo.deal.pickup_contact_number) && (
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {[wo.deal.pickup_contact_name, wo.deal.pickup_contact_number].filter(Boolean).join(' · ')}
+                    </Typography>
+                  )}
+                </Box>
+              )}
+            </Box>
+          </Paper>
+        )}
 
         {expenseStats.lines > 0 && (
           <Paper variant="outlined" sx={{ borderRadius: 2, p: 2, mb: 3, bgcolor: alpha(theme.palette.success.main, 0.04) }}>

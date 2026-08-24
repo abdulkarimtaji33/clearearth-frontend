@@ -45,14 +45,18 @@ const AgingSummaryView = () => {
 
   const b = data?.buckets || {};
   const cards = [
-    { label: 'Current (0–30 days)', value: b.current, color: theme.palette.success.main },
-    { label: '31–60 days', value: b.bucket_31_60, color: theme.palette.info.main },
-    { label: '61–90 days', value: b.bucket_61_90, color: theme.palette.warning.main },
-    { label: 'Over 90 days', value: b.bucket_over_90, color: theme.palette.error.main },
+    { label: 'Current (not yet due)', value: b.current, color: theme.palette.success.main },
+    { label: '1–30 days overdue', value: b.bucket_1_30, color: theme.palette.info.main },
+    { label: '31–60 days overdue', value: b.bucket_31_60, color: theme.palette.info.dark },
+    { label: '61–90 days overdue', value: b.bucket_61_90, color: theme.palette.warning.main },
+    { label: 'Over 90 days overdue', value: b.bucket_over_90, color: theme.palette.error.main },
   ];
+  if (parseFloat(b.bucket_no_due_date) > 0) {
+    cards.push({ label: 'No due date', value: b.bucket_no_due_date, color: theme.palette.grey[600] });
+  }
 
   return (
-    <PageContainer title="Receivables aging" description="Outstanding balances by days open (from invoice date)">
+    <PageContainer title="Receivables aging" description="Outstanding balances by days overdue vs due date">
       <Stack direction="row" alignItems="center" spacing={2} mb={3}>
         <Button startIcon={<IconArrowLeft size={18} />} onClick={() => navigate('/erp/receivables')} variant="outlined" sx={{ borderRadius: 2 }}>Back</Button>
         <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -79,19 +83,25 @@ const AgingSummaryView = () => {
           <Table size="small">
             <TableHead>
               <TableRow>
-                {['Client', 'Total', '0–30', '31–60', '61–90', '90+'].map((h) => (
+                {['Client', 'Total', 'Current', '1–30', '31–60', '61–90', '90+'].map((h) => (
                   <TableCell key={h} align={h === 'Client' ? 'left' : 'right'} sx={{ fontWeight: 700 }}>{h}</TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {asArray(data?.byClient).length === 0 ? (
-                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 4 }}><Typography color="text.secondary">{error ? 'Could not load data' : 'No open receivables'}</Typography></TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4 }}><Typography color="text.secondary">{error ? 'Could not load data' : 'No open receivables'}</Typography></TableCell></TableRow>
               ) : asArray(data?.byClient).map((row) => (
-                <TableRow key={row.companyId || row.companyName}>
+                <TableRow
+                  key={row.companyId || row.companyName}
+                  hover={!!row.companyId}
+                  sx={row.companyId ? { cursor: 'pointer' } : undefined}
+                  onClick={() => row.companyId && navigate(`/erp/receivables/statement/${row.companyId}`)}
+                >
                   <TableCell>{row.companyName}</TableCell>
                   <TableCell align="right">{fmt(row.total)}</TableCell>
                   <TableCell align="right">{fmt(row.current)}</TableCell>
+                  <TableCell align="right">{fmt(row.bucket_1_30)}</TableCell>
                   <TableCell align="right">{fmt(row.bucket_31_60)}</TableCell>
                   <TableCell align="right">{fmt(row.bucket_61_90)}</TableCell>
                   <TableCell align="right">{fmt(row.bucket_over_90)}</TableCell>

@@ -141,19 +141,19 @@ const ClientPurchaseQuotationList = () => {
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                  {['Deal', 'Client', 'PO Date', 'Delivery', 'Status', 'Items', ''].map((h, i) => (
-                    <TableCell key={i} align={i === 6 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                  {['Deal', 'Client', 'PO Date', 'Delivery', 'Pickup', 'Status', 'Items', ''].map((h, i) => (
+                    <TableCell key={i} align={i === 7 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                   ))}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   [...Array(5)].map((_, i) => (
-                    <TableRow key={i}><TableCell colSpan={7} sx={{ py: 2 }}><Box sx={{ height: 20, bgcolor: 'action.hover', borderRadius: 1, animation: 'pulse 1.5s ease-in-out infinite', '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } } }} /></TableCell></TableRow>
+                    <TableRow key={i}><TableCell colSpan={8} sx={{ py: 2 }}><Box sx={{ height: 20, bgcolor: 'action.hover', borderRadius: 1, animation: 'pulse 1.5s ease-in-out infinite', '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } } }} /></TableCell></TableRow>
                   ))
                 ) : orders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
                       <IconShoppingCart size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
                       <Typography variant="body2" color="text.secondary">No client purchase quotations found</Typography>
                     </TableCell>
@@ -165,6 +165,7 @@ const ClientPurchaseQuotationList = () => {
                       <TableCell><Typography variant="body2">{o.company?.company_name || '—'}</Typography></TableCell>
                       <TableCell><Typography variant="body2">{o.po_date || '—'}</Typography></TableCell>
                       <TableCell><Typography variant="body2">{o.expected_delivery || '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" color={o.requested_pickup_date ? 'text.primary' : 'text.disabled'}>{o.requested_pickup_date || '—'}</Typography></TableCell>
                       <TableCell><Chip label={o.status || '—'} size="small" color={STATUS_COLOR[o.status] || 'default'} sx={{ fontWeight: 600 }} /></TableCell>
                       <TableCell><Typography variant="body2" color="text.secondary">{o.items?.length || 0}</Typography></TableCell>
                       <TableCell align="right" onClick={e => e.stopPropagation()}>

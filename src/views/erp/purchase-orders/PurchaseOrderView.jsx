@@ -49,7 +49,6 @@ const PurchaseOrderView = () => {
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalError, setApprovalError] = useState('');
-  const [pinConfigured, setPinConfigured] = useState(false);
   const [tenantCompanyName, setTenantCompanyName] = useState('Clear Earth Recycling LLC');
 
   const fetchPo = useCallback(async () => {
@@ -71,7 +70,6 @@ const PurchaseOrderView = () => {
   useEffect(() => {
     apiService.getTenant().then((res) => {
       if (res.success) {
-        setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
         setTenantCompanyName(res.data?.company_name || res.data?.name || 'Clear Earth Recycling LLC');
       }
     }).catch(() => {});
@@ -103,7 +101,7 @@ const PurchaseOrderView = () => {
         await fetchPo();
       } catch (e) {
         const msg = e.message || '';
-        if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
+        if (msg.includes('manager can approve')) {
           setApproveConfirmOpen(false);
           setApprovalError('');
           setApprovalDialogOpen(true);
@@ -125,31 +123,16 @@ const PurchaseOrderView = () => {
     setApproveConfirmOpen(true);
   };
 
-  const handleRequestPoApproval = async () => {
+  const handleRequestPoApproval = async (requestedPickupDate) => {
     if (!id) return;
     try {
       setApprovalLoading(true);
       setApprovalError('');
-      await apiService.requestPurchaseOrderApproval(id);
+      await apiService.requestPurchaseOrderApproval(id, requestedPickupDate);
       setApprovalDialogOpen(false);
       await fetchPo();
     } catch (e) {
       setApprovalError(e.message || 'Failed to request approval');
-    } finally {
-      setApprovalLoading(false);
-    }
-  };
-
-  const handleApprovePoWithPin = async (pin) => {
-    if (!id) return;
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.approvePurchaseOrderWithPin(id, pin);
-      setApprovalDialogOpen(false);
-      await fetchPo();
-    } catch (e) {
-      setApprovalError(e.message || 'Invalid PIN or approval failed');
     } finally {
       setApprovalLoading(false);
     }
@@ -325,6 +308,15 @@ const PurchaseOrderView = () => {
               <Typography variant="body2" color="text.secondary" fontWeight={600}>Expected delivery</Typography>
               <Typography variant="body2">{po.expected_delivery || '—'}</Typography>
             </Stack>
+            {po.requested_pickup_date && (
+              <>
+                <Divider />
+                <Stack direction="row" justifyContent="space-between" flexWrap="wrap" gap={1} py={2}>
+                  <Typography variant="body2" color="text.secondary" fontWeight={600}>Requested pickup date</Typography>
+                  <Typography variant="body2" fontWeight={600}>{po.requested_pickup_date}</Typography>
+                </Stack>
+              </>
+            )}
           </Stack>
         </Paper>
 
@@ -400,13 +392,13 @@ const PurchaseOrderView = () => {
         <ApprovalWorkflowDialogs
           open={approvalDialogOpen}
           entityLabel="client purchase quotation"
-          pinConfigured={pinConfigured}
+          showPinOption={false}
+          showPickupDate
           loading={approvalLoading}
           error={approvalError}
           onClose={() => setApprovalDialogOpen(false)}
           onDecideLater={() => setApprovalDialogOpen(false)}
           onRequestApproval={handleRequestPoApproval}
-          onApproveWithPin={handleApprovePoWithPin}
           approveButtonLabel="Approve quotation"
         />
 

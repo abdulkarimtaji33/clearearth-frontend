@@ -10,15 +10,22 @@ import {
   Alert,
   TextField,
 } from '@mui/material';
-import { IconKey, IconUserCheck } from '@tabler/icons-react';
+import { IconKey, IconUserCheck, IconTruckDelivery } from '@tabler/icons-react';
 
 /**
- * Shared approval choice + PIN dialogs for leads and deals.
+ * Shared approval-request dialogs.
+ *
+ * Leads and deals keep the original PIN-or-request choice (showPinOption, default true).
+ * Quotations and purchase orders no longer offer a PIN shortcut — pass showPinOption={false}
+ * to render a single "send for approval" step, optionally collecting a requested pickup date.
  */
 const ApprovalWorkflowDialogs = ({
   open,
   entityLabel = 'record',
   pinConfigured = false,
+  showPinOption = true,
+  showPickupDate = false,
+  pickupDateLabel = 'Requested pickup date (optional)',
   loading = false,
   error = '',
   onClose,
@@ -29,16 +36,12 @@ const ApprovalWorkflowDialogs = ({
 }) => {
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
-
-  const handleCloseAll = () => {
-    setPinDialogOpen(false);
-    setPin('');
-    onClose?.();
-  };
+  const [pickupDate, setPickupDate] = useState('');
 
   const handleDecideLater = () => {
     setPinDialogOpen(false);
     setPin('');
+    setPickupDate('');
     onDecideLater?.();
   };
 
@@ -49,7 +52,59 @@ const ApprovalWorkflowDialogs = ({
     setPinDialogOpen(false);
   };
 
+  const handleSendForApproval = async () => {
+    await onRequestApproval?.(showPickupDate ? (pickupDate || null) : undefined);
+  };
+
   const resolvedApproveLabel = approveButtonLabel || `Approve ${entityLabel}`;
+
+  if (!showPinOption) {
+    return (
+      <Dialog
+        open={open}
+        onClose={() => !loading && handleDecideLater()}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ pb: 1, pt: 3, px: 3 }}>
+          <Typography variant="h5" fontWeight={700}>Send for approval</Typography>
+          <Typography variant="body2" color="text.secondary" mt={1}>
+            Your manager will review and approve this {entityLabel}.
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pt: 2 }}>
+          {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
+          {showPickupDate && (
+            <TextField
+              fullWidth
+              type="date"
+              label={pickupDateLabel}
+              value={pickupDate}
+              onChange={(e) => setPickupDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              InputProps={{ startAdornment: <IconTruckDelivery size={18} style={{ marginRight: 8, opacity: 0.6 }} /> }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={handleDecideLater} disabled={loading} sx={{ borderRadius: 2 }}>
+            {onDecideLater ? 'Decide later' : 'Cancel'}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<IconUserCheck size={18} />}
+            onClick={handleSendForApproval}
+            disabled={loading}
+            sx={{ borderRadius: 2, fontWeight: 700 }}
+          >
+            {loading ? 'Sending…' : 'Send for approval'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  }
 
   return (
     <>
@@ -88,7 +143,7 @@ const ApprovalWorkflowDialogs = ({
               variant="outlined"
               size="large"
               startIcon={<IconUserCheck size={18} />}
-              onClick={onRequestApproval}
+              onClick={handleSendForApproval}
               disabled={loading}
               sx={{ borderRadius: 2, py: 1.25, fontWeight: 700 }}
             >

@@ -55,7 +55,6 @@ const QuotationView = () => {
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalError, setApprovalError] = useState('');
-  const [pinConfigured, setPinConfigured] = useState(false);
   const [dealWorkOrders, setDealWorkOrders] = useState([]);
   const [dealQuotations, setDealQuotations] = useState([]);
 
@@ -93,11 +92,6 @@ const QuotationView = () => {
   }, [id]);
 
   useEffect(() => { fetchQ(); }, [fetchQ]);
-  useEffect(() => {
-    apiService.getTenant().then((res) => {
-      if (res.success) setPinConfigured(Boolean(res.data?.lead_approval_pin_configured));
-    }).catch(() => {});
-  }, []);
 
   const handlePdf = async (documentType) => {
     if (!id) return;
@@ -131,7 +125,7 @@ const QuotationView = () => {
         await fetchQ();
       } catch (e) {
         const msg = e.message || '';
-        if (msg.includes('approval PIN') || msg.includes('manager can approve')) {
+        if (msg.includes('manager can approve')) {
           setApproveConfirmOpen(false);
           setApprovalError('');
           setApprovalDialogOpen(true);
@@ -152,31 +146,16 @@ const QuotationView = () => {
     setApproveConfirmOpen(true);
   };
 
-  const handleRequestQuotationApproval = async () => {
+  const handleRequestQuotationApproval = async (requestedPickupDate) => {
     if (!id) return;
     try {
       setApprovalLoading(true);
       setApprovalError('');
-      await apiService.requestQuotationApproval(id);
+      await apiService.requestQuotationApproval(id, requestedPickupDate);
       setApprovalDialogOpen(false);
       await fetchQ();
     } catch (e) {
       setApprovalError(e.message || 'Failed to request approval');
-    } finally {
-      setApprovalLoading(false);
-    }
-  };
-
-  const handleApproveQuotationWithPin = async (pin) => {
-    if (!id) return;
-    try {
-      setApprovalLoading(true);
-      setApprovalError('');
-      await apiService.approveQuotationWithPin(id, pin);
-      setApprovalDialogOpen(false);
-      await fetchQ();
-    } catch (e) {
-      setApprovalError(e.message || 'Invalid PIN or approval failed');
     } finally {
       setApprovalLoading(false);
     }
@@ -370,6 +349,15 @@ const QuotationView = () => {
               <Typography variant="body2" color="text.secondary" fontWeight={600}>Quotation date</Typography>
               <Typography variant="body2">{q.quotation_date || '—'}</Typography>
             </Stack>
+            {q.requested_pickup_date && (
+              <>
+                <Divider />
+                <Stack direction="row" justifyContent="space-between" flexWrap="wrap" gap={1} py={2}>
+                  <Typography variant="body2" color="text.secondary" fontWeight={600}>Requested pickup date</Typography>
+                  <Typography variant="body2" fontWeight={600}>{q.requested_pickup_date}</Typography>
+                </Stack>
+              </>
+            )}
             {q.remarks && (
               <>
                 <Divider />
@@ -438,13 +426,13 @@ const QuotationView = () => {
         <ApprovalWorkflowDialogs
           open={approvalDialogOpen}
           entityLabel="quotation"
-          pinConfigured={pinConfigured}
+          showPinOption={false}
+          showPickupDate
           loading={approvalLoading}
           error={approvalError}
           onClose={() => setApprovalDialogOpen(false)}
           onDecideLater={() => setApprovalDialogOpen(false)}
           onRequestApproval={handleRequestQuotationApproval}
-          onApproveWithPin={handleApproveQuotationWithPin}
           approveButtonLabel="Approve quotation"
         />
 

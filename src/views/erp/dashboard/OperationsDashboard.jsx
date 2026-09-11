@@ -4,7 +4,8 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router';
 import {
   IconBuildingFactory2, IconAlertCircle, IconCoin, IconPackage, IconTruck,
-  IconArrowRight, IconCalendarX, IconUser,
+  IconArrowRight, IconCalendarX, IconUser, IconReceipt, IconShoppingCart,
+  IconCalendarEvent, IconHammer,
 } from '@tabler/icons-react';
 import KpiCard from './shared/KpiCard';
 import ActionableList from './shared/ActionableList';
@@ -22,6 +23,75 @@ const daysOverdue = (endDate) => {
   if (!endDate) return 0;
   const diff = Math.floor((Date.now() - new Date(endDate).getTime()) / 86400000);
   return Math.max(0, diff);
+};
+
+const RecentOrdersPanel = ({ title, icon: Icon, color, orders, emptyLabel, viewHref, onOpen, onCreateWorkOrder }) => {
+  const theme = useTheme();
+  const navigate = useNavigate();
+
+  return (
+    <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden', height: '100%' }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Icon size={16} color={theme.palette[color].main} />
+          <Typography variant="subtitle2" fontWeight={800}>{title}</Typography>
+        </Stack>
+        <Button size="small" endIcon={<IconArrowRight size={13} />} onClick={() => navigate(viewHref)} sx={{ borderRadius: 2, fontSize: '0.78rem' }}>
+          View all
+        </Button>
+      </Stack>
+      {orders.length === 0 ? (
+        <Box sx={{ px: 2.5, py: 4, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">{emptyLabel}</Typography>
+        </Box>
+      ) : (
+        <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />}>
+          {orders.map((o) => (
+            <Stack
+              key={o.id}
+              direction="row"
+              alignItems="center"
+              spacing={2}
+              sx={{ px: 2.5, py: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+              onClick={() => onOpen(o)}
+            >
+              <Box flex={1} minWidth={0}>
+                <Typography variant="body2" fontWeight={700} noWrap>{o.dealTitle || o.companyName || `#${o.id}`}</Typography>
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <IconCalendarEvent size={12} color={theme.palette.text.disabled} />
+                  <Typography variant="caption" color={o.requestedPickupDate ? 'text.secondary' : 'text.disabled'}>
+                    {o.requestedPickupDate ? `Pickup requested: ${o.requestedPickupDate}` : 'No pickup date requested'}
+                  </Typography>
+                </Stack>
+              </Box>
+              {o.workOrderId ? (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<IconHammer size={14} />}
+                  onClick={(e) => { e.stopPropagation(); navigate(`/erp/work-orders/view/${o.workOrderId}`); }}
+                  sx={{ borderRadius: 2, fontSize: '0.72rem', flexShrink: 0 }}
+                >
+                  Open WO
+                </Button>
+              ) : (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color={color}
+                  startIcon={<IconHammer size={14} />}
+                  onClick={(e) => { e.stopPropagation(); onCreateWorkOrder(o); }}
+                  sx={{ borderRadius: 2, fontSize: '0.72rem', flexShrink: 0 }}
+                >
+                  Convert to WO
+                </Button>
+              )}
+            </Stack>
+          ))}
+        </Stack>
+      )}
+    </Paper>
+  );
 };
 
 const OperationsDashboard = ({ data }) => {
@@ -46,6 +116,33 @@ const OperationsDashboard = ({ data }) => {
       <Box mb={3.5}>
         <ActionableList title="Bottlenecks & approvals" items={data.actionables} />
       </Box>
+
+      <Grid container spacing={2.5} mb={3.5}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <RecentOrdersPanel
+            title="Recent service orders"
+            icon={IconReceipt}
+            color="primary"
+            orders={data.recentServiceOrders || []}
+            emptyLabel="No approved service orders yet"
+            viewHref="/erp/service-orders"
+            onOpen={(o) => navigate(`/erp/quotations/view/${o.id}`)}
+            onCreateWorkOrder={(o) => navigate(`/erp/work-orders/create?quotationId=${o.id}${o.dealId ? `&dealId=${o.dealId}` : ''}`)}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <RecentOrdersPanel
+            title="Recent purchase orders"
+            icon={IconShoppingCart}
+            color="secondary"
+            orders={data.recentPurchaseOrders || []}
+            emptyLabel="No approved purchase orders yet"
+            viewHref="/erp/client-purchase-orders"
+            onOpen={(o) => navigate(`/erp/purchase-orders/view/${o.id}`)}
+            onCreateWorkOrder={(o) => navigate(`/erp/work-orders/create?purchaseOrderId=${o.id}${o.dealId ? `&dealId=${o.dealId}` : ''}`)}
+          />
+        </Grid>
+      </Grid>
 
       {(data.overdueTasks || []).length > 0 && (
         <>

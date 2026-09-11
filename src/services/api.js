@@ -441,12 +441,8 @@ class ApiService {
     return this.post(`/quotations/${id}/approve`, {});
   }
 
-  async requestQuotationApproval(id) {
-    return this.post(`/quotations/${id}/request-approval`, {});
-  }
-
-  async approveQuotationWithPin(id, pin) {
-    return this.post(`/quotations/${id}/approve-with-pin`, { pin });
+  async requestQuotationApproval(id, requestedPickupDate) {
+    return this.post(`/quotations/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined });
   }
 
   async deleteQuotation(id) {
@@ -692,12 +688,8 @@ class ApiService {
     return this.post(`/purchase-orders/${id}/approve`, {});
   }
 
-  async requestPurchaseOrderApproval(id) {
-    return this.post(`/purchase-orders/${id}/request-approval`, {});
-  }
-
-  async approvePurchaseOrderWithPin(id, pin) {
-    return this.post(`/purchase-orders/${id}/approve-with-pin`, { pin });
+  async requestPurchaseOrderApproval(id, requestedPickupDate) {
+    return this.post(`/purchase-orders/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined });
   }
 
   async deletePurchaseOrder(id) {

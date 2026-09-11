@@ -144,7 +144,7 @@ const QuotationList = () => {
   const canGenerateInvoiceFlag = canGenerateInvoice(user);
   const canCreateWorkOrderFlag = canCreateWorkOrder(user, hasPermission);
   const isOrdersView = location.pathname.includes('/service-orders');
-  const tableHeaders = ['Deal', 'Ver.', 'Prepared By', 'Date', 'Items', ...(viewOnly ? [] : ['Amount (AED)']), 'Status', ''];
+  const tableHeaders = ['Deal', 'Ver.', 'Prepared By', 'Date', 'Pickup', 'Items', ...(viewOnly ? [] : ['Amount (AED)']), 'Status', ''];
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [quotations, setQuotations] = useState([]);
@@ -327,6 +327,7 @@ const QuotationList = () => {
                           <Typography variant="body2">{q.preparedByUser ? `${q.preparedByUser.first_name || ''} ${q.preparedByUser.last_name || ''}`.trim() : '—'}</Typography>
                         </TableCell>
                         <TableCell><Typography variant="body2">{q.quotation_date || '—'}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" color={q.requested_pickup_date ? 'text.primary' : 'text.disabled'}>{q.requested_pickup_date || '—'}</Typography></TableCell>
                         <TableCell><Typography variant="body2" color="text.secondary">{q.deal?.items?.length ?? 0}</Typography></TableCell>
                         {!viewOnly && (
                           <TableCell align="right">

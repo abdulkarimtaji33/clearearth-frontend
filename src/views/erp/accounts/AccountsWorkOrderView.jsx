@@ -29,8 +29,10 @@ import {
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
+import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
 import apiService from '../../../services/api';
 import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
+import { filterActiveByType, isPostable } from '../../../utils/accountTree';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
 import {
   PAID_TO_OPTIONS,
@@ -80,9 +82,20 @@ const AccountsWorkOrderView = () => {
     paidTo: 'Operations',
     paymentMethod: 'Bank transfer',
     notes: '',
+    expenseAccountId: '',
   });
   const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
   const [customPaymentMethods, setCustomPaymentMethods] = useState(() => loadStoredOptions(PAYMENT_METHOD_STORAGE_KEY));
+  const [expenseAccounts, setExpenseAccounts] = useState([]);
+
+  useEffect(() => {
+    apiService.getChartOfAccounts({}).then((res) => {
+      if (res.success) {
+        const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
+        setExpenseAccounts(filterActiveByType(list, 'expense'));
+      }
+    });
+  }, []);
 
   const paidToOptions = useMemo(
     () => mergeSelectOptions(PAID_TO_OPTIONS, customPaidTo, form.paidTo),
@@ -155,12 +168,17 @@ const AccountsWorkOrderView = () => {
     const taskLabel = task.type_of_work || task.workType?.name || 'Task';
     const lineDesc = (ex.description || '').trim();
     const notesParts = [woTitle, taskLabel, lineDesc].filter(Boolean);
+    // Default to Cost of Services (the historical behavior) — the approver can pick a more
+    // specific expense head (e.g. Fuel Expense, Vehicle Maintenance) before approving.
+    const postable = expenseAccounts.filter(isPostable);
+    const defaultAccount = postable.find((a) => String(a.code) === '5000') || postable[0];
     setForm({
       amount: String(ex.amount ?? ''),
       expenseDate: new Date().toISOString().slice(0, 10),
       paidTo: 'Operations',
       paymentMethod: 'Bank transfer',
       notes: notesParts.join(' · '),
+      expenseAccountId: defaultAccount ? String(defaultAccount.id) : '',
     });
     setApproveOpen(true);
   };
@@ -176,6 +194,7 @@ const AccountsWorkOrderView = () => {
         paidTo: form.paidTo.trim() || undefined,
         paymentMethod: form.paymentMethod || null,
         notes: form.notes || null,
+        expenseAccountId: form.expenseAccountId ? parseInt(form.expenseAccountId, 10) : undefined,
       });
       setSuccess('Expense recorded');
       setApproveOpen(false);
@@ -611,15 +630,24 @@ const AccountsWorkOrderView = () => {
           <DialogTitle fontWeight={700}>Approve expense</DialogTitle>
           <DialogContent>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
-              Ledger category and work order link are set automatically. Adjust payee, amount, date, or payment details if needed.
+              Work order link is set automatically. Choose the expense head this posts to, and adjust payee, amount, date, or payment details if needed.
             </Typography>
             {wo && (
               <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
-                <Chip size="small" label="Category: Work orders" color="primary" variant="outlined" sx={{ fontWeight: 700 }} />
                 <Chip size="small" label={`WO #${wo.id}`} variant="outlined" sx={{ fontWeight: 700 }} />
               </Stack>
             )}
             <Stack spacing={2} sx={{ mt: 0 }}>
+              {expenseAccounts.length > 0 && (
+                <CascadingAccountSelect
+                  accounts={expenseAccounts}
+                  value={form.expenseAccountId}
+                  onChange={(id) => setForm((f) => ({ ...f, expenseAccountId: id }))}
+                  parentLabel="Expense account"
+                  childLabel="Expense sub-account"
+                  helperText="GL account debited by this expense (e.g. Fuel Expense, Vehicle Maintenance)"
+                />
+              )}
               <TextField label="Amount (AED)" size="small" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} fullWidth />
               <TextField label="Expense date" type="date" size="small" value={form.expenseDate} onChange={(e) => setForm((f) => ({ ...f, expenseDate: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
               <SelectWithAddNew

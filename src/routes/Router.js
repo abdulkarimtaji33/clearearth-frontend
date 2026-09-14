@@ -49,6 +49,7 @@ const AccountsWorkOrderView = Loadable(lazyWithChunkReload(() => import('../view
 const ExpensesList = Loadable(lazyWithChunkReload(() => import('../views/erp/accounts/ExpensesList')));
 const ExpenseCreate = Loadable(lazyWithChunkReload(() => import('../views/erp/accounts/ExpenseCreate')));
 const ReceivablesList = Loadable(lazyWithChunkReload(() => import('../views/erp/receivables/ReceivablesList')));
+const ReceivePaymentView = Loadable(lazyWithChunkReload(() => import('../views/erp/receivables/ReceivePaymentView')));
 const AgingSummaryView = Loadable(lazyWithChunkReload(() => import('../views/erp/receivables/AgingSummaryView')));
 const StatementOfAccountView = Loadable(lazyWithChunkReload(() => import('../views/erp/receivables/StatementOfAccountView')));
 const PayablesList = Loadable(lazyWithChunkReload(() => import('../views/erp/payables/PayablesList')));
@@ -156,6 +157,7 @@ const Router = createBrowserRouter([
       { path: '/erp/accounts/work-orders', element: <AccountsWorkOrderList /> },
       { path: '/erp/accounts/work-orders/view/:id', element: <AccountsWorkOrderView /> },
       { path: '/erp/receivables', element: <ReceivablesList /> },
+      { path: '/erp/receivables/receive-payment', element: <ReceivePaymentView /> },
       { path: '/erp/receivables/aging', element: <AgingSummaryView /> },
       { path: '/erp/receivables/statement/:companyId', element: <StatementOfAccountView /> },
       { path: '/erp/payables', element: <PayablesList /> },

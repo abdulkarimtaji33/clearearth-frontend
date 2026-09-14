@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Alert, TextField, MenuItem,
+  TableContainer, TableHead, TableRow, Alert, TextField,
   IconButton, Checkbox, FormControlLabel, Divider,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
@@ -9,6 +9,7 @@ import { IconArrowLeft, IconPlus, IconTrash, IconBook2 } from '@tabler/icons-rea
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
+import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
 import apiService from '../../../services/api';
 import { asArray } from '../../../utils/reportApi';
 import {
@@ -42,7 +43,9 @@ const JournalEntryCreate = () => {
 
   useEffect(() => {
     apiService.getChartOfAccounts({}).then((res) => {
-      if (res.success) setAccounts(asArray(res.data).filter((a) => !a.is_group && a.is_active));
+      // Keep group (header) accounts in the list — CascadingAccountSelect needs them for the
+      // parent step, but only lets a leaf/sub-account actually be selected for a line.
+      if (res.success) setAccounts(asArray(res.data).filter((a) => a.is_active));
     });
   }, []);
 
@@ -194,13 +197,14 @@ const JournalEntryCreate = () => {
               <TableBody>
                 {lines.map((line, i) => (
                   <TableRow key={i}>
-                    <TableCell>
-                      <TextField select size="small" value={line.accountId} onChange={(e) => setLine(i, 'accountId', e.target.value)} fullWidth>
-                        <MenuItem value="">— Select account —</MenuItem>
-                        {accounts.map((a) => (
-                          <MenuItem key={a.id} value={a.id}>{a.code} — {a.name}</MenuItem>
-                        ))}
-                      </TextField>
+                    <TableCell sx={{ minWidth: 260, verticalAlign: 'top', pt: 1.5 }}>
+                      <CascadingAccountSelect
+                        accounts={accounts}
+                        value={line.accountId}
+                        onChange={(id) => setLine(i, 'accountId', id)}
+                        parentLabel="Account"
+                        childLabel="Sub-account"
+                      />
                     </TableCell>
                     <TableCell>
                       <TextField size="small" value={line.description} onChange={(e) => setLine(i, 'description', e.target.value)} fullWidth placeholder="Optional note…" />

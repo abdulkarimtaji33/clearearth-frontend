@@ -546,6 +546,10 @@ class ApiService {
     return this.post(`/receivables/${id}/payment`, data);
   }
 
+  async receiveCustomerPayment(data) {
+    return this.post('/receivables/receive-payment', data);
+  }
+
   async getReceivablePayments(id) {
     return this.get(`/receivables/${id}/payments`);
   }

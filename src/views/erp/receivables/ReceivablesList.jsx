@@ -5,7 +5,7 @@ import {
   DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconCoin, IconChartHistogram, IconHistory, IconFileDescription } from '@tabler/icons-react';
+import { IconSearch, IconCoin, IconChartHistogram, IconHistory, IconFileDescription, IconCashBanknote } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -156,9 +156,14 @@ const ReceivablesList = () => {
               <Typography variant="body2" color="text.secondary">{totalCount} open invoice{totalCount !== 1 ? 's' : ''}</Typography>
             </Box>
           </Stack>
-          <Button variant="outlined" startIcon={<IconChartHistogram size={18} />} onClick={() => navigate('/erp/receivables/aging')} sx={{ borderRadius: 2 }}>
-            Aging summary
-          </Button>
+          <Stack direction="row" spacing={1.5}>
+            <Button variant="contained" color="warning" startIcon={<IconCashBanknote size={18} />} onClick={() => navigate('/erp/receivables/receive-payment')} sx={{ borderRadius: 2 }}>
+              Receive payment
+            </Button>
+            <Button variant="outlined" startIcon={<IconChartHistogram size={18} />} onClick={() => navigate('/erp/receivables/aging')} sx={{ borderRadius: 2 }}>
+              Aging summary
+            </Button>
+          </Stack>
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}

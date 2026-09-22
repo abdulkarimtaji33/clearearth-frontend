@@ -9,6 +9,7 @@ import { IconArrowLeft, IconEdit, IconFileDownload, IconHammer, IconShoppingCart
 import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import ApproveQuotationConfirmDialog from '../../../components/erp/ApproveQuotationConfirmDialog';
+import PickupDatePanel from '../../../components/erp/PickupDatePanel';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
@@ -47,6 +48,10 @@ const PurchaseOrderView = () => {
   const [approveError, setApproveError] = useState('');
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
+  const [approvePickupDate, setApprovePickupDate] = useState('');
+  const [pickupActionLoading, setPickupActionLoading] = useState(false);
+  const [pickupActionError, setPickupActionError] = useState('');
+  const isOperationsUser = user?.role?.name === 'operations_manager' || user?.role?.name === 'operations';
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalError, setApprovalError] = useState('');
   const [tenantCompanyName, setTenantCompanyName] = useState('Clear Earth Recycling LLC');
@@ -96,8 +101,9 @@ const PurchaseOrderView = () => {
     if (canDirectApprove) {
       try {
         setApproveLoading(true);
-        await apiService.approvePurchaseOrder(id);
+        await apiService.approvePurchaseOrder(id, approvePickupDate || null);
         setApproveConfirmOpen(false);
+        setApprovePickupDate('');
         await fetchPo();
       } catch (e) {
         const msg = e.message || '';
@@ -242,6 +248,52 @@ const PurchaseOrderView = () => {
             )}
           </Stack>
         </Stack>
+
+        {isApproved && po.requested_pickup_date && (
+          <PickupDatePanel
+            entity={po}
+            isOperations={isOperationsUser}
+            isPreparer={String(po.created_by) === String(user?.id)}
+            onConfirm={async () => {
+              setPickupActionError('');
+              setPickupActionLoading(true);
+              try {
+                await apiService.confirmPurchaseOrderPickupDate(id);
+                await fetchPo();
+              } catch (e) {
+                setPickupActionError(e.message || 'Failed to confirm pickup date');
+              } finally {
+                setPickupActionLoading(false);
+              }
+            }}
+            onRequestReschedule={async (note) => {
+              setPickupActionError('');
+              setPickupActionLoading(true);
+              try {
+                await apiService.requestPurchaseOrderPickupReschedule(id, note);
+                await fetchPo();
+              } catch (e) {
+                setPickupActionError(e.message || 'Failed to request reschedule');
+              } finally {
+                setPickupActionLoading(false);
+              }
+            }}
+            onReschedule={async (newDate) => {
+              setPickupActionError('');
+              setPickupActionLoading(true);
+              try {
+                await apiService.reschedulePurchaseOrderPickupDate(id, newDate);
+                await fetchPo();
+              } catch (e) {
+                setPickupActionError(e.message || 'Failed to reschedule pickup date');
+              } finally {
+                setPickupActionLoading(false);
+              }
+            }}
+            loading={pickupActionLoading}
+            error={pickupActionError}
+          />
+        )}
 
         {/* Summary highlight */}
         <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2, px: 3, py: 2.5, bgcolor: alpha(theme.palette.secondary.main, 0.04), borderColor: alpha(theme.palette.secondary.main, 0.2) }}>
@@ -404,11 +456,13 @@ const PurchaseOrderView = () => {
 
         <ApproveQuotationConfirmDialog
           open={approveConfirmOpen}
-          onClose={() => setApproveConfirmOpen(false)}
+          onClose={() => { setApproveConfirmOpen(false); setApprovePickupDate(''); }}
           onConfirm={executeApprovePo}
           loading={approveLoading}
           entityLabel="client purchase quotation"
           orderCreatedLabel="A Purchase Order will be created."
+          pickupDate={approvePickupDate}
+          onPickupDateChange={setApprovePickupDate}
           listLabel="The quotation will be removed from the Purchase Quotation List."
         />
       </Box>

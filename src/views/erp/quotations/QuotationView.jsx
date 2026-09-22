@@ -9,6 +9,7 @@ import { IconArrowLeft, IconFileDownload, IconHammer, IconReceipt, IconCheck, Ic
 import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import ApproveQuotationConfirmDialog from '../../../components/erp/ApproveQuotationConfirmDialog';
+import PickupDatePanel from '../../../components/erp/PickupDatePanel';
 import QuotationVersionBadge from '../../../components/erp/QuotationVersionBadge';
 import apiService from '../../../services/api';
 import { sortQuotationsByVersion, quotationVersion, quotationVersionLabel } from '../../../utils/quotationVersion';
@@ -53,6 +54,10 @@ const QuotationView = () => {
   const [approveError, setApproveError] = useState('');
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
+  const [approvePickupDate, setApprovePickupDate] = useState('');
+  const [pickupActionLoading, setPickupActionLoading] = useState(false);
+  const [pickupActionError, setPickupActionError] = useState('');
+  const isOperationsUser = user?.role?.name === 'operations_manager' || user?.role?.name === 'operations';
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalError, setApprovalError] = useState('');
   const [dealWorkOrders, setDealWorkOrders] = useState([]);
@@ -120,8 +125,9 @@ const QuotationView = () => {
     if (canDirectApprove) {
       try {
         setApproveLoading(true);
-        await apiService.approveQuotation(id);
+        await apiService.approveQuotation(id, approvePickupDate || null);
         setApproveConfirmOpen(false);
+        setApprovePickupDate('');
         await fetchQ();
       } catch (e) {
         const msg = e.message || '';
@@ -262,6 +268,52 @@ const QuotationView = () => {
             )}
           </Stack>
         </Stack>
+
+        {isApproved && q.requested_pickup_date && (
+          <PickupDatePanel
+            entity={q}
+            isOperations={isOperationsUser}
+            isPreparer={String(q.prepared_by) === String(user?.id)}
+            onConfirm={async () => {
+              setPickupActionError('');
+              setPickupActionLoading(true);
+              try {
+                await apiService.confirmQuotationPickupDate(id);
+                await fetchQ();
+              } catch (e) {
+                setPickupActionError(e.message || 'Failed to confirm pickup date');
+              } finally {
+                setPickupActionLoading(false);
+              }
+            }}
+            onRequestReschedule={async (note) => {
+              setPickupActionError('');
+              setPickupActionLoading(true);
+              try {
+                await apiService.requestQuotationPickupReschedule(id, note);
+                await fetchQ();
+              } catch (e) {
+                setPickupActionError(e.message || 'Failed to request reschedule');
+              } finally {
+                setPickupActionLoading(false);
+              }
+            }}
+            onReschedule={async (newDate) => {
+              setPickupActionError('');
+              setPickupActionLoading(true);
+              try {
+                await apiService.rescheduleQuotationPickupDate(id, newDate);
+                await fetchQ();
+              } catch (e) {
+                setPickupActionError(e.message || 'Failed to reschedule pickup date');
+              } finally {
+                setPickupActionLoading(false);
+              }
+            }}
+            loading={pickupActionLoading}
+            error={pickupActionError}
+          />
+        )}
 
         {showRevisionBar && (
           <Paper
@@ -438,10 +490,12 @@ const QuotationView = () => {
 
         <ApproveQuotationConfirmDialog
           open={approveConfirmOpen}
-          onClose={() => setApproveConfirmOpen(false)}
+          onClose={() => { setApproveConfirmOpen(false); setApprovePickupDate(''); }}
           onConfirm={executeApproveQuotation}
           loading={approveLoading}
           entityLabel="service quotation"
+          pickupDate={approvePickupDate}
+          onPickupDateChange={setApprovePickupDate}
         />
       </Box>
     </PageContainer>

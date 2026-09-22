@@ -437,12 +437,24 @@ class ApiService {
     return this.put(`/quotations/${id}`, data);
   }
 
-  async approveQuotation(id) {
-    return this.post(`/quotations/${id}/approve`, {});
+  async approveQuotation(id, requestedPickupDate) {
+    return this.post(`/quotations/${id}/approve`, { requestedPickupDate: requestedPickupDate || undefined });
   }
 
   async requestQuotationApproval(id, requestedPickupDate) {
     return this.post(`/quotations/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined });
+  }
+
+  async confirmQuotationPickupDate(id) {
+    return this.post(`/quotations/${id}/confirm-pickup-date`, {});
+  }
+
+  async requestQuotationPickupReschedule(id, note) {
+    return this.post(`/quotations/${id}/request-pickup-reschedule`, { note: note || undefined });
+  }
+
+  async rescheduleQuotationPickupDate(id, pickupDate) {
+    return this.post(`/quotations/${id}/reschedule-pickup-date`, { pickupDate });
   }
 
   async deleteQuotation(id) {
@@ -688,12 +700,24 @@ class ApiService {
     return this.put(`/purchase-orders/${id}`, data);
   }
 
-  async approvePurchaseOrder(id) {
-    return this.post(`/purchase-orders/${id}/approve`, {});
+  async approvePurchaseOrder(id, requestedPickupDate) {
+    return this.post(`/purchase-orders/${id}/approve`, { requestedPickupDate: requestedPickupDate || undefined });
   }
 
   async requestPurchaseOrderApproval(id, requestedPickupDate) {
     return this.post(`/purchase-orders/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined });
+  }
+
+  async confirmPurchaseOrderPickupDate(id) {
+    return this.post(`/purchase-orders/${id}/confirm-pickup-date`, {});
+  }
+
+  async requestPurchaseOrderPickupReschedule(id, note) {
+    return this.post(`/purchase-orders/${id}/request-pickup-reschedule`, { note: note || undefined });
+  }
+
+  async reschedulePurchaseOrderPickupDate(id, pickupDate) {
+    return this.post(`/purchase-orders/${id}/reschedule-pickup-date`, { pickupDate });
   }
 
   async deletePurchaseOrder(id) {
@@ -842,6 +866,12 @@ class ApiService {
     return this.post('/upload/tenant-logo', formData);
   }
 
+  async uploadUserAvatar(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.post('/upload/user-avatar', formData);
+  }
+
   async uploadMySignature(file) {
     const formData = new FormData();
     formData.append('file', file);
@@ -888,8 +918,8 @@ class ApiService {
     return this.get('/users', params);
   }
 
-  async getAssignees() {
-    return this.get('/users/assignees');
+  async getAssignees(params) {
+    return this.get('/users/assignees', params);
   }
 
   async getDrivers() {

@@ -223,7 +223,7 @@ const WorkOrderForm = () => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await apiService.getAssignees();
+      const res = await apiService.getAssignees({ roles: 'operations_manager,operations,driver' });
       if (res.success) {
         setUsers(Array.isArray(res.data) ? res.data : res.data?.items || []);
       }

@@ -1,10 +1,12 @@
 import React from 'react';
 import {
-  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Box,
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Box, TextField,
 } from '@mui/material';
 
 /**
  * Confirms quotation approval — approved records move to Orders and leave the quotations list.
+ * An optional pickup date can be set here; approving does NOT revert the record to pending
+ * approval — operations then confirms (or requests a reschedule of) that date.
  */
 const ApproveQuotationConfirmDialog = ({
   open,
@@ -14,6 +16,8 @@ const ApproveQuotationConfirmDialog = ({
   entityLabel = 'quotation',
   orderCreatedLabel = 'A Service Order will be created.',
   listLabel = 'The quotation will be removed from the Quotation List.',
+  pickupDate = '',
+  onPickupDateChange,
 }) => (
   <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
     <DialogTitle fontWeight={700}>Approve {entityLabel}?</DialogTitle>
@@ -26,6 +30,18 @@ const ApproveQuotationConfirmDialog = ({
           <li>The quotation can no longer be edited or reverted.</li>
         </Box>
       </DialogContentText>
+      {onPickupDateChange && (
+        <TextField
+          fullWidth
+          type="date"
+          label="Requested pickup date (optional)"
+          value={pickupDate || ''}
+          onChange={(e) => onPickupDateChange(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          helperText="Operations will confirm this date, or request a reschedule."
+          sx={{ mt: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+        />
+      )}
       <DialogContentText sx={{ mt: 2 }}>
         Do you want to continue?
       </DialogContentText>

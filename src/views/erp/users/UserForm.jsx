@@ -15,11 +15,12 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Avatar,
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
-import { IconArrowLeft, IconUsers } from '@tabler/icons-react';
+import { IconArrowLeft, IconUsers, IconUpload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { phoneYup, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
@@ -34,6 +35,8 @@ const UserForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [roles, setRoles] = useState([]);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState('');
   const [initialValues, setInitialValues] = useState({
     firstName: '',
     lastName: '',
@@ -43,6 +46,8 @@ const UserForm = () => {
     password: '',
     confirmPassword: '',
     status: 'active',
+    designation: '',
+    avatar: '',
   });
 
   const isEdit = Boolean(id);
@@ -71,7 +76,10 @@ const UserForm = () => {
           password: '',
           confirmPassword: '',
           status: u.status || 'active',
+          designation: u.designation || '',
+          avatar: u.avatar || '',
         });
+        if (u.avatar) setAvatarPreviewUrl(apiService.getUploadUrl(u.avatar));
       }
     } catch (err) {
       setError(err.message || 'Failed to load user');
@@ -123,6 +131,8 @@ const UserForm = () => {
         phone: values.phone?.trim() || null,
         roleId: values.roleId,
         status: values.status,
+        designation: values.designation?.trim() || null,
+        avatar: values.avatar || null,
       };
       if (!isEdit) payload.password = values.password;
       if (isEdit) {
@@ -177,13 +187,47 @@ const UserForm = () => {
           enableReinitialize
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, handleChange, handleBlur, handleSubmit, setFieldValue }) => (
+          {({ values, errors, touched, handleChange, handleBlur, handleSubmit, setFieldValue }) => {
+            const handleAvatarUpload = async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                setAvatarUploading(true);
+                setError('');
+                const res = await apiService.uploadUserAvatar(file);
+                if (res.success && res.data?.path) {
+                  setFieldValue('avatar', res.data.path);
+                  setAvatarPreviewUrl(res.data.url || apiService.getUploadUrl(res.data.path));
+                }
+              } catch (err) {
+                setError(err.message || 'Failed to upload photo');
+              } finally {
+                setAvatarUploading(false);
+              }
+            };
+            return (
             <form onSubmit={handleSubmit}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
                   <Typography variant="h5" fontWeight={600} mb={3}>User Details</Typography>
                   <Divider sx={{ mb: 3 }} />
                   <Stack spacing={3}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Avatar src={avatarPreviewUrl} sx={{ width: 64, height: 64 }}>
+                        <IconUsers size={28} />
+                      </Avatar>
+                      <Button
+                        component="label"
+                        variant="outlined"
+                        size="small"
+                        startIcon={<IconUpload size={16} />}
+                        disabled={avatarUploading}
+                        sx={{ borderRadius: 2 }}
+                      >
+                        {avatarUploading ? 'Uploading...' : 'Photo (optional)'}
+                        <input type="file" accept="image/*" hidden onChange={handleAvatarUpload} />
+                      </Button>
+                    </Stack>
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
                       <TextField
                         fullWidth
@@ -234,6 +278,15 @@ const UserForm = () => {
                       inputProps={{ inputMode: 'tel', maxLength: PHONE_MAX_DIGITS + 1 }}
                       error={touched.phone && Boolean(errors.phone)}
                       helperText={touched.phone && errors.phone ? errors.phone : PHONE_HELP_TEXT}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 320 }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Designation (optional)"
+                      name="designation"
+                      value={values.designation}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 320 }}
                     />
                     <Autocomplete
@@ -317,7 +370,8 @@ const UserForm = () => {
                 </Button>
               </Stack>
             </form>
-          )}
+            );
+          }}
         </Formik>
       </Box>
     </PageContainer>

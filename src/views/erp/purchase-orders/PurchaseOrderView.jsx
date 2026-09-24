@@ -117,16 +117,17 @@ const PurchaseOrderView = () => {
       } finally {
         setApproveLoading(false);
       }
-      return;
     }
-    setApproveConfirmOpen(false);
-    setApprovalError('');
-    setApprovalDialogOpen(true);
   };
 
   const handleApprovePo = () => {
     if (!isClientQuotation) return;
-    setApproveConfirmOpen(true);
+    if (canDirectApprove) {
+      setApproveConfirmOpen(true);
+    } else {
+      setApprovalError('');
+      setApprovalDialogOpen(true);
+    }
   };
 
   const handleRequestPoApproval = async (requestedPickupDate) => {

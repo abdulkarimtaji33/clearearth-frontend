@@ -117,6 +117,45 @@ const OperationsDashboard = ({ data }) => {
         <ActionableList title="Bottlenecks & approvals" items={data.actionables} />
       </Box>
 
+      {(data.todayWorkOrders || []).length > 0 && (
+        <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden', mb: 3.5 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <IconCalendarEvent size={16} color={theme.palette.primary.main} />
+              <Typography variant="subtitle2" fontWeight={800}>Today&apos;s work orders</Typography>
+            </Stack>
+            <Chip size="small" label={data.todayWorkOrders.length} color="primary" sx={{ fontWeight: 700, fontSize: '0.68rem', height: 22 }} />
+          </Stack>
+          <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />}>
+            {data.todayWorkOrders.map((t) => (
+              <Stack
+                key={t.workOrderId}
+                direction="row"
+                alignItems="center"
+                spacing={2}
+                sx={{ px: 2.5, py: 1.5, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                onClick={() => navigate(`/erp/work-orders/view/${t.workOrderId}`)}
+              >
+                <Box flex={1} minWidth={0}>
+                  <Typography variant="body2" fontWeight={700} noWrap>{t.workOrderTitle}</Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="caption" color="text.secondary">{t.typeOfWork || 'Task'}</Typography>
+                    {t.assignedTo && t.assignedTo !== 'Unassigned' && (
+                      <>
+                        <Typography variant="caption" color="text.disabled">·</Typography>
+                        <IconUser size={11} color={theme.palette.text.disabled} />
+                        <Typography variant="caption" color="text.secondary">{t.assignedTo}</Typography>
+                      </>
+                    )}
+                  </Stack>
+                </Box>
+                <Chip size="small" label={(t.status || '').replace(/_/g, ' ')} color={STATUS_COLOR[t.status] || 'default'} sx={{ fontWeight: 700, fontSize: '0.66rem', height: 20, textTransform: 'capitalize', flexShrink: 0 }} />
+              </Stack>
+            ))}
+          </Stack>
+        </Paper>
+      )}
+
       <Grid container spacing={2.5} mb={3.5}>
         <Grid size={{ xs: 12, md: 6 }}>
           <RecentOrdersPanel

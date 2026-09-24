@@ -141,15 +141,16 @@ const QuotationView = () => {
       } finally {
         setApproveLoading(false);
       }
-      return;
     }
-    setApproveConfirmOpen(false);
-    setApprovalError('');
-    setApprovalDialogOpen(true);
   };
 
   const handleApproveQuotation = () => {
-    setApproveConfirmOpen(true);
+    if (canDirectApprove) {
+      setApproveConfirmOpen(true);
+    } else {
+      setApprovalError('');
+      setApprovalDialogOpen(true);
+    }
   };
 
   const handleRequestQuotationApproval = async (requestedPickupDate) => {

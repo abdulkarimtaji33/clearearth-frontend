@@ -122,35 +122,21 @@ const QuotationView = () => {
   const executeApproveQuotation = async () => {
     if (!id) return;
     setApproveError('');
-    if (canDirectApprove) {
-      try {
-        setApproveLoading(true);
-        await apiService.approveQuotation(id, approvePickupDate || null);
-        setApproveConfirmOpen(false);
-        setApprovePickupDate('');
-        await fetchQ();
-      } catch (e) {
-        const msg = e.message || '';
-        if (msg.includes('manager can approve')) {
-          setApproveConfirmOpen(false);
-          setApprovalError('');
-          setApprovalDialogOpen(true);
-        } else {
-          setApproveError(msg || 'Failed to approve');
-        }
-      } finally {
-        setApproveLoading(false);
-      }
+    try {
+      setApproveLoading(true);
+      await apiService.approveQuotation(id, approvePickupDate || null);
+      setApproveConfirmOpen(false);
+      setApprovePickupDate('');
+      await fetchQ();
+    } catch (e) {
+      setApproveError(e.message || 'Failed to approve');
+    } finally {
+      setApproveLoading(false);
     }
   };
 
   const handleApproveQuotation = () => {
-    if (canDirectApprove) {
-      setApproveConfirmOpen(true);
-    } else {
-      setApprovalError('');
-      setApprovalDialogOpen(true);
-    }
+    setApproveConfirmOpen(true);
   };
 
   const handleRequestQuotationApproval = async (requestedPickupDate) => {

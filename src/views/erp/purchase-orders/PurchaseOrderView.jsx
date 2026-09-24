@@ -98,36 +98,22 @@ const PurchaseOrderView = () => {
   const executeApprovePo = async () => {
     if (!id || !isClientQuotation) return;
     setApproveError('');
-    if (canDirectApprove) {
-      try {
-        setApproveLoading(true);
-        await apiService.approvePurchaseOrder(id, approvePickupDate || null);
-        setApproveConfirmOpen(false);
-        setApprovePickupDate('');
-        await fetchPo();
-      } catch (e) {
-        const msg = e.message || '';
-        if (msg.includes('manager can approve')) {
-          setApproveConfirmOpen(false);
-          setApprovalError('');
-          setApprovalDialogOpen(true);
-        } else {
-          setApproveError(msg || 'Failed to approve');
-        }
-      } finally {
-        setApproveLoading(false);
-      }
+    try {
+      setApproveLoading(true);
+      await apiService.approvePurchaseOrder(id, approvePickupDate || null);
+      setApproveConfirmOpen(false);
+      setApprovePickupDate('');
+      await fetchPo();
+    } catch (e) {
+      setApproveError(e.message || 'Failed to approve');
+    } finally {
+      setApproveLoading(false);
     }
   };
 
   const handleApprovePo = () => {
     if (!isClientQuotation) return;
-    if (canDirectApprove) {
-      setApproveConfirmOpen(true);
-    } else {
-      setApprovalError('');
-      setApprovalDialogOpen(true);
-    }
+    setApproveConfirmOpen(true);
   };
 
   const handleRequestPoApproval = async (requestedPickupDate) => {

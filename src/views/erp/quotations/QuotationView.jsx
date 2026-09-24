@@ -114,7 +114,7 @@ const QuotationView = () => {
   const qStatus = String(q?.status || '').toLowerCase();
   const isApproved = qStatus === 'approved';
   const linkedWorkOrder = q?.workOrder || q?.work_order;
-  const anyDealWorkOrder = linkedWorkOrder || dealWorkOrders.find((wo) => wo.id);
+  const anyDealWorkOrder = linkedWorkOrder || dealWorkOrders.find((wo) => wo.id && String(wo.quotation_id ?? wo.quotationId) === String(id));
   const canAttemptApproval = !viewOnly && q && QUOTATION_APPROVABLE_STATUSES.includes(qStatus);
   const dealRevisionCount = dealQuotations.length;
   const showRevisionBar = dealRevisionCount > 1;

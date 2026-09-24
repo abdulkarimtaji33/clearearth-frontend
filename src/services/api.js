@@ -107,7 +107,23 @@ class ApiService {
         headers,
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let data;
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text().catch(() => '');
+        const error = new Error(
+          response.status === 413
+            ? 'The file you uploaded is too large.'
+            : response.status >= 500
+            ? 'Server error. Please try again in a moment.'
+            : `Request failed (${response.status}). Please try again.`
+        );
+        error.status = response.status;
+        error.response = text.slice(0, 500);
+        throw error;
+      }
 
       if (!response.ok) {
         if (response.status === 401 && !options._retry && !this._isAuthCredentialEndpoint(endpoint)) {

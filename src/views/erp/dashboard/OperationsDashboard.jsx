@@ -19,6 +19,13 @@ const KPI_ICONS = {
 
 const STATUS_COLOR = { not_started: 'default', in_progress: 'primary', completed: 'success' };
 
+const KPI_HREFS = {
+  'Work orders in progress': '/erp/work-orders?status=in_progress',
+  'Overdue tasks': '/erp/work-orders',
+  'Expenses pending': '/erp/accounts/work-orders',
+  'GRNs pending': '/erp/grn',
+};
+
 const daysOverdue = (endDate) => {
   if (!endDate) return 0;
   const diff = Math.floor((Date.now() - new Date(endDate).getTime()) / 86400000);
@@ -108,7 +115,13 @@ const OperationsDashboard = ({ data }) => {
       <Grid container spacing={2.5} mb={3.5}>
         {(data.kpis || []).map((k) => (
           <Grid key={k.label} size={{ xs: 12, sm: 6, md: 3 }}>
-            <KpiCard {...k} icon={KPI_ICONS[k.label]} color={k.highlight ? 'error' : 'primary'} highlight={k.highlight} />
+            <KpiCard
+              {...k}
+              icon={KPI_ICONS[k.label]}
+              color={k.highlight ? 'error' : 'primary'}
+              highlight={k.highlight}
+              onClick={KPI_HREFS[k.label] ? () => navigate(KPI_HREFS[k.label]) : undefined}
+            />
           </Grid>
         ))}
       </Grid>
@@ -117,15 +130,19 @@ const OperationsDashboard = ({ data }) => {
         <ActionableList title="Bottlenecks & approvals" items={data.actionables} />
       </Box>
 
-      {(data.todayWorkOrders || []).length > 0 && (
-        <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden', mb: 3.5 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <IconCalendarEvent size={16} color={theme.palette.primary.main} />
-              <Typography variant="subtitle2" fontWeight={800}>Today&apos;s work orders</Typography>
-            </Stack>
-            <Chip size="small" label={data.todayWorkOrders.length} color="primary" sx={{ fontWeight: 700, fontSize: '0.68rem', height: 22 }} />
+      <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden', mb: 3.5 }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <IconCalendarEvent size={16} color={theme.palette.primary.main} />
+            <Typography variant="subtitle2" fontWeight={800}>Today&apos;s work orders</Typography>
           </Stack>
+          <Chip size="small" label={(data.todayWorkOrders || []).length} color="primary" sx={{ fontWeight: 700, fontSize: '0.68rem', height: 22 }} />
+        </Stack>
+        {(data.todayWorkOrders || []).length === 0 ? (
+          <Box sx={{ px: 2.5, py: 4, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">No work orders scheduled for today</Typography>
+          </Box>
+        ) : (
           <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />}>
             {data.todayWorkOrders.map((t) => (
               <Stack
@@ -153,8 +170,8 @@ const OperationsDashboard = ({ data }) => {
               </Stack>
             ))}
           </Stack>
-        </Paper>
-      )}
+        )}
+      </Paper>
 
       <Grid container spacing={2.5} mb={3.5}>
         <Grid size={{ xs: 12, md: 6 }}>

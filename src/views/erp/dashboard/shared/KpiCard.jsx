@@ -5,7 +5,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 const fmtCurrency = (v) =>
   `AED ${Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const KpiCard = ({ label, value, sub, format = 'number', color = 'primary', highlight, icon: Icon }) => {
+const KpiCard = ({ label, value, sub, format = 'number', color = 'primary', highlight, icon: Icon, onClick }) => {
   const theme = useTheme();
   const c = theme.palette[color]?.main || theme.palette.primary.main;
   const display = format === 'currency' ? fmtCurrency(value) : Number(value || 0).toLocaleString();
@@ -13,6 +13,7 @@ const KpiCard = ({ label, value, sub, format = 'number', color = 'primary', high
   return (
     <Paper
       elevation={0}
+      onClick={onClick}
       sx={{
         p: 2.5,
         borderRadius: 3,
@@ -23,6 +24,7 @@ const KpiCard = ({ label, value, sub, format = 'number', color = 'primary', high
         position: 'relative',
         overflow: 'hidden',
         transition: 'box-shadow 0.18s',
+        cursor: onClick ? 'pointer' : 'default',
         '&:hover': { boxShadow: `0 4px 20px ${alpha(c, 0.12)}` },
         '&::before': {
           content: '""',

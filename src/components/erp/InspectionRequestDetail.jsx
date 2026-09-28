@@ -81,6 +81,20 @@ const FieldVal = ({ children }) => (
   <Typography variant="body2" fontWeight={600} color="text.primary">{children || '—'}</Typography>
 );
 
+const DEAL_TYPE_LABELS = {
+  offer_to_charge: 'Offer to Charge',
+  offer_to_purchase: 'Offer to Purchase',
+  free_of_charge: 'Free of Charge',
+};
+const formatDealTypeLabel = (dealType) => DEAL_TYPE_LABELS[dealType] || (dealType ? dealType.replace(/_/g, ' ') : '—');
+
+const formatPreferredDate = (value) => {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString();
+};
+
 const formatRequestQuantity = (request, formatUomValue = (v) => v || '') => {
   if (request?.quantity_uom === 'lumpsum') {
     return request.lumpsum_price != null ? `${request.lumpsum_price} (lumpsum)` : 'Lumpsum';
@@ -597,6 +611,18 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                     <Grid size={clientName ? 6 : 12}>
                       <SmallLabel>Material Type</SmallLabel>
                       <FieldVal>{request.materialType?.display_name}</FieldVal>
+                    </Grid>
+                  </Grid>
+
+                  {/* deal type + preferred inspection date */}
+                  <Grid container spacing={2}>
+                    <Grid size={6}>
+                      <SmallLabel>Deal Type</SmallLabel>
+                      <FieldVal>{formatDealTypeLabel(deal?.deal_type)}</FieldVal>
+                    </Grid>
+                    <Grid size={6}>
+                      <SmallLabel>Preferred Inspection Date</SmallLabel>
+                      <FieldVal>{formatPreferredDate(request.preferred_inspection_date)}</FieldVal>
                     </Grid>
                   </Grid>
 

@@ -133,6 +133,12 @@ class ApiService {
           }
           this._forceLoginRedirect();
         }
+        if (response.status === 403) {
+          const message = formatApiErrorMessage(data) || '';
+          if (message.toLowerCase().includes('account is not active')) {
+            this._forceLoginRedirect();
+          }
+        }
         const error = new Error(formatApiErrorMessage(data));
         error.status = response.status;
         error.errors = data.errors || null;
@@ -960,6 +966,18 @@ class ApiService {
 
   async deleteUser(id) {
     return this.delete(`/users/${id}`);
+  }
+
+  async disableUser(id) {
+    return this.patch(`/users/${id}/disable`);
+  }
+
+  async enableUser(id) {
+    return this.patch(`/users/${id}/enable`);
+  }
+
+  async impersonateUser(id) {
+    return this.post(`/users/${id}/impersonate`);
   }
 
   // Roles

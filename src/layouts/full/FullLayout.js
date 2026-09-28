@@ -10,6 +10,7 @@ import Navigation from './horizontal/navbar/Navbar';
 import ScrollToTop from '../../components/shared/ScrollToTop';
 import LoadingBar from '../../LoadingBar';
 import RealtimeNotificationToast from '../../components/notifications/RealtimeNotificationToast';
+import ImpersonationBanner from '../../components/shared/ImpersonationBanner';
 
 
 const MainWrapper = styled('div')(() => ({
@@ -34,6 +35,7 @@ const FullLayout = () => {
   return (
     <>
       <LoadingBar />
+      <ImpersonationBanner />
       <RealtimeNotificationToast />
       <MainWrapper
         className={activeMode === 'dark' ? 'darkbg mainwrapper' : 'mainwrapper'}

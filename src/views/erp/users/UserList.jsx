@@ -30,7 +30,7 @@ import {
   InputLabel,
   Select,
 } from '@mui/material';
-import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconLock } from '@tabler/icons-react';
+import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconLock, IconLogin, IconBan, IconCircleCheck } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -41,6 +41,7 @@ const UserList = () => {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const canUpdateUsers = hasPermission('users.update');
+  const canImpersonate = hasPermission('users.impersonate');
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -107,6 +108,44 @@ const UserList = () => {
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedUser(null);
+  };
+
+  const handleImpersonate = async (user) => {
+    if (!user) return;
+    try {
+      setError('');
+      const res = await apiService.impersonateUser(user.id);
+      if (res.success && res.data?.accessToken) {
+        const currentToken = apiService.getAuthToken();
+        if (currentToken) {
+          localStorage.setItem('admin_original_token', currentToken);
+        }
+        apiService.setAuthToken(res.data.accessToken);
+        handleMenuClose();
+        navigate('/erp/dashboard');
+        window.location.reload();
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to impersonate user');
+    }
+  };
+
+  const handleToggleStatus = async (user) => {
+    if (!user) return;
+    try {
+      setError('');
+      if (user.status === 'active') {
+        await apiService.disableUser(user.id);
+        setSuccess('User disabled');
+      } else {
+        await apiService.enableUser(user.id);
+        setSuccess('User enabled');
+      }
+      handleMenuClose();
+      fetchUsers();
+    } catch (err) {
+      setError(err.message || 'Failed to update user status');
+    }
   };
 
   const handleDelete = async () => {
@@ -327,6 +366,27 @@ const UserList = () => {
             <MenuItem onClick={openPasswordDialog}>
               <IconLock size={18} style={{ marginRight: 8 }} />
               Change password
+            </MenuItem>
+          )}
+          {canImpersonate && (
+            <MenuItem onClick={() => handleImpersonate(selectedUser)} disabled={selectedUser?.status !== 'active'}>
+              <IconLogin size={18} style={{ marginRight: 8 }} />
+              Login as this user
+            </MenuItem>
+          )}
+          {canUpdateUsers && (
+            <MenuItem onClick={() => handleToggleStatus(selectedUser)}>
+              {selectedUser?.status === 'active' ? (
+                <>
+                  <IconBan size={18} style={{ marginRight: 8 }} />
+                  Disable
+                </>
+              ) : (
+                <>
+                  <IconCircleCheck size={18} style={{ marginRight: 8 }} />
+                  Enable
+                </>
+              )}
             </MenuItem>
           )}
           <MenuItem

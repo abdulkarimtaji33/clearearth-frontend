@@ -56,6 +56,20 @@ const RESPONSE_CONFIG = {
   rejected: { label: 'Rejected', color: 'error' },
 };
 
+const DEAL_TYPE_LABELS = {
+  offer_to_charge: 'Offer to Charge',
+  offer_to_purchase: 'Offer to Purchase',
+  free_of_charge: 'Free of Charge',
+};
+const formatDealTypeLabel = (dealType) => DEAL_TYPE_LABELS[dealType] || (dealType ? dealType.replace(/_/g, ' ') : '—');
+
+const formatPreferredDate = (value) => {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString();
+};
+
 const InspectionRequestList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -199,17 +213,17 @@ const InspectionRequestList = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.success.main, 0.04) }}>
-                    {['Deal', 'Client', 'Material', 'Priority', 'Stage', 'Response', 'Requested By', 'Actions'].map((h, i) => (
-                      <TableCell key={i} align={i === 7 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                    {['Deal', 'Client', 'Deal Type', 'Material', 'Priority', 'Stage', 'Response', 'Preferred Date', 'Requested By', 'Actions'].map((h, i, arr) => (
+                      <TableCell key={i} align={i === arr.length - 1 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {loading ? (
-                    <TableRow><TableCell colSpan={8} align="center" sx={{ py: 8 }}><CircularProgress /></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} align="center" sx={{ py: 8 }}><CircularProgress /></TableCell></TableRow>
                   ) : requests.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
+                      <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
                         <IconClipboardCheck size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
                         <Typography variant="body2" color="text.secondary">No inspection requests found</Typography>
                       </TableCell>
@@ -235,6 +249,7 @@ const InspectionRequestList = () => {
                           <Typography variant="body2" fontWeight={500}>{req.deal?.title || '—'}</Typography>
                         </TableCell>
                         <TableCell><Typography variant="body2">{req.deal?.company?.company_name || req.deal?.supplier?.company_name || '—'}</Typography></TableCell>
+                        <TableCell><Typography variant="body2">{formatDealTypeLabel(req.deal?.deal_type)}</Typography></TableCell>
                         <TableCell><Typography variant="body2">{req.materialType?.display_name || '—'}</Typography></TableCell>
                         <TableCell onClick={e => e.stopPropagation()}>
                           <Select
@@ -269,6 +284,7 @@ const InspectionRequestList = () => {
                             );
                           })()}
                         </TableCell>
+                        <TableCell><Typography variant="body2">{formatPreferredDate(req.preferred_inspection_date)}</Typography></TableCell>
                         <TableCell>
                           <Typography variant="body2">
                             {req.requestedByUser ? [req.requestedByUser.first_name, req.requestedByUser.last_name].filter(Boolean).join(' ') || '—' : '—'}

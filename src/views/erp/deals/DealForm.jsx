@@ -326,6 +326,7 @@ const DealForm = () => {
     requestedBy: null,
     notes: '',
     priority: 'medium',
+    preferredInspectionDate: '',
   });
   const [wdsDetails, setWdsDetails] = useState({
     refNo: '',
@@ -539,6 +540,7 @@ const DealForm = () => {
             requestedBy: i.requested_by || null,
             notes: i.notes || '',
             priority: i.priority || 'medium',
+            preferredInspectionDate: i.preferred_inspection_date || '',
           });
         } else {
           setInspectionDetails({
@@ -554,6 +556,7 @@ const DealForm = () => {
             requestedBy: null,
             notes: '',
             priority: 'medium',
+            preferredInspectionDate: '',
           });
         }
         
@@ -2477,6 +2480,15 @@ const DealForm = () => {
                 <MenuItem value="medium">Medium</MenuItem>
                 <MenuItem value="low">Low</MenuItem>
               </TextField>
+              <TextField
+                fullWidth
+                label="Preferred Inspection Date"
+                type="date"
+                value={inspectionDetails.preferredInspectionDate || ''}
+                onChange={(e) => setInspectionDetails({ ...inspectionDetails, preferredInspectionDate: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
               <Autocomplete
                 fullWidth
                 options={materialTypes}

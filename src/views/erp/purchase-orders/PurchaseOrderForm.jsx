@@ -348,9 +348,12 @@ const PurchaseOrderForm = () => {
       }
 
       const poId = savedPo?.id || (isEdit ? Number(id) : null);
+      const isVendorPo = !isBillMode && (isVendorSide || Boolean(values.supplierId));
       if (poId && !isBillMode && isClientQuotation) {
         navigate(`/erp/purchase-orders/view/${poId}`);
       } else if (poId && isBillMode) {
+        navigate(`/erp/purchase-orders/view/${poId}`);
+      } else if (poId && isVendorPo) {
         navigate(`/erp/purchase-orders/view/${poId}`);
       } else {
         const listPath = isBillMode
@@ -381,7 +384,7 @@ const PurchaseOrderForm = () => {
       : (isClientBill ? 'Create Client Purchase Bill' : 'Create Vendor Purchase Bill'))
     : (isEdit
       ? 'Edit Purchase Quotation'
-      : (isVendorQuotationForm ? 'Create Vendor Purchase Quotation' : (sideFromUrl === 'client' ? 'Create Client Purchase Quotation' : 'Create Purchase Quotation')));
+      : (isVendorQuotationForm ? 'Create Vendor Purchase Order' : (sideFromUrl === 'client' ? 'Create Client Purchase Quotation' : 'Create Purchase Quotation')));
   const pageDesc = isBillMode
     ? 'Adjust quantities on the purchase bill; totals recalculate automatically'
     : (isEdit ? 'Set status to Approved to download a purchase order PDF' : 'After approval, download PDF is a purchase order');
@@ -458,7 +461,7 @@ const PurchaseOrderForm = () => {
             <form onSubmit={handleSubmit}>
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
                 <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-                  <Typography variant="h5" fontWeight={600} mb={3}>{isBillMode ? 'Purchase Bill Details' : 'Purchase Quotation Details'}</Typography>
+                  <Typography variant="h5" fontWeight={600} mb={3}>{isBillMode ? 'Purchase Bill Details' : (isVendorQuotationForm ? 'Vendor Purchase Order Details' : 'Purchase Quotation Details')}</Typography>
                   <Divider sx={{ mb: 3 }} />
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -791,7 +794,7 @@ const PurchaseOrderForm = () => {
 
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button type="submit" variant="contained" size="large" sx={{ borderRadius: 2 }}>
-                  {isEdit ? 'Update' : 'Create'} {isBillMode ? (isClientBill ? 'Client Purchase Bill' : 'Vendor Purchase Bill') : 'Purchase Quotation'}
+                  {isEdit ? 'Update' : 'Create'} {isBillMode ? (isClientBill ? 'Client Purchase Bill' : 'Vendor Purchase Bill') : (isVendorQuotationForm ? 'Vendor Purchase Order' : 'Purchase Quotation')}
                 </Button>
                 <Button variant="outlined" size="large" onClick={() => navigate(quotationListPath(values.companyId, values.supplierId))} sx={{ borderRadius: 2 }}>
                   Cancel

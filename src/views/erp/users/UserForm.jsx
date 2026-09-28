@@ -16,6 +16,11 @@ import {
   Select,
   MenuItem,
   Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -37,6 +42,9 @@ const UserForm = () => {
   const [roles, setRoles] = useState([]);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState('');
+  const [emailConfirmOpen, setEmailConfirmOpen] = useState(false);
+  const [pendingValues, setPendingValues] = useState(null);
+  const originalEmailRef = React.useRef('');
   const [initialValues, setInitialValues] = useState({
     firstName: '',
     lastName: '',
@@ -80,6 +88,7 @@ const UserForm = () => {
           avatar: u.avatar || '',
         });
         if (u.avatar) setAvatarPreviewUrl(apiService.getUploadUrl(u.avatar));
+        originalEmailRef.current = u.email || '';
       }
     } catch (err) {
       setError(err.message || 'Failed to load user');
@@ -122,6 +131,15 @@ const UserForm = () => {
   });
 
   const handleSubmit = async (values) => {
+    if (isEdit && values.email.trim() !== originalEmailRef.current) {
+      setPendingValues(values);
+      setEmailConfirmOpen(true);
+      return;
+    }
+    await doSubmit(values);
+  };
+
+  const doSubmit = async (values) => {
     try {
       setError('');
       const payload = {
@@ -261,8 +279,7 @@ const UserForm = () => {
                       onChange={handleChange}
                       onBlur={handleBlur}
                       error={touched.email && Boolean(errors.email)}
-                      helperText={touched.email && errors.email}
-                      disabled={isEdit}
+                      helperText={touched.email && errors.email ? errors.email : (isEdit ? 'Changing this changes the user\'s login email' : undefined)}
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 400 }}
                     />
                     <TextField
@@ -373,6 +390,29 @@ const UserForm = () => {
             );
           }}
         </Formik>
+
+        <Dialog open={emailConfirmOpen} onClose={() => setEmailConfirmOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle>Change login email?</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              You are changing this user's email from <strong>{originalEmailRef.current}</strong> to{' '}
+              <strong>{pendingValues?.email}</strong>. This will change the email the user logs in with. Continue?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => { setEmailConfirmOpen(false); setPendingValues(null); }}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={async () => {
+                setEmailConfirmOpen(false);
+                if (pendingValues) await doSubmit(pendingValues);
+                setPendingValues(null);
+              }}
+            >
+              Confirm change
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </PageContainer>
   );

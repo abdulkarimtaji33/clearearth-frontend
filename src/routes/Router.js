@@ -101,6 +101,7 @@ const DepartmentForm = Loadable(lazyWithChunkReload(() => import('../views/erp/h
 const EmployeeList = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/EmployeeList')));
 const EmployeeForm = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/EmployeeForm')));
 const EmployeeView = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/EmployeeView')));
+const MyProfile = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/MyProfile')));
 const MyAttendance = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/attendance/MyAttendance')));
 const AttendanceSheet = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/attendance/AttendanceSheet')));
 const RegularizationRequestList = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/attendance/RegularizationRequestList')));
@@ -236,6 +237,7 @@ const Router = createBrowserRouter([
       { path: '/erp/hr/employees/create', element: <EmployeeForm /> },
       { path: '/erp/hr/employees/edit/:id', element: <EmployeeForm /> },
       { path: '/erp/hr/employees/view/:id', element: <EmployeeView /> },
+      { path: '/erp/hr/me', element: <MyProfile /> },
       { path: '/erp/hr/attendance/my', element: <MyAttendance /> },
       { path: '/erp/hr/attendance/sheet', element: <AttendanceSheet /> },
       { path: '/erp/hr/attendance/regularizations', element: <RegularizationRequestList /> },

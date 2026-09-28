@@ -1223,9 +1223,35 @@ class ApiService {
   async getHrSalaryStructureHistory(employeeId) { return this.get(`/hr/employees/${employeeId}/salary-structure`); }
   async setHrSalaryStructure(employeeId, data) { return this.post(`/hr/employees/${employeeId}/salary-structure`, data); }
 
+  // ─── HR: Employee expanded self-service / profile ────────────────────────────────
+  async getMySalaryHistory() { return this.get('/hr/employees/me/salary-history'); }
+  async getMyEmployeeHistory() { return this.get('/hr/employees/me/history'); }
+  async getHrEmployeeHistory(employeeId) { return this.get(`/hr/employees/${employeeId}/history`); }
+
+  async createMyChangeRequest(data) { return this.post('/hr/employees/me/change-requests', data); }
+  async listMyChangeRequests() { return this.get('/hr/employees/me/change-requests'); }
+  async listHrChangeRequests() { return this.get('/hr/employees/change-requests'); }
+  async approveHrChangeRequest(id) { return this.post(`/hr/employees/change-requests/${id}/approve`); }
+  async rejectHrChangeRequest(id, rejectionReason) { return this.post(`/hr/employees/change-requests/${id}/reject`, { rejectionReason }); }
+
+  // Generic child-record CRUD shared by self-service (base='/hr/employees/me') and
+  // HR-side (base=`/hr/employees/${employeeId}`) routes — entity is one of:
+  // emergency-contacts, dependents, qualifications, skills, certifications,
+  // previous-employment, documents.
+  async listEmployeeChildRecords(base, entity) { return this.get(`${base}/${entity}`); }
+  async createEmployeeChildRecord(base, entity, data) { return this.post(`${base}/${entity}`, data); }
+  async updateEmployeeChildRecord(base, entity, id, data) { return this.put(`${base}/${entity}/${id}`, data); }
+  async deleteEmployeeChildRecord(base, entity, id) { return this.delete(`${base}/${entity}/${id}`); }
+
+  // HR-only employee notes
+  async getEmployeeNotes(employeeId) { return this.get(`/hr/employees/${employeeId}/notes`); }
+  async createEmployeeNote(employeeId, noteText) { return this.post(`/hr/employees/${employeeId}/notes`, { noteText }); }
+  async updateEmployeeNote(employeeId, id, noteText) { return this.put(`/hr/employees/${employeeId}/notes/${id}`, { noteText }); }
+  async deleteEmployeeNote(employeeId, id) { return this.delete(`/hr/employees/${employeeId}/notes/${id}`); }
+
   // ─── HR: Attendance ─────────────────────────────────────────────────────────────
-  async hrCheckIn() { return this.post('/hr/attendance/check-in'); }
-  async hrCheckOut() { return this.post('/hr/attendance/check-out'); }
+  async hrCheckIn(coords) { return this.post('/hr/attendance/check-in', coords || {}); }
+  async hrCheckOut(coords) { return this.post('/hr/attendance/check-out', coords || {}); }
   async getHrTodayAttendance() { return this.get('/hr/attendance/today'); }
   async getMyAttendanceSheet(params) { return this.get('/hr/attendance/my-sheet', params); }
   async getHrAttendanceSheet(employeeId, params) { return this.get(`/hr/attendance/sheet/${employeeId}`, params); }

@@ -8,6 +8,7 @@ import config from 'src/context/config'
 // components
 import Profile from './Profile';
 import Notifications from './Notifications';
+import ClockWidget from './ClockWidget';
 
 const Header = () => {
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up('lg'));
@@ -71,6 +72,8 @@ const Header = () => {
               <IconSun size="21" stroke="1.5" />
             )}
           </IconButton>
+
+          <ClockWidget />
 
           <Notifications />
 

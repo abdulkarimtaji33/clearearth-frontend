@@ -30,6 +30,7 @@ import {
   IconClock,
   IconCalendarEvent,
   IconCash,
+  IconUserCircle,
 } from '@tabler/icons-react';
 
 // Roles that should only see their designated section (Operations or Accounts).
@@ -370,6 +371,15 @@ const ErpMenuItems = [
   {
     navlabel: true,
     subheader: 'My HR',
+  },
+  {
+    id: uniqueId(),
+    title: 'My Profile',
+    icon: IconUserCircle,
+    href: '/erp/hr/me',
+    children: [
+      { id: uniqueId(), title: 'My Profile', icon: IconPoint, href: '/erp/hr/me' },
+    ],
   },
   {
     id: uniqueId(),

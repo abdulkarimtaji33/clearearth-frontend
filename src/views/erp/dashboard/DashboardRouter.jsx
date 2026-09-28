@@ -12,7 +12,7 @@ import OperationsDashboard from './OperationsDashboard';
 import DriverPickupList from '../driver/DriverPickupList';
 import SuperAdminDashboard from './SuperAdminDashboard';
 import AccountsDashboard from './AccountsDashboard';
-import AttendanceDashboardWidget from '../hr/attendance/AttendanceDashboardWidget';
+import HrDashboardWidgets from '../hr/HrDashboardWidgets';
 
 const ROLE_MAP = {
   admin: AdminDashboard,
@@ -27,7 +27,7 @@ const ROLE_MAP = {
 };
 
 const DashboardRouter = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { on, connected } = useSocket() || {};
   const roleName = user?.role?.name || user?.Role?.name || 'sales';
   const [data, setData] = useState(null);
@@ -89,7 +89,7 @@ const DashboardRouter = () => {
         <Alert severity="error">{error}</Alert>
       ) : (
         <>
-          <AttendanceDashboardWidget />
+          {hasPermission('hr.employees.manage') && <HrDashboardWidgets />}
           <Component data={data} onRefresh={load} />
         </>
       )}

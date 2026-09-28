@@ -17,6 +17,7 @@ const MyAttendance = () => {
   const [days, setDays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notSetUp, setNotSetUp] = useState(false);
   const [regOpen, setRegOpen] = useState(false);
   const [regForm, setRegForm] = useState({ attendanceDate: '', requestedCheckIn: '', requestedCheckOut: '', reason: '' });
   const [regError, setRegError] = useState('');
@@ -26,10 +27,15 @@ const MyAttendance = () => {
     try {
       setLoading(true);
       setError('');
+      setNotSetUp(false);
       const res = await apiService.getMyAttendanceSheet({ year, month });
       if (res.success) setDays(res.data?.days || []);
     } catch (err) {
-      setError(err.message || 'Failed to load attendance');
+      if (err.status === 404 && /no employee record linked/i.test(err.message || '')) {
+        setNotSetUp(true);
+      } else {
+        setError(err.message || 'Failed to load attendance');
+      }
     } finally {
       setLoading(false);
     }
@@ -54,18 +60,26 @@ const MyAttendance = () => {
       <Card sx={{ p: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap" gap={2}>
           <Typography variant="h5" fontWeight={700}>My Attendance</Typography>
-          <Stack direction="row" spacing={1}>
-            <TextField select size="small" label="Month" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-              {MONTHS.map((m, i) => <MenuItem key={m} value={i + 1}>{m}</MenuItem>)}
-            </TextField>
-            <TextField size="small" label="Year" type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} sx={{ width: 100 }} />
-            <Button variant="outlined" onClick={() => { setRegForm({ attendanceDate: '', requestedCheckIn: '', requestedCheckOut: '', reason: '' }); setRegOpen(true); }}>
-              Request Correction
-            </Button>
-          </Stack>
+          {!notSetUp && (
+            <Stack direction="row" spacing={1}>
+              <TextField select size="small" label="Month" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+                {MONTHS.map((m, i) => <MenuItem key={m} value={i + 1}>{m}</MenuItem>)}
+              </TextField>
+              <TextField size="small" label="Year" type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} sx={{ width: 100 }} />
+              <Button variant="outlined" onClick={() => { setRegForm({ attendanceDate: '', requestedCheckIn: '', requestedCheckOut: '', reason: '' }); setRegOpen(true); }}>
+                Request Correction
+              </Button>
+            </Stack>
+          )}
         </Box>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {loading ? (
+        {notSetUp ? (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Your HR profile isn&apos;t set up yet — contact your HR administrator to get started.
+          </Alert>
+        ) : error ? (
+          <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+        ) : null}
+        {notSetUp ? null : loading ? (
           <Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box>
         ) : (
           <TableContainer>

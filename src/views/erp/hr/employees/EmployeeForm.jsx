@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Card, Typography, Button, TextField, MenuItem, Alert, CircularProgress,
   Stack, Grid, Tabs, Tab, Divider, Checkbox, FormControlLabel,
+  Autocomplete, RadioGroup, Radio, FormLabel,
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router';
 import PageContainer from '../../../../components/container/PageContainer';
@@ -28,14 +29,26 @@ const EmployeeForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Login mode for a NEW employee: 'none' (no login), 'new' (create a fresh login account),
+  // 'existing' (link this employee record to an already-existing user login).
+  const [loginMode, setLoginMode] = useState('none');
+  const [loginRoleId, setLoginRoleId] = useState('');
+  const [roles, setRoles] = useState([]);
+  const [unlinkedUsers, setUnlinkedUsers] = useState([]);
+  const [selectedExistingUser, setSelectedExistingUser] = useState(null);
+
   const load = useCallback(async () => {
     try {
-      const [deptRes, empRes] = await Promise.all([
+      const [deptRes, empRes, rolesRes, usersRes] = await Promise.all([
         apiService.getHrDepartments({ pageSize: 200 }),
         apiService.getHrEmployees({ pageSize: 200 }),
+        apiService.getRoles({ pageSize: 200 }),
+        isEdit ? Promise.resolve(null) : apiService.getUsers({ pageSize: 200, unlinked: true }),
       ]);
       if (deptRes.success) setDepartments(deptRes.data || []);
       if (empRes.success) setEmployees(empRes.data || []);
+      if (rolesRes.success) setRoles(rolesRes.data || []);
+      if (usersRes && usersRes.success) setUnlinkedUsers(usersRes.data || []);
 
       if (isEdit) {
         const res = await apiService.getHrEmployee(id);
@@ -83,6 +96,18 @@ const EmployeeForm = () => {
       if (isEdit) {
         await apiService.updateHrEmployee(id, payload);
       } else {
+        if (loginMode === 'new') {
+          if (!payload.email || !loginRoleId) {
+            throw new Error('Email and role are required to create a login account');
+          }
+          payload.createLoginAccount = true;
+          payload.roleId = loginRoleId;
+        } else if (loginMode === 'existing') {
+          if (!selectedExistingUser) {
+            throw new Error('Select a user to link to this employee');
+          }
+          payload.existingUserId = selectedExistingUser.id;
+        }
         const res = await apiService.createHrEmployee(payload);
         employeeId = res.data?.id;
       }
@@ -157,6 +182,70 @@ const EmployeeForm = () => {
               <Grid item xs={12} sm={6}><TextField fullWidth label="Bank Account Number" value={form.bankAccountNumber} onChange={(e) => setForm({ ...form, bankAccountNumber: e.target.value })} /></Grid>
               <Grid item xs={12} sm={6}><TextField fullWidth label="IBAN" value={form.bankIban} onChange={(e) => setForm({ ...form, bankIban: e.target.value })} /></Grid>
               <Grid item xs={12}><TextField fullWidth multiline rows={2} label="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></Grid>
+
+              {!isEdit && (
+                <>
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 1 }} />
+                    <FormLabel component="legend" sx={{ mb: 1 }}>Login access</FormLabel>
+                    <RadioGroup
+                      row
+                      value={loginMode}
+                      onChange={(e) => { setLoginMode(e.target.value); setSelectedExistingUser(null); }}
+                    >
+                      <FormControlLabel value="none" control={<Radio />} label="No login" />
+                      <FormControlLabel value="new" control={<Radio />} label="Create new login" />
+                      <FormControlLabel value="existing" control={<Radio />} label="Link existing user" />
+                    </RadioGroup>
+                  </Grid>
+
+                  {loginMode === 'new' && (
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select fullWidth required label="Role" value={loginRoleId}
+                        onChange={(e) => setLoginRoleId(e.target.value)}
+                        helperText="A temporary password will be generated for this login"
+                      >
+                        {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.display_name || r.name}</MenuItem>)}
+                      </TextField>
+                    </Grid>
+                  )}
+
+                  {loginMode === 'existing' && (
+                    <Grid item xs={12} sm={6}>
+                      <Autocomplete
+                        fullWidth
+                        options={unlinkedUsers}
+                        getOptionLabel={(opt) =>
+                          typeof opt === 'object'
+                            ? `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` (${opt.email})` : '')
+                            : ''
+                        }
+                        value={selectedExistingUser}
+                        onChange={(_, val) => {
+                          setSelectedExistingUser(val);
+                          if (val) {
+                            setForm((f) => ({
+                              ...f,
+                              email: f.email || val.email || '',
+                              phone: f.phone || val.phone || '',
+                            }));
+                          }
+                        }}
+                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Existing user"
+                            placeholder="Search users with no employee record yet..."
+                            helperText="Only users not already linked to an employee are shown"
+                          />
+                        )}
+                      />
+                    </Grid>
+                  )}
+                </>
+              )}
             </Grid>
           )}
           {tab === 1 && (

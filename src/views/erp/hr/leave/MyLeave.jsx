@@ -30,6 +30,7 @@ const MyLeave = () => {
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notSetUp, setNotSetUp] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState({ leaveTypeId: '', startDate: '', endDate: '', reason: '' });
   const [formError, setFormError] = useState('');
@@ -38,6 +39,7 @@ const MyLeave = () => {
     try {
       setLoading(true);
       setError('');
+      setNotSetUp(false);
       const [balRes, reqRes, typesRes] = await Promise.all([
         apiService.getMyLeaveBalances(new Date().getFullYear()),
         apiService.listHrLeaveRequests({ mine: true }),
@@ -47,7 +49,11 @@ const MyLeave = () => {
       if (reqRes.success) setRequests(reqRes.data || []);
       if (typesRes.success) setLeaveTypes(typesRes.data || []);
     } catch (err) {
-      setError(err.message || 'Failed to load leave data');
+      if (err.status === 404 && /no employee record linked/i.test(err.message || '')) {
+        setNotSetUp(true);
+      } else {
+        setError(err.message || 'Failed to load leave data');
+      }
     } finally {
       setLoading(false);
     }
@@ -77,6 +83,16 @@ const MyLeave = () => {
   };
 
   if (loading) return <Box display="flex" justifyContent="center" py={12}><CircularProgress /></Box>;
+
+  if (notSetUp) {
+    return (
+      <PageContainer title="My Leave" description="Your leave balances and requests">
+        <Alert severity="info">
+          Your HR profile isn&apos;t set up yet — contact your HR administrator to get started.
+        </Alert>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer title="My Leave" description="Your leave balances and requests">

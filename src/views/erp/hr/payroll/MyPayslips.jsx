@@ -14,15 +14,21 @@ const MyPayslips = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notSetUp, setNotSetUp] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
+      setNotSetUp(false);
       const res = await apiService.getMyPayslips();
       if (res.success) setRows(res.data || []);
     } catch (err) {
-      setError(err.message || 'Failed to load payslips');
+      if (err.status === 404 && /no employee record linked/i.test(err.message || '')) {
+        setNotSetUp(true);
+      } else {
+        setError(err.message || 'Failed to load payslips');
+      }
     } finally {
       setLoading(false);
     }
@@ -34,8 +40,14 @@ const MyPayslips = () => {
     <PageContainer title="My Payslips" description="Your payslip history">
       <Card sx={{ p: 3 }}>
         <Typography variant="h5" fontWeight={700} mb={2}>My Payslips</Typography>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {loading ? (
+        {notSetUp ? (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Your HR profile isn&apos;t set up yet — contact your HR administrator to get started.
+          </Alert>
+        ) : error ? (
+          <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+        ) : null}
+        {notSetUp ? null : loading ? (
           <Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box>
         ) : (
           <TableContainer>

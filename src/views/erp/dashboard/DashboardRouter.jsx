@@ -12,6 +12,7 @@ import OperationsDashboard from './OperationsDashboard';
 import DriverPickupList from '../driver/DriverPickupList';
 import SuperAdminDashboard from './SuperAdminDashboard';
 import AccountsDashboard from './AccountsDashboard';
+import AttendanceDashboardWidget from '../hr/attendance/AttendanceDashboardWidget';
 
 const ROLE_MAP = {
   admin: AdminDashboard,
@@ -87,7 +88,10 @@ const DashboardRouter = () => {
       ) : error ? (
         <Alert severity="error">{error}</Alert>
       ) : (
-        <Component data={data} onRefresh={load} />
+        <>
+          <AttendanceDashboardWidget />
+          <Component data={data} onRefresh={load} />
+        </>
       )}
     </PageContainer>
   );

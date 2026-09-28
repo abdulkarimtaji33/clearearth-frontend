@@ -18,6 +18,19 @@ function collectLeafPermissions(nodes) {
   });
 }
 
+// A parent should stay visible if at least one of its (role-allowed) leaf
+// descendants has no permission requirement at all (an "always visible"
+// self-service item) — such a leaf's visibility never depends on
+// hasPermission(), so it must not be excluded just because none of the
+// user's held permissions match the *other*, gated leaves.
+function hasAlwaysVisibleLeaf(nodes) {
+  if (!nodes?.length) return false;
+  return nodes.some((n) => {
+    if (n.children?.length) return hasAlwaysVisibleLeaf(n.children);
+    return !n.permission;
+  });
+}
+
 const SidebarItems = () => {
   const { pathname } = useLocation();
   const pathDirect = pathname;
@@ -40,6 +53,9 @@ const SidebarItems = () => {
     if (item.adminDashboardOnly && !hasAdminDashboardAccess()) return false;
     if (item.children) {
       const visibleChildren = item.children.filter((c) => isRoleAllowed(c));
+      // Always keep the parent if any child is unconditionally visible
+      // (no permission requirement anywhere in its subtree).
+      if (hasAlwaysVisibleLeaf(visibleChildren)) return true;
       const childPerms = collectLeafPermissions(visibleChildren);
       if (childPerms.length) return childPerms.some((p) => hasPermission(p));
       return true;

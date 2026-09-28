@@ -366,10 +366,42 @@ const ErpMenuItems = [
     adminDashboardOnly: true,
     excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
-  // ─── HR ─────────────────────────────────────────────────────────────────────
+  // ─── My HR (self-service, always visible to every authenticated user) ───────
   {
     navlabel: true,
-    subheader: 'HR',
+    subheader: 'My HR',
+  },
+  {
+    id: uniqueId(),
+    title: 'Attendance',
+    icon: IconClock,
+    href: '/erp/hr/attendance/my',
+    children: [
+      { id: uniqueId(), title: 'My Attendance', icon: IconPoint, href: '/erp/hr/attendance/my' },
+    ],
+  },
+  {
+    id: uniqueId(),
+    title: 'Leave',
+    icon: IconCalendarEvent,
+    href: '/erp/hr/leave/my',
+    children: [
+      { id: uniqueId(), title: 'My Leave', icon: IconPoint, href: '/erp/hr/leave/my' },
+    ],
+  },
+  {
+    id: uniqueId(),
+    title: 'Payroll',
+    icon: IconCash,
+    href: '/erp/hr/payroll/my-payslips',
+    children: [
+      { id: uniqueId(), title: 'My Payslips', icon: IconPoint, href: '/erp/hr/payroll/my-payslips' },
+    ],
+  },
+  // ─── HR Management (permission-gated) ────────────────────────────────────────
+  {
+    navlabel: true,
+    subheader: 'HR Management',
   },
   {
     id: uniqueId(),
@@ -384,22 +416,21 @@ const ErpMenuItems = [
   },
   {
     id: uniqueId(),
-    title: 'Attendance',
+    title: 'Attendance Management',
     icon: IconClock,
-    href: '/erp/hr/attendance/my',
+    href: '/erp/hr/attendance/sheet',
+    permission: 'hr.attendance.manage',
     children: [
-      { id: uniqueId(), title: 'My Attendance', icon: IconPoint, href: '/erp/hr/attendance/my' },
       { id: uniqueId(), title: 'Attendance Sheet', icon: IconPoint, href: '/erp/hr/attendance/sheet', permission: 'hr.attendance.manage' },
       { id: uniqueId(), title: 'Regularization Requests', icon: IconPoint, href: '/erp/hr/attendance/regularizations', permission: 'hr.attendance.manage' },
     ],
   },
   {
     id: uniqueId(),
-    title: 'Leave',
+    title: 'Leave Management',
     icon: IconCalendarEvent,
-    href: '/erp/hr/leave/my',
+    href: '/erp/hr/leave/approvals',
     children: [
-      { id: uniqueId(), title: 'My Leave', icon: IconPoint, href: '/erp/hr/leave/my' },
       { id: uniqueId(), title: 'Approvals', icon: IconPoint, href: '/erp/hr/leave/approvals', permission: 'hr.leave.approve' },
       { id: uniqueId(), title: 'Leave Types', icon: IconPoint, href: '/erp/hr/leave/types', permission: 'hr.settings.manage' },
       { id: uniqueId(), title: 'Holidays', icon: IconPoint, href: '/erp/hr/leave/holidays', permission: 'hr.settings.manage' },
@@ -407,11 +438,11 @@ const ErpMenuItems = [
   },
   {
     id: uniqueId(),
-    title: 'Payroll',
+    title: 'Payroll Management',
     icon: IconCash,
-    href: '/erp/hr/payroll/my-payslips',
+    href: '/erp/hr/payroll/runs',
+    permission: 'hr.payroll.read',
     children: [
-      { id: uniqueId(), title: 'My Payslips', icon: IconPoint, href: '/erp/hr/payroll/my-payslips' },
       { id: uniqueId(), title: 'Payroll Runs', icon: IconPoint, href: '/erp/hr/payroll/runs', permission: 'hr.payroll.read' },
     ],
   },

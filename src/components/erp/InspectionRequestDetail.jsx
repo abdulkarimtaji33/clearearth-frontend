@@ -45,6 +45,9 @@ import {
   IconX,
   IconDownload,
   IconFileDescription,
+  IconExternalLink,
+  IconLink,
+  IconCopy,
 } from '@tabler/icons-react';
 import { useAuth } from '../../context/AuthContext';
 import apiService from '../../services/api';
@@ -268,6 +271,11 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
 
   const [error, setError] = useState('');
 
+  const [locationLinkDialogOpen, setLocationLinkDialogOpen] = useState(false);
+  const [locationLinkUrl, setLocationLinkUrl] = useState('');
+  const [locationLinkGenerating, setLocationLinkGenerating] = useState(false);
+  const [locationLinkCopied, setLocationLinkCopied] = useState(false);
+
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -399,6 +407,32 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
       setError(err.message || 'Failed to approve');
     } finally {
       setApproving(false);
+    }
+  };
+
+  const handleGenerateLocationLink = async () => {
+    setLocationLinkGenerating(true);
+    setLocationLinkCopied(false);
+    setError('');
+    try {
+      const res = await apiService.generateInspectionLocationShareToken(request.id);
+      if (res.success && res.shareUrl) {
+        setLocationLinkUrl(res.shareUrl);
+        setLocationLinkDialogOpen(true);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to generate location link');
+    } finally {
+      setLocationLinkGenerating(false);
+    }
+  };
+
+  const handleCopyLocationLink = async () => {
+    try {
+      await navigator.clipboard.writeText(locationLinkUrl);
+      setLocationLinkCopied(true);
+    } catch {
+      /* clipboard API unavailable — the field stays selectable for manual copy */
     }
   };
 
@@ -659,6 +693,31 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                           <Typography variant="caption" color="text.secondary">{request.location_type}</Typography>
                         )}
                       </Box>
+                    </Stack>
+                    <Stack direction="row" spacing={1} mt={1}>
+                      {request.location_type === 'pin' && request.location ? (
+                        <Button
+                          size="small"
+                          component="a"
+                          href={request.location}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          startIcon={<IconExternalLink size={14} />}
+                          sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+                        >
+                          View on Map
+                        </Button>
+                      ) : null}
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={handleGenerateLocationLink}
+                        disabled={locationLinkGenerating}
+                        startIcon={locationLinkGenerating ? <CircularProgress size={13} /> : <IconLink size={14} />}
+                        sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+                      >
+                        {request.location_type === 'pin' ? 'Regenerate Link' : 'Generate Location Link'}
+                      </Button>
                     </Stack>
                   </Box>
 
@@ -1184,6 +1243,33 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
             <Button variant="contained" onClick={saveReport} disabled={reportSaving} sx={{ borderRadius: 2 }}>
               {reportSaving ? 'Saving…' : 'Save'}
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* ── Location Share Link Dialog ── */}
+        <Dialog open={locationLinkDialogOpen} onClose={() => setLocationLinkDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700 }}>Inspection Location Link</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Share this link with the site contact. They can pin the exact inspection location on a map without logging in. The link expires in 7 days.
+            </Typography>
+            <TextField
+              fullWidth
+              value={locationLinkUrl}
+              InputProps={{
+                readOnly: true,
+                endAdornment: (
+                  <Button size="small" onClick={handleCopyLocationLink} startIcon={<IconCopy size={14} />} sx={{ whiteSpace: 'nowrap', textTransform: 'none' }}>
+                    {locationLinkCopied ? 'Copied' : 'Copy'}
+                  </Button>
+                ),
+              }}
+              onFocus={(e) => e.target.select()}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setLocationLinkDialogOpen(false)} sx={{ borderRadius: 2 }}>Close</Button>
           </DialogActions>
         </Dialog>
 

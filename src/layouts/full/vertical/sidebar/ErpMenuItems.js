@@ -27,6 +27,9 @@ import {
   IconChartBar,
   IconCalendar,
   IconCalculator,
+  IconClock,
+  IconCalendarEvent,
+  IconCash,
 } from '@tabler/icons-react';
 
 // Roles that should only see their designated section (Operations or Accounts).
@@ -45,6 +48,13 @@ const ErpMenuItems = [
     title: 'Dashboard',
     icon: IconLayoutDashboard,
     href: '/erp/dashboard',
+  },
+  {
+    id: uniqueId(),
+    title: 'My Commissions',
+    icon: IconCoin,
+    href: '/erp/commissions/mine',
+    includeRoles: ['sales', 'sales_executive', 'sales_manager'],
   },
   // ─── CRM ────────────────────────────────────────────────────────────────────
   {
@@ -347,6 +357,63 @@ const ErpMenuItems = [
     href: '/erp/settings/fiscal-years',
     permission: 'accounting.read',
     excludeRoles: [...OPERATIONS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
+  },
+  {
+    id: uniqueId(),
+    title: 'Commission Settings',
+    icon: IconCoin,
+    href: '/erp/commissions/settings',
+    adminDashboardOnly: true,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
+  },
+  // ─── HR ─────────────────────────────────────────────────────────────────────
+  {
+    navlabel: true,
+    subheader: 'HR',
+  },
+  {
+    id: uniqueId(),
+    title: 'Employees',
+    icon: IconUsers,
+    href: '/erp/hr/employees',
+    permission: 'hr.employees.read',
+    children: [
+      { id: uniqueId(), title: 'Employees', icon: IconPoint, href: '/erp/hr/employees', permission: 'hr.employees.read' },
+      { id: uniqueId(), title: 'Departments', icon: IconPoint, href: '/erp/hr/departments', permission: 'hr.settings.manage' },
+    ],
+  },
+  {
+    id: uniqueId(),
+    title: 'Attendance',
+    icon: IconClock,
+    href: '/erp/hr/attendance/my',
+    children: [
+      { id: uniqueId(), title: 'My Attendance', icon: IconPoint, href: '/erp/hr/attendance/my' },
+      { id: uniqueId(), title: 'Attendance Sheet', icon: IconPoint, href: '/erp/hr/attendance/sheet', permission: 'hr.attendance.manage' },
+      { id: uniqueId(), title: 'Regularization Requests', icon: IconPoint, href: '/erp/hr/attendance/regularizations', permission: 'hr.attendance.manage' },
+    ],
+  },
+  {
+    id: uniqueId(),
+    title: 'Leave',
+    icon: IconCalendarEvent,
+    href: '/erp/hr/leave/my',
+    children: [
+      { id: uniqueId(), title: 'My Leave', icon: IconPoint, href: '/erp/hr/leave/my' },
+      { id: uniqueId(), title: 'Approvals', icon: IconPoint, href: '/erp/hr/leave/approvals', permission: 'hr.leave.approve' },
+      { id: uniqueId(), title: 'Leave Types', icon: IconPoint, href: '/erp/hr/leave/types', permission: 'hr.settings.manage' },
+      { id: uniqueId(), title: 'Holidays', icon: IconPoint, href: '/erp/hr/leave/holidays', permission: 'hr.settings.manage' },
+    ],
+  },
+  {
+    id: uniqueId(),
+    title: 'Payroll',
+    icon: IconCash,
+    href: '/erp/hr/payroll/my-payslips',
+    children: [
+      { id: uniqueId(), title: 'My Payslips', icon: IconPoint, href: '/erp/hr/payroll/my-payslips' },
+      { id: uniqueId(), title: 'Payroll Runs', icon: IconPoint, href: '/erp/hr/payroll/runs', permission: 'hr.payroll.read' },
+    ],
   },
 ];
 

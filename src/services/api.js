@@ -1191,6 +1191,79 @@ class ApiService {
   async generateLocationShareToken(dealId) { return this.post(`/location-share/deals/${dealId}/token`); }
   async getLocationShareInfo(token) { return this.get(`/location-share/pin/${token}`); }
   async submitClientLocation(token, pickupLocation) { return this.post(`/location-share/pin/${token}`, { pickupLocation }); }
+
+  // ─── Inspection Location Share ─────────────────────────────────────────────────
+  async generateInspectionLocationShareToken(inspectionRequestId) { return this.post(`/inspection-location-share/requests/${inspectionRequestId}/token`); }
+  async getInspectionLocationShareInfo(token) { return this.get(`/inspection-location-share/pin/${token}`); }
+  async submitInspectionLocation(token, pickupLocation) { return this.post(`/inspection-location-share/pin/${token}`, { pickupLocation }); }
+
+  // ─── Sales Commissions ──────────────────────────────────────────────────────────
+  async getCommissionSettings() { return this.get('/commissions/settings'); }
+  async setCommissionRate(userId, commissionPercentage, effectiveFrom) {
+    return this.put(`/commissions/settings/${userId}`, { commissionPercentage, effectiveFrom });
+  }
+  async getMyCommissions(params) { return this.get('/commissions/me', params); }
+  async getAllCommissions(params) { return this.get('/commissions', params); }
+  async payCommission(id) { return this.post(`/commissions/${id}/pay`); }
+
+  // ─── HR: Departments ────────────────────────────────────────────────────────────
+  async getHrDepartments(params) { return this.get('/hr/departments', params); }
+  async getHrDepartment(id) { return this.get(`/hr/departments/${id}`); }
+  async createHrDepartment(data) { return this.post('/hr/departments', data); }
+  async updateHrDepartment(id, data) { return this.put(`/hr/departments/${id}`, data); }
+  async deleteHrDepartment(id) { return this.delete(`/hr/departments/${id}`); }
+
+  // ─── HR: Employees ──────────────────────────────────────────────────────────────
+  async getHrEmployees(params) { return this.get('/hr/employees', params); }
+  async getHrEmployee(id) { return this.get(`/hr/employees/${id}`); }
+  async getMyEmployeeRecord() { return this.get('/hr/employees/me'); }
+  async createHrEmployee(data) { return this.post('/hr/employees', data); }
+  async updateHrEmployee(id, data) { return this.put(`/hr/employees/${id}`, data); }
+  async offboardHrEmployee(id, exitDate) { return this.post(`/hr/employees/${id}/offboard`, { exitDate }); }
+  async getHrSalaryStructureHistory(employeeId) { return this.get(`/hr/employees/${employeeId}/salary-structure`); }
+  async setHrSalaryStructure(employeeId, data) { return this.post(`/hr/employees/${employeeId}/salary-structure`, data); }
+
+  // ─── HR: Attendance ─────────────────────────────────────────────────────────────
+  async hrCheckIn() { return this.post('/hr/attendance/check-in'); }
+  async hrCheckOut() { return this.post('/hr/attendance/check-out'); }
+  async getHrTodayAttendance() { return this.get('/hr/attendance/today'); }
+  async getMyAttendanceSheet(params) { return this.get('/hr/attendance/my-sheet', params); }
+  async getHrAttendanceSheet(employeeId, params) { return this.get(`/hr/attendance/sheet/${employeeId}`, params); }
+  async listHrAttendance(params) { return this.get('/hr/attendance', params); }
+  async manualHrAttendance(data) { return this.post('/hr/attendance/manual', data); }
+  async createAttendanceRegularization(data) { return this.post('/hr/attendance/regularizations', data); }
+  async listAttendanceRegularizations(params) { return this.get('/hr/attendance/regularizations', params); }
+  async reviewAttendanceRegularization(id, decision, reviewNotes) {
+    return this.post(`/hr/attendance/regularizations/${id}/review`, { decision, reviewNotes });
+  }
+
+  // ─── HR: Leave ──────────────────────────────────────────────────────────────────
+  async createHrLeaveRequest(data) { return this.post('/hr/leave/requests', data); }
+  async cancelHrLeaveRequest(id) { return this.post(`/hr/leave/requests/${id}/cancel`); }
+  async approveHrLeaveRequest(id) { return this.post(`/hr/leave/requests/${id}/approve`); }
+  async rejectHrLeaveRequest(id, reason) { return this.post(`/hr/leave/requests/${id}/reject`, { reason }); }
+  async listHrLeaveRequests(params) { return this.get('/hr/leave/requests', params); }
+  async getMyLeaveBalances(year) { return this.get('/hr/leave/my-balances', { year }); }
+  async getHrLeaveBalances(employeeId, year) { return this.get(`/hr/leave/balances/${employeeId}`, { year }); }
+  async getHrLeaveTypes() { return this.get('/hr/leave/types'); }
+  async createHrLeaveType(data) { return this.post('/hr/leave/types', data); }
+  async updateHrLeaveType(id, data) { return this.put(`/hr/leave/types/${id}`, data); }
+  async getHrHolidays() { return this.get('/hr/leave/holidays'); }
+  async createHrHoliday(data) { return this.post('/hr/leave/holidays', data); }
+  async deleteHrHoliday(id) { return this.delete(`/hr/leave/holidays/${id}`); }
+
+  // ─── HR: Payroll ────────────────────────────────────────────────────────────────
+  async getMyPayslips() { return this.get('/hr/payroll/my-payslips'); }
+  async getHrPayslip(id) { return this.get(`/hr/payroll/payslips/${id}`); }
+  async downloadHrPayslipPdf(id) {
+    return this._downloadPdf(`${this.baseURL}/hr/payroll/payslips/${id}/pdf`, `payslip-${id}.pdf`);
+  }
+  async listHrPayrollRuns(params) { return this.get('/hr/payroll/runs', params); }
+  async getHrPayrollRun(id) { return this.get(`/hr/payroll/runs/${id}`); }
+  async createHrPayrollRun(periodMonth, periodYear) { return this.post('/hr/payroll/runs', { periodMonth, periodYear }); }
+  async processHrPayrollRun(id) { return this.post(`/hr/payroll/runs/${id}/process`); }
+  async approveHrPayrollRun(id) { return this.post(`/hr/payroll/runs/${id}/approve`); }
+  async markHrPayrollRunPaid(id, options) { return this.post(`/hr/payroll/runs/${id}/mark-paid`, options || {}); }
 }
 
 const apiService = new ApiService();

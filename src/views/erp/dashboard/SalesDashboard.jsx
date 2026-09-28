@@ -8,6 +8,7 @@ import {
 import KpiCard from './shared/KpiCard';
 import ActionableList from './shared/ActionableList';
 import { useAuth } from '../../../context/AuthContext';
+import CommissionSummaryCard from '../../../components/erp/CommissionSummaryCard';
 
 const STAGE_META = {
   new:              { color: 'default',  label: 'New' },
@@ -43,6 +44,8 @@ const SalesDashboard = ({ data }) => {
           {firstName ? `${firstName}'s` : 'Your'} deals and action items
         </Typography>
       </Box>
+
+      <CommissionSummaryCard />
 
       {/* KPIs */}
       <Grid container spacing={2.5} mb={3.5}>

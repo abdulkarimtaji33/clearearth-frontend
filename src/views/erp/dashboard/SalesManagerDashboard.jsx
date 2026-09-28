@@ -13,6 +13,7 @@ import {
 } from '@tabler/icons-react';
 import KpiCard from './shared/KpiCard';
 import apiService from '../../../services/api';
+import CommissionSummaryCard from '../../../components/erp/CommissionSummaryCard';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 
@@ -86,6 +87,8 @@ const SalesManagerDashboard = ({ data, onRefresh }) => {
         <Typography variant="h4" fontWeight={900} lineHeight={1.2}>Team performance</Typography>
         <Typography variant="body2" color="text.secondary" mt={0.25}>Pipeline, approvals, and team leaderboard</Typography>
       </Box>
+
+      <CommissionSummaryCard />
 
       {/* KPIs */}
       <Grid container spacing={2.5} mb={3.5}>

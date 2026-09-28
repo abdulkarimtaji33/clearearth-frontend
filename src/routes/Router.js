@@ -92,8 +92,30 @@ const CashFlowView = Loadable(lazyWithChunkReload(() => import('../views/erp/rep
 const ChangesInEquityView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/ChangesInEquityView')));
 const VatReportView = Loadable(lazyWithChunkReload(() => import('../views/erp/reports/VatReportView')));
 
+const CommissionSettings = Loadable(lazyWithChunkReload(() => import('../views/erp/commissions/CommissionSettings')));
+const MyCommissions = Loadable(lazyWithChunkReload(() => import('../views/erp/commissions/MyCommissions')));
+
+/* ****HR Pages***** */
+const DepartmentList = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/departments/DepartmentList')));
+const DepartmentForm = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/departments/DepartmentForm')));
+const EmployeeList = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/EmployeeList')));
+const EmployeeForm = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/EmployeeForm')));
+const EmployeeView = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/EmployeeView')));
+const MyAttendance = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/attendance/MyAttendance')));
+const AttendanceSheet = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/attendance/AttendanceSheet')));
+const RegularizationRequestList = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/attendance/RegularizationRequestList')));
+const MyLeave = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/leave/MyLeave')));
+const LeaveApprovalQueue = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/leave/LeaveApprovalQueue')));
+const LeaveTypeList = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/leave/LeaveTypeList')));
+const HolidayCalendar = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/leave/HolidayCalendar')));
+const PayrollRunList = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/payroll/PayrollRunList')));
+const PayrollRunDetail = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/payroll/PayrollRunDetail')));
+const PayslipView = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/payroll/PayslipView')));
+const MyPayslips = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/payroll/MyPayslips')));
+
 // Public pages (no auth required)
 const ClientLocationPicker = Loadable(lazyWithChunkReload(() => import('../views/public/ClientLocationPicker')));
+const InspectionLocationPicker = Loadable(lazyWithChunkReload(() => import('../views/public/InspectionLocationPicker')));
 
 // authentication
 const Login = Loadable(lazyWithChunkReload(() => import('../views/authentication/auth1/Login')));
@@ -205,12 +227,37 @@ const Router = createBrowserRouter([
       { path: '/erp/reports/cash-flow', element: <CashFlowView /> },
       { path: '/erp/reports/changes-in-equity', element: <ChangesInEquityView /> },
       { path: '/erp/reports/vat-report', element: <VatReportView /> },
+      { path: '/erp/commissions/settings', element: <RequireAdmin><CommissionSettings /></RequireAdmin> },
+      { path: '/erp/commissions/mine', element: <MyCommissions /> },
+      { path: '/erp/hr/departments', element: <DepartmentList /> },
+      { path: '/erp/hr/departments/create', element: <DepartmentForm /> },
+      { path: '/erp/hr/departments/edit/:id', element: <DepartmentForm /> },
+      { path: '/erp/hr/employees', element: <EmployeeList /> },
+      { path: '/erp/hr/employees/create', element: <EmployeeForm /> },
+      { path: '/erp/hr/employees/edit/:id', element: <EmployeeForm /> },
+      { path: '/erp/hr/employees/view/:id', element: <EmployeeView /> },
+      { path: '/erp/hr/attendance/my', element: <MyAttendance /> },
+      { path: '/erp/hr/attendance/sheet', element: <AttendanceSheet /> },
+      { path: '/erp/hr/attendance/regularizations', element: <RegularizationRequestList /> },
+      { path: '/erp/hr/leave/my', element: <MyLeave /> },
+      { path: '/erp/hr/leave/approvals', element: <LeaveApprovalQueue /> },
+      { path: '/erp/hr/leave/types', element: <LeaveTypeList /> },
+      { path: '/erp/hr/leave/holidays', element: <HolidayCalendar /> },
+      { path: '/erp/hr/payroll/runs', element: <PayrollRunList /> },
+      { path: '/erp/hr/payroll/runs/:id', element: <PayrollRunDetail /> },
+      { path: '/erp/hr/payroll/payslips/:id', element: <PayslipView /> },
+      { path: '/erp/hr/payroll/my-payslips', element: <MyPayslips /> },
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],
   },
   {
     path: '/location-pin/:token',
     element: <ClientLocationPicker />,
+    errorElement: <ChunkLoadErrorElement />,
+  },
+  {
+    path: '/inspection-location-pin/:token',
+    element: <InspectionLocationPicker />,
     errorElement: <ChunkLoadErrorElement />,
   },
   {

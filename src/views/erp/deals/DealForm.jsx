@@ -2485,7 +2485,14 @@ const DealForm = () => {
                 label="Preferred Inspection Date"
                 type="date"
                 value={inspectionDetails.preferredInspectionDate || ''}
-                onChange={(e) => setInspectionDetails({ ...inspectionDetails, preferredInspectionDate: e.target.value })}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  // Guard against malformed intermediate values from the native date
+                  // input (e.g. a stray extra digit while typing a year) reaching state.
+                  if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+                  setInspectionDetails({ ...inspectionDetails, preferredInspectionDate: v });
+                }}
+                inputProps={{ max: '2099-12-31', min: '2000-01-01' }}
                 InputLabelProps={{ shrink: true }}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />

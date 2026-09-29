@@ -30,6 +30,10 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { useDropzone } from 'react-dropzone';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import { IconArrowLeft, IconPlus, IconTrash, IconPhoto, IconReceipt, IconShoppingCart, IconFileDescription, IconInfoCircle, IconMapPin, IconExternalLink, IconShare, IconCopy, IconCheck } from '@tabler/icons-react';
 import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import Tooltip from '@mui/material/Tooltip';
@@ -1087,20 +1091,24 @@ const DealForm = () => {
                         required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
-                      <TextField
-                        fullWidth
-                        label="Deal Date"
-                        name="dealDate"
-                        type="date"
-                        value={values.dealDate}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={touched.dealDate && Boolean(errors.dealDate)}
-                        helperText={touched.dealDate ? errors.dealDate : ' '}
-                        required
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      />
+                      <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <DatePicker
+                          label="Deal Date"
+                          value={values.dealDate ? dayjs(values.dealDate) : null}
+                          onChange={(newValue) => setFieldValue('dealDate', newValue ? newValue.format('YYYY-MM-DD') : null)}
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                              name: 'dealDate',
+                              onBlur: handleBlur,
+                              error: touched.dealDate && Boolean(errors.dealDate),
+                              helperText: touched.dealDate ? errors.dealDate : ' ',
+                              required: true,
+                              sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                            },
+                          }}
+                        />
+                      </LocalizationProvider>
                     </Box>
                     <TextField
                       fullWidth
@@ -2271,6 +2279,7 @@ const DealForm = () => {
             </Typography>
           </DialogTitle>
           <DialogContent>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 4 }}>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
                 <TextField
@@ -2280,14 +2289,16 @@ const DealForm = () => {
                   onChange={(e) => setWdsDetails({ ...wdsDetails, refNo: e.target.value })}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
-                <TextField
-                  fullWidth
+                <DatePicker
                   label="Date"
-                  type="date"
-                  value={wdsDetails.date}
-                  onChange={(e) => setWdsDetails({ ...wdsDetails, date: e.target.value })}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  value={wdsDetails.date ? dayjs(wdsDetails.date) : null}
+                  onChange={(newValue) => setWdsDetails({ ...wdsDetails, date: newValue ? newValue.format('YYYY-MM-DD') : '' })}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                    },
+                  }}
                 />
               </Box>
 
@@ -2445,6 +2456,7 @@ const DealForm = () => {
                 />
               </Box>
             </Box>
+            </LocalizationProvider>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button
@@ -2467,6 +2479,7 @@ const DealForm = () => {
         <Dialog open={inspectionDialogOpen} onClose={() => setInspectionDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Inspection Request</DialogTitle>
           <DialogContent>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 4 }}>
               <TextField
                 select
@@ -2480,21 +2493,20 @@ const DealForm = () => {
                 <MenuItem value="medium">Medium</MenuItem>
                 <MenuItem value="low">Low</MenuItem>
               </TextField>
-              <TextField
-                fullWidth
+              <DatePicker
                 label="Preferred Inspection Date"
-                type="date"
-                value={inspectionDetails.preferredInspectionDate || ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  // Guard against malformed intermediate values from the native date
-                  // input (e.g. a stray extra digit while typing a year) reaching state.
-                  if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
-                  setInspectionDetails({ ...inspectionDetails, preferredInspectionDate: v });
+                value={inspectionDetails.preferredInspectionDate ? dayjs(inspectionDetails.preferredInspectionDate) : null}
+                onChange={(newValue) => {
+                  setInspectionDetails({ ...inspectionDetails, preferredInspectionDate: newValue ? newValue.format('YYYY-MM-DD') : null });
                 }}
-                inputProps={{ max: '2099-12-31', min: '2000-01-01' }}
-                InputLabelProps={{ shrink: true }}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                minDate={dayjs('2000-01-01')}
+                maxDate={dayjs('2099-12-31')}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                  },
+                }}
               />
               <Autocomplete
                 fullWidth
@@ -2735,6 +2747,7 @@ const DealForm = () => {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Box>
+            </LocalizationProvider>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setInspectionDialogOpen(false)} variant="outlined" sx={{ borderRadius: 2 }}>

@@ -1222,6 +1222,16 @@ class ApiService {
   async offboardHrEmployee(id, exitDate) { return this.post(`/hr/employees/${id}/offboard`, { exitDate }); }
   async getHrSalaryStructureHistory(employeeId) { return this.get(`/hr/employees/${employeeId}/salary-structure`); }
   async setHrSalaryStructure(employeeId, data) { return this.post(`/hr/employees/${employeeId}/salary-structure`, data); }
+  async uploadHrEmployeePhoto(employeeId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.post(`/hr/employees/${employeeId}/photo`, formData);
+  }
+  async uploadMyEmployeePhoto(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.post('/hr/employees/me/photo', formData);
+  }
 
   // ─── HR: Employee expanded self-service / profile ────────────────────────────────
   async getMySalaryHistory() { return this.get('/hr/employees/me/salary-history'); }
@@ -1257,6 +1267,8 @@ class ApiService {
   async getHrAttendanceSheet(employeeId, params) { return this.get(`/hr/attendance/sheet/${employeeId}`, params); }
   async listHrAttendance(params) { return this.get('/hr/attendance', params); }
   async manualHrAttendance(data) { return this.post('/hr/attendance/manual', data); }
+  async getHrAttendanceTodayAll() { return this.get('/hr/attendance/today-all'); }
+  async bulkManualHrAttendance(data) { return this.post('/hr/attendance/bulk-manual', data); }
   async createAttendanceRegularization(data) { return this.post('/hr/attendance/regularizations', data); }
   async listAttendanceRegularizations(params) { return this.get('/hr/attendance/regularizations', params); }
   async reviewAttendanceRegularization(id, decision, reviewNotes) {

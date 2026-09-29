@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Card, Typography, Button, IconButton, Stack, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, MenuItem, Alert, CircularProgress, Chip, Divider,
+  DialogActions, TextField, MenuItem, Alert, CircularProgress, Chip, Divider, Grid,
 } from '@mui/material';
 import { IconPlus, IconTrash, IconPaperclip } from '@tabler/icons-react';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import apiService from '../../../../../services/api';
 
 const camelToSnake = (s) => s.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`);
@@ -110,7 +114,7 @@ const EntityListEditor = ({
   };
 
   return (
-    <Card sx={{ p: 2.5 }}>
+    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
         <Typography variant="subtitle1" fontWeight={700}>{title}</Typography>
         {!readOnly && (
@@ -161,60 +165,89 @@ const EntityListEditor = ({
         </Stack>
       )}
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Add {title}</DialogTitle>
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Add {title}</DialogTitle>
         <DialogContent>
-          {formError && <Alert severity="error" sx={{ mb: 2 }}>{formError}</Alert>}
-          <Stack spacing={2} mt={1}>
-            {fields.map((f) => {
-              if (f.type === 'select') {
+          {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{formError}</Alert>}
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <Grid container spacing={2} mt={0.5}>
+              {fields.map((f) => {
+                if (f.type === 'select') {
+                  return (
+                    <Grid size={{ xs: 12, sm: f.multiline ? 12 : 6 }} key={f.key}>
+                      <TextField
+                        select fullWidth label={f.label} required={f.required}
+                        value={values[f.key]} onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      >
+                        {(f.options || []).map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                      </TextField>
+                    </Grid>
+                  );
+                }
+                if (f.type === 'checkbox') {
+                  return (
+                    <Grid size={{ xs: 12, sm: 6 }} key={f.key}>
+                      <TextField
+                        select fullWidth label={f.label}
+                        value={values[f.key] ? 'true' : 'false'}
+                        onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value === 'true' }))}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      >
+                        <MenuItem value="false">No</MenuItem>
+                        <MenuItem value="true">Yes</MenuItem>
+                      </TextField>
+                    </Grid>
+                  );
+                }
+                if (f.type === 'date') {
+                  return (
+                    <Grid size={{ xs: 12, sm: 6 }} key={f.key}>
+                      <DatePicker
+                        label={f.label}
+                        value={values[f.key] ? dayjs(values[f.key]) : null}
+                        onChange={(newValue) => setValues((v) => ({ ...v, [f.key]: newValue ? newValue.format('YYYY-MM-DD') : '' }))}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            required: f.required,
+                            sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
+                          },
+                        }}
+                      />
+                    </Grid>
+                  );
+                }
                 return (
-                  <TextField
-                    key={f.key} select fullWidth label={f.label} required={f.required}
-                    value={values[f.key]} onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                  >
-                    {(f.options || []).map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
-                  </TextField>
+                  <Grid size={{ xs: 12, sm: f.multiline ? 12 : 6 }} key={f.key}>
+                    <TextField
+                      fullWidth
+                      type={f.type || 'text'}
+                      label={f.label}
+                      required={f.required}
+                      multiline={f.multiline}
+                      rows={f.multiline ? 2 : undefined}
+                      value={values[f.key]}
+                      onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  </Grid>
                 );
-              }
-              if (f.type === 'checkbox') {
-                return (
-                  <TextField
-                    key={f.key} select fullWidth label={f.label}
-                    value={values[f.key] ? 'true' : 'false'}
-                    onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value === 'true' }))}
-                  >
-                    <MenuItem value="false">No</MenuItem>
-                    <MenuItem value="true">Yes</MenuItem>
-                  </TextField>
-                );
-              }
-              return (
-                <TextField
-                  key={f.key}
-                  fullWidth
-                  type={f.type || 'text'}
-                  label={f.label}
-                  required={f.required}
-                  multiline={f.multiline}
-                  rows={f.multiline ? 2 : undefined}
-                  InputLabelProps={f.type === 'date' ? { shrink: true } : undefined}
-                  value={values[f.key]}
-                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                />
-              );
-            })}
-            {fileUpload && (
-              <Button variant="outlined" component="label">
-                {file ? file.name : 'Attach file (optional)'}
-                <input type="file" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
-              </Button>
-            )}
-          </Stack>
+              })}
+              {fileUpload && (
+                <Grid size={12}>
+                  <Button variant="outlined" component="label" sx={{ borderRadius: 2 }}>
+                    {file ? file.name : 'Attach file (optional)'}
+                    <input type="file" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                  </Button>
+                </Grid>
+              )}
+            </Grid>
+          </LocalizationProvider>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSubmit} disabled={saving}>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setOpen(false)} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={saving} sx={{ borderRadius: 2 }}>
             {saving ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>

@@ -1,10 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Card, Typography, Button, TextField, MenuItem, Alert, CircularProgress,
+  Box, Card, CardContent, Typography, Button, TextField, MenuItem, Alert, CircularProgress,
   Stack, Grid, Tabs, Tab, Divider, Checkbox, FormControlLabel,
-  Autocomplete, RadioGroup, Radio, FormLabel,
+  Autocomplete, RadioGroup, Radio, FormLabel, Avatar,
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import {
+  IconArrowLeft, IconUser, IconMapPin, IconBriefcase, IconCash, IconBuildingBank,
+  IconUpload, IconNotes, IconUserPlus,
+} from '@tabler/icons-react';
 import PageContainer from '../../../../components/container/PageContainer';
 import apiService from '../../../../services/api';
 
@@ -13,7 +21,27 @@ const EMPTY = {
   managerId: '', employmentType: 'full_time', dateOfJoining: '', gender: '', dateOfBirth: '',
   nationality: '', nationalId: '', passportNumber: '', address: '',
   emergencyContactName: '', emergencyContactPhone: '', bankName: '', bankAccountNumber: '', bankIban: '', notes: '',
+  profilePhoto: '',
 };
+
+const textFieldSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
+
+const SectionHeading = ({ icon: Icon, title, subtitle }) => (
+  <Box mb={4}>
+    <Stack direction="row" spacing={1.5} alignItems="center" mb={subtitle ? 1 : 0}>
+      {Icon && <Icon size={22} color="var(--mui-palette-primary-main)" />}
+      <Typography variant="h4" fontWeight={700} color="primary.main">
+        {title}
+      </Typography>
+    </Stack>
+    {subtitle && (
+      <Typography variant="body2" color="text.secondary">
+        {subtitle}
+      </Typography>
+    )}
+    <Divider sx={{ mt: subtitle ? 3 : 2 }} />
+  </Box>
+);
 
 const EmployeeForm = () => {
   const navigate = useNavigate();
@@ -28,6 +56,8 @@ const EmployeeForm = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState('');
 
   // Login mode for a NEW employee: 'none' (no login), 'new' (create a fresh login account),
   // 'existing' (link this employee record to an already-existing user login).
@@ -62,7 +92,9 @@ const EmployeeForm = () => {
             nationalId: e.national_id || '', passportNumber: e.passport_number || '', address: e.address || '',
             emergencyContactName: e.emergency_contact_name || '', emergencyContactPhone: e.emergency_contact_phone || '',
             bankName: e.bank_name || '', bankAccountNumber: e.bank_account_number || '', bankIban: e.bank_iban || '', notes: e.notes || '',
+            profilePhoto: e.profile_photo || '',
           });
+          if (e.profile_photo) setPhotoPreviewUrl(apiService.getUploadUrl(e.profile_photo));
         }
         const salRes = await apiService.getHrSalaryStructureHistory(id);
         if (salRes.success && salRes.data?.length) {
@@ -82,6 +114,24 @@ const EmployeeForm = () => {
   }, [id, isEdit]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setPhotoUploading(true);
+      setError('');
+      const res = await apiService.uploadHrEmployeePhoto(id, file);
+      if (res.success && res.data?.path) {
+        setForm((f) => ({ ...f, profilePhoto: res.data.path }));
+        setPhotoPreviewUrl(res.data.url || apiService.getUploadUrl(res.data.path));
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to upload photo');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -135,144 +185,323 @@ const EmployeeForm = () => {
 
   if (loading) return <Box display="flex" justifyContent="center" py={12}><CircularProgress /></Box>;
 
+  const fullName = `${form.firstName || ''} ${form.lastName || ''}`.trim();
+
   return (
     <PageContainer title={isEdit ? 'Edit Employee' : 'New Employee'} description="Employee form">
-      <Card sx={{ p: 3, maxWidth: 900 }}>
-        <Typography variant="h5" fontWeight={700} mb={2}>{isEdit ? 'Edit Employee' : 'New Employee'}</Typography>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
-        <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 2 }}>
-          <Tab label="Profile" />
-          <Tab label="Salary Structure" />
-        </Tabs>
+      <Box sx={{ maxWidth: 'min(1400px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
+        <Stack direction="row" alignItems="center" spacing={2} mb={4}>
+          <Button
+            variant="outlined"
+            startIcon={<IconArrowLeft size={20} />}
+            onClick={() => navigate('/erp/hr/employees')}
+            sx={{ borderRadius: 2 }}
+          >
+            Back
+          </Button>
+          <Box>
+            <Typography variant="h3" fontWeight={700}>{isEdit ? 'Edit Employee' : 'New Employee'}</Typography>
+            <Typography variant="body2" color="text.secondary" mt={0.5}>
+              {isEdit ? 'Update employee profile and job details' : 'Create a new employee record'}
+            </Typography>
+          </Box>
+        </Stack>
+
+        {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>{success}</Alert>}
+
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+          <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ px: 3, borderBottom: 1, borderColor: 'divider' }}>
+            <Tab label="Profile" />
+            <Tab label="Salary Structure" />
+          </Tabs>
+        </Card>
+
         <form onSubmit={handleSubmit}>
-          {tab === 0 && (
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="First Name" required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="Last Name" required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField select fullWidth label="Department" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
-                  <MenuItem value="">None</MenuItem>
-                  {departments.map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField select fullWidth label="Manager" value={form.managerId} onChange={(e) => setForm({ ...form, managerId: e.target.value })}>
-                  <MenuItem value="">None</MenuItem>
-                  {employees.filter((e) => String(e.id) !== id).map((e) => <MenuItem key={e.id} value={e.id}>{e.first_name} {e.last_name}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField select fullWidth label="Employment Type" value={form.employmentType} onChange={(e) => setForm({ ...form, employmentType: e.target.value })}>
-                  {['full_time', 'part_time', 'contract', 'intern'].map((t) => <MenuItem key={t} value={t}>{t.replace('_', ' ')}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth type="date" label="Date of Joining" required InputLabelProps={{ shrink: true }} value={form.dateOfJoining} onChange={(e) => setForm({ ...form, dateOfJoining: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField select fullWidth label="Gender" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
-                  <MenuItem value="">-</MenuItem>
-                  {['male', 'female', 'other'].map((g) => <MenuItem key={g} value={g}>{g}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth type="date" label="Date of Birth" InputLabelProps={{ shrink: true }} value={form.dateOfBirth || ''} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="Nationality" value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="Bank Name" value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="Bank Account Number" value={form.bankAccountNumber} onChange={(e) => setForm({ ...form, bankAccountNumber: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={6}><TextField fullWidth label="IBAN" value={form.bankIban} onChange={(e) => setForm({ ...form, bankIban: e.target.value })} /></Grid>
-              <Grid item xs={12}><TextField fullWidth multiline rows={2} label="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></Grid>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            {tab === 0 && (
+              <>
+                {/* Basic Information */}
+                <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                  <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+                    <SectionHeading icon={IconUser} title="Basic Information" subtitle="Name, photo, and personal identifiers" />
 
-              {!isEdit && (
-                <>
-                  <Grid item xs={12}>
-                    <Divider sx={{ my: 1 }} />
-                    <FormLabel component="legend" sx={{ mb: 1 }}>Login access</FormLabel>
-                    <RadioGroup
-                      row
-                      value={loginMode}
-                      onChange={(e) => { setLoginMode(e.target.value); setSelectedExistingUser(null); }}
-                    >
-                      <FormControlLabel value="none" control={<Radio />} label="No login" />
-                      <FormControlLabel value="new" control={<Radio />} label="Create new login" />
-                      <FormControlLabel value="existing" control={<Radio />} label="Link existing user" />
-                    </RadioGroup>
-                  </Grid>
+                    <Stack direction="row" spacing={2} alignItems="center" mb={4}>
+                      <Avatar src={photoPreviewUrl} sx={{ width: 72, height: 72 }}>
+                        {fullName.slice(0, 1) || <IconUser size={28} />}
+                      </Avatar>
+                      <Box>
+                        <Button
+                          component="label"
+                          variant="outlined"
+                          size="small"
+                          startIcon={<IconUpload size={16} />}
+                          disabled={photoUploading || !isEdit}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          {photoUploading ? 'Uploading...' : 'Photo (optional)'}
+                          <input type="file" accept="image/*" hidden onChange={handlePhotoUpload} />
+                        </Button>
+                        {!isEdit && (
+                          <Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
+                            Save the employee first, then upload a photo.
+                          </Typography>
+                        )}
+                      </Box>
+                    </Stack>
 
-                  {loginMode === 'new' && (
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        select fullWidth required label="Role" value={loginRoleId}
-                        onChange={(e) => setLoginRoleId(e.target.value)}
-                        helperText="A temporary password will be generated for this login"
+                    <Grid container spacing={3}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField fullWidth label="First Name" required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField fullWidth label="Last Name" required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField fullWidth label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField fullWidth label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField select fullWidth label="Gender" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} sx={textFieldSx}>
+                          <MenuItem value="">-</MenuItem>
+                          {['male', 'female', 'other'].map((g) => <MenuItem key={g} value={g}>{g}</MenuItem>)}
+                        </TextField>
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <DatePicker
+                          label="Date of Birth"
+                          value={form.dateOfBirth ? dayjs(form.dateOfBirth) : null}
+                          onChange={(newValue) => setForm({ ...form, dateOfBirth: newValue ? newValue.format('YYYY-MM-DD') : null })}
+                          slotProps={{ textField: { fullWidth: true, sx: textFieldSx } }}
+                        />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth label="Nationality" value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField fullWidth label="National ID" value={form.nationalId} onChange={(e) => setForm({ ...form, nationalId: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField fullWidth label="Passport Number" value={form.passportNumber} onChange={(e) => setForm({ ...form, passportNumber: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+
+                {/* Contact & Address */}
+                <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                  <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+                    <SectionHeading icon={IconMapPin} title="Contact & Address" subtitle="Home address and emergency contact" />
+                    <Grid container spacing={3}>
+                      <Grid size={12}>
+                        <TextField fullWidth multiline rows={2} label="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField fullWidth label="Emergency Contact Name" value={form.emergencyContactName} onChange={(e) => setForm({ ...form, emergencyContactName: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField fullWidth label="Emergency Contact Phone" value={form.emergencyContactPhone} onChange={(e) => setForm({ ...form, emergencyContactPhone: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+
+                {/* Job Details */}
+                <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                  <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+                    <SectionHeading icon={IconBriefcase} title="Job Details" subtitle="Department, reporting line, and employment terms" />
+                    <Grid container spacing={3}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField select fullWidth label="Department" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })} sx={textFieldSx}>
+                          <MenuItem value="">None</MenuItem>
+                          {departments.map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
+                        </TextField>
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField select fullWidth label="Manager" value={form.managerId} onChange={(e) => setForm({ ...form, managerId: e.target.value })} sx={textFieldSx}>
+                          <MenuItem value="">None</MenuItem>
+                          {employees.filter((e) => String(e.id) !== id).map((e) => <MenuItem key={e.id} value={e.id}>{e.first_name} {e.last_name}</MenuItem>)}
+                        </TextField>
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField select fullWidth label="Employment Type" value={form.employmentType} onChange={(e) => setForm({ ...form, employmentType: e.target.value })} sx={textFieldSx}>
+                          {['full_time', 'part_time', 'contract', 'intern'].map((t) => <MenuItem key={t} value={t}>{t.replace('_', ' ')}</MenuItem>)}
+                        </TextField>
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <DatePicker
+                          label="Date of Joining"
+                          value={form.dateOfJoining ? dayjs(form.dateOfJoining) : null}
+                          onChange={(newValue) => setForm({ ...form, dateOfJoining: newValue ? newValue.format('YYYY-MM-DD') : null })}
+                          slotProps={{ textField: { fullWidth: true, required: true, sx: textFieldSx } }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+
+                {/* Bank & Payroll */}
+                <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                  <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+                    <SectionHeading icon={IconBuildingBank} title="Bank & Payroll" subtitle="Bank account details used for salary payment" />
+                    <Grid container spacing={3}>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth label="Bank Name" value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth label="Bank Account Number" value={form.bankAccountNumber} onChange={(e) => setForm({ ...form, bankAccountNumber: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth label="IBAN" value={form.bankIban} onChange={(e) => setForm({ ...form, bankIban: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+
+                {/* Notes */}
+                <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                  <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+                    <SectionHeading icon={IconNotes} title="Notes" />
+                    <TextField fullWidth multiline rows={3} label="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} sx={textFieldSx} />
+                  </CardContent>
+                </Card>
+
+                {/* Login access (new employee only) */}
+                {!isEdit && (
+                  <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                    <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+                      <SectionHeading icon={IconUserPlus} title="Login Access" subtitle="Optionally grant this employee a login to the system" />
+                      <FormLabel component="legend" sx={{ mb: 1 }}>Login access</FormLabel>
+                      <RadioGroup
+                        row
+                        value={loginMode}
+                        onChange={(e) => { setLoginMode(e.target.value); setSelectedExistingUser(null); }}
+                        sx={{ mb: 3 }}
                       >
-                        {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.display_name || r.name}</MenuItem>)}
+                        <FormControlLabel value="none" control={<Radio />} label="No login" />
+                        <FormControlLabel value="new" control={<Radio />} label="Create new login" />
+                        <FormControlLabel value="existing" control={<Radio />} label="Link existing user" />
+                      </RadioGroup>
+
+                      {loginMode === 'new' && (
+                        <Grid container spacing={3}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <TextField
+                              select fullWidth required label="Role" value={loginRoleId}
+                              onChange={(e) => setLoginRoleId(e.target.value)}
+                              helperText="A temporary password will be generated for this login"
+                              sx={textFieldSx}
+                            >
+                              {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.display_name || r.name}</MenuItem>)}
+                            </TextField>
+                          </Grid>
+                        </Grid>
+                      )}
+
+                      {loginMode === 'existing' && (
+                        <Grid container spacing={3}>
+                          <Grid size={{ xs: 12, sm: 6 }}>
+                            <Autocomplete
+                              fullWidth
+                              options={unlinkedUsers}
+                              getOptionLabel={(opt) =>
+                                typeof opt === 'object'
+                                  ? `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` (${opt.email})` : '')
+                                  : ''
+                              }
+                              value={selectedExistingUser}
+                              onChange={(_, val) => {
+                                setSelectedExistingUser(val);
+                                if (val) {
+                                  setForm((f) => ({
+                                    ...f,
+                                    email: f.email || val.email || '',
+                                    phone: f.phone || val.phone || '',
+                                  }));
+                                }
+                              }}
+                              isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Existing user"
+                                  placeholder="Search users with no employee record yet..."
+                                  helperText="Only users not already linked to an employee are shown"
+                                  sx={textFieldSx}
+                                />
+                              )}
+                            />
+                          </Grid>
+                        </Grid>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+
+            {tab === 1 && (
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+                  <SectionHeading icon={IconCash} title="Compensation" subtitle="Setting a new salary structure closes any prior active one automatically" />
+                  <Grid container spacing={3}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField fullWidth label="Basic Salary" type="number" required value={salary.basicSalary} onChange={(e) => setSalary({ ...salary, basicSalary: e.target.value })} sx={textFieldSx} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField fullWidth label="Housing Allowance" type="number" value={salary.housingAllowance} onChange={(e) => setSalary({ ...salary, housingAllowance: e.target.value })} sx={textFieldSx} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField fullWidth label="Transport Allowance" type="number" value={salary.transportAllowance} onChange={(e) => setSalary({ ...salary, transportAllowance: e.target.value })} sx={textFieldSx} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField fullWidth label="Other Allowance" type="number" value={salary.otherAllowance} onChange={(e) => setSalary({ ...salary, otherAllowance: e.target.value })} sx={textFieldSx} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField select fullWidth label="Payment Method" value={salary.paymentMethod} onChange={(e) => setSalary({ ...salary, paymentMethod: e.target.value })} sx={textFieldSx}>
+                        {['bank_transfer', 'cash', 'cheque'].map((m) => <MenuItem key={m} value={m}>{m.replace('_', ' ')}</MenuItem>)}
                       </TextField>
                     </Grid>
-                  )}
-
-                  {loginMode === 'existing' && (
-                    <Grid item xs={12} sm={6}>
-                      <Autocomplete
-                        fullWidth
-                        options={unlinkedUsers}
-                        getOptionLabel={(opt) =>
-                          typeof opt === 'object'
-                            ? `${opt.first_name || ''} ${opt.last_name || ''}`.trim() + (opt.email ? ` (${opt.email})` : '')
-                            : ''
-                        }
-                        value={selectedExistingUser}
-                        onChange={(_, val) => {
-                          setSelectedExistingUser(val);
-                          if (val) {
-                            setForm((f) => ({
-                              ...f,
-                              email: f.email || val.email || '',
-                              phone: f.phone || val.phone || '',
-                            }));
-                          }
-                        }}
-                        isOptionEqualToValue={(opt, val) => opt.id === val?.id}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Existing user"
-                            placeholder="Search users with no employee record yet..."
-                            helperText="Only users not already linked to an employee are shown"
-                          />
-                        )}
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <DatePicker
+                        label="Effective From"
+                        value={salary.effectiveFrom ? dayjs(salary.effectiveFrom) : null}
+                        onChange={(newValue) => setSalary({ ...salary, effectiveFrom: newValue ? newValue.format('YYYY-MM-DD') : null })}
+                        slotProps={{ textField: { fullWidth: true, sx: textFieldSx } }}
                       />
                     </Grid>
-                  )}
-                </>
-              )}
-            </Grid>
-          )}
-          {tab === 1 && (
-            <Grid container spacing={2}>
-              <Grid item xs={12}><Typography variant="body2" color="text.secondary">Setting a new salary structure closes any prior active one automatically.</Typography></Grid>
-              <Grid item xs={12} sm={4}><TextField fullWidth label="Basic Salary" type="number" required value={salary.basicSalary} onChange={(e) => setSalary({ ...salary, basicSalary: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={4}><TextField fullWidth label="Housing Allowance" type="number" value={salary.housingAllowance} onChange={(e) => setSalary({ ...salary, housingAllowance: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={4}><TextField fullWidth label="Transport Allowance" type="number" value={salary.transportAllowance} onChange={(e) => setSalary({ ...salary, transportAllowance: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={4}><TextField fullWidth label="Other Allowance" type="number" value={salary.otherAllowance} onChange={(e) => setSalary({ ...salary, otherAllowance: e.target.value })} /></Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField select fullWidth label="Payment Method" value={salary.paymentMethod} onChange={(e) => setSalary({ ...salary, paymentMethod: e.target.value })}>
-                  {['bank_transfer', 'cash', 'cheque'].map((m) => <MenuItem key={m} value={m}>{m.replace('_', ' ')}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={4}><TextField fullWidth type="date" label="Effective From" InputLabelProps={{ shrink: true }} value={salary.effectiveFrom} onChange={(e) => setSalary({ ...salary, effectiveFrom: e.target.value })} /></Grid>
-              <Grid item xs={12}>
-                <FormControlLabel control={<Checkbox checked={salary.commissionEligible} onChange={(e) => setSalary({ ...salary, commissionEligible: e.target.checked })} />} label="Commission eligible" />
-              </Grid>
-            </Grid>
-          )}
-          <Divider sx={{ my: 3 }} />
-          <Stack direction="row" spacing={2}>
-            <Button type="submit" variant="contained" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
-            <Button onClick={() => navigate('/erp/hr/employees')}>Cancel</Button>
+                    <Grid size={12}>
+                      <FormControlLabel control={<Checkbox checked={salary.commissionEligible} onChange={(e) => setSalary({ ...salary, commissionEligible: e.target.checked })} />} label="Commission eligible" />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            )}
+          </LocalizationProvider>
+
+          <Stack direction="row" spacing={2} justifyContent="flex-end" mt={3}>
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={() => navigate('/erp/hr/employees')}
+              sx={{ minWidth: '140px', borderRadius: 2, fontWeight: 600 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              disabled={saving}
+              sx={{ minWidth: '180px', borderRadius: 2, fontWeight: 600 }}
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </Button>
           </Stack>
         </form>
-      </Card>
+      </Box>
     </PageContainer>
   );
 };

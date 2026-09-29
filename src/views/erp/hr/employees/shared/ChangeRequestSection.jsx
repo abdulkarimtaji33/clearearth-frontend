@@ -80,7 +80,7 @@ const ChangeRequestSection = ({
   };
 
   return (
-    <Card sx={{ p: 2.5 }}>
+    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
         <Typography variant="subtitle1" fontWeight={700}>{title}</Typography>
         {selfService && editableFields.length > 0 && (
@@ -105,29 +105,31 @@ const ChangeRequestSection = ({
         </Typography>
       )}
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Request changes — {title}</DialogTitle>
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Request changes — {title}</DialogTitle>
         <DialogContent>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+          {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>{success}</Alert>}
           <Typography variant="body2" color="text.secondary" mb={2}>
             Changes here require HR approval before they take effect.
           </Typography>
-          <Stack spacing={2}>
+          <Grid container spacing={2}>
             {editableFields.map((f) => (
-              <TextField
-                key={f.key}
-                fullWidth
-                label={f.label}
-                value={values[f.key] ?? ''}
-                onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-              />
+              <Grid size={{ xs: 12, sm: 6 }} key={f.key}>
+                <TextField
+                  fullWidth
+                  label={f.label}
+                  value={values[f.key] ?? ''}
+                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
             ))}
-          </Stack>
+          </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSubmit} disabled={saving}>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setOpen(false)} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={saving} sx={{ borderRadius: 2 }}>
             {saving ? 'Submitting...' : 'Submit for approval'}
           </Button>
         </DialogActions>

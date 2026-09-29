@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  IconButton, Box, Badge, Menu, Typography, Button, CircularProgress, Stack,
+  IconButton, Box, Badge, Menu, Typography, Button, CircularProgress, Stack, Chip,
 } from '@mui/material';
 import { IconClockHour4, IconClockPlay, IconClockPause, IconClockCheck } from '@tabler/icons-react';
 import apiService from 'src/services/api';
@@ -179,48 +179,59 @@ const ClockWidget = () => {
         onClose={handleClose}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        sx={{ '& .MuiMenu-paper': { width: '280px', maxWidth: 'calc(100vw - 32px)', p: 2 } }}
+        sx={{ '& .MuiMenu-paper': { width: '300px', maxWidth: 'calc(100vw - 32px)' } }}
       >
-        <Stack spacing={1.5}>
+        <Stack direction="row" py={2} px={4} justifyContent="space-between" alignItems="center">
           <Typography variant="h6">Attendance</Typography>
-          {!checkedIn ? (
-            <>
-              <Typography variant="body2" color="text.secondary">You haven&apos;t checked in today.</Typography>
-              <Button
-                variant="contained"
-                fullWidth
-                disabled={acting}
-                onClick={async () => { await doCheckIn(); }}
-                startIcon={acting ? <CircularProgress size={16} color="inherit" /> : null}
-              >
-                {acting ? 'Checking in...' : 'Clock In'}
-              </Button>
-            </>
-          ) : !checkedOut ? (
-            <>
-              <Typography variant="body2" color="text.secondary">
-                Checked in at {formatTime(record.check_in_time)}
-              </Typography>
-              <Typography variant="subtitle1" fontWeight={700}>
-                {formatElapsed(record.check_in_time)} elapsed
-              </Typography>
-              <Button
-                variant="outlined"
-                color="error"
-                fullWidth
-                disabled={acting}
-                onClick={async () => { await doCheckOut(); }}
-                startIcon={acting ? <CircularProgress size={16} color="inherit" /> : null}
-              >
-                {acting ? 'Checking out...' : 'Clock Out'}
-              </Button>
-            </>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              Checked out at {formatTime(record.check_out_time)}
-            </Typography>
+          {checkedIn && (
+            <Chip
+              label={checkedOut ? 'Checked out' : 'Checked in'}
+              color={checkedOut ? 'default' : 'success'}
+              size="small"
+            />
           )}
         </Stack>
+        <Box px={4} pb={3}>
+          <Stack spacing={1.5}>
+            {!checkedIn ? (
+              <>
+                <Typography variant="body2" color="text.secondary">You haven&apos;t checked in today.</Typography>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  disabled={acting}
+                  onClick={async () => { await doCheckIn(); }}
+                  startIcon={acting ? <CircularProgress size={16} color="inherit" /> : null}
+                >
+                  {acting ? 'Checking in...' : 'Clock In'}
+                </Button>
+              </>
+            ) : !checkedOut ? (
+              <>
+                <Typography variant="body2" color="text.secondary">
+                  Checked in at {formatTime(record.check_in_time)}
+                </Typography>
+                <Typography variant="subtitle1" fontWeight={700}>
+                  {formatElapsed(record.check_in_time)} elapsed
+                </Typography>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  fullWidth
+                  disabled={acting}
+                  onClick={async () => { await doCheckOut(); }}
+                  startIcon={acting ? <CircularProgress size={16} color="inherit" /> : null}
+                >
+                  {acting ? 'Checking out...' : 'Clock Out'}
+                </Button>
+              </>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Checked out at {formatTime(record.check_out_time)}
+              </Typography>
+            )}
+          </Stack>
+        </Box>
       </Menu>
     </Box>
   );

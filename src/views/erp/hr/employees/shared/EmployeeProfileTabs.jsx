@@ -4,11 +4,36 @@ import {
   Avatar, Divider, List, ListItem, ListItemText, Button, TextField, Dialog,
   DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
+import {
+  IconLayoutDashboard, IconUser, IconMapPin, IconBriefcase, IconFileText, IconCash,
+  IconBuildingBank, IconFiles, IconSchool, IconBulb, IconCertificate, IconHistory,
+  IconUsers, IconPhoneCall, IconDeviceLaptop, IconNotes, IconUpload,
+} from '@tabler/icons-react';
 import apiService from '../../../../../services/api';
 import EntityListEditor from './EntityListEditor';
 import ChangeRequestSection from './ChangeRequestSection';
 
 const STATUS_COLORS = { active: 'success', onboarding: 'info', on_leave: 'warning', suspended: 'error', exited: 'default' };
+
+const TAB_ICONS = {
+  Overview: IconLayoutDashboard,
+  Personal: IconUser,
+  'Contact & Address': IconMapPin,
+  Job: IconBriefcase,
+  Contract: IconFileText,
+  Compensation: IconCash,
+  'Bank & Payroll IDs': IconBuildingBank,
+  Documents: IconFiles,
+  Qualifications: IconSchool,
+  Skills: IconBulb,
+  Certifications: IconCertificate,
+  'Previous Employment': IconHistory,
+  Dependents: IconUsers,
+  'Emergency Contacts': IconPhoneCall,
+  Assets: IconDeviceLaptop,
+  History: IconHistory,
+  Notes: IconNotes,
+};
 
 const Field = ({ label, value }) => (
   <Box mb={1.5}>
@@ -40,6 +65,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
   const [salaryHistory, setSalaryHistory] = useState(null); // self mode: { salaryVisible, history }
   const [hrSalaryHistory, setHrSalaryHistory] = useState([]); // hr mode: array
   const [history, setHistory] = useState([]);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -84,6 +110,22 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
     load();
   };
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setPhotoUploading(true);
+      const res = isSelf
+        ? await apiService.uploadMyEmployeePhoto(file)
+        : await apiService.uploadHrEmployeePhoto(employeeId, file);
+      if (res.success) load();
+    } catch {
+      // silently ignore — photo upload is a non-critical enhancement here
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   if (loading) return <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>;
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!employee) return null;
@@ -94,13 +136,26 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
 
   return (
     <Box>
-      <Card sx={{ p: 3, mb: 2 }}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: 3, mb: 3 }}>
         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-          <Avatar src={photoUrl} sx={{ width: 64, height: 64 }}>{fullName.slice(0, 1)}</Avatar>
+          <Box position="relative">
+            <Avatar src={photoUrl} sx={{ width: 64, height: 64 }}>{fullName.slice(0, 1)}</Avatar>
+          </Box>
           <Box flex={1}>
             <Typography variant="h5" fontWeight={700}>{fullName || '-'}</Typography>
             <Typography variant="body2" color="text.secondary">{employee.employee_code}</Typography>
           </Box>
+          <Button
+            component="label"
+            variant="outlined"
+            size="small"
+            startIcon={<IconUpload size={16} />}
+            disabled={photoUploading}
+            sx={{ borderRadius: 2 }}
+          >
+            {photoUploading ? 'Uploading...' : 'Update Photo'}
+            <input type="file" accept="image/*" hidden onChange={handlePhotoUpload} />
+          </Button>
           <Chip label={(employee.employment_status || '').replace('_', ' ')} color={STATUS_COLORS[employee.employment_status] || 'default'} />
         </Stack>
       </Card>
@@ -113,11 +168,22 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
         allowScrollButtonsMobile
         sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
       >
-        {labels.map((l) => <Tab key={l} label={l} />)}
+        {labels.map((l) => {
+          const Icon = TAB_ICONS[l];
+          return (
+            <Tab
+              key={l}
+              label={l}
+              icon={Icon ? <Icon size={18} /> : undefined}
+              iconPosition="start"
+              sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
+            />
+          );
+        })}
       </Tabs>
 
       {labels[tab] === 'Overview' && (
-        <Card sx={{ p: 2.5 }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}><Field label="Employee Code" value={employee.employee_code} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Job Title" value={employee.designation?.display_name} /></Grid>
@@ -209,7 +275,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       )}
 
       {labels[tab] === 'Job' && (
-        <Card sx={{ p: 2.5 }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}><Field label="Department" value={employee.department?.name} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Designation" value={employee.designation?.display_name} /></Grid>
@@ -226,7 +292,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       )}
 
       {labels[tab] === 'Contract' && (
-        <Card sx={{ p: 2.5 }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
           <Typography variant="body2" color="text.secondary">Contract details coming soon.</Typography>
         </Card>
       )}
@@ -342,13 +408,13 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       )}
 
       {labels[tab] === 'Assets' && (
-        <Card sx={{ p: 2.5 }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
           <Typography variant="body2" color="text.secondary">No assets assigned. Asset tracking is not available yet.</Typography>
         </Card>
       )}
 
       {labels[tab] === 'History' && (
-        <Card sx={{ p: 2.5 }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
           {history.length === 0 ? (
             <Typography variant="body2" color="text.secondary">No history recorded yet.</Typography>
           ) : (
@@ -384,14 +450,14 @@ const CompensationTab = ({ isSelf, employee, salaryHistory, hrSalaryHistory }) =
   if (isSelf) {
     if (employee.salaryVisible === false) {
       return (
-        <Card sx={{ p: 2.5 }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
           <Alert severity="info">Your compensation details are managed by HR and not shown here.</Alert>
         </Card>
       );
     }
     const active = employee.activeSalaryStructure;
     return (
-      <Card sx={{ p: 2.5 }}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
         {active ? (
           <Grid container spacing={2} mb={2}>
             <Grid item xs={6} sm={3}><Field label="Basic" value={active.basic_salary} /></Grid>
@@ -426,7 +492,7 @@ const CompensationTab = ({ isSelf, employee, salaryHistory, hrSalaryHistory }) =
 
   // HR mode: always visible (the visibility flag only restricts the employee's own view)
   return (
-    <Card sx={{ p: 2.5 }}>
+    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
       <Typography variant="subtitle2" mb={1}>Salary Structure History</Typography>
       {hrSalaryHistory.length === 0 ? (
         <Typography variant="body2" color="text.secondary">No salary structure on record.</Typography>
@@ -503,7 +569,7 @@ const NotesTab = ({ employeeId }) => {
   };
 
   return (
-    <Card sx={{ p: 2.5 }}>
+    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
         <Typography variant="subtitle1" fontWeight={700}>Notes</Typography>
         <Button size="small" onClick={() => setOpen(true)}>Add Note</Button>

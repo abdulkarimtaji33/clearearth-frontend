@@ -3,6 +3,7 @@ import {
   Box, Card, CardContent, Typography, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Chip, CircularProgress, Alert, Grid, Paper, Stack, TablePagination,
 } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { IconCoin, IconCheck, IconClock } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -35,6 +36,7 @@ const StatCard = ({ icon, label, value, color }) => (
 );
 
 const MyCommissions = () => {
+  const theme = useTheme();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -61,8 +63,13 @@ const MyCommissions = () => {
   return (
     <PageContainer title="My Commissions" description="Your sales commission history">
       <Box mb={3}>
-        <Typography variant="h4" fontWeight={900}>My Commissions</Typography>
-        <Typography variant="body2" color="text.secondary" mt={0.25}>
+        <Stack direction="row" alignItems="center" spacing={1.5} mb={0.5}>
+          <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconCoin size={20} />
+          </Box>
+          <Typography variant="h4" fontWeight={700}>My Commissions</Typography>
+        </Stack>
+        <Typography variant="body2" color="text.secondary" ml={6.5}>
           Commission earned on your approved quotations
         </Typography>
       </Box>
@@ -95,13 +102,10 @@ const MyCommissions = () => {
               <TableContainer>
                 <Table>
                   <TableHead>
-                    <TableRow>
-                      <TableCell>Quotation</TableCell>
-                      <TableCell>Date</TableCell>
-                      <TableCell align="right">Quotation Amount</TableCell>
-                      <TableCell align="right">Rate</TableCell>
-                      <TableCell align="right">Commission</TableCell>
-                      <TableCell>Status</TableCell>
+                    <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
+                      {['Quotation', 'Date', 'Quotation Amount', 'Rate', 'Commission', 'Status'].map((h, i) => (
+                        <TableCell key={h} align={i >= 2 && i <= 4 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                      ))}
                     </TableRow>
                   </TableHead>
                   <TableBody>

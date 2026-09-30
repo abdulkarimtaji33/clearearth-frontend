@@ -39,6 +39,7 @@ const EntityListEditor = ({
   readOnly = false,
   highlightWhen, // optional: (row) => boolean, adds a "Primary" chip
   emptyMessage = 'None added yet.',
+  icon, // optional: icon component shown (dimmed) above the empty-state message
   maxItems, // optional: hides/disables "Add" once rows.length reaches this, with maxItemsMessage shown instead
   maxItemsMessage = 'Maximum number of entries reached.',
 }) => {
@@ -50,6 +51,7 @@ const EntityListEditor = ({
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [missingKey, setMissingKey] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -70,15 +72,17 @@ const EntityListEditor = ({
     setValues(emptyValues(fields));
     setFile(null);
     setFormError('');
+    setMissingKey('');
     setOpen(true);
   };
 
   const handleSubmit = async () => {
     setSaving(true);
     setFormError('');
+    setMissingKey('');
     try {
       const missing = fields.find((f) => f.required && !values[f.key]);
-      if (missing) throw new Error(`${missing.label} is required`);
+      if (missing) { setMissingKey(missing.key); throw new Error(`${missing.label} is required`); }
 
       let payload;
       if (fileUpload) {
@@ -130,7 +134,10 @@ const EntityListEditor = ({
       {loading ? (
         <Box display="flex" justifyContent="center" py={3}><CircularProgress size={24} /></Box>
       ) : rows.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">{emptyMessage}</Typography>
+        <Box py={3} textAlign="center">
+          {icon && React.createElement(icon, { size: 40, style: { opacity: 0.2, marginBottom: 8 } })}
+          <Typography variant="body2" color="text.secondary">{emptyMessage}</Typography>
+        </Box>
       ) : (
         <Stack spacing={1}>
           {rows.map((row) => (
@@ -182,7 +189,10 @@ const EntityListEditor = ({
                     <Grid size={{ xs: 12, sm: f.multiline ? 12 : 6 }} key={f.key}>
                       <TextField
                         select fullWidth label={f.label} required={f.required}
-                        value={values[f.key]} onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                        error={missingKey === f.key}
+                        helperText={missingKey === f.key ? `${f.label} is required` : ''}
+                        value={values[f.key]}
+                        onChange={(e) => { setValues((v) => ({ ...v, [f.key]: e.target.value })); if (missingKey === f.key) setMissingKey(''); }}
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       >
                         {(f.options || []).map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
@@ -230,10 +240,12 @@ const EntityListEditor = ({
                       type={f.type || 'text'}
                       label={f.label}
                       required={f.required}
+                      error={missingKey === f.key}
+                      helperText={missingKey === f.key ? `${f.label} is required` : ''}
                       multiline={f.multiline}
                       rows={f.multiline ? 2 : undefined}
                       value={values[f.key]}
-                      onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                      onChange={(e) => { setValues((v) => ({ ...v, [f.key]: e.target.value })); if (missingKey === f.key) setMissingKey(''); }}
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
                   </Grid>

@@ -3,13 +3,14 @@ import {
   Box, Card, Typography, Grid, Chip, CircularProgress, Alert, Stack, Tabs, Tab,
   Avatar, Divider, List, ListItem, ListItemText, Button, TextField, Dialog,
   DialogTitle, DialogContent, DialogActions, Table, TableHead, TableBody,
-  TableRow, TableCell, IconButton, Autocomplete, MenuItem,
+  TableRow, TableCell, TableContainer, IconButton, Autocomplete, MenuItem,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
   IconLayoutDashboard, IconUser, IconMapPin, IconBriefcase, IconFileText, IconCash,
   IconBuildingBank, IconFiles, IconSchool, IconBulb, IconCertificate, IconHistory,
   IconUsers, IconPhoneCall, IconDeviceLaptop, IconNotes, IconUpload, IconPlus, IconTrash,
-  IconDownload, IconPaperclip, IconEdit,
+  IconDownload, IconPaperclip, IconEdit, IconBuildingSkyscraper, IconTimeline,
 } from '@tabler/icons-react';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -33,11 +34,11 @@ const TAB_ICONS = {
   Qualifications: IconSchool,
   Skills: IconBulb,
   Certifications: IconCertificate,
-  'Previous Employment': IconHistory,
+  'Previous Employment': IconBuildingSkyscraper,
   Dependents: IconUsers,
   'Emergency Contacts': IconPhoneCall,
   Assets: IconDeviceLaptop,
-  History: IconHistory,
+  History: IconTimeline,
   Notes: IconNotes,
 };
 
@@ -45,6 +46,15 @@ const Field = ({ label, value }) => (
   <Box mb={1.5}>
     <Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase">{label}</Typography>
     <Typography variant="body1">{value || '-'}</Typography>
+  </Box>
+);
+
+/** Shared friendly empty state — icon + message, matching the pattern established in
+ * RegularizationRequestList.jsx (opacity-dimmed icon over a muted caption). */
+const EmptyState = ({ icon: Icon, message }) => (
+  <Box py={4} textAlign="center">
+    {Icon && <Icon size={40} style={{ opacity: 0.2, marginBottom: 8 }} />}
+    <Typography variant="body2" color="text.secondary">{message}</Typography>
   </Box>
 );
 
@@ -195,9 +205,6 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
 
       {labels[tab] === 'Overview' && (
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
-          <Box display="flex" justifyContent="flex-end" mb={1}>
-            <EmployeeInfoPdfButton isSelf={isSelf} employeeId={employeeId} />
-          </Box>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}><Field label="Employee Code" value={employee.employee_code} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Job Title" value={employee.designation?.display_name} /></Grid>
@@ -206,7 +213,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
             <Grid item xs={12} sm={4}><Field label="Joining Date" value={employee.date_of_joining} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Employment Type" value={employee.employment_type} /></Grid>
           </Grid>
-          {!isSelf && <SalaryFormsSection employeeId={employeeId} />}
+          <QuickActionsSection isSelf={isSelf} employeeId={employeeId} />
         </Card>
       )}
 
@@ -351,6 +358,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       {labels[tab] === 'Qualifications' && (
         <EntityListEditor
           title="Qualifications" base={base} entity="qualifications" fileUpload
+          icon={IconSchool} emptyMessage="No qualifications added yet."
           fields={[
             { key: 'degree', label: 'Degree', required: true },
             { key: 'institution', label: 'Institution' },
@@ -363,6 +371,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       {labels[tab] === 'Skills' && (
         <EntityListEditor
           title="Skills" base={base} entity="skills"
+          icon={IconBulb} emptyMessage="No skills added yet."
           fields={[
             { key: 'skillName', label: 'Skill', required: true },
             {
@@ -376,6 +385,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       {labels[tab] === 'Certifications' && (
         <EntityListEditor
           title="Certifications" base={base} entity="certifications" fileUpload
+          icon={IconCertificate} emptyMessage="No certifications added yet."
           fields={[
             { key: 'name', label: 'Certification Name', required: true },
             { key: 'issuer', label: 'Issuer' },
@@ -389,6 +399,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       {labels[tab] === 'Previous Employment' && (
         <EntityListEditor
           title="Previous Employment" base={base} entity="previous-employment"
+          icon={IconBuildingSkyscraper} emptyMessage="No previous employment added yet."
           fields={[
             { key: 'companyName', label: 'Company Name', required: true },
             { key: 'jobTitle', label: 'Job Title' },
@@ -402,6 +413,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       {labels[tab] === 'Dependents' && (
         <EntityListEditor
           title="Dependents" base={base} entity="dependents"
+          icon={IconUsers} emptyMessage="No dependents added yet."
           fields={[
             { key: 'name', label: 'Name', required: true },
             { key: 'relationship', label: 'Relationship' },
@@ -415,6 +427,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       {labels[tab] === 'Emergency Contacts' && (
         <EntityListEditor
           title="Emergency Contacts" base={base} entity="emergency-contacts"
+          icon={IconPhoneCall} emptyMessage="No emergency contacts added yet."
           highlightWhen={(row) => !!row.is_primary}
           maxItems={3}
           maxItemsMessage="Maximum of 3 emergency contacts."
@@ -435,7 +448,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       {labels[tab] === 'History' && (
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
           {history.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">No history recorded yet.</Typography>
+            <EmptyState icon={IconTimeline} message="No history recorded yet." />
           ) : (
             <List>
               {history.map((h) => (
@@ -480,7 +493,18 @@ const CompensationSummaryGrid = ({ active }) => (
     <Grid item xs={6} sm={3}><Field label="Basic Salary" value={active.basic_salary} /></Grid>
     <Grid item xs={6} sm={3}><Field label="Housing Allowance" value={active.housing_allowance} /></Grid>
     <Grid item xs={6} sm={3}><Field label="Supplement Allowance" value={active.other_allowance} /></Grid>
-    <Grid item xs={6} sm={3}><Field label="Total Amount" value={compTotal(active)} /></Grid>
+    <Grid item xs={6} sm={3}>
+      <Box
+        sx={{
+          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+          border: '1px solid', borderColor: (theme) => alpha(theme.palette.primary.main, 0.3), borderRadius: 2,
+          px: 1.5, py: 1, mb: 1.5,
+        }}
+      >
+        <Typography variant="caption" color="primary.main" fontWeight={700} textTransform="uppercase">Total Amount</Typography>
+        <Typography variant="h6" fontWeight={800} color="primary.main">{compTotal(active).toFixed(2)}</Typography>
+      </Box>
+    </Grid>
   </Grid>
 );
 
@@ -504,6 +528,11 @@ const CompensationEditDialog = ({ open, onClose, employeeId, onSaved }) => {
     setError('');
     if (!values.basicSalary || parseFloat(values.basicSalary) <= 0) {
       setError('Basic Salary is required and must be greater than zero');
+      return;
+    }
+    if ((values.housingAllowance && parseFloat(values.housingAllowance) < 0)
+      || (values.otherAllowance && parseFloat(values.otherAllowance) < 0)) {
+      setError('Housing and Supplement Allowance cannot be negative');
       return;
     }
     if (!values.effectiveFrom) {
@@ -538,6 +567,7 @@ const CompensationEditDialog = ({ open, onClose, employeeId, onSaved }) => {
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth type="number" label="Basic Salary" required
+                inputProps={{ min: 0, step: 0.01 }}
                 value={values.basicSalary}
                 onChange={(e) => setValues((v) => ({ ...v, basicSalary: e.target.value }))}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -546,6 +576,7 @@ const CompensationEditDialog = ({ open, onClose, employeeId, onSaved }) => {
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth type="number" label="Housing Allowance"
+                inputProps={{ min: 0, step: 0.01 }}
                 value={values.housingAllowance}
                 onChange={(e) => setValues((v) => ({ ...v, housingAllowance: e.target.value }))}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -554,6 +585,7 @@ const CompensationEditDialog = ({ open, onClose, employeeId, onSaved }) => {
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth type="number" label="Supplement Allowance"
+                inputProps={{ min: 0, step: 0.01 }}
                 value={values.otherAllowance}
                 onChange={(e) => setValues((v) => ({ ...v, otherAllowance: e.target.value }))}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
@@ -604,7 +636,7 @@ const CompensationTab = ({ isSelf, employee, employeeId, salaryHistory, hrSalary
         {active ? (
           <CompensationSummaryGrid active={active} />
         ) : (
-          <Typography variant="body2" color="text.secondary" mb={2}>No active salary structure on record.</Typography>
+          <EmptyState icon={IconCash} message="No active salary structure on record." />
         )}
         <Divider sx={{ mb: 2 }} />
         <Typography variant="subtitle2" mb={1}>History</Typography>
@@ -637,7 +669,7 @@ const CompensationTab = ({ isSelf, employee, employeeId, salaryHistory, hrSalary
         <Button size="small" startIcon={<IconEdit size={16} />} onClick={() => setEditOpen(true)}>Edit</Button>
       </Box>
       {activeHr ? <CompensationSummaryGrid active={activeHr} /> : (
-        <Typography variant="body2" color="text.secondary" mb={2}>No active salary structure on record.</Typography>
+        <EmptyState icon={IconCash} message="No active salary structure on record." />
       )}
       <Divider sx={{ mb: 2 }} />
       <Typography variant="subtitle2" mb={1}>Salary Structure History</Typography>
@@ -665,33 +697,82 @@ const CompensationTab = ({ isSelf, employee, employeeId, salaryHistory, hrSalary
   );
 };
 
-const EmployeeInfoPdfButton = ({ isSelf, employeeId }) => {
-  const [downloading, setDownloading] = useState(false);
+/**
+ * Overview tab's "Documents & Forms" quick-action group — a single consolidated bar for
+ * the employee-info PDF plus (HR-only, and only once an active salary structure exists)
+ * the salary certificate / slip generators. Replaces what used to be three buttons added
+ * across separate rounds (one pinned top-right, two more appended below in their own
+ * section) with one clearly-labeled, consistently-styled group.
+ */
+const QuickActionsSection = ({ isSelf, employeeId }) => {
+  const [hasActiveSalary, setHasActiveSalary] = useState(false);
+  const [checked, setChecked] = useState(isSelf); // self mode never shows salary-form buttons, nothing to check
+  const [downloading, setDownloading] = useState('');
   const [error, setError] = useState('');
 
-  const handleDownload = async () => {
-    setDownloading(true);
+  useEffect(() => {
+    if (isSelf) return;
+    let cancelled = false;
+    apiService.getHrSalaryStructureHistory(employeeId)
+      .then((res) => {
+        if (cancelled) return;
+        const history = res.success ? (res.data || []) : [];
+        setHasActiveSalary(history.some((s) => s.is_active));
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setChecked(true); });
+    return () => { cancelled = true; };
+  }, [isSelf, employeeId]);
+
+  const handleDownload = async (kind) => {
+    setDownloading(kind);
     setError('');
     try {
-      if (isSelf) await apiService.downloadMyEmployeeInfoPdf();
-      else await apiService.downloadHrEmployeeInfoPdf(employeeId);
+      if (kind === 'info') {
+        if (isSelf) await apiService.downloadMyEmployeeInfoPdf();
+        else await apiService.downloadHrEmployeeInfoPdf(employeeId);
+      }
+      if (kind === 'certificate') await apiService.downloadSalaryCertificatePdf(employeeId);
+      if (kind === 'slip') await apiService.downloadSalarySlipPdf(employeeId);
     } catch (err) {
       setError(err.message || 'Failed to download PDF');
     } finally {
-      setDownloading(false);
+      setDownloading('');
     }
   };
 
+  if (!checked) return null;
+
   return (
-    <Stack alignItems="flex-end">
-      <Button
-        size="small" variant="outlined" startIcon={<IconDownload size={16} />}
-        onClick={handleDownload} disabled={downloading} sx={{ borderRadius: 2 }}
-      >
-        {downloading ? 'Downloading...' : 'Download Employee Info (PDF)'}
-      </Button>
-      {error && <Typography variant="caption" color="error" mt={0.5}>{error}</Typography>}
-    </Stack>
+    <Box mt={3}>
+      <Divider sx={{ mb: 2 }} />
+      <Typography variant="subtitle2" fontWeight={700} mb={1.5}>Documents &amp; Forms</Typography>
+      {error && <Alert severity="error" sx={{ mb: 1.5, borderRadius: 2 }}>{error}</Alert>}
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Button
+          size="small" variant="outlined" startIcon={<IconDownload size={16} />}
+          onClick={() => handleDownload('info')} disabled={downloading === 'info'} sx={{ borderRadius: 2 }}
+        >
+          {downloading === 'info' ? 'Downloading...' : 'Download Employee Info (PDF)'}
+        </Button>
+        {!isSelf && hasActiveSalary && (
+          <>
+            <Button
+              size="small" variant="outlined" startIcon={<IconDownload size={16} />}
+              onClick={() => handleDownload('certificate')} disabled={downloading === 'certificate'} sx={{ borderRadius: 2 }}
+            >
+              {downloading === 'certificate' ? 'Preparing...' : 'Generate Salary Certificate'}
+            </Button>
+            <Button
+              size="small" variant="outlined" startIcon={<IconDownload size={16} />}
+              onClick={() => handleDownload('slip')} disabled={downloading === 'slip'} sx={{ borderRadius: 2 }}
+            >
+              {downloading === 'slip' ? 'Preparing...' : 'Generate Salary Slip'}
+            </Button>
+          </>
+        )}
+      </Stack>
+    </Box>
   );
 };
 
@@ -796,13 +877,13 @@ const IdentityDocumentDialog = ({ open, onClose, base, typeName, typeId, existin
 const IdentityDocumentCard = ({ base, typeName, typeId, existingRow, onSaved }) => {
   const [open, setOpen] = useState(false);
   return (
-    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2 }}>
+    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, height: '100%' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
         <Box>
           <Typography variant="subtitle2" fontWeight={700}>{typeName}</Typography>
           {existingRow ? (
             <>
-              <Typography variant="body2">No.: {existingRow.document_number || '-'}</Typography>
+              <Typography variant="body2">Document No.: {existingRow.document_number || '-'}</Typography>
               <Typography variant="body2" color="text.secondary">
                 Issued: {existingRow.issue_date || '-'} &middot; Expires: {existingRow.expiry_date || '-'}
               </Typography>
@@ -905,7 +986,7 @@ const OtherDocumentsSection = ({ base, rows, documentTypes, onSaved }) => {
       </Box>
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
       {rows.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">None added yet.</Typography>
+        <EmptyState icon={IconFiles} message="No other documents added yet." />
       ) : (
         <Stack spacing={1}>
           {rows.map((row) => (
@@ -1048,11 +1129,13 @@ const DocumentsTab = ({ base }) => {
       {error && <Alert severity="error">{error}</Alert>}
       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
         <Typography variant="subtitle1" fontWeight={700} mb={2}>Identity &amp; Compliance Documents</Typography>
-        <Stack spacing={1.5}>
+        <Grid container spacing={1.5}>
           {pinned.map((p) => (
-            <IdentityDocumentCard key={p.name} base={base} typeName={p.name} typeId={p.typeId} existingRow={p.row} onSaved={load} />
+            <Grid item xs={12} sm={6} key={p.name}>
+              <IdentityDocumentCard base={base} typeName={p.name} typeId={p.typeId} existingRow={p.row} onSaved={load} />
+            </Grid>
           ))}
-        </Stack>
+        </Grid>
       </Card>
 
       <OtherDocumentsSection base={base} rows={otherDocs} documentTypes={documentTypes} onSaved={load} />
@@ -1107,7 +1190,7 @@ const NotesTab = ({ employeeId }) => {
       {loading ? (
         <Box display="flex" justifyContent="center" py={3}><CircularProgress size={24} /></Box>
       ) : notes.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">No notes yet.</Typography>
+        <EmptyState icon={IconNotes} message="No notes added yet." />
       ) : (
         <List>
           {notes.map((n) => (
@@ -1151,6 +1234,7 @@ const AssetsTab = ({ isSelf, base, employeeId }) => {
   const [values, setValues] = useState(emptyAssetValues);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [missingKey, setMissingKey] = useState('');
   const [downloading, setDownloading] = useState('');
 
   const load = useCallback(async () => {
@@ -1171,14 +1255,17 @@ const AssetsTab = ({ isSelf, base, employeeId }) => {
   const openForm = () => {
     setValues(emptyAssetValues);
     setFormError('');
+    setMissingKey('');
     setOpen(true);
   };
 
   const handleSubmit = async () => {
     setSaving(true);
     setFormError('');
+    setMissingKey('');
     try {
-      if (!values.assetType || !values.assetName) throw new Error('Asset Type and Asset Name are required');
+      if (!values.assetType) { setMissingKey('assetType'); throw new Error('Asset Type is required'); }
+      if (!values.assetName) { setMissingKey('assetName'); throw new Error('Asset Name is required'); }
       const res = await apiService.createEmployeeChildRecord(base, 'assets', values);
       if (res.success) {
         setOpen(false);
@@ -1230,11 +1317,12 @@ const AssetsTab = ({ isSelf, base, employeeId }) => {
         <Typography variant="subtitle1" fontWeight={700}>IT Assets</Typography>
         {!isSelf && (
           <Stack direction="row" spacing={1} flexWrap="wrap">
-            <Button size="small" startIcon={<IconPlus size={16} />} onClick={openForm}>Assign Asset</Button>
+            <Button size="small" variant="contained" startIcon={<IconPlus size={16} />} onClick={openForm} sx={{ borderRadius: 2 }}>Assign Asset</Button>
             <Button
               size="small" variant="outlined"
               onClick={() => handleDownload('asset-form')}
               disabled={downloading === 'asset-form'}
+              sx={{ borderRadius: 2 }}
             >
               {downloading === 'asset-form' ? 'Preparing...' : 'Download IT Asset Form'}
             </Button>
@@ -1242,6 +1330,7 @@ const AssetsTab = ({ isSelf, base, employeeId }) => {
               size="small" variant="outlined"
               onClick={() => handleDownload('handover-form')}
               disabled={downloading === 'handover-form'}
+              sx={{ borderRadius: 2 }}
             >
               {downloading === 'handover-form' ? 'Preparing...' : 'Download Handover Form'}
             </Button>
@@ -1252,45 +1341,47 @@ const AssetsTab = ({ isSelf, base, employeeId }) => {
       {loading ? (
         <Box display="flex" justifyContent="center" py={3}><CircularProgress size={24} /></Box>
       ) : rows.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">No assets assigned.</Typography>
+        <EmptyState icon={IconDeviceLaptop} message="No assets assigned yet." />
       ) : (
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Type</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Serial Number</TableCell>
-              <TableCell>Assigned Date</TableCell>
-              <TableCell>Status</TableCell>
-              {!isSelf && <TableCell align="right">Actions</TableCell>}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell>{row.asset_type || '-'}</TableCell>
-                <TableCell>{row.asset_name || '-'}</TableCell>
-                <TableCell>{row.serial_number || '-'}</TableCell>
-                <TableCell>{row.assigned_date || '-'}</TableCell>
-                <TableCell>
-                  <Chip size="small" label={row.status} color={ASSET_STATUS_COLORS[row.status] || 'default'} />
-                </TableCell>
-                {!isSelf && (
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                      {row.status === 'assigned' && (
-                        <Button size="small" onClick={() => handleMarkReturned(row.id)}>Mark Returned</Button>
-                      )}
-                      <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
-                        <IconTrash size={16} />
-                      </IconButton>
-                    </Stack>
-                  </TableCell>
-                )}
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Type</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Serial Number</TableCell>
+                <TableCell>Assigned Date</TableCell>
+                <TableCell>Status</TableCell>
+                {!isSelf && <TableCell align="right">Actions</TableCell>}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>{row.asset_type || '-'}</TableCell>
+                  <TableCell>{row.asset_name || '-'}</TableCell>
+                  <TableCell>{row.serial_number || '-'}</TableCell>
+                  <TableCell>{row.assigned_date || '-'}</TableCell>
+                  <TableCell>
+                    <Chip size="small" label={row.status} color={ASSET_STATUS_COLORS[row.status] || 'default'} />
+                  </TableCell>
+                  {!isSelf && (
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                        {row.status === 'assigned' && (
+                          <Button size="small" variant="outlined" onClick={() => handleMarkReturned(row.id)} sx={{ borderRadius: 2 }}>Mark Returned</Button>
+                        )}
+                        <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
+                          <IconTrash size={16} />
+                        </IconButton>
+                      </Stack>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 3 } }}>
@@ -1301,14 +1392,20 @@ const AssetsTab = ({ isSelf, base, employeeId }) => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth label="Asset Type" required placeholder="e.g. Laptop, Phone, SIM Card, Access Card"
-                value={values.assetType} onChange={(e) => setValues((v) => ({ ...v, assetType: e.target.value }))}
+                error={missingKey === 'assetType'}
+                helperText={missingKey === 'assetType' ? 'Asset Type is required' : ''}
+                value={values.assetType}
+                onChange={(e) => { setValues((v) => ({ ...v, assetType: e.target.value })); if (missingKey === 'assetType') setMissingKey(''); }}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth label="Asset Name" required placeholder="e.g. Dell Latitude 5420"
-                value={values.assetName} onChange={(e) => setValues((v) => ({ ...v, assetName: e.target.value }))}
+                error={missingKey === 'assetName'}
+                helperText={missingKey === 'assetName' ? 'Asset Name is required' : ''}
+                value={values.assetName}
+                onChange={(e) => { setValues((v) => ({ ...v, assetName: e.target.value })); if (missingKey === 'assetName') setMissingKey(''); }}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
             </Grid>
@@ -1343,68 +1440,6 @@ const AssetsTab = ({ isSelf, base, employeeId }) => {
         </DialogActions>
       </Dialog>
     </Card>
-  );
-};
-
-/**
- * HR-only Salary Certificate / Salary Slip generation buttons — placed on the Overview
- * tab (rather than Compensation) to avoid colliding with concurrent work on the
- * Compensation tab layout. Only rendered once an active salary structure is confirmed
- * to exist, per the requirement that these actions are hidden without one.
- */
-const SalaryFormsSection = ({ employeeId }) => {
-  const [hasActiveSalary, setHasActiveSalary] = useState(false);
-  const [checked, setChecked] = useState(false);
-  const [downloading, setDownloading] = useState('');
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let cancelled = false;
-    apiService.getHrSalaryStructureHistory(employeeId)
-      .then((res) => {
-        if (cancelled) return;
-        const history = res.success ? (res.data || []) : [];
-        setHasActiveSalary(history.some((s) => s.is_active));
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setChecked(true); });
-    return () => { cancelled = true; };
-  }, [employeeId]);
-
-  const handleDownload = async (kind) => {
-    setDownloading(kind);
-    setError('');
-    try {
-      if (kind === 'certificate') await apiService.downloadSalaryCertificatePdf(employeeId);
-      if (kind === 'slip') await apiService.downloadSalarySlipPdf(employeeId);
-    } catch (err) {
-      setError(err.message || 'Failed to download PDF');
-    } finally {
-      setDownloading('');
-    }
-  };
-
-  if (!checked || !hasActiveSalary) return null;
-
-  return (
-    <Box mt={2}>
-      <Divider sx={{ mb: 2 }} />
-      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
-      <Stack direction="row" spacing={1} flexWrap="wrap">
-        <Button
-          size="small" variant="outlined"
-          onClick={() => handleDownload('certificate')} disabled={downloading === 'certificate'}
-        >
-          {downloading === 'certificate' ? 'Preparing...' : 'Generate Salary Certificate'}
-        </Button>
-        <Button
-          size="small" variant="outlined"
-          onClick={() => handleDownload('slip')} disabled={downloading === 'slip'}
-        >
-          {downloading === 'slip' ? 'Preparing...' : 'Generate Salary Slip'}
-        </Button>
-      </Stack>
-    </Box>
   );
 };
 

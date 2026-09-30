@@ -173,7 +173,7 @@ class ApiService {
   async put(endpoint, data) {
     return this.request(endpoint, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     });
   }
 
@@ -1238,6 +1238,19 @@ class ApiService {
   async getMyEmployeeHistory() { return this.get('/hr/employees/me/history'); }
   async getHrEmployeeHistory(employeeId) { return this.get(`/hr/employees/${employeeId}/history`); }
 
+  // ─── HR: Document types & Designations lookups ───────────────────────────────────
+  async getEmployeeDocumentTypes() { return this.get('/hr/employees/document-types'); }
+  async createEmployeeDocumentType(name) { return this.post('/hr/employees/document-types', { name }); }
+  async getEmployeeDesignations() { return this.get('/hr/employees/designations'); }
+
+  // ─── HR: Employee Information PDF ─────────────────────────────────────────────────
+  async downloadHrEmployeeInfoPdf(employeeId) {
+    return this._downloadPdf(`${this.baseURL}/hr/employees/${employeeId}/info-pdf`, `employee-info-${employeeId}.pdf`);
+  }
+  async downloadMyEmployeeInfoPdf() {
+    return this._downloadPdf(`${this.baseURL}/hr/employees/me/info-pdf`, 'employee-info.pdf');
+  }
+
   async createMyChangeRequest(data) { return this.post('/hr/employees/me/change-requests', data); }
   async listMyChangeRequests() { return this.get('/hr/employees/me/change-requests'); }
   async listHrChangeRequests() { return this.get('/hr/employees/change-requests'); }
@@ -1252,6 +1265,23 @@ class ApiService {
   async createEmployeeChildRecord(base, entity, data) { return this.post(`${base}/${entity}`, data); }
   async updateEmployeeChildRecord(base, entity, id, data) { return this.put(`${base}/${entity}/${id}`, data); }
   async deleteEmployeeChildRecord(base, entity, id) { return this.delete(`${base}/${entity}/${id}`); }
+
+  // -- IT Asset tracking (HR-side return action + generated forms) --------------
+  async markEmployeeAssetReturned(employeeId, id, returnedDate) {
+    return this.post(`/hr/employees/${employeeId}/assets/${id}/return`, { returnedDate });
+  }
+  async downloadItAssetFormPdf(employeeId) {
+    return this._downloadPdf(`${this.baseURL}/hr/employees/${employeeId}/asset-form-pdf`, `it-asset-form-${employeeId}.pdf`);
+  }
+  async downloadSalaryCertificatePdf(employeeId) {
+    return this._downloadPdf(`${this.baseURL}/hr/employees/${employeeId}/salary-certificate-pdf`, `salary-certificate-${employeeId}.pdf`);
+  }
+  async downloadSalarySlipPdf(employeeId) {
+    return this._downloadPdf(`${this.baseURL}/hr/employees/${employeeId}/salary-slip-pdf`, `salary-slip-${employeeId}.pdf`);
+  }
+  async downloadHandoverFormPdf(employeeId) {
+    return this._downloadPdf(`${this.baseURL}/hr/employees/${employeeId}/handover-form-pdf`, `handover-form-${employeeId}.pdf`);
+  }
 
   // HR-only employee notes
   async getEmployeeNotes(employeeId) { return this.get(`/hr/employees/${employeeId}/notes`); }

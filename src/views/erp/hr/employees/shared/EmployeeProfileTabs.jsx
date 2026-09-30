@@ -2,13 +2,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Card, Typography, Grid, Chip, CircularProgress, Alert, Stack, Tabs, Tab,
   Avatar, Divider, List, ListItem, ListItemText, Button, TextField, Dialog,
-  DialogTitle, DialogContent, DialogActions,
+  DialogTitle, DialogContent, DialogActions, Table, TableHead, TableBody,
+  TableRow, TableCell, IconButton, Autocomplete, MenuItem,
 } from '@mui/material';
 import {
   IconLayoutDashboard, IconUser, IconMapPin, IconBriefcase, IconFileText, IconCash,
   IconBuildingBank, IconFiles, IconSchool, IconBulb, IconCertificate, IconHistory,
-  IconUsers, IconPhoneCall, IconDeviceLaptop, IconNotes, IconUpload,
+  IconUsers, IconPhoneCall, IconDeviceLaptop, IconNotes, IconUpload, IconPlus, IconTrash,
+  IconDownload, IconPaperclip, IconEdit,
 } from '@tabler/icons-react';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import apiService from '../../../../../services/api';
 import EntityListEditor from './EntityListEditor';
 import ChangeRequestSection from './ChangeRequestSection';
@@ -87,6 +93,11 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
 
   useEffect(() => { load(); }, [load]);
 
+  const refreshHrSalaryHistory = useCallback(() => {
+    if (isSelf) return Promise.resolve();
+    return apiService.getHrSalaryStructureHistory(employeeId).then((res) => { if (res.success) setHrSalaryHistory(res.data || []); }).catch(() => {});
+  }, [isSelf, employeeId]);
+
   // Lazy-load per-tab data only when that tab is first visited
   useEffect(() => {
     if (!employee) return;
@@ -96,7 +107,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       if (isSelf && !salaryHistory) {
         apiService.getMySalaryHistory().then((res) => { if (res.success) setSalaryHistory(res.data); }).catch(() => {});
       } else if (!isSelf && hrSalaryHistory.length === 0) {
-        apiService.getHrSalaryStructureHistory(employeeId).then((res) => { if (res.success) setHrSalaryHistory(res.data || []); }).catch(() => {});
+        refreshHrSalaryHistory();
       }
     }
     if (label === 'History' && history.length === 0) {
@@ -184,14 +195,18 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
 
       {labels[tab] === 'Overview' && (
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
+          <Box display="flex" justifyContent="flex-end" mb={1}>
+            <EmployeeInfoPdfButton isSelf={isSelf} employeeId={employeeId} />
+          </Box>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}><Field label="Employee Code" value={employee.employee_code} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Job Title" value={employee.designation?.display_name} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Department" value={employee.department?.name} /></Grid>
-            <Grid item xs={12} sm={4}><Field label="Manager" value={employee.manager ? `${employee.manager.first_name} ${employee.manager.last_name}` : null} /></Grid>
+            <Grid item xs={12} sm={4}><Field label="Reporting Manager" value={employee.manager ? `${employee.manager.first_name} ${employee.manager.last_name}` : null} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Joining Date" value={employee.date_of_joining} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Employment Type" value={employee.employment_type} /></Grid>
           </Grid>
+          {!isSelf && <SalaryFormsSection employeeId={employeeId} />}
         </Card>
       )}
 
@@ -279,7 +294,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}><Field label="Department" value={employee.department?.name} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Designation" value={employee.designation?.display_name} /></Grid>
-            <Grid item xs={12} sm={4}><Field label="Manager" value={employee.manager ? `${employee.manager.first_name} ${employee.manager.last_name}` : null} /></Grid>
+            <Grid item xs={12} sm={4}><Field label="Reporting Manager" value={employee.manager ? `${employee.manager.first_name} ${employee.manager.last_name}` : null} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Work Location" value={employee.workLocation?.name} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Employment Type" value={employee.employment_type} /></Grid>
             <Grid item xs={12} sm={4}><Field label="Employment Status" value={employee.employment_status} /></Grid>
@@ -298,7 +313,11 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       )}
 
       {labels[tab] === 'Compensation' && (
-        <CompensationTab isSelf={isSelf} employee={employee} salaryHistory={salaryHistory} hrSalaryHistory={hrSalaryHistory} />
+        <CompensationTab
+          isSelf={isSelf} employee={employee} employeeId={employeeId}
+          salaryHistory={salaryHistory} hrSalaryHistory={hrSalaryHistory}
+          onSaved={refreshHrSalaryHistory}
+        />
       )}
 
       {labels[tab] === 'Bank & Payroll IDs' && (
@@ -397,6 +416,8 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
         <EntityListEditor
           title="Emergency Contacts" base={base} entity="emergency-contacts"
           highlightWhen={(row) => !!row.is_primary}
+          maxItems={3}
+          maxItemsMessage="Maximum of 3 emergency contacts."
           fields={[
             { key: 'name', label: 'Name', required: true },
             { key: 'relationship', label: 'Relationship' },
@@ -408,9 +429,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       )}
 
       {labels[tab] === 'Assets' && (
-        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
-          <Typography variant="body2" color="text.secondary">No assets assigned. Asset tracking is not available yet.</Typography>
-        </Card>
+        <AssetsTab isSelf={isSelf} base={base} employeeId={employeeId} />
       )}
 
       {labels[tab] === 'History' && (
@@ -446,7 +465,131 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
   );
 };
 
-const CompensationTab = ({ isSelf, employee, salaryHistory, hrSalaryHistory }) => {
+/** Sum of the 3 visible compensation fields, folding in transport_allowance silently so
+ * a legacy non-zero value still counts toward the displayed total without a dedicated
+ * input for it. */
+const compTotal = (s) => (
+  (parseFloat(s?.basic_salary) || 0)
+  + (parseFloat(s?.housing_allowance) || 0)
+  + (parseFloat(s?.transport_allowance) || 0)
+  + (parseFloat(s?.other_allowance) || 0)
+);
+
+const CompensationSummaryGrid = ({ active }) => (
+  <Grid container spacing={2} mb={2}>
+    <Grid item xs={6} sm={3}><Field label="Basic Salary" value={active.basic_salary} /></Grid>
+    <Grid item xs={6} sm={3}><Field label="Housing Allowance" value={active.housing_allowance} /></Grid>
+    <Grid item xs={6} sm={3}><Field label="Supplement Allowance" value={active.other_allowance} /></Grid>
+    <Grid item xs={6} sm={3}><Field label="Total Amount" value={compTotal(active)} /></Grid>
+  </Grid>
+);
+
+const emptySalaryEditValues = { basicSalary: '', housingAllowance: '', otherAllowance: '', effectiveFrom: new Date().toISOString().slice(0, 10) };
+
+/** HR-only edit dialog for the Compensation tab — Basic/Housing/Supplement, with a
+ * live-computed read-only Total. Saves through the existing effective-dated
+ * salary-structure endpoint (closes the prior active row, opens a new one). Transport
+ * allowance is intentionally not shown here and is always sent as 0 on save, per the
+ * relabeled field set (Basic Salary, Housing Allowance, Supplement Allowance, Total Amount). */
+const CompensationEditDialog = ({ open, onClose, employeeId, onSaved }) => {
+  const [values, setValues] = useState(emptySalaryEditValues);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => { if (open) { setValues(emptySalaryEditValues); setError(''); } }, [open]);
+
+  const liveTotal = (parseFloat(values.basicSalary) || 0) + (parseFloat(values.housingAllowance) || 0) + (parseFloat(values.otherAllowance) || 0);
+
+  const submit = async () => {
+    setError('');
+    if (!values.basicSalary || parseFloat(values.basicSalary) <= 0) {
+      setError('Basic Salary is required and must be greater than zero');
+      return;
+    }
+    if (!values.effectiveFrom) {
+      setError('Effective From date is required');
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiService.setHrSalaryStructure(employeeId, {
+        basicSalary: parseFloat(values.basicSalary),
+        housingAllowance: parseFloat(values.housingAllowance) || 0,
+        transportAllowance: 0,
+        otherAllowance: parseFloat(values.otherAllowance) || 0,
+        effectiveFrom: values.effectiveFrom,
+      });
+      onClose();
+      if (onSaved) onSaved();
+    } catch (err) {
+      setError(err.message || 'Failed to save compensation');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 3 } }}>
+      <DialogTitle sx={{ fontWeight: 700 }}>Edit Compensation</DialogTitle>
+      <DialogContent>
+        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <Grid container spacing={2} mt={0.5}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth type="number" label="Basic Salary" required
+                value={values.basicSalary}
+                onChange={(e) => setValues((v) => ({ ...v, basicSalary: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth type="number" label="Housing Allowance"
+                value={values.housingAllowance}
+                onChange={(e) => setValues((v) => ({ ...v, housingAllowance: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth type="number" label="Supplement Allowance"
+                value={values.otherAllowance}
+                onChange={(e) => setValues((v) => ({ ...v, otherAllowance: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <DatePicker
+                label="Effective From"
+                value={values.effectiveFrom ? dayjs(values.effectiveFrom) : null}
+                onChange={(newValue) => setValues((v) => ({ ...v, effectiveFrom: newValue ? newValue.format('YYYY-MM-DD') : '' }))}
+                slotProps={{ textField: { fullWidth: true, required: true, sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }}
+              />
+            </Grid>
+            <Grid size={12}>
+              <TextField
+                fullWidth label="Total Amount" value={liveTotal.toFixed(2)} disabled
+                helperText="Basic + Housing + Supplement, updates live"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+          </Grid>
+        </LocalizationProvider>
+      </DialogContent>
+      <DialogActions sx={{ p: 3 }}>
+        <Button onClick={onClose} sx={{ borderRadius: 2 }}>Cancel</Button>
+        <Button variant="contained" onClick={submit} disabled={saving} sx={{ borderRadius: 2 }}>
+          {saving ? 'Saving...' : 'Save'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+const CompensationTab = ({ isSelf, employee, employeeId, salaryHistory, hrSalaryHistory, onSaved }) => {
+  const [editOpen, setEditOpen] = useState(false);
+
   if (isSelf) {
     if (employee.salaryVisible === false) {
       return (
@@ -459,12 +602,7 @@ const CompensationTab = ({ isSelf, employee, salaryHistory, hrSalaryHistory }) =
     return (
       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
         {active ? (
-          <Grid container spacing={2} mb={2}>
-            <Grid item xs={6} sm={3}><Field label="Basic" value={active.basic_salary} /></Grid>
-            <Grid item xs={6} sm={3}><Field label="Housing" value={active.housing_allowance} /></Grid>
-            <Grid item xs={6} sm={3}><Field label="Transport" value={active.transport_allowance} /></Grid>
-            <Grid item xs={6} sm={3}><Field label="Other" value={active.other_allowance} /></Grid>
-          </Grid>
+          <CompensationSummaryGrid active={active} />
         ) : (
           <Typography variant="body2" color="text.secondary" mb={2}>No active salary structure on record.</Typography>
         )}
@@ -479,8 +617,8 @@ const CompensationTab = ({ isSelf, employee, salaryHistory, hrSalaryHistory }) =
             {salaryHistory.history.map((s) => (
               <ListItem key={s.id} divider>
                 <ListItemText
-                  primary={`Basic: ${s.basic_salary} · Effective from ${s.effective_from}`}
-                  secondary={`Housing: ${s.housing_allowance || 0}, Transport: ${s.transport_allowance || 0}, Other: ${s.other_allowance || 0}`}
+                  primary={`Basic Salary: ${s.basic_salary} · Effective from ${s.effective_from}`}
+                  secondary={`Housing Allowance: ${s.housing_allowance || 0}, Supplement Allowance: ${s.other_allowance || 0}, Total Amount: ${compTotal(s).toFixed(2)}`}
                 />
               </ListItem>
             ))}
@@ -490,9 +628,18 @@ const CompensationTab = ({ isSelf, employee, salaryHistory, hrSalaryHistory }) =
     );
   }
 
-  // HR mode: always visible (the visibility flag only restricts the employee's own view)
+  // HR mode: always visible (the visibility flag only restricts the employee's own view), editable.
+  const activeHr = hrSalaryHistory.find((s) => s.is_active);
   return (
     <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
+        <Typography variant="subtitle1" fontWeight={700}>Compensation</Typography>
+        <Button size="small" startIcon={<IconEdit size={16} />} onClick={() => setEditOpen(true)}>Edit</Button>
+      </Box>
+      {activeHr ? <CompensationSummaryGrid active={activeHr} /> : (
+        <Typography variant="body2" color="text.secondary" mb={2}>No active salary structure on record.</Typography>
+      )}
+      <Divider sx={{ mb: 2 }} />
       <Typography variant="subtitle2" mb={1}>Salary Structure History</Typography>
       {hrSalaryHistory.length === 0 ? (
         <Typography variant="body2" color="text.secondary">No salary structure on record.</Typography>
@@ -501,13 +648,19 @@ const CompensationTab = ({ isSelf, employee, salaryHistory, hrSalaryHistory }) =
           {hrSalaryHistory.map((s) => (
             <ListItem key={s.id} divider>
               <ListItemText
-                primary={`Basic: ${s.basic_salary} · Effective from ${s.effective_from}${s.is_active ? ' (active)' : ''}`}
-                secondary={`Housing: ${s.housing_allowance || 0}, Transport: ${s.transport_allowance || 0}, Other: ${s.other_allowance || 0}`}
+                primary={`Basic Salary: ${s.basic_salary} · Effective from ${s.effective_from}${s.is_active ? ' (active)' : ''}`}
+                secondary={`Housing Allowance: ${s.housing_allowance || 0}, Supplement Allowance: ${s.other_allowance || 0}, Total Amount: ${compTotal(s).toFixed(2)}`}
               />
             </ListItem>
           ))}
         </List>
       )}
+      <CompensationEditDialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        employeeId={employeeId}
+        onSaved={onSaved}
+      />
     </Card>
   );
 };
@@ -602,6 +755,280 @@ const NotesTab = ({ employeeId }) => {
         </DialogActions>
       </Dialog>
     </Card>
+  );
+};
+
+const ASSET_STATUS_COLORS = { assigned: 'primary', returned: 'default' };
+
+const emptyAssetValues = { assetType: '', assetName: '', serialNumber: '', assignedDate: '', conditionNotes: '' };
+
+/**
+ * IT Asset tracking tab. HR mode gets full CRUD (assign / mark returned / delete) plus
+ * the IT Asset Form and Handover Form PDF downloads; self mode is read-only (mirrors the
+ * GET /hr/employees/me/assets self-service endpoint).
+ */
+const AssetsTab = ({ isSelf, base, employeeId }) => {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [open, setOpen] = useState(false);
+  const [values, setValues] = useState(emptyAssetValues);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [downloading, setDownloading] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const res = await apiService.listEmployeeChildRecords(base, 'assets');
+      if (res.success) setRows(res.data || []);
+    } catch (err) {
+      setError(err.message || 'Failed to load assets');
+    } finally {
+      setLoading(false);
+    }
+  }, [base]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const openForm = () => {
+    setValues(emptyAssetValues);
+    setFormError('');
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    setFormError('');
+    try {
+      if (!values.assetType || !values.assetName) throw new Error('Asset Type and Asset Name are required');
+      const res = await apiService.createEmployeeChildRecord(base, 'assets', values);
+      if (res.success) {
+        setOpen(false);
+        load();
+      }
+    } catch (err) {
+      setFormError(err.message || 'Failed to save asset');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleMarkReturned = async (id) => {
+    if (!window.confirm('Mark this asset as returned?')) return;
+    try {
+      await apiService.markEmployeeAssetReturned(employeeId, id);
+      load();
+    } catch (err) {
+      setError(err.message || 'Failed to update asset');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this asset record?')) return;
+    try {
+      await apiService.deleteEmployeeChildRecord(base, 'assets', id);
+      setRows((prev) => prev.filter((r) => r.id !== id));
+    } catch (err) {
+      setError(err.message || 'Failed to delete asset');
+    }
+  };
+
+  const handleDownload = async (kind) => {
+    setDownloading(kind);
+    setError('');
+    try {
+      if (kind === 'asset-form') await apiService.downloadItAssetFormPdf(employeeId);
+      if (kind === 'handover-form') await apiService.downloadHandoverFormPdf(employeeId);
+    } catch (err) {
+      setError(err.message || 'Failed to download PDF');
+    } finally {
+      setDownloading('');
+    }
+  };
+
+  return (
+    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5} flexWrap="wrap" gap={1}>
+        <Typography variant="subtitle1" fontWeight={700}>IT Assets</Typography>
+        {!isSelf && (
+          <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Button size="small" startIcon={<IconPlus size={16} />} onClick={openForm}>Assign Asset</Button>
+            <Button
+              size="small" variant="outlined"
+              onClick={() => handleDownload('asset-form')}
+              disabled={downloading === 'asset-form'}
+            >
+              {downloading === 'asset-form' ? 'Preparing...' : 'Download IT Asset Form'}
+            </Button>
+            <Button
+              size="small" variant="outlined"
+              onClick={() => handleDownload('handover-form')}
+              disabled={downloading === 'handover-form'}
+            >
+              {downloading === 'handover-form' ? 'Preparing...' : 'Download Handover Form'}
+            </Button>
+          </Stack>
+        )}
+      </Box>
+      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
+      {loading ? (
+        <Box display="flex" justifyContent="center" py={3}><CircularProgress size={24} /></Box>
+      ) : rows.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">No assets assigned.</Typography>
+      ) : (
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Type</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Serial Number</TableCell>
+              <TableCell>Assigned Date</TableCell>
+              <TableCell>Status</TableCell>
+              {!isSelf && <TableCell align="right">Actions</TableCell>}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell>{row.asset_type || '-'}</TableCell>
+                <TableCell>{row.asset_name || '-'}</TableCell>
+                <TableCell>{row.serial_number || '-'}</TableCell>
+                <TableCell>{row.assigned_date || '-'}</TableCell>
+                <TableCell>
+                  <Chip size="small" label={row.status} color={ASSET_STATUS_COLORS[row.status] || 'default'} />
+                </TableCell>
+                {!isSelf && (
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                      {row.status === 'assigned' && (
+                        <Button size="small" onClick={() => handleMarkReturned(row.id)}>Mark Returned</Button>
+                      )}
+                      <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
+                        <IconTrash size={16} />
+                      </IconButton>
+                    </Stack>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Assign Asset</DialogTitle>
+        <DialogContent>
+          {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{formError}</Alert>}
+          <Grid container spacing={2} mt={0.5}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth label="Asset Type" required placeholder="e.g. Laptop, Phone, SIM Card, Access Card"
+                value={values.assetType} onChange={(e) => setValues((v) => ({ ...v, assetType: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth label="Asset Name" required placeholder="e.g. Dell Latitude 5420"
+                value={values.assetName} onChange={(e) => setValues((v) => ({ ...v, assetName: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth label="Serial Number"
+                value={values.serialNumber} onChange={(e) => setValues((v) => ({ ...v, serialNumber: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth type="date" label="Assigned Date" InputLabelProps={{ shrink: true }}
+                value={values.assignedDate} onChange={(e) => setValues((v) => ({ ...v, assignedDate: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth multiline rows={2} label="Condition Notes"
+                value={values.conditionNotes} onChange={(e) => setValues((v) => ({ ...v, conditionNotes: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setOpen(false)} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={saving} sx={{ borderRadius: 2 }}>
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Card>
+  );
+};
+
+/**
+ * HR-only Salary Certificate / Salary Slip generation buttons — placed on the Overview
+ * tab (rather than Compensation) to avoid colliding with concurrent work on the
+ * Compensation tab layout. Only rendered once an active salary structure is confirmed
+ * to exist, per the requirement that these actions are hidden without one.
+ */
+const SalaryFormsSection = ({ employeeId }) => {
+  const [hasActiveSalary, setHasActiveSalary] = useState(false);
+  const [checked, setChecked] = useState(false);
+  const [downloading, setDownloading] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    apiService.getHrSalaryStructureHistory(employeeId)
+      .then((res) => {
+        if (cancelled) return;
+        const history = res.success ? (res.data || []) : [];
+        setHasActiveSalary(history.some((s) => s.is_active));
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setChecked(true); });
+    return () => { cancelled = true; };
+  }, [employeeId]);
+
+  const handleDownload = async (kind) => {
+    setDownloading(kind);
+    setError('');
+    try {
+      if (kind === 'certificate') await apiService.downloadSalaryCertificatePdf(employeeId);
+      if (kind === 'slip') await apiService.downloadSalarySlipPdf(employeeId);
+    } catch (err) {
+      setError(err.message || 'Failed to download PDF');
+    } finally {
+      setDownloading('');
+    }
+  };
+
+  if (!checked || !hasActiveSalary) return null;
+
+  return (
+    <Box mt={2}>
+      <Divider sx={{ mb: 2 }} />
+      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
+      <Stack direction="row" spacing={1} flexWrap="wrap">
+        <Button
+          size="small" variant="outlined"
+          onClick={() => handleDownload('certificate')} disabled={downloading === 'certificate'}
+        >
+          {downloading === 'certificate' ? 'Preparing...' : 'Generate Salary Certificate'}
+        </Button>
+        <Button
+          size="small" variant="outlined"
+          onClick={() => handleDownload('slip')} disabled={downloading === 'slip'}
+        >
+          {downloading === 'slip' ? 'Preparing...' : 'Generate Salary Slip'}
+        </Button>
+      </Stack>
+    </Box>
   );
 };
 

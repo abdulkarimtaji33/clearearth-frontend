@@ -67,13 +67,19 @@ const PaymentRecordingFields = ({
     });
   }, []);
 
+  // Only re-suggest the default account when the payment method (or account
+  // list) changes — NOT when paymentAccountId changes, since that includes
+  // the user's own manual selection, which would otherwise get immediately
+  // overwritten back to the default on every pick (paymentAccountId is
+  // intentionally excluded from the dependency array for this reason).
   useEffect(() => {
     if (!autoPickAccount || !onPaymentAccountChange) return;
     const nextId = resolveDefaultPaymentAccountId(accounts, paymentMethod);
     if (nextId && String(paymentAccountId) !== String(nextId)) {
       onPaymentAccountChange(String(nextId));
     }
-  }, [paymentMethod, accounts, autoPickAccount, onPaymentAccountChange, paymentAccountId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentMethod, accounts, autoPickAccount, onPaymentAccountChange]);
 
   const selectedAccount = paymentAccounts.find((a) => String(a.id) === String(paymentAccountId));
   const isDefaultAccount = selectedAccount && defaultAccount && String(selectedAccount.id) === String(defaultAccount.id);

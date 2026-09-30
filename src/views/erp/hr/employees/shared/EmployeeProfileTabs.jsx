@@ -665,24 +665,400 @@ const CompensationTab = ({ isSelf, employee, employeeId, salaryHistory, hrSalary
   );
 };
 
-const DocumentsTab = ({ base }) => (
-  <Box>
-    <Alert severity="info" sx={{ mb: 2 }}>
-      There is no document-type lookup endpoint on the backend yet — enter the numeric Document Type ID
-      supplied by HR (a proper dropdown will be wired up once that endpoint exists).
-    </Alert>
-    <EntityListEditor
-      title="Documents" base={base} entity="documents" fileUpload
-      fields={[
-        { key: 'documentTypeId', label: 'Document Type ID', type: 'number', required: true },
-        { key: 'documentNumber', label: 'Document Number' },
-        { key: 'issueDate', label: 'Issue Date', type: 'date' },
-        { key: 'expiryDate', label: 'Expiry Date', type: 'date' },
-        { key: 'notes', label: 'Notes', multiline: true },
-      ]}
-    />
-  </Box>
-);
+const EmployeeInfoPdfButton = ({ isSelf, employeeId }) => {
+  const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    setError('');
+    try {
+      if (isSelf) await apiService.downloadMyEmployeeInfoPdf();
+      else await apiService.downloadHrEmployeeInfoPdf(employeeId);
+    } catch (err) {
+      setError(err.message || 'Failed to download PDF');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Stack alignItems="flex-end">
+      <Button
+        size="small" variant="outlined" startIcon={<IconDownload size={16} />}
+        onClick={handleDownload} disabled={downloading} sx={{ borderRadius: 2 }}
+      >
+        {downloading ? 'Downloading...' : 'Download Employee Info (PDF)'}
+      </Button>
+      {error && <Typography variant="caption" color="error" mt={0.5}>{error}</Typography>}
+    </Stack>
+  );
+};
+
+// -- Documents tab: 4 always-present pinned identity documents + freeform "Other" ---
+const PINNED_DOCUMENT_TYPE_NAMES = ['Passport', 'Emirates ID', 'UAE Visa', 'Labour Card'];
+
+const emptyIdentityDocValues = { documentNumber: '', issueDate: '', expiryDate: '' };
+
+const IdentityDocumentDialog = ({ open, onClose, base, typeName, typeId, existingRow, onSaved }) => {
+  const [values, setValues] = useState(emptyIdentityDocValues);
+  const [file, setFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    setValues({
+      documentNumber: existingRow?.document_number || '',
+      issueDate: existingRow?.issue_date || '',
+      expiryDate: existingRow?.expiry_date || '',
+    });
+    setFile(null);
+    setError('');
+  }, [open, existingRow]);
+
+  const submit = async () => {
+    setError('');
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('documentTypeId', typeId);
+      fd.append('documentNumber', values.documentNumber || '');
+      fd.append('issueDate', values.issueDate || '');
+      fd.append('expiryDate', values.expiryDate || '');
+      if (file) fd.append('file', file);
+      if (existingRow) {
+        await apiService.updateEmployeeChildRecord(base, 'documents', existingRow.id, fd);
+      } else {
+        await apiService.createEmployeeChildRecord(base, 'documents', fd);
+      }
+      onClose();
+      onSaved();
+    } catch (err) {
+      setError(err.message || 'Failed to save document');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 3 } }}>
+      <DialogTitle sx={{ fontWeight: 700 }}>{typeName}</DialogTitle>
+      <DialogContent>
+        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <Grid container spacing={2} mt={0.5}>
+            <Grid size={12}>
+              <TextField
+                fullWidth label="Document Number" value={values.documentNumber}
+                onChange={(e) => setValues((v) => ({ ...v, documentNumber: e.target.value }))}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <DatePicker
+                label="Issuance Date"
+                value={values.issueDate ? dayjs(values.issueDate) : null}
+                onChange={(nv) => setValues((v) => ({ ...v, issueDate: nv ? nv.format('YYYY-MM-DD') : '' }))}
+                slotProps={{ textField: { fullWidth: true, sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <DatePicker
+                label="Expiration Date"
+                value={values.expiryDate ? dayjs(values.expiryDate) : null}
+                onChange={(nv) => setValues((v) => ({ ...v, expiryDate: nv ? nv.format('YYYY-MM-DD') : '' }))}
+                slotProps={{ textField: { fullWidth: true, sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }}
+              />
+            </Grid>
+            <Grid size={12}>
+              <Button variant="outlined" component="label" sx={{ borderRadius: 2 }}>
+                {file ? file.name : (existingRow?.file_path ? 'Replace attached file' : 'Attach file (optional)')}
+                <input type="file" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
+              </Button>
+              {existingRow?.file_path && !file && (
+                <Typography variant="caption" display="block" mt={0.5}>
+                  <a href={apiService.getUploadUrl(existingRow.file_path)} target="_blank" rel="noopener noreferrer">View current file</a>
+                </Typography>
+              )}
+            </Grid>
+          </Grid>
+        </LocalizationProvider>
+      </DialogContent>
+      <DialogActions sx={{ p: 3 }}>
+        <Button onClick={onClose} sx={{ borderRadius: 2 }}>Cancel</Button>
+        <Button variant="contained" onClick={submit} disabled={saving} sx={{ borderRadius: 2 }}>{saving ? 'Saving...' : 'Save'}</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+const IdentityDocumentCard = ({ base, typeName, typeId, existingRow, onSaved }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+        <Box>
+          <Typography variant="subtitle2" fontWeight={700}>{typeName}</Typography>
+          {existingRow ? (
+            <>
+              <Typography variant="body2">No.: {existingRow.document_number || '-'}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Issued: {existingRow.issue_date || '-'} &middot; Expires: {existingRow.expiry_date || '-'}
+              </Typography>
+              {existingRow.file_path && (
+                <Typography variant="caption" color="text.secondary" display="flex" alignItems="center" gap={0.5} mt={0.5}>
+                  <IconPaperclip size={13} />
+                  <a href={apiService.getUploadUrl(existingRow.file_path)} target="_blank" rel="noopener noreferrer">View attached file</a>
+                </Typography>
+              )}
+            </>
+          ) : (
+            <Typography variant="body2" color="text.secondary">Not on file</Typography>
+          )}
+        </Box>
+        <Button size="small" onClick={() => setOpen(true)} disabled={!typeId}>
+          {existingRow ? 'Edit' : 'Add'}
+        </Button>
+      </Stack>
+      {typeId && (
+        <IdentityDocumentDialog
+          open={open} onClose={() => setOpen(false)} base={base}
+          typeName={typeName} typeId={typeId} existingRow={existingRow}
+          onSaved={onSaved}
+        />
+      )}
+    </Box>
+  );
+};
+
+const emptyOtherDocValues = { documentTypeInput: null, documentNumber: '', issueDate: '', expiryDate: '', notes: '' };
+
+/** "Other Documents" — HR can pick an existing document type or type a brand new one
+ * (freeSolo Autocomplete); a new type is created transparently via POST
+ * /hr/employees/document-types before the document itself is saved. */
+const OtherDocumentsSection = ({ base, rows, documentTypes, onSaved }) => {
+  const [open, setOpen] = useState(false);
+  const [values, setValues] = useState(emptyOtherDocValues);
+  const [file, setFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const typeNameById = new Map(documentTypes.map((t) => [t.id, t.name]));
+
+  const openForm = () => {
+    setValues(emptyOtherDocValues);
+    setFile(null);
+    setError('');
+    setOpen(true);
+  };
+
+  const submit = async () => {
+    setError('');
+    const input = values.documentTypeInput;
+    const typeName = (typeof input === 'string' ? input : input?.name || '').trim();
+    if (!typeName) { setError('Document type is required'); return; }
+    setSaving(true);
+    try {
+      let typeId = typeof input === 'object' && input ? input.id : null;
+      if (!typeId) {
+        const existing = documentTypes.find((t) => (t.name || '').toLowerCase() === typeName.toLowerCase());
+        if (existing) {
+          typeId = existing.id;
+        } else {
+          const createRes = await apiService.createEmployeeDocumentType(typeName);
+          typeId = createRes.data?.id;
+        }
+      }
+      const fd = new FormData();
+      fd.append('documentTypeId', typeId);
+      if (values.documentNumber) fd.append('documentNumber', values.documentNumber);
+      if (values.issueDate) fd.append('issueDate', values.issueDate);
+      if (values.expiryDate) fd.append('expiryDate', values.expiryDate);
+      if (values.notes) fd.append('notes', values.notes);
+      if (file) fd.append('file', file);
+      await apiService.createEmployeeChildRecord(base, 'documents', fd);
+      setOpen(false);
+      onSaved();
+    } catch (err) {
+      setError(err.message || 'Failed to save document');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this document?')) return;
+    try {
+      await apiService.deleteEmployeeChildRecord(base, 'documents', id);
+      onSaved();
+    } catch (err) {
+      setError(err.message || 'Failed to delete');
+    }
+  };
+
+  return (
+    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
+        <Typography variant="subtitle1" fontWeight={700}>Other Documents</Typography>
+        <Button size="small" startIcon={<IconPlus size={16} />} onClick={openForm}>Add</Button>
+      </Box>
+      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
+      {rows.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">None added yet.</Typography>
+      ) : (
+        <Stack spacing={1}>
+          {rows.map((row) => (
+            <Box key={row.id}>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                <Box>
+                  <Typography variant="body2">
+                    <strong>{typeNameById.get(row.document_type_id) || 'Document'}:</strong> {row.document_number || '-'}
+                    {row.issue_date ? ` · Issued ${row.issue_date}` : ''}
+                    {row.expiry_date ? ` · Expires ${row.expiry_date}` : ''}
+                  </Typography>
+                  {row.file_path && (
+                    <Typography variant="caption" color="text.secondary" display="flex" alignItems="center" gap={0.5} mt={0.5}>
+                      <IconPaperclip size={13} />
+                      <a href={apiService.getUploadUrl(row.file_path)} target="_blank" rel="noopener noreferrer">View attached file</a>
+                    </Typography>
+                  )}
+                </Box>
+                <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
+                  <IconTrash size={16} />
+                </IconButton>
+              </Stack>
+              <Divider sx={{ mt: 1 }} />
+            </Box>
+          ))}
+        </Stack>
+      )}
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Add Document</DialogTitle>
+        <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <Grid container spacing={2} mt={0.5}>
+              <Grid size={12}>
+                <Autocomplete
+                  freeSolo
+                  options={documentTypes}
+                  getOptionLabel={(opt) => (typeof opt === 'string' ? opt : opt?.name || '')}
+                  value={values.documentTypeInput}
+                  onChange={(_, newVal) => setValues((v) => ({ ...v, documentTypeInput: newVal }))}
+                  onInputChange={(_, newInput, reason) => {
+                    if (reason === 'input') setValues((v) => ({ ...v, documentTypeInput: newInput }));
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params} label="Document Type" required
+                      helperText="Pick an existing type or type a new one"
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid size={12}>
+                <TextField
+                  fullWidth label="Document Number" value={values.documentNumber}
+                  onChange={(e) => setValues((v) => ({ ...v, documentNumber: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <DatePicker
+                  label="Issue Date"
+                  value={values.issueDate ? dayjs(values.issueDate) : null}
+                  onChange={(nv) => setValues((v) => ({ ...v, issueDate: nv ? nv.format('YYYY-MM-DD') : '' }))}
+                  slotProps={{ textField: { fullWidth: true, sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <DatePicker
+                  label="Expiry Date"
+                  value={values.expiryDate ? dayjs(values.expiryDate) : null}
+                  onChange={(nv) => setValues((v) => ({ ...v, expiryDate: nv ? nv.format('YYYY-MM-DD') : '' }))}
+                  slotProps={{ textField: { fullWidth: true, sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } } } }}
+                />
+              </Grid>
+              <Grid size={12}>
+                <TextField
+                  fullWidth multiline rows={2} label="Notes" value={values.notes}
+                  onChange={(e) => setValues((v) => ({ ...v, notes: e.target.value }))}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid size={12}>
+                <Button variant="outlined" component="label" sx={{ borderRadius: 2 }}>
+                  {file ? file.name : 'Attach file (optional)'}
+                  <input type="file" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                </Button>
+              </Grid>
+            </Grid>
+          </LocalizationProvider>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setOpen(false)} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button variant="contained" onClick={submit} disabled={saving} sx={{ borderRadius: 2 }}>{saving ? 'Saving...' : 'Save'}</Button>
+        </DialogActions>
+      </Dialog>
+    </Card>
+  );
+};
+
+const DocumentsTab = ({ base }) => {
+  const [documentTypes, setDocumentTypes] = useState([]);
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const [typesRes, docsRes] = await Promise.all([
+        apiService.getEmployeeDocumentTypes(),
+        apiService.listEmployeeChildRecords(base, 'documents'),
+      ]);
+      if (typesRes.success) setDocumentTypes(typesRes.data || []);
+      if (docsRes.success) setDocs(docsRes.data || []);
+    } catch (err) {
+      setError(err.message || 'Failed to load documents');
+    } finally {
+      setLoading(false);
+    }
+  }, [base]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <Box display="flex" justifyContent="center" py={3}><CircularProgress size={24} /></Box>;
+
+  const pinned = PINNED_DOCUMENT_TYPE_NAMES.map((name) => {
+    const type = documentTypes.find((t) => (t.name || '').toLowerCase() === name.toLowerCase());
+    const row = type ? docs.find((d) => d.document_type_id === type.id) : null;
+    return { name, typeId: type?.id || null, row };
+  });
+
+  const pinnedTypeIds = new Set(pinned.map((p) => p.typeId).filter(Boolean));
+  const otherDocs = docs.filter((d) => !pinnedTypeIds.has(d.document_type_id));
+
+  return (
+    <Stack spacing={2}>
+      {error && <Alert severity="error">{error}</Alert>}
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
+        <Typography variant="subtitle1" fontWeight={700} mb={2}>Identity &amp; Compliance Documents</Typography>
+        <Stack spacing={1.5}>
+          {pinned.map((p) => (
+            <IdentityDocumentCard key={p.name} base={base} typeName={p.name} typeId={p.typeId} existingRow={p.row} onSaved={load} />
+          ))}
+        </Stack>
+      </Card>
+
+      <OtherDocumentsSection base={base} rows={otherDocs} documentTypes={documentTypes} onSaved={load} />
+    </Stack>
+  );
+};
 
 const NotesTab = ({ employeeId }) => {
   const [notes, setNotes] = useState([]);

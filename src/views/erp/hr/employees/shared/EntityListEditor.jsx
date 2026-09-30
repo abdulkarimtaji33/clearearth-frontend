@@ -39,6 +39,8 @@ const EntityListEditor = ({
   readOnly = false,
   highlightWhen, // optional: (row) => boolean, adds a "Primary" chip
   emptyMessage = 'None added yet.',
+  maxItems, // optional: hides/disables "Add" once rows.length reaches this, with maxItemsMessage shown instead
+  maxItemsMessage = 'Maximum number of entries reached.',
 }) => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -113,14 +115,17 @@ const EntityListEditor = ({
     }
   };
 
+  const atMax = typeof maxItems === 'number' && rows.length >= maxItems;
+
   return (
     <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
         <Typography variant="subtitle1" fontWeight={700}>{title}</Typography>
-        {!readOnly && (
+        {!readOnly && !atMax && (
           <Button size="small" startIcon={<IconPlus size={16} />} onClick={openForm}>Add</Button>
         )}
       </Box>
+      {atMax && <Alert severity="info" sx={{ mb: 1.5 }}>{maxItemsMessage}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
       {loading ? (
         <Box display="flex" justifyContent="center" py={3}><CircularProgress size={24} /></Box>

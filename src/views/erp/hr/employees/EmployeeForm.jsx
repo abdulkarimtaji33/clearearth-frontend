@@ -51,6 +51,7 @@ const EmployeeForm = () => {
   const [form, setForm] = useState(EMPTY);
   const [salary, setSalary] = useState({ basicSalary: '', housingAllowance: '', transportAllowance: '', otherAllowance: '', commissionEligible: false, paymentMethod: 'bank_transfer', effectiveFrom: new Date().toISOString().slice(0, 10) });
   const [departments, setDepartments] = useState([]);
+  const [designations, setDesignations] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -69,13 +70,15 @@ const EmployeeForm = () => {
 
   const load = useCallback(async () => {
     try {
-      const [deptRes, empRes, rolesRes, usersRes] = await Promise.all([
+      const [deptRes, desigRes, empRes, rolesRes, usersRes] = await Promise.all([
         apiService.getHrDepartments({ pageSize: 200 }),
+        apiService.getEmployeeDesignations(),
         apiService.getHrEmployees({ pageSize: 200 }),
         apiService.getRoles({ pageSize: 200 }),
         isEdit ? Promise.resolve(null) : apiService.getUsers({ pageSize: 200, unlinked: true }),
       ]);
       if (deptRes.success) setDepartments(deptRes.data || []);
+      if (desigRes.success) setDesignations(desigRes.data || []);
       if (empRes.success) setEmployees(empRes.data || []);
       if (rolesRes.success) setRoles(rolesRes.data || []);
       if (usersRes && usersRes.success) setUnlinkedUsers(usersRes.data || []);
@@ -166,7 +169,10 @@ const EmployeeForm = () => {
         await apiService.setHrSalaryStructure(employeeId, {
           basicSalary: parseFloat(salary.basicSalary),
           housingAllowance: parseFloat(salary.housingAllowance) || 0,
-          transportAllowance: parseFloat(salary.transportAllowance) || 0,
+          // Transport Allowance has no input in this form (relabeled field set is
+          // Basic/Housing/Supplement/Total) — any legacy value is intentionally not
+          // carried forward; a saved-here structure always has transportAllowance = 0.
+          transportAllowance: 0,
           otherAllowance: parseFloat(salary.otherAllowance) || 0,
           commissionEligible: salary.commissionEligible,
           paymentMethod: salary.paymentMethod,
@@ -320,7 +326,13 @@ const EmployeeForm = () => {
                         </TextField>
                       </Grid>
                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <TextField select fullWidth label="Manager" value={form.managerId} onChange={(e) => setForm({ ...form, managerId: e.target.value })} sx={textFieldSx}>
+                        <TextField select fullWidth label="Designation" value={form.designationId} onChange={(e) => setForm({ ...form, designationId: e.target.value })} sx={textFieldSx}>
+                          <MenuItem value="">None</MenuItem>
+                          {designations.map((d) => <MenuItem key={d.id} value={d.id}>{d.display_name}</MenuItem>)}
+                        </TextField>
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField select fullWidth label="Reporting Manager" value={form.managerId} onChange={(e) => setForm({ ...form, managerId: e.target.value })} sx={textFieldSx}>
                           <MenuItem value="">None</MenuItem>
                           {employees.filter((e) => String(e.id) !== id).map((e) => <MenuItem key={e.id} value={e.id}>{e.first_name} {e.last_name}</MenuItem>)}
                         </TextField>
@@ -454,10 +466,7 @@ const EmployeeForm = () => {
                       <TextField fullWidth label="Housing Allowance" type="number" value={salary.housingAllowance} onChange={(e) => setSalary({ ...salary, housingAllowance: e.target.value })} sx={textFieldSx} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
-                      <TextField fullWidth label="Transport Allowance" type="number" value={salary.transportAllowance} onChange={(e) => setSalary({ ...salary, transportAllowance: e.target.value })} sx={textFieldSx} />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 4 }}>
-                      <TextField fullWidth label="Other Allowance" type="number" value={salary.otherAllowance} onChange={(e) => setSalary({ ...salary, otherAllowance: e.target.value })} sx={textFieldSx} />
+                      <TextField fullWidth label="Supplement Allowance" type="number" value={salary.otherAllowance} onChange={(e) => setSalary({ ...salary, otherAllowance: e.target.value })} sx={textFieldSx} />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <TextField select fullWidth label="Payment Method" value={salary.paymentMethod} onChange={(e) => setSalary({ ...salary, paymentMethod: e.target.value })} sx={textFieldSx}>
@@ -470,6 +479,18 @@ const EmployeeForm = () => {
                         value={salary.effectiveFrom ? dayjs(salary.effectiveFrom) : null}
                         onChange={(newValue) => setSalary({ ...salary, effectiveFrom: newValue ? newValue.format('YYYY-MM-DD') : null })}
                         slotProps={{ textField: { fullWidth: true, sx: textFieldSx } }}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <TextField
+                        fullWidth label="Total Amount" disabled
+                        value={(
+                          (parseFloat(salary.basicSalary) || 0)
+                          + (parseFloat(salary.housingAllowance) || 0)
+                          + (parseFloat(salary.otherAllowance) || 0)
+                        ).toFixed(2)}
+                        helperText="Basic + Housing + Supplement, updates live"
+                        sx={textFieldSx}
                       />
                     </Grid>
                     <Grid size={12}>

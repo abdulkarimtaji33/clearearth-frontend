@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Box, Card, Typography, Button, Stack, TextField, Autocomplete, Alert, CircularProgress,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Divider,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Divider, FormControlLabel, Checkbox,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router';
@@ -42,6 +42,7 @@ const ReceivePaymentView = () => {
   const [referenceNo, setReferenceNo] = useState('');
   const [amountReceived, setAmountReceived] = useState('');
   const [receivedFrom, setReceivedFrom] = useState('');
+  const [recordAsAdvance, setRecordAsAdvance] = useState(false);
   const [customReceivedFrom, setCustomReceivedFrom] = useState(() => loadStoredOptions(RECEIVED_FROM_STORAGE_KEY));
 
   const [saving, setSaving] = useState(false);
@@ -133,8 +134,13 @@ const ReceivePaymentView = () => {
       .map(([taxInvoiceId, amount]) => ({ taxInvoiceId: parseInt(taxInvoiceId, 10), amount: parseFloat(amount) }))
       .filter((a) => Number.isFinite(a.amount) && a.amount > 0);
     if (allocationList.length === 0) { setError('Apply the receipt to at least one invoice.'); return; }
-    if (Math.abs(remaining) > 0.01) {
-      setError(`Allocated total (AED ${fmt(totalAllocated)}) must match the amount received (AED ${fmt(receivedNum)}).`);
+
+    if (remaining < -0.01) {
+      setError(`Allocated total (AED ${fmt(totalAllocated)}) cannot exceed the amount received (AED ${fmt(receivedNum)}).`);
+      return;
+    }
+    if (remaining > 0.01 && !recordAsAdvance) {
+      setError(`AED ${fmt(remaining)} is unallocated. Check "Record remainder as advance payment" to proceed, or allocate it to an invoice.`);
       return;
     }
 
@@ -148,11 +154,15 @@ const ReceivePaymentView = () => {
         referenceNo: referenceNo || undefined,
         receivedFrom: receivedFrom || undefined,
         allocations: allocationList,
+        amountReceived: receivedNum,
+        allowUnapplied: remaining > 0.01 ? true : undefined,
       });
       if (res.success) {
-        setSuccess(`Payment received and applied to ${allocationList.length} invoice(s).`);
+        const advanceNote = remaining > 0.01 ? ` AED ${fmt(remaining)} recorded as an advance/unapplied credit.` : '';
+        setSuccess(`Payment received and applied to ${allocationList.length} invoice(s).${advanceNote}`);
         setAmountReceived('');
         setReferenceNo('');
+        setRecordAsAdvance(false);
         await fetchInvoices(selectedCompany.id);
       }
     } catch (e) {
@@ -290,6 +300,17 @@ const ReceivePaymentView = () => {
         {selectedCompany && invoices.length > 0 && (
           <>
             <Divider />
+            {remaining > 0.01 && (
+              <Box sx={{ px: 2.5, pt: 1.75 }}>
+                <Alert severity="warning" sx={{ borderRadius: 2, mb: 1 }}>
+                  AED {fmt(remaining)} will be recorded as an advance/unapplied credit for this customer — it can be applied to a future invoice later from Receivables &rsaquo; Unapplied Credits.
+                </Alert>
+                <FormControlLabel
+                  control={<Checkbox checked={recordAsAdvance} onChange={(e) => setRecordAsAdvance(e.target.checked)} />}
+                  label="Record remainder as advance payment"
+                />
+              </Box>
+            )}
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 2.5, py: 1.75 }}>
               <Stack direction="row" spacing={1.5} alignItems="center">
                 <Typography variant="body2" color="text.secondary">Allocated: <strong>AED {fmt(totalAllocated)}</strong></Typography>
@@ -301,7 +322,13 @@ const ReceivePaymentView = () => {
                   sx={{ fontWeight: 700 }}
                 />
               </Stack>
-              <Button variant="contained" color="warning" onClick={handleSubmit} disabled={saving} sx={{ borderRadius: 2 }}>
+              <Button
+                variant="contained"
+                color="warning"
+                onClick={handleSubmit}
+                disabled={saving || (remaining > 0.01 && !recordAsAdvance) || remaining < -0.01}
+                sx={{ borderRadius: 2 }}
+              >
                 {saving ? <CircularProgress size={20} /> : 'Save receipt'}
               </Button>
             </Stack>

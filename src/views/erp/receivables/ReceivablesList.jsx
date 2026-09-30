@@ -5,7 +5,7 @@ import {
   DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconSearch, IconCoin, IconChartHistogram, IconHistory, IconFileDescription, IconCashBanknote } from '@tabler/icons-react';
+import { IconSearch, IconCoin, IconChartHistogram, IconHistory, IconFileDescription, IconCashBanknote, IconWallet } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -162,6 +162,9 @@ const ReceivablesList = () => {
             </Button>
             <Button variant="outlined" startIcon={<IconChartHistogram size={18} />} onClick={() => navigate('/erp/receivables/aging')} sx={{ borderRadius: 2 }}>
               Aging summary
+            </Button>
+            <Button variant="outlined" startIcon={<IconWallet size={18} />} onClick={() => navigate('/erp/receivables/unapplied')} sx={{ borderRadius: 2 }}>
+              Unapplied credits
             </Button>
           </Stack>
         </Stack>

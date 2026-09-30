@@ -608,6 +608,14 @@ class ApiService {
     return this.get('/receivables/aging-summary', params);
   }
 
+  async getUnappliedCredits() {
+    return this.get('/receivables/unapplied');
+  }
+
+  async applyUnappliedCredit(paymentTransactionId, allocations) {
+    return this.post(`/receivables/unapplied/${paymentTransactionId}/apply`, { allocations });
+  }
+
   async getPayables(params) {
     return this.get('/payables', params);
   }

@@ -31,6 +31,8 @@ import {
   IconCalendarEvent,
   IconCash,
   IconUserCircle,
+  IconCertificate,
+  IconLeaf,
 } from '@tabler/icons-react';
 
 // Roles that should only see their designated section (Operations or Accounts).
@@ -261,6 +263,18 @@ const ErpMenuItems = [
   },
   {
     id: uniqueId(),
+    title: 'Certificates',
+    icon: IconCertificate,
+    href: '/erp/certificates/requests',
+    permission: 'certificates.read',
+    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
+    children: [
+      { id: uniqueId(), title: 'Requests', icon: IconPoint, href: '/erp/certificates/requests', permission: 'certificates.read' },
+      { id: uniqueId(), title: 'Register', icon: IconPoint, href: '/erp/certificates/register', permission: 'certificates.read' },
+    ],
+  },
+  {
+    id: uniqueId(),
     title: 'Service and Purchase',
     icon: IconReceipt,
     href: '/erp/quotations',
@@ -365,6 +379,14 @@ const ErpMenuItems = [
     icon: IconCoin,
     href: '/erp/commissions/settings',
     adminDashboardOnly: true,
+    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
+  },
+  {
+    id: uniqueId(),
+    title: 'Carbon Footprint Factors',
+    icon: IconLeaf,
+    href: '/erp/settings/carbon-factors',
+    permission: 'certificates.manage',
     excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
   },
   // ─── My HR (self-service, always visible to every authenticated user) ───────

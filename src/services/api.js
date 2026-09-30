@@ -1120,6 +1120,79 @@ class ApiService {
     URL.revokeObjectURL(a.href);
   }
 
+  // Certificate Management
+  async getCertificateRequests(params) {
+    return this.get('/certificate-requests', params);
+  }
+
+  async getCertificateRequest(id) {
+    return this.get(`/certificate-requests/${id}`);
+  }
+
+  async createCertificateRequest(data) {
+    return this.post('/certificate-requests', data);
+  }
+
+  async verifyCertificateRequest(id, data) {
+    return this.post(`/certificate-requests/${id}/verify`, data);
+  }
+
+  async generateCertificates(id, types) {
+    return this.post(`/certificate-requests/${id}/generate`, { types });
+  }
+
+  async uploadCertificateAttachment(file) {
+    const url = `${this.baseURL}/upload/certificate-attachment`;
+    const token = this.getAuthToken();
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(url, { method: 'POST', body: formData, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Upload failed');
+    return data;
+  }
+
+  async getCertificates(params) {
+    return this.get('/certificates', params);
+  }
+
+  async getCertificate(id) {
+    return this.get(`/certificates/${id}`);
+  }
+
+  async downloadCertificatePdf(id, certificateNumber) {
+    const url = `${this.baseURL}/certificates/${id}/pdf`;
+    const token = this.getAuthToken();
+    const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      const msg = text?.match(/"message":"([^"]+)"/)?.[1] || 'Failed to download certificate';
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    if (blob.type !== 'application/pdf' || blob.size < 100) {
+      const text = await blob.text();
+      const err = text?.match(/"message":"([^"]+)"/)?.[1] || 'Invalid PDF response';
+      throw new Error(err);
+    }
+    const fname = this._filenameFromContentDisposition(res.headers.get('Content-Disposition'), `certificate-${certificateNumber || id}.pdf`);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async getCarbonFootprintFactors() {
+    return this.get('/carbon-footprint-factors');
+  }
+
+  async saveCarbonFootprintFactor(data) {
+    return this.post('/carbon-footprint-factors', data);
+  }
+
   async getDashboardOverview() {
     return this.get('/dashboard/overview');
   }

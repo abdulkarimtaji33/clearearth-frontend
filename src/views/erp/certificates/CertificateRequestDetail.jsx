@@ -12,6 +12,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { getUserRole } from '../../../utils/authHelpers';
 
 const STATUS_COLOR = { pending_verification: 'default', verified: 'info', generated: 'warning', issued: 'success' };
+const STATUS_LABEL = { pending_verification: 'Pending Verification', verified: 'Verified', generated: 'Generated', issued: 'Issued' };
 const VERIFIER_ROLES = ['hr_manager', 'admin', 'tenant_admin', 'super_admin'];
 const TYPE_LABEL = {
   green_certificate: 'Green Certificate',
@@ -44,7 +45,8 @@ const CertificateRequestDetail = () => {
       const res = await apiService.getCertificateRequest(id);
       if (res.success) {
         setRequest(res.data);
-        setSelectedTypes((res.data.types || []).map((t) => t.type));
+        const alreadyGenerated = new Set((res.data.certificates || []).map((c) => c.type));
+        setSelectedTypes((res.data.types || []).map((t) => t.type).filter((t) => !alreadyGenerated.has(t)));
       } else setError(res.message || 'Not found');
     } catch (e) {
       setError(e.message);
@@ -105,7 +107,7 @@ const CertificateRequestDetail = () => {
 
   return (
     <PageContainer title="Certificate Request" description={request.company_name}>
-      <Button startIcon={<IconArrowLeft size={16} />} onClick={() => navigate(-1)} sx={{ mb: 2.5, borderRadius: 2 }}>Back</Button>
+      <Button variant="outlined" startIcon={<IconArrowLeft size={16} />} onClick={() => navigate(-1)} sx={{ mb: 2.5, borderRadius: 2 }}>Back</Button>
 
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
         <Stack direction="row" spacing={2} alignItems="center">
@@ -114,7 +116,7 @@ const CertificateRequestDetail = () => {
           </Box>
           <Box>
             <Typography variant="h4" fontWeight={800}>{request.company_name}</Typography>
-            <Chip size="small" label={request.status} color={STATUS_COLOR[request.status] || 'default'} sx={{ mt: 0.5, fontWeight: 700 }} />
+            <Chip size="small" label={STATUS_LABEL[request.status] || request.status} color={STATUS_COLOR[request.status] || 'default'} sx={{ mt: 0.5, fontWeight: 700 }} />
           </Box>
         </Stack>
       </Stack>

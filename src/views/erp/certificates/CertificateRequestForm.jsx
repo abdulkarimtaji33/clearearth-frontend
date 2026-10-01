@@ -1,12 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box, Typography, Button, Stack, Paper, TextField, MenuItem, Alert, CircularProgress,
-  Checkbox, FormControlLabel, FormControl, FormLabel, RadioGroup, Radio, Autocomplete,
+  Checkbox, FormControlLabel, FormControl, FormLabel, FormHelperText, RadioGroup, Radio, Autocomplete,
   Divider, Chip, IconButton,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconArrowLeft, IconCertificate, IconUpload, IconTrash } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
@@ -45,6 +49,8 @@ const CertificateRequestForm = () => {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   useEffect(() => {
     apiService.getGrns({ pageSize: 100 }).then((res) => {
@@ -116,23 +122,27 @@ const CertificateRequestForm = () => {
   const removePhoto = (idx) => setPhotos((p) => p.filter((_, i) => i !== idx));
 
   const validate = () => {
-    if (!form.companyName.trim() || !form.contactPerson.trim() || !form.contactNo.trim()
-      || !form.contactEmail.trim() || !form.collectionDate || !form.materialWasteDetails.trim()
-      || !form.totalWeightQuantity) {
-      return 'Please fill in all required fields (marked *).';
-    }
-    if (!form.certificateTypes.length) {
-      return 'Select at least one certificate type.';
-    }
-    if (needsEvidence && !hasPhoto) {
-      return 'At least one photo is required for the Destruction Report with Evidence certificate type.';
-    }
-    return '';
+    const errs = {};
+    if (!form.companyName.trim()) errs.companyName = 'Company name is required';
+    if (!form.contactPerson.trim()) errs.contactPerson = 'Contact person is required';
+    if (!form.contactNo.trim()) errs.contactNo = 'Contact number is required';
+    if (!form.contactEmail.trim()) errs.contactEmail = 'Contact email is required';
+    if (!form.collectionDate) errs.collectionDate = 'Collection date is required';
+    if (!form.materialWasteDetails.trim()) errs.materialWasteDetails = 'Material / waste details are required';
+    if (!form.totalWeightQuantity) errs.totalWeightQuantity = 'Total weight / quantity is required';
+    if (!form.certificateTypes.length) errs.certificateTypes = 'Select at least one certificate type.';
+    if (needsEvidence && !hasPhoto) errs.photos = 'At least one photo is required for the Destruction Report with Evidence certificate type.';
+    return errs;
   };
 
   const submit = async () => {
-    const v = validate();
-    if (v) { setError(v); return; }
+    setSubmitAttempted(true);
+    const errs = validate();
+    setFieldErrors(errs);
+    if (Object.keys(errs).length) {
+      setError('Please fix the highlighted fields before submitting.');
+      return;
+    }
     setError('');
     const attachments = [
       ...(supportingDoc ? [{ filePath: supportingDoc.filePath, fileName: supportingDoc.fileName, fileType: 'grn_report' }] : []),
@@ -174,7 +184,7 @@ const CertificateRequestForm = () => {
 
   return (
     <PageContainer title="New Certificate Request" description="Submit a certificate request">
-      <Button startIcon={<IconArrowLeft size={16} />} onClick={() => navigate(-1)} sx={{ mb: 2.5, borderRadius: 2 }}>
+      <Button variant="outlined" startIcon={<IconArrowLeft size={16} />} onClick={() => navigate(-1)} sx={{ mb: 2.5, borderRadius: 2 }}>
         Back
       </Button>
 
@@ -190,17 +200,24 @@ const CertificateRequestForm = () => {
 
       {error && <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }}>{error}</Alert>}
 
-      <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, mb: 2.5 }}>
+      <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, mb: 2.5, borderColor: submitAttempted && fieldErrors.certificateTypes ? 'error.main' : 'divider' }}>
         <Typography variant="subtitle2" fontWeight={800} mb={1.5}>Certificate Type(s) *</Typography>
-        <Stack direction="row" flexWrap="wrap" gap={1}>
+        <Stack direction="row" flexWrap="wrap" gap={1} alignItems="center">
           {CERT_TYPES.map((t) => (
-            <FormControlLabel
-              key={t.value}
-              control={<Checkbox checked={form.certificateTypes.includes(t.value)} onChange={() => toggleType(t.value)} />}
-              label={t.label}
-            />
+            <Stack key={t.value} direction="row" alignItems="center" spacing={0.5}>
+              <FormControlLabel
+                control={<Checkbox checked={form.certificateTypes.includes(t.value)} onChange={() => toggleType(t.value)} />}
+                label={t.label}
+              />
+              {t.value === 'destruction_report_evidence' && (
+                <Chip size="small" label="Photo required" color="warning" variant="outlined" sx={{ height: 20, fontSize: '0.65rem' }} />
+              )}
+            </Stack>
           ))}
         </Stack>
+        {submitAttempted && fieldErrors.certificateTypes && (
+          <FormHelperText error sx={{ mt: 0.5 }}>{fieldErrors.certificateTypes}</FormHelperText>
+        )}
 
         {needsEvidence && (
           <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px dashed', borderColor: 'divider' }}>
@@ -210,6 +227,10 @@ const CertificateRequestForm = () => {
                 <FormControlLabel value="itemized_equipment" control={<Radio />} label="Itemized Equipment" />
                 <FormControlLabel value="bulk_material" control={<Radio />} label="Bulk Material" />
               </RadioGroup>
+              <FormHelperText sx={{ ml: 0, mt: -0.5 }}>
+                Itemized Equipment: individual assets/equipment items destroyed and tracked one by one (e.g. laptops, hard drives).
+                Bulk Material: waste tracked in bulk using a WDS/DOC/Req/BOE reference rather than individual item numbers. If unsure, use Itemized Equipment.
+              </FormHelperText>
             </FormControl>
           </Box>
         )}
@@ -219,15 +240,45 @@ const CertificateRequestForm = () => {
         <Typography variant="subtitle2" fontWeight={800} mb={1.5}>Request Details</Typography>
         <Stack spacing={2}>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <TextField fullWidth required label="Company Name" value={form.companyName} onChange={set('companyName')} />
-            <TextField fullWidth required label="Contact Person" value={form.contactPerson} onChange={set('contactPerson')} />
+            <TextField
+              fullWidth required label="Company Name" value={form.companyName} onChange={set('companyName')}
+              error={submitAttempted && Boolean(fieldErrors.companyName)}
+              helperText={submitAttempted ? fieldErrors.companyName : ' '}
+            />
+            <TextField
+              fullWidth required label="Contact Person" value={form.contactPerson} onChange={set('contactPerson')}
+              error={submitAttempted && Boolean(fieldErrors.contactPerson)}
+              helperText={submitAttempted ? fieldErrors.contactPerson : ' '}
+            />
           </Stack>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <TextField fullWidth required label="Contact No." value={form.contactNo} onChange={set('contactNo')} />
-            <TextField fullWidth required type="email" label="Contact Email" value={form.contactEmail} onChange={set('contactEmail')} />
+            <TextField
+              fullWidth required label="Contact No." value={form.contactNo} onChange={set('contactNo')}
+              error={submitAttempted && Boolean(fieldErrors.contactNo)}
+              helperText={submitAttempted ? fieldErrors.contactNo : ' '}
+            />
+            <TextField
+              fullWidth required type="email" label="Contact Email" value={form.contactEmail} onChange={set('contactEmail')}
+              error={submitAttempted && Boolean(fieldErrors.contactEmail)}
+              helperText={submitAttempted ? fieldErrors.contactEmail : ' '}
+            />
           </Stack>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <TextField fullWidth required type="date" label="Collection Date" InputLabelProps={{ shrink: true }} value={form.collectionDate} onChange={set('collectionDate')} />
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="Collection Date *"
+                value={form.collectionDate ? dayjs(form.collectionDate) : null}
+                onChange={(val) => setForm((p) => ({ ...p, collectionDate: val && val.isValid() ? val.format('YYYY-MM-DD') : '' }))}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    required: true,
+                    error: submitAttempted && Boolean(fieldErrors.collectionDate),
+                    helperText: submitAttempted ? fieldErrors.collectionDate : ' ',
+                  },
+                }}
+              />
+            </LocalizationProvider>
             <Autocomplete
               fullWidth
               freeSolo
@@ -241,12 +292,26 @@ const CertificateRequestForm = () => {
               onInputChange={(_, val, reason) => {
                 if (reason === 'input') setForm((p) => ({ ...p, grnId: '', grnNo: val }));
               }}
-              renderInput={(params) => <TextField {...params} label="GRN No. (or free text)" />}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="GRN No. (or free text)"
+                  helperText="Pick an existing GRN from the list, or just type a reference if the GRN hasn't been created yet"
+                />
+              )}
             />
           </Stack>
-          <TextField fullWidth required multiline rows={2} label="Material / Waste Details" value={form.materialWasteDetails} onChange={set('materialWasteDetails')} />
+          <TextField
+            fullWidth required multiline rows={2} label="Material / Waste Details" value={form.materialWasteDetails} onChange={set('materialWasteDetails')}
+            error={submitAttempted && Boolean(fieldErrors.materialWasteDetails)}
+            helperText={submitAttempted ? fieldErrors.materialWasteDetails : ' '}
+          />
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-            <TextField fullWidth required type="number" label="Total Weight / Quantity (tons)" value={form.totalWeightQuantity} onChange={set('totalWeightQuantity')} inputProps={{ min: 0, step: 'any' }} />
+            <TextField
+              fullWidth required type="number" label="Total Weight / Quantity (tons)" value={form.totalWeightQuantity} onChange={set('totalWeightQuantity')} inputProps={{ min: 0, step: 'any' }}
+              error={submitAttempted && Boolean(fieldErrors.totalWeightQuantity)}
+              helperText={submitAttempted ? fieldErrors.totalWeightQuantity : ' '}
+            />
             <TextField fullWidth label="Invoice No." value={form.invoiceNo} onChange={set('invoiceNo')} />
             <TextField
               select fullWidth label="Material Type (for Carbon Footprint calc)"
@@ -275,22 +340,30 @@ const CertificateRequestForm = () => {
           <Typography variant="subtitle2" fontWeight={800} mb={0.5}>
             Destruction Photos * <Typography component="span" variant="caption" color="error">(at least one required)</Typography>
           </Typography>
-          <Button component="label" size="small" variant="outlined" startIcon={<IconUpload size={14} />} disabled={uploading} sx={{ borderRadius: 2, mb: 1.5 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            Add one or more photos, then tag each with the stage it was taken at (e.g. arrival, mid-destruction). Use the trash icon to remove a photo.
+          </Typography>
+          <Button component="label" size="small" variant="outlined" startIcon={uploading ? <CircularProgress size={14} /> : <IconUpload size={14} />} disabled={uploading} sx={{ borderRadius: 2, mb: 1.5 }}>
             {uploading ? 'Uploading…' : 'Add photo(s)'}
             <input type="file" hidden multiple accept="image/*" onChange={handlePhotoUpload} />
           </Button>
-          {!hasPhoto && <Alert severity="warning" sx={{ mb: 1.5, borderRadius: 2 }}>No photos attached yet — required to submit.</Alert>}
+          {!hasPhoto && (
+            <Alert severity={submitAttempted ? 'error' : 'warning'} sx={{ mb: 1.5, borderRadius: 2 }}>
+              No photos attached yet — at least one is required before you can submit this request.
+            </Alert>
+          )}
           <Stack spacing={1}>
             {photos.map((p, idx) => (
-              <Stack key={idx} direction="row" spacing={1.5} alignItems="center">
-                <Typography variant="body2" sx={{ minWidth: 160 }} noWrap>{p.fileName}</Typography>
+              <Stack key={idx} direction="row" spacing={1.5} alignItems="center" sx={{ p: 1, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <Chip size="small" label={idx + 1} sx={{ fontWeight: 700 }} />
+                <Typography variant="body2" sx={{ minWidth: 160, flexGrow: 1 }} noWrap>{p.fileName}</Typography>
                 <TextField
                   select size="small" label="Stage" value={p.photoStage} onChange={(e) => updatePhotoStage(idx, e.target.value)}
                   sx={{ minWidth: 220 }}
                 >
                   {PHOTO_STAGES.map((s) => <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>)}
                 </TextField>
-                <IconButton size="small" color="error" onClick={() => removePhoto(idx)}><IconTrash size={16} /></IconButton>
+                <IconButton size="small" color="error" onClick={() => removePhoto(idx)} title="Remove photo"><IconTrash size={16} /></IconButton>
               </Stack>
             ))}
           </Stack>
@@ -317,7 +390,7 @@ const CertificateRequestForm = () => {
         <Button variant="contained" onClick={submit} disabled={saving} startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null} sx={{ borderRadius: 2.5, px: 3 }}>
           {saving ? 'Submitting…' : 'Submit Request'}
         </Button>
-        <Button onClick={() => navigate('/erp/certificates/requests')} sx={{ borderRadius: 2 }}>Cancel</Button>
+        <Button variant="outlined" onClick={() => navigate('/erp/certificates/requests')} sx={{ borderRadius: 2 }}>Cancel</Button>
       </Stack>
     </PageContainer>
   );

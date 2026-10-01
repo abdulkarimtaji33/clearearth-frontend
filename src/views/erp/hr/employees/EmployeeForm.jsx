@@ -181,7 +181,10 @@ const EmployeeForm = () => {
       }
 
       setSuccess('Employee saved successfully');
-      setTimeout(() => navigate('/erp/hr/employees'), 800);
+      // Land on the employee's full profile (documents, emergency contacts,
+      // qualifications, etc. all live there, not on this create/edit form) so
+      // HR can immediately continue filling in the rest of the record.
+      setTimeout(() => navigate(isEdit ? '/erp/hr/employees' : `/erp/hr/employees/view/${employeeId}`), 800);
     } catch (err) {
       setError(err.message || 'Failed to save employee');
     } finally {

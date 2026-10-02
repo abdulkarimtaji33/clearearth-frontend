@@ -67,7 +67,7 @@ const ProformaInvoiceCreate = () => {
     try {
       const [dropRes, prodRes] = await Promise.all([
         apiService.getAllDropdowns(),
-        apiService.getProducts({ pageSize: 500, status: 'active' }),
+        apiService.getAllProducts({ status: 'active' }),
       ]);
       if (dropRes.success) {
         setDropdowns({ unitsOfMeasure: dropRes.data.units_of_measure || [] });

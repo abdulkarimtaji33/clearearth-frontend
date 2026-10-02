@@ -371,7 +371,7 @@ const DealForm = () => {
       apiService.getCompanies({ pageSize: 500 }),
       apiService.getContacts({ pageSize: 500 }),
       apiService.getSuppliers({ pageSize: 500 }),
-      apiService.getProducts({ pageSize: 500, status: 'active' }),
+      apiService.getAllProducts({ status: 'active' }),
       apiService.getAssignees(),
       apiService.getTermsAndConditions({ pageSize: 500, status: 'active' }),
       apiService.getMaterialTypes(),

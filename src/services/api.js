@@ -334,6 +334,28 @@ class ApiService {
     return this.get('/products', params);
   }
 
+  /**
+   * Fetches every product/service for dropdown use, looping pages until the
+   * full catalog is retrieved — no hardcoded pageSize that can truncate the
+   * list as the catalog grows. Returns the same {success, data} shape as
+   * getProducts() so existing callers work unchanged.
+   */
+  async getAllProducts(params = {}) {
+    const pageSize = 1000; // one request per 1000 items — just a page size, not a cap
+    let page = 1;
+    let all = [];
+    for (;;) {
+      const res = await this.getProducts({ ...params, page, pageSize });
+      if (!res?.success) return res;
+      const items = Array.isArray(res.data) ? res.data : res.data?.items || [];
+      all = all.concat(items);
+      const totalPages = res.pagination?.totalPages ?? 1;
+      if (page >= totalPages || items.length === 0) break;
+      page += 1;
+    }
+    return { success: true, data: all };
+  }
+
   async getProduct(id) {
     return this.get(`/products/${id}`);
   }

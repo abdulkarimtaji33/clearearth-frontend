@@ -105,7 +105,7 @@ const LeadForm = () => {
     const results = await Promise.allSettled([
       apiService.getCompanies({ pageSize: 500 }),
       apiService.getContacts({ pageSize: 500 }),
-      apiService.getProducts({ pageSize: 500, status: 'active' }),
+      apiService.getAllProducts({ status: 'active' }),
       apiService.getAssignees(),
     ]);
     const [companiesRes, contactsRes, productsRes, usersRes] = results.map((r) =>

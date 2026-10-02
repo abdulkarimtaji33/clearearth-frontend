@@ -102,7 +102,7 @@ const PurchaseOrderForm = () => {
         apiService.getDeals({ pageSize: 500 }),
         apiService.getCompanies({ pageSize: 500 }),
         apiService.getSuppliers({ pageSize: 500 }),
-        apiService.getProducts({ pageSize: 500, status: 'active' }),
+        apiService.getAllProducts({ status: 'active' }),
         apiService.getTermsAndConditions({ pageSize: 500, status: 'active' }),
         apiService.getAllDropdowns(),
       ]);

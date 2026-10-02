@@ -664,6 +664,7 @@ const PurchaseOrderForm = () => {
                                 renderInput={(params) => <TextField {...params} placeholder="Select item" />}
                                 isOptionEqualToValue={(a, b) => a?.id === b?.id}
                                 sx={{ minWidth: 200 }}
+                                ListboxProps={{ style: { maxHeight: '320px', overflowY: 'auto' } }}
                               />
                             </TableCell>
                             <TableCell>

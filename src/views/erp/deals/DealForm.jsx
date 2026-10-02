@@ -1927,6 +1927,7 @@ const DealForm = () => {
                                 />
                               )}
                               isOptionEqualToValue={(opt, val) => opt.id === val?.id}
+                              ListboxProps={{ style: { maxHeight: '320px', overflowY: 'auto' } }}
                             />
                           </Box>
 

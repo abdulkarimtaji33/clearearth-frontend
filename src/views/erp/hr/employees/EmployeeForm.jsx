@@ -4,6 +4,7 @@ import {
   Stack, Grid, Tabs, Tab, Divider, Checkbox, FormControlLabel,
   Autocomplete, RadioGroup, Radio, FormLabel, Avatar,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -11,7 +12,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import {
   IconArrowLeft, IconUser, IconMapPin, IconBriefcase, IconCash, IconBuildingBank,
-  IconUpload, IconNotes, IconUserPlus,
+  IconUpload, IconNotes, IconUserPlus, IconId,
 } from '@tabler/icons-react';
 import PageContainer from '../../../../components/container/PageContainer';
 import apiService from '../../../../services/api';
@@ -22,24 +23,37 @@ const EMPTY = {
   nationality: '', nationalId: '', passportNumber: '', address: '',
   emergencyContactName: '', emergencyContactPhone: '', bankName: '', bankAccountNumber: '', bankIban: '', notes: '',
   profilePhoto: '',
+  passportIssueDate: '', passportExpiryDate: '', emiratesIdNumber: '', emiratesIdIssueDate: '', emiratesIdExpiryDate: '', visaNumber: '', visaIssueDate: '', visaExpiryDate: '', labourCardNo: '', labourCardIssueDate: '', labourCardExpiryDate: '',
 };
 
 const textFieldSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
 
 const SectionHeading = ({ icon: Icon, title, subtitle }) => (
-  <Box mb={4}>
-    <Stack direction="row" spacing={1.5} alignItems="center" mb={subtitle ? 1 : 0}>
-      {Icon && <Icon size={22} color="var(--mui-palette-primary-main)" />}
-      <Typography variant="h4" fontWeight={700} color="primary.main">
-        {title}
-      </Typography>
+  <Box mb={3}>
+    <Stack direction="row" spacing={1.5} alignItems="center">
+      {Icon && (
+        <Box
+          sx={{
+            width: 40, height: 40, borderRadius: 2, flexShrink: 0,
+            display: 'grid', placeItems: 'center',
+            bgcolor: (t) => alpha(t.palette.primary.main, 0.1), color: 'primary.main',
+          }}
+        >
+          <Icon size={22} />
+        </Box>
+      )}
+      <Box minWidth={0}>
+        <Typography variant="h5" fontWeight={700}>
+          {title}
+        </Typography>
+        {subtitle && (
+          <Typography variant="body2" color="text.secondary">
+            {subtitle}
+          </Typography>
+        )}
+      </Box>
     </Stack>
-    {subtitle && (
-      <Typography variant="body2" color="text.secondary">
-        {subtitle}
-      </Typography>
-    )}
-    <Divider sx={{ mt: subtitle ? 3 : 2 }} />
+    <Divider sx={{ mt: 2.5 }} />
   </Box>
 );
 
@@ -96,6 +110,10 @@ const EmployeeForm = () => {
             emergencyContactName: e.emergency_contact_name || '', emergencyContactPhone: e.emergency_contact_phone || '',
             bankName: e.bank_name || '', bankAccountNumber: e.bank_account_number || '', bankIban: e.bank_iban || '', notes: e.notes || '',
             profilePhoto: e.profile_photo || '',
+            passportIssueDate: e.passport_issue_date || '', passportExpiryDate: e.passport_expiry_date || '',
+            emiratesIdNumber: e.emirates_id_number || '', emiratesIdIssueDate: e.emirates_id_issue_date || '', emiratesIdExpiryDate: e.emirates_id_expiry_date || '',
+            visaNumber: e.visa_number || '', visaIssueDate: e.visa_issue_date || '', visaExpiryDate: e.visa_expiry_date || '',
+            labourCardNo: e.labour_card_no || '', labourCardIssueDate: e.labour_card_issue_date || '', labourCardExpiryDate: e.labour_card_expiry_date || '',
           });
           if (e.profile_photo) setPhotoPreviewUrl(apiService.getUploadUrl(e.profile_photo));
         }
@@ -292,8 +310,49 @@ const EmployeeForm = () => {
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField fullWidth label="National ID" value={form.nationalId} onChange={(e) => setForm({ ...form, nationalId: e.target.value })} sx={textFieldSx} />
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
+                    </Grid>
+                  </CardContent>
+                </Card>
+
+                <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
+                  <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
+                    <SectionHeading icon={IconId} title="Identity Documents" subtitle="Passport, Emirates ID, visa and labour card" />
+                    <Grid container spacing={3}>
+                      <Grid size={{ xs: 12, sm: 4 }}>
                         <TextField fullWidth label="Passport Number" value={form.passportNumber} onChange={(e) => setForm({ ...form, passportNumber: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth type="date" label="Passport Issue Date" InputLabelProps={{ shrink: true }} value={form.passportIssueDate} onChange={(e) => setForm({ ...form, passportIssueDate: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth type="date" label="Passport Expiry Date" InputLabelProps={{ shrink: true }} value={form.passportExpiryDate} onChange={(e) => setForm({ ...form, passportExpiryDate: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth label="Emirates ID Number" value={form.emiratesIdNumber} onChange={(e) => setForm({ ...form, emiratesIdNumber: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth type="date" label="Emirates ID Issue Date" InputLabelProps={{ shrink: true }} value={form.emiratesIdIssueDate} onChange={(e) => setForm({ ...form, emiratesIdIssueDate: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth type="date" label="Emirates ID Expiry Date" InputLabelProps={{ shrink: true }} value={form.emiratesIdExpiryDate} onChange={(e) => setForm({ ...form, emiratesIdExpiryDate: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth label="Visa Number" value={form.visaNumber} onChange={(e) => setForm({ ...form, visaNumber: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth type="date" label="Visa Issue Date" InputLabelProps={{ shrink: true }} value={form.visaIssueDate} onChange={(e) => setForm({ ...form, visaIssueDate: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth type="date" label="Visa Expiry Date" InputLabelProps={{ shrink: true }} value={form.visaExpiryDate} onChange={(e) => setForm({ ...form, visaExpiryDate: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth label="Labour Card Number" value={form.labourCardNo} onChange={(e) => setForm({ ...form, labourCardNo: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth type="date" label="Labour Card Issue Date" InputLabelProps={{ shrink: true }} value={form.labourCardIssueDate} onChange={(e) => setForm({ ...form, labourCardIssueDate: e.target.value })} sx={textFieldSx} />
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 4 }}>
+                        <TextField fullWidth type="date" label="Labour Card Expiry Date" InputLabelProps={{ shrink: true }} value={form.labourCardExpiryDate} onChange={(e) => setForm({ ...form, labourCardExpiryDate: e.target.value })} sx={textFieldSx} />
                       </Grid>
                     </Grid>
                   </CardContent>

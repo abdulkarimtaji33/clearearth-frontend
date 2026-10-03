@@ -9,7 +9,7 @@ import { alpha } from '@mui/material/styles';
 import {
   IconLayoutDashboard, IconUser, IconMapPin, IconBriefcase, IconFileText, IconCash,
   IconBuildingBank, IconFiles, IconSchool, IconBulb, IconCertificate, IconHistory,
-  IconUsers, IconPhoneCall, IconDeviceLaptop, IconNotes, IconUpload, IconPlus, IconTrash,
+  IconUsers, IconHash, IconPhoneCall, IconDeviceLaptop, IconNotes, IconUpload, IconPlus, IconTrash,
   IconDownload, IconPaperclip, IconEdit, IconBuildingSkyscraper, IconTimeline,
 } from '@tabler/icons-react';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -57,6 +57,10 @@ const EmptyState = ({ icon: Icon, message }) => (
     <Typography variant="body2" color="text.secondary">{message}</Typography>
   </Box>
 );
+
+const formatStatus = (s) => (s ? s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()) : '-');
+
+const initialsOf = (e) => `${(e.first_name || '').charAt(0)}${(e.last_name || '').charAt(0)}`.toUpperCase() || '?';
 
 const TAB_LABELS_BASE = [
   'Overview', 'Personal', 'Contact & Address', 'Job', 'Contract', 'Compensation',
@@ -153,32 +157,67 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
 
   const fullName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim();
   const photoUrl = employee.profile_photo ? apiService.getUploadUrl(employee.profile_photo) : null;
+  const managerName = employee.manager ? `${employee.manager.first_name || ''} ${employee.manager.last_name || ''}`.trim() : '';
   const labels = isSelf ? TAB_LABELS_BASE : [...TAB_LABELS_BASE, 'Notes'];
 
   return (
     <Box>
-      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: 3, mb: 3 }}>
-        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-          <Box position="relative">
-            <Avatar src={photoUrl} sx={{ width: 64, height: 64 }}>{fullName.slice(0, 1)}</Avatar>
-          </Box>
-          <Box flex={1}>
-            <Typography variant="h5" fontWeight={700}>{fullName || '-'}</Typography>
-            <Typography variant="body2" color="text.secondary">{employee.employee_code}</Typography>
-          </Box>
-          <Button
-            component="label"
-            variant="outlined"
-            size="small"
-            startIcon={<IconUpload size={16} />}
-            disabled={photoUploading}
-            sx={{ borderRadius: 2 }}
-          >
-            {photoUploading ? 'Uploading...' : 'Update Photo'}
-            <input type="file" accept="image/*" hidden onChange={handlePhotoUpload} />
-          </Button>
-          <Chip label={(employee.employment_status || '').replace('_', ' ')} color={STATUS_COLORS[employee.employment_status] || 'default'} />
-        </Stack>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden', mb: 3 }}>
+        <Box sx={{ height: 6, background: (t) => `linear-gradient(90deg, ${t.palette.primary.main}, ${alpha(t.palette.primary.main, 0.3)})` }} />
+        <Box sx={{ p: { xs: 2.5, sm: 3 } }}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5} alignItems={{ xs: 'flex-start', md: 'center' }} justifyContent="space-between">
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5} alignItems={{ xs: 'flex-start', sm: 'center' }} minWidth={0}>
+              <Avatar
+                src={photoUrl}
+                sx={{
+                  width: 84, height: 84, fontSize: 30, fontWeight: 700,
+                  bgcolor: (t) => alpha(t.palette.primary.main, 0.14), color: 'primary.main',
+                  border: '3px solid', borderColor: 'background.paper', boxShadow: 2,
+                }}
+              >
+                {initialsOf(employee)}
+              </Avatar>
+              <Box minWidth={0}>
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <Typography variant="h4" fontWeight={700} sx={{ wordBreak: 'break-word' }}>{fullName || '-'}</Typography>
+                  <Chip
+                    size="small"
+                    label={formatStatus(employee.employment_status)}
+                    color={STATUS_COLORS[employee.employment_status] || 'default'}
+                    variant="outlined"
+                    sx={{ fontWeight: 600 }}
+                  />
+                </Stack>
+                <Typography variant="body1" color="text.secondary" mt={0.5}>
+                  {[employee.designation?.display_name, employee.department?.name].filter(Boolean).join(' · ') || 'No designation or department assigned'}
+                </Typography>
+                <Stack direction="row" spacing={2.5} flexWrap="wrap" useFlexGap mt={1.5} sx={{ color: 'text.secondary' }}>
+                  <Stack direction="row" spacing={0.75} alignItems="center">
+                    <IconHash size={16} />
+                    <Typography variant="body2" fontWeight={600} color="text.primary">{employee.employee_code || '-'}</Typography>
+                  </Stack>
+                  <Stack direction="row" spacing={0.75} alignItems="center">
+                    <IconUsers size={16} />
+                    <Typography variant="body2">
+                      Reports to: <Box component="span" color="text.primary" fontWeight={600}>{managerName || 'None'}</Box>
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Box>
+            </Stack>
+            <Button
+              component="label"
+              variant="outlined"
+              size="small"
+              startIcon={<IconUpload size={16} />}
+              disabled={photoUploading}
+              sx={{ borderRadius: 2, fontWeight: 600, flexShrink: 0 }}
+            >
+              {photoUploading ? 'Uploading...' : 'Update Photo'}
+              <input type="file" accept="image/*" hidden onChange={handlePhotoUpload} />
+            </Button>
+          </Stack>
+        </Box>
       </Card>
 
       <Tabs
@@ -187,7 +226,11 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
-        sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
+        sx={{
+          mb: 3, borderBottom: 1, borderColor: 'divider', minHeight: 48,
+          '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' },
+          '& .MuiTab-root': { color: 'text.secondary', '&.Mui-selected': { color: 'primary.main' } },
+        }}
       >
         {labels.map((l) => {
           const Icon = TAB_ICONS[l];
@@ -197,7 +240,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
               label={l}
               icon={Icon ? <Icon size={18} /> : undefined}
               iconPosition="start"
-              sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
+              sx={{ minHeight: 48, px: 2, textTransform: 'none', fontWeight: 600 }}
             />
           );
         })}

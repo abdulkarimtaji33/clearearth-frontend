@@ -1,19 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Box, Card, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, Alert, CircularProgress, Button, Stack,
+  Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, Button,
 } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
-import { IconReceipt2 } from '@tabler/icons-react';
+import { IconReceipt2, IconCashBanknote, IconCalendarDollar, IconChevronRight, IconUserQuestion } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
-import PageContainer from '../../../../components/container/PageContainer';
 import apiService from '../../../../services/api';
+import {
+  HrPage, SectionCard, StatTile, StatGrid, StatusChip, EmptyState, LoadingBlock, tableSx, fmtMoney,
+} from '../components/HrUi';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+const periodOf = (p) => (p.payrollRun ? `${MONTHS[p.payrollRun.period_month - 1]} ${p.payrollRun.period_year}` : '—');
+
 const MyPayslips = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,68 +40,87 @@ const MyPayslips = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  const latest = useMemo(() => {
+    const key = (p) => (p.payrollRun ? p.payrollRun.period_year * 12 + p.payrollRun.period_month : -1);
+    return rows.reduce((best, p) => (!best || key(p) > key(best) ? p : best), null);
+  }, [rows]);
+  const totalPaid = useMemo(
+    () => rows.filter((p) => p.payment_status === 'paid').reduce((acc, p) => acc + (Number(p.net_salary) || 0), 0),
+    [rows],
+  );
+
+  const openPayslip = (p) => navigate(`/erp/hr/payroll/payslips/${p.id}`);
+
   return (
-    <PageContainer title="My Payslips" description="Your payslip history">
-      <Box>
-        <Stack direction="row" alignItems="center" spacing={1.5} mb={0.5}>
-          <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconReceipt2 size={20} />
-          </Box>
-          <Typography variant="h4" fontWeight={700}>My Payslips</Typography>
-        </Stack>
-        <Typography variant="body2" color="text.secondary" ml={6.5} mb={3}>
-          {rows.length > 0 ? `${rows.length} payslip${rows.length !== 1 ? 's' : ''}` : 'Your payslip history'}
-        </Typography>
+    <HrPage
+      title="My Payslips"
+      description="Your payslip history"
+      subtitle="View and download your monthly salary statements."
+    >
+      {notSetUp ? (
+        <SectionCard>
+          <EmptyState
+            icon={IconUserQuestion}
+            title="Your HR profile isn't set up yet"
+            message="Contact your HR administrator to get started. Your payslips will appear here once your employee record is linked."
+          />
+        </SectionCard>
+      ) : (
+        <>
+          {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-        {notSetUp ? (
-          <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
-            Your HR profile isn&apos;t set up yet — contact your HR administrator to get started.
-          </Alert>
-        ) : error ? (
-          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>
-        ) : null}
+          <StatGrid min={200} sx={{ mb: 3 }}>
+            <StatTile icon={IconReceipt2} label="Payslips" value={rows.length} loading={loading} />
+            <StatTile
+              icon={IconCalendarDollar}
+              label="Latest net pay"
+              value={latest ? fmtMoney(latest.net_salary) : '—'}
+              hint={latest ? periodOf(latest) : undefined}
+              tone="info"
+              loading={loading}
+            />
+            <StatTile icon={IconCashBanknote} label="Total paid to date" value={fmtMoney(totalPaid)} tone="success" loading={loading} />
+          </StatGrid>
 
-        {!notSetUp && (
-          <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                    {['Period', 'Gross', 'Net', 'Status', 'View'].map((h, i) => (
-                      <TableCell key={i} align={i === 1 || i === 2 || i === 4 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {loading ? (
-                    <TableRow><TableCell colSpan={5} align="center" sx={{ py: 6 }}><CircularProgress size={28} /></TableCell></TableRow>
-                  ) : rows.length === 0 ? (
+          <SectionCard icon={IconReceipt2} title="Payslip history" subtitle={rows.length > 0 ? `${rows.length} payslip${rows.length !== 1 ? 's' : ''}` : undefined} noPadding>
+            {loading ? (
+              <LoadingBlock />
+            ) : rows.length === 0 ? (
+              <EmptyState icon={IconReceipt2} title="No payslips yet" message="Payslips appear here once payroll for a period is processed." compact />
+            ) : (
+              <TableContainer sx={{ overflowX: 'auto' }}>
+                <Table sx={{ ...tableSx, minWidth: 560 }}>
+                  <TableHead>
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
-                        <IconReceipt2 size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
-                        <Typography variant="body2" color="text.secondary">No payslips yet</Typography>
-                      </TableCell>
+                      <TableCell>Period</TableCell>
+                      <TableCell align="right">Gross</TableCell>
+                      <TableCell align="right">Net pay</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell align="right" />
                     </TableRow>
-                  ) : (
-                    rows.map((p) => (
-                      <TableRow key={p.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/erp/hr/payroll/payslips/${p.id}`)}>
-                        <TableCell><Typography variant="body2" fontWeight={700}>{p.payrollRun ? `${MONTHS[p.payrollRun.period_month - 1]} ${p.payrollRun.period_year}` : '-'}</Typography></TableCell>
-                        <TableCell align="right">{Number(p.gross_salary).toLocaleString()}</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>{Number(p.net_salary).toLocaleString()}</TableCell>
-                        <TableCell><Chip size="small" label={p.payment_status} color={p.payment_status === 'paid' ? 'success' : 'default'} sx={{ fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((p) => (
+                      <TableRow key={p.id} hover sx={{ cursor: 'pointer' }} onClick={() => openPayslip(p)}>
+                        <TableCell><Typography variant="body2" fontWeight={600} noWrap>{periodOf(p)}</Typography></TableCell>
+                        <TableCell align="right" sx={{ whiteSpace: 'nowrap', color: 'text.secondary' }}>{fmtMoney(p.gross_salary)}</TableCell>
+                        <TableCell align="right" sx={{ whiteSpace: 'nowrap', fontWeight: 700 }}>{fmtMoney(p.net_salary)}</TableCell>
+                        <TableCell><StatusChip status={p.payment_status} /></TableCell>
                         <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                          <Button size="small" onClick={() => navigate(`/erp/hr/payroll/payslips/${p.id}`)} sx={{ borderRadius: 2, fontWeight: 600 }}>View</Button>
+                          <Button size="small" endIcon={<IconChevronRight size={16} />} onClick={() => openPayslip(p)} sx={{ borderRadius: 2, fontWeight: 600 }}>
+                            View
+                          </Button>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Card>
-        )}
-      </Box>
-    </PageContainer>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </SectionCard>
+        </>
+      )}
+    </HrPage>
   );
 };
 

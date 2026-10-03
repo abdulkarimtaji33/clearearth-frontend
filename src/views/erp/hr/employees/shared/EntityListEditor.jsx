@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Card, Typography, Button, IconButton, Stack, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, MenuItem, Alert, CircularProgress, Chip, Divider, Grid,
+  Box, Typography, Button, IconButton, Stack, Dialog, DialogTitle, DialogContent,
+  DialogActions, TextField, MenuItem, Alert, Chip, Tooltip, Link,
 } from '@mui/material';
-import { IconPlus, IconTrash, IconPaperclip } from '@tabler/icons-react';
+import { alpha } from '@mui/material/styles';
+import { IconPlus, IconTrash, IconPaperclip, IconX } from '@tabler/icons-react';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import apiService from '../../../../../services/api';
+import {
+  SectionCard, EmptyState, LoadingBlock, StatusChip, fmtDate, humanize, inputSx, dialogPaperProps,
+} from '../../components/HrUi';
 
 const camelToSnake = (s) => s.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`);
 
@@ -18,20 +22,30 @@ const emptyValues = (fields) => {
   return v;
 };
 
+const displayValue = (f, val) => {
+  if (val === null || val === undefined || val === '') return '';
+  if (f.type === 'date') return fmtDate(val);
+  if (f.type === 'select') return humanize(val);
+  return String(val);
+};
+
 /**
  * Generic list + add + delete editor for the small employee child-record entities
  * (emergency contacts, dependents, qualifications, skills, certifications, previous
- * employment, documents). Shared between the self-service profile hub and the
- * HR-facing employee view — parameterized by `base` (either '/hr/employees/me' or
- * `/hr/employees/:employeeId`) and `entity` (the route segment).
+ * employment). Shared between the self-service profile hub and the HR-facing employee
+ * view — parameterized by `base` (either '/hr/employees/me' or `/hr/employees/:employeeId`)
+ * and `entity` (the route segment).
  *
  * `fields` items: { key (camelCase, used for the create payload), label, type,
- * options?, required? }. Row values are read back from the API response using the
- * snake_case column name (camelToSnake(key)) since Sequelize models here use
- * `underscored: true`.
+ * options?, required?, multiline? }. Row values are read back from the API response using
+ * the snake_case column name (camelToSnake(key)) since Sequelize models here use
+ * `underscored: true`. The first field is shown as the row title, the rest as meta.
+ *
+ * `variant="chips"` renders rows as removable chips (used for Skills).
  */
 const EntityListEditor = ({
   title,
+  subtitle,
   base,
   entity,
   fields,
@@ -39,9 +53,11 @@ const EntityListEditor = ({
   readOnly = false,
   highlightWhen, // optional: (row) => boolean, adds a "Primary" chip
   emptyMessage = 'None added yet.',
-  icon, // optional: icon component shown (dimmed) above the empty-state message
-  maxItems, // optional: hides/disables "Add" once rows.length reaches this, with maxItemsMessage shown instead
+  icon, // optional: icon component for the card header and empty state
+  maxItems, // optional: hides "Add" once rows.length reaches this
   maxItemsMessage = 'Maximum number of entries reached.',
+  variant = 'list',
+  addLabel = 'Add',
 }) => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -120,156 +136,223 @@ const EntityListEditor = ({
   };
 
   const atMax = typeof maxItems === 'number' && rows.length >= maxItems;
+  const [titleField, ...metaFields] = fields.filter((f) => f.type !== 'checkbox');
+  const Icon = icon;
+
+  const renderList = () => (
+    <Stack spacing={1.25}>
+      {rows.map((row) => {
+        const heading = displayValue(titleField, row[camelToSnake(titleField.key)]) || '—';
+        const meta = metaFields
+          .filter((f) => !f.multiline)
+          .map((f) => ({ f, v: displayValue(f, row[camelToSnake(f.key)]) }))
+          .filter(({ v }) => v);
+        const longText = metaFields
+          .filter((f) => f.multiline)
+          .map((f) => ({ f, v: displayValue(f, row[camelToSnake(f.key)]) }))
+          .filter(({ v }) => v);
+        return (
+          <Stack
+            key={row.id}
+            direction="row"
+            spacing={1.75}
+            alignItems="flex-start"
+            sx={{
+              p: 1.75, borderRadius: 2, border: '1px solid', borderColor: 'divider',
+              transition: 'background-color .15s',
+              '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.03) },
+              '&:hover .row-actions': { opacity: 1 },
+            }}
+          >
+            {Icon && (
+              <Box sx={{
+                width: 36, height: 36, borderRadius: 2, flexShrink: 0, display: 'grid', placeItems: 'center',
+                bgcolor: (t) => alpha(t.palette.primary.main, 0.08), color: 'primary.main',
+              }}
+              >
+                <Icon size={18} />
+              </Box>
+            )}
+            <Box flex={1} minWidth={0}>
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                <Typography variant="body2" fontWeight={700}>{heading}</Typography>
+                {highlightWhen && highlightWhen(row) && <StatusChip tone="primary" label="Primary" />}
+              </Stack>
+              {meta.length > 0 && (
+                <Stack direction="row" flexWrap="wrap" useFlexGap columnGap={2} rowGap={0.25} mt={0.5}>
+                  {meta.map(({ f, v }) => (
+                    <Typography key={f.key} variant="caption" color="text.secondary">
+                      <Box component="span" sx={{ color: 'text.disabled' }}>{f.label}</Box>
+                      {'  '}
+                      <Box component="span" sx={{ color: 'text.primary', fontWeight: 500 }}>{v}</Box>
+                    </Typography>
+                  ))}
+                </Stack>
+              )}
+              {longText.map(({ f, v }) => (
+                <Typography key={f.key} variant="body2" color="text.secondary" mt={0.75} sx={{ whiteSpace: 'pre-wrap' }}>{v}</Typography>
+              ))}
+              {row.file_path && (
+                <Link
+                  href={apiService.getUploadUrl(row.file_path)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  underline="hover"
+                  variant="caption"
+                  sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.75, fontWeight: 600 }}
+                >
+                  <IconPaperclip size={13} /> View attachment
+                </Link>
+              )}
+            </Box>
+            {!readOnly && (
+              <Tooltip title="Delete">
+                <IconButton
+                  className="row-actions"
+                  size="small"
+                  onClick={() => handleDelete(row.id)}
+                  sx={{ opacity: { xs: 1, md: 0.35 }, transition: 'opacity .15s', '&:hover': { color: 'error.main' } }}
+                >
+                  <IconTrash size={16} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
+        );
+      })}
+    </Stack>
+  );
+
+  const renderChips = () => (
+    <Stack direction="row" flexWrap="wrap" useFlexGap gap={1}>
+      {rows.map((row) => {
+        const label = displayValue(titleField, row[camelToSnake(titleField.key)]);
+        const level = metaFields.map((f) => displayValue(f, row[camelToSnake(f.key)])).filter(Boolean).join(' · ');
+        return (
+          <Chip
+            key={row.id}
+            label={(
+              <span>
+                <strong>{label}</strong>
+                {level && <Box component="span" sx={{ color: 'text.secondary', ml: 0.75 }}>{level}</Box>}
+              </span>
+            )}
+            onDelete={readOnly ? undefined : () => handleDelete(row.id)}
+            deleteIcon={<IconX size={14} />}
+            sx={{
+              height: 32, borderRadius: 2, px: 0.5,
+              bgcolor: (t) => alpha(t.palette.primary.main, 0.08),
+              border: '1px solid', borderColor: (t) => alpha(t.palette.primary.main, 0.2),
+            }}
+          />
+        );
+      })}
+    </Stack>
+  );
 
   return (
-    <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
-        <Typography variant="subtitle1" fontWeight={700}>{title}</Typography>
-        {!readOnly && !atMax && (
-          <Button size="small" startIcon={<IconPlus size={16} />} onClick={openForm}>Add</Button>
-        )}
-      </Box>
-      {atMax && <Alert severity="info" sx={{ mb: 1.5 }}>{maxItemsMessage}</Alert>}
-      {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
-      {loading ? (
-        <Box display="flex" justifyContent="center" py={3}><CircularProgress size={24} /></Box>
-      ) : rows.length === 0 ? (
-        <Box py={3} textAlign="center">
-          {icon && React.createElement(icon, { size: 40, style: { opacity: 0.2, marginBottom: 8 } })}
-          <Typography variant="body2" color="text.secondary">{emptyMessage}</Typography>
-        </Box>
-      ) : (
-        <Stack spacing={1}>
-          {rows.map((row) => (
-            <Box key={row.id}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                <Box>
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    {fields.map((f) => {
-                      const val = row[camelToSnake(f.key)];
-                      if (val === null || val === undefined || val === '') return null;
-                      return (
-                        <Typography key={f.key} variant="body2">
-                          <strong>{f.label}:</strong> {String(val)}
-                        </Typography>
-                      );
-                    })}
-                    {highlightWhen && highlightWhen(row) && <Chip size="small" color="primary" label="Primary" />}
-                  </Stack>
-                  {row.file_path && (
-                    <Typography variant="caption" color="text.secondary" display="flex" alignItems="center" gap={0.5} mt={0.5}>
-                      <IconPaperclip size={13} />
-                      <a href={apiService.getUploadUrl(row.file_path)} target="_blank" rel="noopener noreferrer">
-                        View attached file
-                      </a>
-                    </Typography>
-                  )}
-                </Box>
-                {!readOnly && (
-                  <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
-                    <IconTrash size={16} />
-                  </IconButton>
-                )}
-              </Stack>
-              <Divider sx={{ mt: 1 }} />
-            </Box>
-          ))}
-        </Stack>
+    <SectionCard
+      icon={icon}
+      title={title}
+      subtitle={subtitle || (!loading && rows.length > 0 ? `${rows.length} ${rows.length === 1 ? 'record' : 'records'}` : undefined)}
+      action={!readOnly && !atMax && (
+        <Button size="small" variant="outlined" startIcon={<IconPlus size={15} />} onClick={openForm} sx={{ borderRadius: 2 }}>
+          {addLabel}
+        </Button>
       )}
+    >
+      {atMax && <Alert severity="info" sx={{ mb: 1.5, borderRadius: 2 }}>{maxItemsMessage}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 1.5, borderRadius: 2 }}>{error}</Alert>}
+      {loading ? (
+        <LoadingBlock py={3} />
+      ) : rows.length === 0 ? (
+        <EmptyState compact icon={icon} message={emptyMessage} />
+      ) : variant === 'chips' ? renderChips() : renderList()}
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 3 } }}>
-        <DialogTitle sx={{ fontWeight: 700 }}>Add {title}</DialogTitle>
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" PaperProps={dialogPaperProps}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Add {title.replace(/s$/, '').toLowerCase()}</DialogTitle>
         <DialogContent>
           {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{formError}</Alert>}
           <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <Grid container spacing={2} mt={0.5}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, pt: 1 }}>
               {fields.map((f) => {
+                const span = f.multiline ? { gridColumn: '1 / -1' } : undefined;
                 if (f.type === 'select') {
                   return (
-                    <Grid size={{ xs: 12, sm: f.multiline ? 12 : 6 }} key={f.key}>
-                      <TextField
-                        select fullWidth label={f.label} required={f.required}
-                        error={missingKey === f.key}
-                        helperText={missingKey === f.key ? `${f.label} is required` : ''}
-                        value={values[f.key]}
-                        onChange={(e) => { setValues((v) => ({ ...v, [f.key]: e.target.value })); if (missingKey === f.key) setMissingKey(''); }}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      >
-                        {(f.options || []).map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
-                      </TextField>
-                    </Grid>
+                    <TextField
+                      key={f.key}
+                      select fullWidth label={f.label} required={f.required}
+                      error={missingKey === f.key}
+                      helperText={missingKey === f.key ? `${f.label} is required` : ''}
+                      value={values[f.key]}
+                      onChange={(e) => { setValues((v) => ({ ...v, [f.key]: e.target.value })); if (missingKey === f.key) setMissingKey(''); }}
+                      sx={{ ...inputSx, ...span }}
+                    >
+                      {(f.options || []).map((o) => <MenuItem key={o.value} value={o.value}>{humanize(o.label)}</MenuItem>)}
+                    </TextField>
                   );
                 }
                 if (f.type === 'checkbox') {
                   return (
-                    <Grid size={{ xs: 12, sm: 6 }} key={f.key}>
-                      <TextField
-                        select fullWidth label={f.label}
-                        value={values[f.key] ? 'true' : 'false'}
-                        onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value === 'true' }))}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      >
-                        <MenuItem value="false">No</MenuItem>
-                        <MenuItem value="true">Yes</MenuItem>
-                      </TextField>
-                    </Grid>
+                    <TextField
+                      key={f.key}
+                      select fullWidth label={f.label}
+                      value={values[f.key] ? 'true' : 'false'}
+                      onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value === 'true' }))}
+                      sx={inputSx}
+                    >
+                      <MenuItem value="false">No</MenuItem>
+                      <MenuItem value="true">Yes</MenuItem>
+                    </TextField>
                   );
                 }
                 if (f.type === 'date') {
                   return (
-                    <Grid size={{ xs: 12, sm: 6 }} key={f.key}>
-                      <DatePicker
-                        label={f.label}
-                        value={values[f.key] ? dayjs(values[f.key]) : null}
-                        onChange={(newValue) => setValues((v) => ({ ...v, [f.key]: newValue ? newValue.format('YYYY-MM-DD') : '' }))}
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            required: f.required,
-                            sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } },
-                          },
-                        }}
-                      />
-                    </Grid>
+                    <DatePicker
+                      key={f.key}
+                      label={f.label}
+                      value={values[f.key] ? dayjs(values[f.key]) : null}
+                      onChange={(newValue) => setValues((v) => ({ ...v, [f.key]: newValue ? newValue.format('YYYY-MM-DD') : '' }))}
+                      slotProps={{ textField: { fullWidth: true, required: f.required, sx: inputSx } }}
+                    />
                   );
                 }
                 return (
-                  <Grid size={{ xs: 12, sm: f.multiline ? 12 : 6 }} key={f.key}>
-                    <TextField
-                      fullWidth
-                      type={f.type || 'text'}
-                      label={f.label}
-                      required={f.required}
-                      error={missingKey === f.key}
-                      helperText={missingKey === f.key ? `${f.label} is required` : ''}
-                      multiline={f.multiline}
-                      rows={f.multiline ? 2 : undefined}
-                      value={values[f.key]}
-                      onChange={(e) => { setValues((v) => ({ ...v, [f.key]: e.target.value })); if (missingKey === f.key) setMissingKey(''); }}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
-                  </Grid>
+                  <TextField
+                    key={f.key}
+                    fullWidth
+                    type={f.type || 'text'}
+                    label={f.label}
+                    required={f.required}
+                    error={missingKey === f.key}
+                    helperText={missingKey === f.key ? `${f.label} is required` : ''}
+                    multiline={f.multiline}
+                    rows={f.multiline ? 3 : undefined}
+                    value={values[f.key]}
+                    onChange={(e) => { setValues((v) => ({ ...v, [f.key]: e.target.value })); if (missingKey === f.key) setMissingKey(''); }}
+                    sx={{ ...inputSx, ...span }}
+                  />
                 );
               })}
               {fileUpload && (
-                <Grid size={12}>
-                  <Button variant="outlined" component="label" sx={{ borderRadius: 2 }}>
+                <Box sx={{ gridColumn: '1 / -1' }}>
+                  <Button variant="outlined" component="label" color="inherit" startIcon={<IconPaperclip size={16} />} sx={{ borderRadius: 2, borderStyle: 'dashed' }}>
                     {file ? file.name : 'Attach file (optional)'}
                     <input type="file" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
                   </Button>
-                </Grid>
+                </Box>
               )}
-            </Grid>
+            </Box>
           </LocalizationProvider>
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpen(false)} sx={{ borderRadius: 2 }}>Cancel</Button>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setOpen(false)} color="inherit" sx={{ borderRadius: 2 }}>Cancel</Button>
           <Button variant="contained" onClick={handleSubmit} disabled={saving} sx={{ borderRadius: 2 }}>
             {saving ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>
-    </Card>
+    </SectionCard>
   );
 };
 

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Card, CardContent, Typography, Button, TextField, MenuItem, Alert, CircularProgress, Stack, Grid, Divider } from '@mui/material';
+import { Box, Button, TextField, MenuItem, Alert, Stack } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router';
-import { IconArrowLeft, IconBuildingCommunity } from '@tabler/icons-react';
-import PageContainer from '../../../../components/container/PageContainer';
+import { IconBuildingCommunity, IconDeviceFloppy } from '@tabler/icons-react';
 import apiService from '../../../../services/api';
+import { HrPage, SectionCard, LoadingBlock, inputSx } from '../components/HrUi';
 
 const DepartmentForm = () => {
   const navigate = useNavigate();
@@ -51,121 +52,106 @@ const DepartmentForm = () => {
     }
   };
 
-  if (loading) return <Box display="flex" justifyContent="center" py={12}><CircularProgress /></Box>;
+  const title = isEdit ? 'Edit Department' : 'New Department';
 
   return (
-    <PageContainer title={isEdit ? 'Edit Department' : 'New Department'} description="Department form">
-      <Box sx={{ maxWidth: 900, width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
-        <Stack direction="row" alignItems="center" spacing={2} mb={4}>
-          <Button
-            variant="outlined"
-            startIcon={<IconArrowLeft size={20} />}
-            onClick={() => navigate('/erp/hr/departments')}
-            sx={{ borderRadius: 2 }}
-          >
-            Back
-          </Button>
-          <Box>
-            <Typography variant="h3" fontWeight={700}>
-              {isEdit ? 'Edit Department' : 'New Department'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mt={0.5}>
-              {isEdit ? 'Update department information' : 'Create a new department in the system'}
-            </Typography>
-          </Box>
-        </Stack>
+    <HrPage
+      title={title}
+      description="Department form"
+      subtitle={isEdit ? 'Update department details and where it sits in the hierarchy.' : 'Add a department and place it in the organisation hierarchy.'}
+      back="/erp/hr/departments"
+      backLabel="Departments"
+      maxWidth={760}
+    >
+      {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-        {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
-
+      {loading ? (
+        <SectionCard><LoadingBlock /></SectionCard>
+      ) : (
         <form onSubmit={handleSubmit}>
-          <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, mb: 3 }}>
-            <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-              <Stack direction="row" alignItems="center" spacing={1.5} mb={1}>
-                <IconBuildingCommunity size={22} />
-                <Typography variant="h4" fontWeight={700} color="primary.main">
-                  Department Information
-                </Typography>
-              </Stack>
-              <Typography variant="body2" color="text.secondary" mb={4}>
-                Basic department details and hierarchy
-              </Typography>
-              <Divider sx={{ mb: 4 }} />
+          <SectionCard
+            icon={IconBuildingCommunity}
+            title="Department information"
+            subtitle="Basic details and reporting hierarchy"
+            contentSx={{ pb: 0 }}
+          >
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5, pt: 1 }}>
+              <TextField
+                fullWidth
+                label="Name"
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                sx={{ ...inputSx, gridColumn: { sm: '1 / -1' } }}
+              />
+              <TextField
+                fullWidth
+                label="Code"
+                value={form.code}
+                onChange={(e) => setForm({ ...form, code: e.target.value })}
+                helperText="Optional short code, e.g. FIN"
+                sx={inputSx}
+              />
+              <TextField
+                fullWidth
+                select
+                label="Status"
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
+                sx={inputSx}
+              >
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </TextField>
+              <TextField
+                fullWidth
+                select
+                label="Parent Department"
+                value={form.parentId}
+                onChange={(e) => setForm({ ...form, parentId: e.target.value })}
+                helperText="Leave as None for a top-level department"
+                sx={{ ...inputSx, gridColumn: { sm: '1 / -1' } }}
+                SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 350 } } } }}
+              >
+                <MenuItem value="">None</MenuItem>
+                {departments.filter((d) => String(d.id) !== id).map((d) => (
+                  <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
+                ))}
+              </TextField>
+            </Box>
 
-              <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Name"
-                    required
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Code"
-                    value={form.code}
-                    onChange={(e) => setForm({ ...form, code: e.target.value })}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    select
-                    label="Parent Department"
-                    value={form.parentId}
-                    onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 350 } } } }}
-                  >
-                    <MenuItem value="">None</MenuItem>
-                    {departments.filter((d) => String(d.id) !== id).map((d) => (
-                      <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    fullWidth
-                    select
-                    label="Status"
-                    value={form.status}
-                    onChange={(e) => setForm({ ...form, status: e.target.value })}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  >
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
-                  </TextField>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-
-          <Stack direction="row" spacing={2} justifyContent="flex-end" mt={3}>
-            <Button
-              variant="outlined"
-              size="large"
-              onClick={() => navigate('/erp/hr/departments')}
-              sx={{ minWidth: '140px', borderRadius: 2, fontWeight: 600 }}
+            <Stack
+              direction="row"
+              spacing={1.5}
+              justifyContent="flex-end"
+              sx={{
+                mt: 3, mx: { xs: -2, sm: -2.5 }, px: { xs: 2, sm: 2.5 }, py: 2,
+                borderTop: '1px solid', borderColor: 'divider',
+                bgcolor: (t) => alpha(t.palette.text.primary, 0.025),
+              }}
             >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={saving}
-              sx={{ minWidth: '160px', borderRadius: 2, fontWeight: 600 }}
-            >
-              {saving ? 'Saving...' : 'Save'}
-            </Button>
-          </Stack>
+              <Button
+                variant="outlined"
+                color="inherit"
+                onClick={() => navigate('/erp/hr/departments')}
+                sx={{ minWidth: 110, borderRadius: 2, fontWeight: 600, borderColor: 'divider' }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={saving}
+                startIcon={<IconDeviceFloppy size={18} />}
+                sx={{ minWidth: 130, borderRadius: 2, fontWeight: 600 }}
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
+            </Stack>
+          </SectionCard>
         </form>
-      </Box>
-    </PageContainer>
+      )}
+    </HrPage>
   );
 };
 

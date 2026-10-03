@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Card, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, Alert, CircularProgress, Button, Stack,
+  Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Alert, Button, Stack,
 } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
-import { IconClipboardList } from '@tabler/icons-react';
-import PageContainer from '../../../../components/container/PageContainer';
+import dayjs from 'dayjs';
+import {
+  IconClipboardList, IconHourglass, IconCircleCheck, IconCircleX, IconCheck, IconX,
+} from '@tabler/icons-react';
 import apiService from '../../../../services/api';
+import {
+  HrPage, SectionCard, StatTile, StatGrid, StatusChip, PersonCell, EmptyState, LoadingBlock,
+  tableSx, fmtDate,
+} from '../components/HrUi';
 
-const STATUS_COLORS = { pending: 'warning', approved: 'success', rejected: 'error' };
+const fmtTime = (t) => (t ? dayjs(t).format('HH:mm') : '');
 
 const RegularizationRequestList = () => {
-  const theme = useTheme();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,67 +44,77 @@ const RegularizationRequestList = () => {
     }
   };
 
+  const count = (s) => rows.filter((r) => r.status === s).length;
+
   return (
-    <PageContainer title="Regularization Requests" description="HR attendance correction approval queue">
-      <Box>
-        <Stack direction="row" alignItems="center" spacing={1.5} mb={0.5}>
-          <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconClipboardList size={20} />
-          </Box>
-          <Typography variant="h4" fontWeight={700}>Regularization Requests</Typography>
-        </Stack>
-        <Typography variant="body2" color="text.secondary" ml={6.5} mb={3}>
-          Attendance correction approval queue
-        </Typography>
+    <HrPage
+      title="Regularization Requests"
+      description="HR attendance correction approval queue"
+      subtitle="Review attendance corrections submitted by employees."
+    >
+      {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      <StatGrid min={200} sx={{ mb: 3 }}>
+        <StatTile icon={IconHourglass} tone="warning" label="Awaiting review" value={count('pending')} loading={loading} />
+        <StatTile icon={IconCircleCheck} tone="success" label="Approved" value={count('approved')} loading={loading} />
+        <StatTile icon={IconCircleX} tone="error" label="Rejected" value={count('rejected')} loading={loading} />
+      </StatGrid>
 
-        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
-          <TableContainer>
-            <Table>
+      <SectionCard
+        icon={IconClipboardList}
+        title="Correction requests"
+        subtitle={loading ? 'Loading…' : `${rows.length} request${rows.length === 1 ? '' : 's'}`}
+        noPadding
+      >
+        {loading ? (
+          <LoadingBlock />
+        ) : rows.length === 0 ? (
+          <EmptyState icon={IconClipboardList} title="No requests" message="Attendance correction requests from employees will appear here." compact />
+        ) : (
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ ...tableSx, minWidth: 900 }}>
               <TableHead>
-                <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                  {['Employee', 'Date', 'Requested In', 'Requested Out', 'Reason', 'Status', 'Actions'].map((h, i) => (
-                    <TableCell key={i} align={i === 6 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
-                  ))}
+                <TableRow>
+                  <TableCell>Employee</TableCell>
+                  <TableCell>Date</TableCell>
+                  <TableCell>Requested in</TableCell>
+                  <TableCell>Requested out</TableCell>
+                  <TableCell>Reason</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {loading ? (
-                  <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6 }}><CircularProgress size={28} /></TableCell></TableRow>
-                ) : rows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
-                      <IconClipboardList size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
-                      <Typography variant="body2" color="text.secondary">No requests</Typography>
+                {rows.map((r) => (
+                  <TableRow key={r.id} hover>
+                    <TableCell>
+                      <PersonCell person={r.employee} secondary={r.employee?.employee_code} size={32} />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={500} noWrap>{fmtDate(r.attendance_date) || r.attendance_date}</Typography>
+                    </TableCell>
+                    <TableCell><Typography variant="body2">{fmtTime(r.requested_check_in) || '—'}</Typography></TableCell>
+                    <TableCell><Typography variant="body2">{fmtTime(r.requested_check_out) || '—'}</Typography></TableCell>
+                    <TableCell sx={{ maxWidth: 280 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>{r.reason || '—'}</Typography>
+                    </TableCell>
+                    <TableCell><StatusChip status={r.status} /></TableCell>
+                    <TableCell align="right">
+                      {r.status === 'pending' && (
+                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Button size="small" variant="contained" color="success" startIcon={<IconCheck size={16} />} onClick={() => review(r.id, 'approved')} sx={{ borderRadius: 2, fontWeight: 600, boxShadow: 'none' }}>Approve</Button>
+                          <Button size="small" variant="outlined" color="error" startIcon={<IconX size={16} />} onClick={() => review(r.id, 'rejected')} sx={{ borderRadius: 2, fontWeight: 600 }}>Reject</Button>
+                        </Stack>
+                      )}
                     </TableCell>
                   </TableRow>
-                ) : (
-                  rows.map((r) => (
-                    <TableRow key={r.id} hover>
-                      <TableCell><Typography variant="body2" fontWeight={600}>{r.employee?.first_name} {r.employee?.last_name}</Typography></TableCell>
-                      <TableCell><Typography variant="body2" color="text.secondary">{r.attendance_date}</Typography></TableCell>
-                      <TableCell>{r.requested_check_in ? new Date(r.requested_check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</TableCell>
-                      <TableCell>{r.requested_check_out ? new Date(r.requested_check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</TableCell>
-                      <TableCell><Typography variant="body2" color="text.secondary">{r.reason}</Typography></TableCell>
-                      <TableCell><Chip size="small" label={r.status} color={STATUS_COLORS[r.status]} sx={{ fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
-                      <TableCell align="right">
-                        {r.status === 'pending' && (
-                          <Stack direction="row" spacing={1} justifyContent="flex-end">
-                            <Button size="small" variant="contained" color="success" onClick={() => review(r.id, 'approved')} sx={{ borderRadius: 2, fontWeight: 600 }}>Approve</Button>
-                            <Button size="small" variant="outlined" color="error" onClick={() => review(r.id, 'rejected')} sx={{ borderRadius: 2, fontWeight: 600 }}>Reject</Button>
-                          </Stack>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </TableContainer>
-        </Card>
-      </Box>
-    </PageContainer>
+        )}
+      </SectionCard>
+    </HrPage>
   );
 };
 

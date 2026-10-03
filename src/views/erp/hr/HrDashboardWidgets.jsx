@@ -1,27 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Card, Grid, Typography, CircularProgress, Stack } from '@mui/material';
+import { Box, Typography, Stack } from '@mui/material';
 import { IconUsers, IconUserCheck, IconClockExclamation, IconUserOff, IconBeach, IconClipboardCheck } from '@tabler/icons-react';
 import apiService from '../../../services/api';
-
-const StatCard = ({ icon, label, value, color = 'primary' }) => (
-  <Card sx={{ p: 2, height: '100%' }}>
-    <Stack direction="row" spacing={1.5} alignItems="center">
-      <Box
-        sx={{
-          width: 44, height: 44, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          bgcolor: (theme) => theme.palette[color]?.light || theme.palette.primary.light,
-          color: (theme) => theme.palette[color]?.dark || theme.palette.primary.dark,
-        }}
-      >
-        {icon}
-      </Box>
-      <Box>
-        <Typography variant="h5" fontWeight={700}>{value ?? '-'}</Typography>
-        <Typography variant="caption" color="text.secondary">{label}</Typography>
-      </Box>
-    </Stack>
-  </Card>
-);
+import { HrThemeScope, StatTile, StatGrid, fmtDate } from './components/HrUi';
 
 /**
  * HR-only dashboard widgets (visible to hr.employees.manage holders only — gated by
@@ -71,38 +52,32 @@ const HrDashboardWidgets = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" py={3}>
-        <CircularProgress size={28} />
-      </Box>
-    );
-  }
+  const pendingApprovals = (pendingLeave ?? 0) + (pendingRegularizations ?? 0);
 
   return (
-    <Box mb={3}>
-      <Typography variant="subtitle1" fontWeight={700} mb={1.5}>HR Overview</Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard icon={<IconUsers size={22} />} label="Active headcount" value={headcount} color="primary" />
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard icon={<IconUserCheck size={22} />} label="Present today" value={attendanceCounts.present} color="success" />
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard icon={<IconClockExclamation size={22} />} label="Late today" value={attendanceCounts.late} color="warning" />
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard icon={<IconUserOff size={22} />} label="Absent today" value={attendanceCounts.absent} color="error" />
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard icon={<IconBeach size={22} />} label="On leave today" value={attendanceCounts.on_leave} color="info" />
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <StatCard icon={<IconClipboardCheck size={22} />} label="Pending approvals" value={(pendingLeave ?? 0) + (pendingRegularizations ?? 0)} color="secondary" />
-        </Grid>
-      </Grid>
-    </Box>
+    <HrThemeScope>
+      <Box mb={3}>
+        <Stack direction="row" alignItems="baseline" justifyContent="space-between" spacing={1} mb={1.5}>
+          <Typography variant="subtitle1" fontWeight={700}>HR Overview</Typography>
+          <Typography variant="caption" color="text.secondary">Today · {fmtDate(new Date())}</Typography>
+        </Stack>
+        <StatGrid min={170}>
+          <StatTile icon={IconUsers} label="Active headcount" value={headcount} tone="primary" loading={loading} />
+          <StatTile icon={IconUserCheck} label="Present today" value={attendanceCounts.present} tone="success" loading={loading} />
+          <StatTile icon={IconClockExclamation} label="Late today" value={attendanceCounts.late} tone="warning" loading={loading} />
+          <StatTile icon={IconUserOff} label="Absent today" value={attendanceCounts.absent} tone="error" loading={loading} />
+          <StatTile icon={IconBeach} label="On leave today" value={attendanceCounts.on_leave} tone="info" loading={loading} />
+          <StatTile
+            icon={IconClipboardCheck}
+            label="Pending approvals"
+            value={pendingApprovals}
+            hint={`${pendingLeave ?? 0} leave · ${pendingRegularizations ?? 0} attendance`}
+            tone="secondary"
+            loading={loading}
+          />
+        </StatGrid>
+      </Box>
+    </HrThemeScope>
   );
 };
 

@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Card, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, Alert, CircularProgress, Button, Stack,
+  Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Alert, Button, Stack,
 } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
-import { IconClipboardCheck } from '@tabler/icons-react';
-import PageContainer from '../../../../components/container/PageContainer';
+import {
+  IconClipboardCheck, IconHourglass, IconCalendarStats, IconUsers, IconCheck, IconX,
+} from '@tabler/icons-react';
 import apiService from '../../../../services/api';
-
-const STATUS_COLORS = { pending: 'warning', approved: 'success', rejected: 'error', cancelled: 'default' };
+import {
+  HrPage, SectionCard, StatTile, StatGrid, StatusChip, PersonCell, EmptyState, LoadingBlock,
+  tableSx, fmtDate,
+} from '../components/HrUi';
 
 const LeaveApprovalQueue = () => {
-  const theme = useTheme();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,66 +39,79 @@ const LeaveApprovalQueue = () => {
     try { await apiService.rejectHrLeaveRequest(id); load(); } catch (err) { setError(err.message || 'Failed to reject'); }
   };
 
+  const totalDays = rows.reduce((sum, r) => sum + (parseFloat(r.days_count) || 0), 0);
+  const people = new Set(rows.map((r) => r.employee?.id ?? `${r.employee?.first_name}-${r.employee?.last_name}`)).size;
+
   return (
-    <PageContainer title="Leave Approvals" description="Leave requests awaiting your approval">
-      <Box>
-        <Stack direction="row" alignItems="center" spacing={1.5} mb={0.5}>
-          <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconClipboardCheck size={20} />
-          </Box>
-          <Typography variant="h4" fontWeight={700}>Leave Approvals</Typography>
-        </Stack>
-        <Typography variant="body2" color="text.secondary" ml={6.5} mb={3}>
-          Scoped to your direct reports unless you have full HR access.
-        </Typography>
+    <HrPage
+      title="Leave Approvals"
+      description="Leave requests awaiting your approval"
+      subtitle="Scoped to your direct reports unless you have full HR access."
+    >
+      {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      <StatGrid min={200} sx={{ mb: 3 }}>
+        <StatTile icon={IconHourglass} tone="warning" label="Pending approvals" value={rows.length} loading={loading} />
+        <StatTile icon={IconCalendarStats} tone="primary" label="Days requested" value={totalDays} loading={loading} />
+        <StatTile icon={IconUsers} tone="info" label="Employees" value={people} loading={loading} />
+      </StatGrid>
 
-        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
-          <TableContainer>
-            <Table>
+      <SectionCard
+        icon={IconClipboardCheck}
+        title="Awaiting your decision"
+        subtitle={loading ? 'Loading…' : `${rows.length} pending request${rows.length === 1 ? '' : 's'}`}
+        noPadding
+      >
+        {loading ? (
+          <LoadingBlock />
+        ) : rows.length === 0 ? (
+          <EmptyState icon={IconClipboardCheck} title="All caught up" message="There are no pending leave requests to review." compact />
+        ) : (
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ ...tableSx, minWidth: 920 }}>
               <TableHead>
-                <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                  {['Employee', 'Type', 'Start', 'End', 'Days', 'Reason', 'Status', 'Actions'].map((h, i) => (
-                    <TableCell key={i} align={i === 7 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
-                  ))}
+                <TableRow>
+                  <TableCell>Employee</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Dates</TableCell>
+                  <TableCell align="right">Days</TableCell>
+                  <TableCell>Reason</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {loading ? (
-                  <TableRow><TableCell colSpan={8} align="center" sx={{ py: 6 }}><CircularProgress size={28} /></TableCell></TableRow>
-                ) : rows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
-                      <IconClipboardCheck size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
-                      <Typography variant="body2" color="text.secondary">No pending requests</Typography>
+                {rows.map((r) => (
+                  <TableRow key={r.id} hover>
+                    <TableCell>
+                      <PersonCell person={r.employee} secondary={r.employee?.employee_code} size={32} />
+                    </TableCell>
+                    <TableCell><Typography variant="body2" fontWeight={500}>{r.leaveType?.name || '—'}</Typography></TableCell>
+                    <TableCell>
+                      <Typography variant="body2" noWrap>
+                        {fmtDate(r.start_date) || r.start_date}
+                        {r.end_date && r.end_date !== r.start_date ? ` – ${fmtDate(r.end_date) || r.end_date}` : ''}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right"><Typography variant="body2" fontWeight={600}>{r.days_count}</Typography></TableCell>
+                    <TableCell sx={{ maxWidth: 260 }}>
+                      <Typography variant="body2" color={r.reason ? 'text.secondary' : 'text.disabled'} sx={{ wordBreak: 'break-word' }}>{r.reason || '—'}</Typography>
+                    </TableCell>
+                    <TableCell><StatusChip status={r.status} /></TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Button size="small" variant="contained" color="success" startIcon={<IconCheck size={16} />} onClick={() => approve(r.id)} sx={{ borderRadius: 2, fontWeight: 600, boxShadow: 'none' }}>Approve</Button>
+                        <Button size="small" variant="outlined" color="error" startIcon={<IconX size={16} />} onClick={() => reject(r.id)} sx={{ borderRadius: 2, fontWeight: 600 }}>Reject</Button>
+                      </Stack>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  rows.map((r) => (
-                    <TableRow key={r.id} hover>
-                      <TableCell><Typography variant="body2" fontWeight={600}>{r.employee?.first_name} {r.employee?.last_name}</Typography></TableCell>
-                      <TableCell><Typography variant="body2">{r.leaveType?.name}</Typography></TableCell>
-                      <TableCell><Typography variant="body2" color="text.secondary">{r.start_date}</Typography></TableCell>
-                      <TableCell><Typography variant="body2" color="text.secondary">{r.end_date}</Typography></TableCell>
-                      <TableCell><Typography variant="body2">{r.days_count}</Typography></TableCell>
-                      <TableCell><Typography variant="body2" color="text.secondary">{r.reason || '-'}</Typography></TableCell>
-                      <TableCell><Chip size="small" label={r.status} color={STATUS_COLORS[r.status]} sx={{ fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
-                      <TableCell align="right">
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Button size="small" variant="contained" color="success" onClick={() => approve(r.id)} sx={{ borderRadius: 2, fontWeight: 600 }}>Approve</Button>
-                          <Button size="small" variant="outlined" color="error" onClick={() => reject(r.id)} sx={{ borderRadius: 2, fontWeight: 600 }}>Reject</Button>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </TableContainer>
-        </Card>
-      </Box>
-    </PageContainer>
+        )}
+      </SectionCard>
+    </HrPage>
   );
 };
 

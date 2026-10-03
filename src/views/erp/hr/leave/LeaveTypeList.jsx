@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Card, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, Alert, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Stack, Checkbox, FormControlLabel, IconButton,
+  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Alert, Button, Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Stack, Checkbox, FormControlLabel, IconButton, Tooltip,
 } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
-import { IconPlus, IconEdit, IconCalendarStats } from '@tabler/icons-react';
-import PageContainer from '../../../../components/container/PageContainer';
+import {
+  IconPlus, IconEdit, IconCalendarStats, IconCoin, IconCoinOff, IconShieldCheck,
+} from '@tabler/icons-react';
 import apiService from '../../../../services/api';
+import {
+  HrPage, SectionCard, StatTile, StatGrid, StatusChip, EmptyState, LoadingBlock,
+  tableSx, inputSx, dialogPaperProps,
+} from '../components/HrUi';
 
 const EMPTY = { name: '', code: '', isPaid: true, defaultAnnualDays: 0, requiresApproval: true };
 
 const LeaveTypeList = () => {
-  const theme = useTheme();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,87 +56,110 @@ const LeaveTypeList = () => {
     }
   };
 
+  const paidCount = rows.filter((t) => t.is_paid).length;
+  const approvalCount = rows.filter((t) => t.requires_approval).length;
+
   return (
-    <PageContainer title="Leave Types" description="HR leave type configuration">
-      <Box>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={2}>
-          <Box>
-            <Stack direction="row" alignItems="center" spacing={1.5} mb={0.5}>
-              <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IconCalendarStats size={20} />
-              </Box>
-              <Typography variant="h4" fontWeight={700}>Leave Types</Typography>
-            </Stack>
-            <Typography variant="body2" color="text.secondary" ml={6.5}>
-              {rows.length > 0 ? `${rows.length} leave type${rows.length !== 1 ? 's' : ''}` : 'Configure leave type entitlements'}
-            </Typography>
-          </Box>
-          <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={openCreate} sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
-            New Leave Type
-          </Button>
-        </Stack>
+    <HrPage
+      title="Leave Types"
+      description="HR leave type configuration"
+      subtitle="Configure the leave types employees can request and their yearly entitlements."
+      actions={(
+        <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={openCreate} sx={{ borderRadius: 2, fontWeight: 600, px: 2.5, boxShadow: 'none' }}>
+          New Leave Type
+        </Button>
+      )}
+    >
+      {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      <StatGrid min={200} sx={{ mb: 3 }}>
+        <StatTile icon={IconCalendarStats} tone="primary" label="Leave types" value={rows.length} loading={loading} />
+        <StatTile icon={IconCoin} tone="success" label="Paid" value={paidCount} loading={loading} />
+        <StatTile icon={IconCoinOff} tone="secondary" label="Unpaid" value={rows.length - paidCount} loading={loading} />
+        <StatTile icon={IconShieldCheck} tone="warning" label="Need approval" value={approvalCount} loading={loading} />
+      </StatGrid>
 
-        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
-          <TableContainer>
-            <Table>
+      <SectionCard
+        icon={IconCalendarStats}
+        title="All leave types"
+        subtitle={loading ? 'Loading…' : `${rows.length} leave type${rows.length !== 1 ? 's' : ''}`}
+        noPadding
+      >
+        {loading ? (
+          <LoadingBlock />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            icon={IconCalendarStats}
+            title="No leave types configured"
+            message="Create leave types such as Annual, Sick or Unpaid so employees can request time off."
+            action={<Button variant="outlined" startIcon={<IconPlus size={16} />} onClick={openCreate} sx={{ borderRadius: 2, fontWeight: 600 }}>New Leave Type</Button>}
+            compact
+          />
+        ) : (
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ ...tableSx, minWidth: 640 }}>
               <TableHead>
-                <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                  {['Name', 'Code', 'Paid', 'Annual Days', 'Approval', 'Edit'].map((h, i) => (
-                    <TableCell key={i} align={i === 5 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
-                  ))}
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Code</TableCell>
+                  <TableCell>Pay</TableCell>
+                  <TableCell align="right">Annual days</TableCell>
+                  <TableCell>Approval</TableCell>
+                  <TableCell align="right" />
                 </TableRow>
               </TableHead>
               <TableBody>
-                {loading ? (
-                  <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6 }}><CircularProgress size={28} /></TableCell></TableRow>
-                ) : rows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
-                      <IconCalendarStats size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
-                      <Typography variant="body2" color="text.secondary">No leave types configured</Typography>
+                {rows.map((t) => (
+                  <TableRow key={t.id} hover>
+                    <TableCell><Typography variant="body2" fontWeight={600}>{t.name}</Typography></TableCell>
+                    <TableCell>
+                      <Box
+                        component="span"
+                        sx={{
+                          fontFamily: 'monospace', fontSize: 12.5, px: 0.75, py: 0.25, borderRadius: 1,
+                          bgcolor: 'action.hover', color: 'text.secondary',
+                        }}
+                      >
+                        {t.code}
+                      </Box>
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  rows.map((t) => (
-                    <TableRow key={t.id} hover>
-                      <TableCell><Typography variant="body2" fontWeight={600}>{t.name}</Typography></TableCell>
-                      <TableCell><Typography variant="body2" color="text.secondary">{t.code}</Typography></TableCell>
-                      <TableCell><Chip size="small" label={t.is_paid ? 'Paid' : 'Unpaid'} color={t.is_paid ? 'success' : 'default'} sx={{ fontWeight: 600 }} /></TableCell>
-                      <TableCell><Typography variant="body2">{t.default_annual_days}</Typography></TableCell>
-                      <TableCell><Typography variant="body2">{t.requires_approval ? 'Required' : 'Auto'}</Typography></TableCell>
-                      <TableCell align="right">
+                    <TableCell><StatusChip tone={t.is_paid ? 'success' : 'default'} label={t.is_paid ? 'Paid' : 'Unpaid'} /></TableCell>
+                    <TableCell align="right"><Typography variant="body2" fontWeight={600}>{t.default_annual_days}</Typography></TableCell>
+                    <TableCell><StatusChip tone={t.requires_approval ? 'warning' : 'info'} label={t.requires_approval ? 'Required' : 'Auto-approved'} /></TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Edit">
                         <IconButton size="small" onClick={() => openEdit(t)} sx={{ borderRadius: 1.5 }}>
                           <IconEdit size={18} />
                         </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </TableContainer>
-        </Card>
-      </Box>
+        )}
+      </SectionCard>
 
-      <Dialog open={formOpen} onClose={() => setFormOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-        <DialogTitle sx={{ fontWeight: 700 }}>{editing ? 'Edit Leave Type' : 'New Leave Type'}</DialogTitle>
+      <Dialog open={formOpen} onClose={() => setFormOpen(false)} maxWidth="xs" fullWidth PaperProps={dialogPaperProps}>
+        <DialogTitle sx={{ fontWeight: 700 }}>{editing ? 'Edit leave type' : 'New leave type'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} mt={1}>
-            <TextField label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
-            <TextField label="Code" value={form.code} disabled={!!editing} onChange={(e) => setForm({ ...form, code: e.target.value })} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
-            <TextField type="number" label="Default Annual Days" value={form.defaultAnnualDays} onChange={(e) => setForm({ ...form, defaultAnnualDays: e.target.value })} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
-            <FormControlLabel control={<Checkbox checked={form.isPaid} onChange={(e) => setForm({ ...form, isPaid: e.target.checked })} />} label="Paid leave" />
-            <FormControlLabel control={<Checkbox checked={form.requiresApproval} onChange={(e) => setForm({ ...form, requiresApproval: e.target.checked })} />} label="Requires approval" />
+            <TextField label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} sx={inputSx} />
+            <TextField label="Code" value={form.code} disabled={!!editing} helperText={editing ? 'Code cannot be changed after creation' : undefined} onChange={(e) => setForm({ ...form, code: e.target.value })} sx={inputSx} />
+            <TextField type="number" label="Default annual days" value={form.defaultAnnualDays} onChange={(e) => setForm({ ...form, defaultAnnualDays: e.target.value })} sx={inputSx} />
+            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 1.5, py: 0.5 }}>
+              <FormControlLabel control={<Checkbox checked={form.isPaid} onChange={(e) => setForm({ ...form, isPaid: e.target.checked })} />} label="Paid leave" sx={{ display: 'flex' }} />
+              <FormControlLabel control={<Checkbox checked={form.requiresApproval} onChange={(e) => setForm({ ...form, requiresApproval: e.target.checked })} />} label="Requires approval" sx={{ display: 'flex' }} />
+            </Box>
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={() => setFormOpen(false)} sx={{ borderRadius: 2 }}>Cancel</Button>
-          <Button variant="contained" onClick={save} sx={{ borderRadius: 2 }}>Save</Button>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setFormOpen(false)} color="inherit" sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button variant="contained" onClick={save} sx={{ borderRadius: 2, fontWeight: 600 }}>Save</Button>
         </DialogActions>
       </Dialog>
-    </PageContainer>
+    </HrPage>
   );
 };
 

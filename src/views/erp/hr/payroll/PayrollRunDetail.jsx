@@ -1,29 +1,90 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Box, Card, CardContent, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, Alert, CircularProgress, Button, Stack, Grid, Divider, Paper,
+  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableFooter,
+  Alert, Button, Stack,
 } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
-import { IconArrowLeft, IconCashBanknote } from '@tabler/icons-react';
+import { alpha } from '@mui/material/styles';
+import {
+  IconCashBanknote, IconUsers, IconCoin, IconReceiptTax, IconWallet, IconCheck, IconFileInvoice,
+  IconPlayerPlay, IconRosetteDiscountCheck, IconChevronRight,
+} from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router';
-import PageContainer from '../../../../components/container/PageContainer';
 import apiService from '../../../../services/api';
 import { useAuth } from '../../../../context/AuthContext';
+import {
+  HrPage, SectionCard, StatTile, StatGrid, StatusChip, PersonCell, EmptyState, LoadingBlock,
+  tableSx, fmtMoney,
+} from '../components/HrUi';
 
-const STATUS_COLORS = { draft: 'default', processed: 'info', approved: 'warning', paid: 'success', cancelled: 'error' };
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-const StatBox = ({ label, value }) => (
-  <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', height: '100%' }}>
-    <Typography variant="caption" color="text.secondary" fontWeight={700} textTransform="uppercase" letterSpacing={0.5}>{label}</Typography>
-    <Typography variant="h5" fontWeight={800} mt={0.5}>{value}</Typography>
-  </Paper>
-);
+const STEPS = [
+  { key: 'draft', label: 'Draft', hint: 'Run created' },
+  { key: 'processed', label: 'Processed', hint: 'Payslips calculated' },
+  { key: 'approved', label: 'Approved', hint: 'Posted to GL' },
+  { key: 'paid', label: 'Paid', hint: 'Salaries disbursed' },
+];
+
+/** Horizontal progress tracker for the run lifecycle (stacks vertically on phones). */
+const RunProgress = ({ status }) => {
+  const current = STEPS.findIndex((s) => s.key === status);
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: `repeat(${STEPS.length}, 1fr)` }, gap: { xs: 1.5, sm: 0 } }}>
+      {STEPS.map((step, i) => {
+        const done = current >= 0 && i < current;
+        const active = i === current;
+        const reached = done || active;
+        const tone = status === 'paid' && active ? 'success' : 'primary';
+        return (
+          <Stack
+            key={step.key}
+            direction={{ xs: 'row', sm: 'column' }}
+            alignItems={{ xs: 'center', sm: 'flex-start' }}
+            spacing={{ xs: 1.5, sm: 1 }}
+            sx={{ position: 'relative', pr: { sm: 2 } }}
+          >
+            <Stack direction="row" alignItems="center" sx={{ width: { sm: '100%' } }}>
+              <Box sx={{
+                width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+                fontWeight: 700, fontSize: 13,
+                bgcolor: (t) => (done || (active && status === 'paid')
+                  ? t.palette[tone].main
+                  : active ? alpha(t.palette[tone].main, 0.14) : alpha(t.palette.text.primary, 0.06)),
+                color: (t) => (done || (active && status === 'paid')
+                  ? t.palette[tone].contrastText
+                  : active ? t.palette[tone].main : t.palette.text.disabled),
+                border: '2px solid',
+                borderColor: (t) => (reached ? t.palette[tone].main : 'transparent'),
+              }}
+              >
+                {done || (active && status === 'paid') ? <IconCheck size={16} stroke={3} /> : i + 1}
+              </Box>
+              {i < STEPS.length - 1 && (
+                <Box sx={{
+                  display: { xs: 'none', sm: 'block' }, flex: 1, height: 2, mx: 1, borderRadius: 1,
+                  bgcolor: (t) => (done ? t.palette.primary.main : alpha(t.palette.text.primary, 0.1)),
+                }}
+                />
+              )}
+            </Stack>
+            <Box minWidth={0}>
+              <Typography variant="body2" fontWeight={active ? 700 : 600} color={reached ? 'text.primary' : 'text.secondary'}>
+                {step.label}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">{step.hint}</Typography>
+            </Box>
+          </Stack>
+        );
+      })}
+    </Box>
+  );
+};
+
+const sum = (list, key) => list.reduce((acc, p) => acc + (Number(p[key]) || 0), 0);
 
 const PayrollRunDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const theme = useTheme();
   const { hasPermission } = useAuth();
   const [run, setRun] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -60,80 +121,182 @@ const PayrollRunDetail = () => {
     }
   };
 
-  if (loading) return <Box display="flex" justifyContent="center" py={12}><CircularProgress /></Box>;
-  if (!run) return <Alert severity="error" sx={{ borderRadius: 2 }}>{error || 'Payroll run not found'}</Alert>;
+  const payslips = useMemo(() => run?.payslips || [], [run]);
+  const totals = useMemo(() => {
+    if (payslips.length === 0) {
+      return { gross: run?.total_gross, deductions: run?.total_deductions, net: run?.total_net, basic: null };
+    }
+    return {
+      basic: sum(payslips, 'basic_salary'),
+      gross: sum(payslips, 'gross_salary'),
+      deductions: sum(payslips, 'total_deductions'),
+      net: sum(payslips, 'net_salary'),
+    };
+  }, [payslips, run]);
+
+  if (loading) {
+    return (
+      <HrPage title="Payroll Run" description="Payroll run payslips" back="/erp/hr/payroll/runs" backLabel="Payroll runs">
+        <LoadingBlock py={12} />
+      </HrPage>
+    );
+  }
+  if (!run) {
+    return (
+      <HrPage title="Payroll Run" description="Payroll run payslips" back="/erp/hr/payroll/runs" backLabel="Payroll runs">
+        <Alert severity="error" sx={{ borderRadius: 2 }}>{error || 'Payroll run not found'}</Alert>
+      </HrPage>
+    );
+  }
+
+  const period = `${MONTHS[run.period_month - 1]} ${run.period_year}`;
+
+  const actions = canProcess && (
+    <>
+      {['draft', 'processed'].includes(run.status) && (
+        <Button
+          variant={run.status === 'draft' ? 'contained' : 'outlined'}
+          startIcon={<IconPlayerPlay size={18} />}
+          disabled={actionLoading}
+          onClick={() => doAction(() => apiService.processHrPayrollRun(id))}
+          sx={{ borderRadius: 2, fontWeight: 600 }}
+        >
+          {run.status === 'processed' ? 'Re-process' : 'Process'}
+        </Button>
+      )}
+      {run.status === 'processed' && (
+        <Button
+          variant="contained"
+          color="warning"
+          startIcon={<IconRosetteDiscountCheck size={18} />}
+          disabled={actionLoading}
+          onClick={() => doAction(() => apiService.approveHrPayrollRun(id))}
+          sx={{ borderRadius: 2, fontWeight: 600 }}
+        >
+          Approve (Post to GL)
+        </Button>
+      )}
+      {run.status === 'approved' && (
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={<IconWallet size={18} />}
+          disabled={actionLoading}
+          onClick={() => doAction(() => apiService.markHrPayrollRunPaid(id, {}))}
+          sx={{ borderRadius: 2, fontWeight: 600 }}
+        >
+          Mark Paid
+        </Button>
+      )}
+    </>
+  );
 
   return (
-    <PageContainer title="Payroll Run Detail" description="Payroll run payslips">
-      <Box>
-        <Stack direction="row" alignItems="center" spacing={2} mb={4}>
-          <Button variant="outlined" startIcon={<IconArrowLeft size={20} />} onClick={() => navigate('/erp/hr/payroll/runs')} sx={{ borderRadius: 2 }}>
-            Back
-          </Button>
-          <Box flex={1}>
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <Typography variant="h3" fontWeight={700}>{MONTHS[run.period_month - 1]} {run.period_year}</Typography>
-              <Chip size="small" label={run.status} color={STATUS_COLORS[run.status]} sx={{ fontWeight: 600, textTransform: 'capitalize' }} />
-            </Stack>
-          </Box>
-          {canProcess && (
-            <Stack direction="row" spacing={1}>
-              {['draft', 'processed'].includes(run.status) && (
-                <Button variant="contained" disabled={actionLoading} onClick={() => doAction(() => apiService.processHrPayrollRun(id))} sx={{ borderRadius: 2, fontWeight: 600 }}>Process</Button>
-              )}
-              {run.status === 'processed' && (
-                <Button variant="contained" color="warning" disabled={actionLoading} onClick={() => doAction(() => apiService.approveHrPayrollRun(id))} sx={{ borderRadius: 2, fontWeight: 600 }}>Approve (Post to GL)</Button>
-              )}
-              {run.status === 'approved' && (
-                <Button variant="contained" color="success" disabled={actionLoading} onClick={() => doAction(() => apiService.markHrPayrollRunPaid(id, {}))} sx={{ borderRadius: 2, fontWeight: 600 }}>Mark Paid</Button>
-              )}
-            </Stack>
-          )}
+    <HrPage
+      title={period}
+      description="Payroll run payslips"
+      back="/erp/hr/payroll/runs"
+      backLabel="Payroll runs"
+      subtitle={(
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+          <span>Payroll run</span>
+          <StatusChip status={run.status} />
         </Stack>
+      )}
+      actions={actions}
+    >
+      {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      <SectionCard sx={{ mb: 3 }}>
+        {run.status === 'cancelled' ? (
+          <Alert severity="warning" sx={{ borderRadius: 2 }}>This payroll run was cancelled.</Alert>
+        ) : (
+          <RunProgress status={run.status} />
+        )}
+      </SectionCard>
 
-        <Grid container spacing={2.5} mb={3}>
-          <Grid size={{ xs: 12, sm: 4 }}><StatBox label="Total Gross" value={Number(run.total_gross).toLocaleString()} /></Grid>
-          <Grid size={{ xs: 12, sm: 4 }}><StatBox label="Total Deductions" value={Number(run.total_deductions).toLocaleString()} /></Grid>
-          <Grid size={{ xs: 12, sm: 4 }}><StatBox label="Total Net" value={Number(run.total_net).toLocaleString()} /></Grid>
-        </Grid>
+      <StatGrid min={200} sx={{ mb: 3 }}>
+        <StatTile icon={IconUsers} label="Employees" value={payslips.length} />
+        <StatTile icon={IconCoin} label="Total gross" value={fmtMoney(totals.gross)} tone="info" />
+        <StatTile icon={IconReceiptTax} label="Total deductions" value={fmtMoney(totals.deductions)} tone="warning" />
+        <StatTile icon={IconCashBanknote} label="Total net pay" value={fmtMoney(totals.net)} tone="success" />
+      </StatGrid>
 
-        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-            <Typography variant="h6" fontWeight={700} mb={1}>Payslips</Typography>
-            <Divider sx={{ mb: 2 }} />
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                    {['Employee', 'Basic', 'Gross', 'Deductions', 'Net', 'Payment', 'View'].map((h, i) => (
-                      <TableCell key={i} align={i >= 1 && i <= 4 ? 'right' : i === 6 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
-                    ))}
+      <SectionCard
+        icon={IconFileInvoice}
+        title="Payslips"
+        subtitle={payslips.length > 0 ? `${payslips.length} employee${payslips.length !== 1 ? 's' : ''} in this run` : undefined}
+        noPadding
+      >
+        {payslips.length === 0 ? (
+          <EmptyState
+            icon={IconFileInvoice}
+            title="No payslips yet"
+            message="Process the run to calculate payslips for all active employees."
+            compact
+          />
+        ) : (
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table
+              sx={{
+                ...tableSx,
+                minWidth: 860,
+                '& tfoot td': {
+                  borderTop: '1px solid', borderBottom: 0, borderColor: 'divider', fontWeight: 700, fontSize: 14,
+                  color: 'text.primary', bgcolor: (t) => alpha(t.palette.text.primary, 0.025), py: 1.5,
+                },
+              }}
+            >
+              <TableHead>
+                <TableRow>
+                  <TableCell>Employee</TableCell>
+                  <TableCell align="right">Basic</TableCell>
+                  <TableCell align="right">Gross</TableCell>
+                  <TableCell align="right">Deductions</TableCell>
+                  <TableCell align="right">Net pay</TableCell>
+                  <TableCell>Payment</TableCell>
+                  <TableCell align="right" />
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {payslips.map((p) => (
+                  <TableRow key={p.id} hover>
+                    <TableCell sx={{ maxWidth: 260 }}>
+                      <PersonCell person={p.employee} secondary={p.employee?.employee_code} />
+                    </TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: 'nowrap', color: 'text.secondary' }}>{fmtMoney(p.basic_salary)}</TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{fmtMoney(p.gross_salary)}</TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: 'nowrap', color: 'text.secondary' }}>{fmtMoney(p.total_deductions)}</TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: 'nowrap', fontWeight: 700 }}>{fmtMoney(p.net_salary)}</TableCell>
+                    <TableCell><StatusChip status={p.payment_status} /></TableCell>
+                    <TableCell align="right">
+                      <Button
+                        size="small"
+                        endIcon={<IconChevronRight size={16} />}
+                        onClick={() => navigate(`/erp/hr/payroll/payslips/${p.id}`)}
+                        sx={{ borderRadius: 2, fontWeight: 600 }}
+                      >
+                        View
+                      </Button>
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {(run.payslips || []).map((p) => (
-                    <TableRow key={p.id} hover>
-                      <TableCell><Typography variant="body2" fontWeight={600}>{p.employee?.first_name} {p.employee?.last_name} ({p.employee?.employee_code})</Typography></TableCell>
-                      <TableCell align="right">{Number(p.basic_salary).toLocaleString()}</TableCell>
-                      <TableCell align="right">{Number(p.gross_salary).toLocaleString()}</TableCell>
-                      <TableCell align="right">{Number(p.total_deductions).toLocaleString()}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>{Number(p.net_salary).toLocaleString()}</TableCell>
-                      <TableCell><Chip size="small" label={p.payment_status} color={p.payment_status === 'paid' ? 'success' : 'default'} sx={{ fontWeight: 600, textTransform: 'capitalize' }} /></TableCell>
-                      <TableCell align="right"><Button size="small" onClick={() => navigate(`/erp/hr/payroll/payslips/${p.id}`)} sx={{ borderRadius: 2, fontWeight: 600 }}>View</Button></TableCell>
-                    </TableRow>
-                  ))}
-                  {(!run.payslips || run.payslips.length === 0) && (
-                    <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6 }}><Typography variant="body2" color="text.secondary">No payslips yet — process the run</Typography></TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-      </Box>
-    </PageContainer>
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell>Totals</TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{fmtMoney(totals.basic)}</TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{fmtMoney(totals.gross)}</TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{fmtMoney(totals.deductions)}</TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{fmtMoney(totals.net)}</TableCell>
+                  <TableCell colSpan={2} />
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </TableContainer>
+        )}
+      </SectionCard>
+    </HrPage>
   );
 };
 

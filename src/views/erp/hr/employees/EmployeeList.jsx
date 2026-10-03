@@ -18,17 +18,48 @@ import { useAuth } from '../../../../context/AuthContext';
 const STATUS_OPTIONS = ['onboarding', 'active', 'on_leave', 'suspended', 'exited'];
 const STATUS_COLORS = { onboarding: 'info', active: 'success', on_leave: 'warning', suspended: 'error', exited: 'default' };
 
+// Theme palette keys used for avatar backgrounds (deterministic per employee name)
+const AVATAR_PALETTE = ['primary', 'secondary', 'success', 'warning', 'info', 'error'];
+
 const textFieldSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
 
-const formatStatus = (s) => (s ? s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()) : '-');
+const mutedSx = { color: 'text.disabled', fontStyle: 'italic' };
+
+const formatStatus = (s) => (s ? s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()) : '');
 
 const initialsOf = (e) => `${(e.first_name || '').charAt(0)}${(e.last_name || '').charAt(0)}`.toUpperCase() || '?';
 
-const fullNameOf = (e) => `${e.first_name || ''} ${e.last_name || ''}`.trim() || '-';
+const fullNameOf = (e) => `${e.first_name || ''} ${e.last_name || ''}`.trim();
 
-const formatDate = (d) => (d ? dayjs(d).format('DD MMM YYYY') : '-');
+const formatDate = (d) => {
+  if (!d) return null;
+  const parsed = dayjs(d);
+  return parsed.isValid() ? parsed.format('DD MMM YYYY') : null;
+};
+
+// Simple string hash -> index into AVATAR_PALETTE, stable across renders
+const avatarColorKey = (seed) => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+};
+
+const NotAssigned = () => (
+  <Typography variant="body2" sx={mutedSx}>Not assigned</Typography>
+);
+
+const valueOrNotAssigned = (v) => (v ? (
+  <Typography variant="body2" color="text.primary" noWrap>{v}</Typography>
+) : <NotAssigned />);
 
 const SKELETON_ROWS = 6;
+
+const STAT_TONES = {
+  primary: (t) => t.palette.primary.main,
+  success: (t) => t.palette.success.main,
+  warning: (t) => t.palette.warning.main,
+  neutral: (t) => t.palette.text.secondary,
+};
 
 const EmployeeList = () => {
   const navigate = useNavigate();
@@ -71,6 +102,14 @@ const EmployeeList = () => {
   const hasFilters = !!(search || departmentId || status);
   const columnCount = canManage ? 6 : 5;
 
+  const countWithStatus = (s) => employees.filter((e) => e.employment_status === s).length;
+  const stats = [
+    { label: 'Total', value: employees.length, tone: 'primary' },
+    { label: 'Active', value: countWithStatus('active'), tone: 'success' },
+    { label: 'On leave', value: countWithStatus('on_leave'), tone: 'warning' },
+    { label: 'Exited', value: countWithStatus('exited'), tone: 'neutral' },
+  ];
+
   return (
     <PageContainer title="Employees" description="HR employee directory">
       <Box sx={{ maxWidth: 'min(1400px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 } }}>
@@ -93,6 +132,18 @@ const EmployeeList = () => {
             </Button>
           )}
         </Stack>
+
+        {/* Summary strip (computed from loaded rows) */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 2.5 }}>
+          {stats.map((s) => (
+            <Card key={s.label} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, px: 2, py: 1.5 }}>
+              <Typography variant="h4" fontWeight={700} sx={{ color: (t) => STAT_TONES[s.tone](t), lineHeight: 1.2 }}>
+                {loading ? <Skeleton width={40} sx={{ display: 'inline-block' }} /> : s.value}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">{s.label}</Typography>
+            </Card>
+          ))}
+        </Box>
 
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           {/* Filter bar */}
@@ -119,10 +170,10 @@ const EmployeeList = () => {
 
           {error && <Alert severity="error" sx={{ m: 2, borderRadius: 2 }}>{error}</Alert>}
 
-          <TableContainer>
-            <Table sx={{ minWidth: 860 }}>
+          <TableContainer sx={{ maxHeight: 640 }}>
+            <Table stickyHeader sx={{ minWidth: 860 }}>
               <TableHead>
-                <TableRow sx={{ '& th': { color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: 12, letterSpacing: 0.4, whiteSpace: 'nowrap' } }}>
+                <TableRow sx={{ '& th': { color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', fontSize: 12, letterSpacing: 0.4, whiteSpace: 'nowrap', bgcolor: 'background.paper' } }}>
                   <TableCell>Employee</TableCell>
                   <TableCell>Department</TableCell>
                   <TableCell>Designation</TableCell>
@@ -155,54 +206,70 @@ const EmployeeList = () => {
 
                 {!loading && employees.map((e) => {
                   const photoUrl = e.profile_photo ? apiService.getUploadUrl(e.profile_photo) : undefined;
+                  const fullName = fullNameOf(e);
+                  const managerName = e.manager ? `${e.manager.first_name || ''} ${e.manager.last_name || ''}`.trim() : '';
+                  const joined = formatDate(e.date_of_joining);
+                  const avatarKey = avatarColorKey(fullName || e.employee_code || String(e.id));
                   return (
                     <TableRow
                       key={e.id}
                       hover
                       onClick={() => navigate(`/erp/hr/employees/view/${e.id}`)}
-                      sx={{ cursor: 'pointer', '&:last-child td': { borderBottom: 0 } }}
+                      sx={{
+                        cursor: 'pointer',
+                        '& td': { py: 1.75, borderColor: 'divider' },
+                        '&:last-child td': { borderBottom: 0 },
+                        '&.MuiTableRow-hover:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.04) },
+                      }}
                     >
                       <TableCell>
                         <Stack direction="row" spacing={1.5} alignItems="center">
-                          <Avatar src={photoUrl} sx={{ width: 36, height: 36, fontSize: 14, fontWeight: 700, bgcolor: (t) => alpha(t.palette.primary.main, 0.14), color: 'primary.main' }}>
+                          <Avatar
+                            src={photoUrl}
+                            sx={{ width: 36, height: 36, fontSize: 14, fontWeight: 700, bgcolor: (t) => t.palette[avatarKey].main, color: '#fff' }}
+                          >
                             {initialsOf(e)}
                           </Avatar>
                           <Box minWidth={0}>
-                            <Typography variant="body2" fontWeight={600} noWrap>{fullNameOf(e)}</Typography>
-                            <Typography variant="caption" color="text.secondary" noWrap>{e.employee_code || '-'}</Typography>
+                            <Typography variant="body2" fontWeight={700} noWrap>{fullName || 'Not set'}</Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              {e.employee_code || <span style={{ fontStyle: 'italic' }}>Not assigned</span>}
+                            </Typography>
                           </Box>
                         </Stack>
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary' }}>
                           <IconBuildingSkyscraper size={15} />
-                          <Typography variant="body2" color="text.primary">{e.department?.name || '-'}</Typography>
+                          {valueOrNotAssigned(e.department?.name)}
                         </Stack>
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary' }}>
                           <IconBriefcase size={15} />
-                          <Typography variant="body2" color="text.primary">{e.designation?.display_name || '-'}</Typography>
+                          {valueOrNotAssigned(e.designation?.display_name)}
                         </Stack>
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary' }}>
                           <IconUsers size={15} />
-                          <Typography variant="body2" color="text.primary" noWrap>
-                            {e.manager ? `${e.manager.first_name || ''} ${e.manager.last_name || ''}`.trim() : '-'}
-                          </Typography>
+                          {valueOrNotAssigned(managerName)}
                         </Stack>
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: 'text.secondary' }}>
                           <IconCalendar size={15} />
-                          <Typography variant="body2" color="text.primary" sx={{ whiteSpace: 'nowrap' }}>{formatDate(e.date_of_joining)}</Typography>
+                          {joined ? (
+                            <Typography variant="body2" color="text.primary" sx={{ whiteSpace: 'nowrap' }}>{joined}</Typography>
+                          ) : (
+                            <Typography variant="body2" sx={{ ...mutedSx, whiteSpace: 'nowrap' }}>Not set</Typography>
+                          )}
                         </Stack>
                       </TableCell>
                       <TableCell>
                         <Chip
                           size="small"
-                          label={formatStatus(e.employment_status)}
+                          label={formatStatus(e.employment_status) || 'Not set'}
                           color={STATUS_COLORS[e.employment_status] || 'default'}
                           variant="outlined"
                           sx={{ fontWeight: 600 }}

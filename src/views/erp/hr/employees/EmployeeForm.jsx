@@ -16,6 +16,7 @@ import {
 } from '@tabler/icons-react';
 import PageContainer from '../../../../components/container/PageContainer';
 import apiService from '../../../../services/api';
+import { useAuth } from '../../../../context/AuthContext';
 
 const EMPTY = {
   firstName: '', lastName: '', email: '', phone: '', departmentId: '', designationId: '',
@@ -58,6 +59,7 @@ const SectionHeading = ({ icon: Icon, title, subtitle }) => (
 );
 
 const EmployeeForm = () => {
+  const { hasPermission } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
@@ -82,19 +84,22 @@ const EmployeeForm = () => {
   const [unlinkedUsers, setUnlinkedUsers] = useState([]);
   const [selectedExistingUser, setSelectedExistingUser] = useState(null);
 
+  const canReadRoles = hasPermission('roles.read');
+  const canReadUsers = hasPermission('users.read');
+
   const load = useCallback(async () => {
     try {
       const [deptRes, desigRes, empRes, rolesRes, usersRes] = await Promise.all([
         apiService.getHrDepartments({ pageSize: 200 }),
         apiService.getEmployeeDesignations(),
         apiService.getHrEmployees({ pageSize: 200 }),
-        apiService.getRoles({ pageSize: 200 }),
-        isEdit ? Promise.resolve(null) : apiService.getUsers({ pageSize: 200, unlinked: true }),
+        canReadRoles ? apiService.getRoles({ pageSize: 200 }) : Promise.resolve(null),
+        isEdit || !canReadUsers ? Promise.resolve(null) : apiService.getUsers({ pageSize: 200, unlinked: true }),
       ]);
       if (deptRes.success) setDepartments(deptRes.data || []);
       if (desigRes.success) setDesignations(desigRes.data || []);
       if (empRes.success) setEmployees(empRes.data || []);
-      if (rolesRes.success) setRoles(rolesRes.data || []);
+      if (rolesRes?.success) setRoles(rolesRes.data || []);
       if (usersRes && usersRes.success) setUnlinkedUsers(usersRes.data || []);
 
       if (isEdit) {

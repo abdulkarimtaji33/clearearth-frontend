@@ -42,6 +42,54 @@ const TAB_ICONS = {
   Notes: IconNotes,
 };
 
+const InfoCard = ({ icon: Icon, title, children }) => (
+  <Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3 } }}>
+    <Stack direction="row" spacing={1.25} alignItems="center" mb={2}>
+      <Box sx={{ width: 36, height: 36, borderRadius: 2, display: 'grid', placeItems: 'center', bgcolor: (th) => alpha(th.palette.primary.main, 0.12), color: 'primary.main' }}>
+        <Icon size={18} />
+      </Box>
+      <Typography variant="subtitle1" fontWeight={700}>{title}</Typography>
+    </Stack>
+    {children}
+  </Card>
+);
+
+const InfoRow = ({ label, value, muted }) => (
+  <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={2} py={0.9}
+    sx={{ borderBottom: '1px dashed', borderColor: 'divider', '&:last-child': { borderBottom: 0 } }}>
+    <Typography variant="body2" color="text.secondary">{label}</Typography>
+    <Typography variant="body2" fontWeight={600} color={muted || !value ? 'text.disabled' : 'text.primary'} textAlign="right" sx={{ fontStyle: muted || !value ? 'italic' : 'normal' }}>
+      {value || 'Not set'}
+    </Typography>
+  </Stack>
+);
+
+// Expiry status for identity documents: expired / expiring within 60 days / valid / not recorded.
+const expiryStatus = (expiry) => {
+  if (!expiry) return { label: 'Not recorded', color: 'default' };
+  const days = dayjs(expiry).diff(dayjs(), 'day');
+  if (Number.isNaN(days)) return { label: 'Not recorded', color: 'default' };
+  if (days < 0) return { label: 'Expired', color: 'error' };
+  if (days <= 60) return { label: `Expires in ${days}d`, color: 'warning' };
+  return { label: 'Valid', color: 'success' };
+};
+
+const IdentityRow = ({ label, number, expiry }) => {
+  const status = expiryStatus(expiry);
+  return (
+    <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2} py={1}
+      sx={{ borderBottom: '1px dashed', borderColor: 'divider', '&:last-child': { borderBottom: 0 } }}>
+      <Box minWidth={0}>
+        <Typography variant="body2" fontWeight={600}>{label}</Typography>
+        <Typography variant="caption" color={number ? 'text.secondary' : 'text.disabled'} sx={{ fontStyle: number ? 'normal' : 'italic' }}>
+          {number || 'Number not recorded'}{expiry ? ` · Expires ${dayjs(expiry).format('DD MMM YYYY')}` : ''}
+        </Typography>
+      </Box>
+      <Chip size="small" label={status.label} color={status.color} variant={status.color === 'default' ? 'outlined' : 'filled'} />
+    </Stack>
+  );
+};
+
 const Field = ({ label, value }) => (
   <Box mb={1.5}>
     <Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase">{label}</Typography>
@@ -247,17 +295,39 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId }) => {
       </Tabs>
 
       {labels[tab] === 'Overview' && (
-        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3.5 } }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}><Field label="Employee Code" value={employee.employee_code} /></Grid>
-            <Grid item xs={12} sm={4}><Field label="Job Title" value={employee.designation?.display_name} /></Grid>
-            <Grid item xs={12} sm={4}><Field label="Department" value={employee.department?.name} /></Grid>
-            <Grid item xs={12} sm={4}><Field label="Reporting Manager" value={employee.manager ? `${employee.manager.first_name} ${employee.manager.last_name}` : null} /></Grid>
-            <Grid item xs={12} sm={4}><Field label="Joining Date" value={employee.date_of_joining} /></Grid>
-            <Grid item xs={12} sm={4}><Field label="Employment Type" value={employee.employment_type} /></Grid>
+        <Stack spacing={2.5}>
+          <Grid container spacing={2.5}>
+            <Grid item xs={12} md={4}>
+              <InfoCard icon={IconPhoneCall} title="Contact">
+                <InfoRow label="Work email" value={employee.work_email || employee.email} />
+                <InfoRow label="Personal email" value={employee.personal_email} />
+                <InfoRow label="Phone" value={employee.personal_phone || employee.phone} />
+                <InfoRow label="Work phone" value={employee.work_phone} />
+              </InfoCard>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <InfoCard icon={IconBriefcase} title="Employment">
+                <InfoRow label="Employee code" value={employee.employee_code} />
+                <InfoRow label="Designation" value={employee.designation?.display_name} />
+                <InfoRow label="Department" value={employee.department?.name} />
+                <InfoRow label="Reports to" value={employee.manager ? `${employee.manager.first_name} ${employee.manager.last_name}` : null} />
+                <InfoRow label="Joined" value={employee.date_of_joining ? dayjs(employee.date_of_joining).format('DD MMM YYYY') : null} />
+                <InfoRow label="Type" value={employee.employment_type ? employee.employment_type.replace('_', ' ') : null} />
+              </InfoCard>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <InfoCard icon={IconCertificate} title="Identity documents">
+                <IdentityRow label="Passport" number={employee.passport_number} expiry={employee.passport_expiry_date} />
+                <IdentityRow label="Emirates ID" number={employee.emirates_id_number} expiry={employee.emirates_id_expiry_date} />
+                <IdentityRow label="UAE Visa" number={employee.visa_number} expiry={employee.visa_expiry_date} />
+                <IdentityRow label="Labour Card" number={employee.labour_card_no} expiry={employee.labour_card_expiry_date} />
+              </InfoCard>
+            </Grid>
           </Grid>
-          <QuickActionsSection isSelf={isSelf} employeeId={employeeId} />
-        </Card>
+          <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, p: { xs: 2.5, sm: 3 } }}>
+            <QuickActionsSection isSelf={isSelf} employeeId={employeeId} />
+          </Card>
+        </Stack>
       )}
 
       {labels[tab] === 'Personal' && (

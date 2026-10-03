@@ -39,7 +39,7 @@ const emptyForm = () => ({
 const CertificateRequestForm = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
 
   const [form, setForm] = useState(emptyForm());
   const [grns, setGrns] = useState([]);
@@ -53,6 +53,7 @@ const CertificateRequestForm = () => {
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
   useEffect(() => {
+    if (!hasPermission('grn.read')) return;
     apiService.getGrns({ pageSize: 100 }).then((res) => {
       if (res?.success) setGrns(Array.isArray(res.data) ? res.data : []);
     }).catch(() => {});

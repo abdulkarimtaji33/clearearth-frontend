@@ -991,7 +991,11 @@ const WorkOrderForm = () => {
                       options={isDriverTask
                         ? users.filter(u => u.role?.name === 'driver')
                         : users}
-                      getOptionLabel={u => `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || ''}
+                      getOptionLabel={u => {
+                        const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || '';
+                        const role = u.role?.display_name || '';
+                        return role && name ? `${name} (${role})` : name;
+                      }}
                       value={users.find(u => u.id === drawerTask.assignedTo) || null}
                       onChange={handleAssignedToChange}
                       renderInput={params => (

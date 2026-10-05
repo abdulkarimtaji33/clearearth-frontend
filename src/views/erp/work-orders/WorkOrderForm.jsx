@@ -190,6 +190,12 @@ const WorkOrderForm = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTaskIdx, setDrawerTaskIdx] = useState(null);
   const [drawerTask, setDrawerTask] = useState(null);
+  // Pickup and delivery tasks are driver jobs: the assignee list is drivers only.
+  const DRIVER_TASK_RE = /pickup|delivery/i;
+  const isDriverTask = !!drawerTask && (
+    DRIVER_TASK_RE.test(drawerTask.typeOfWork || '')
+    || DRIVER_TASK_RE.test(workTypes.find(wt => wt.id === drawerTask.workTypeId)?.name || '')
+  );
 
   // Collection-details guard
   const [dealCollection, setDealCollection] = useState({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' });
@@ -975,21 +981,21 @@ const WorkOrderForm = () => {
 
                 <Divider />
 
-                {/* Assignment & status */}
+                {/* Assignment & status — pickup and delivery tasks are assigned to drivers only */}
                 <Box>
                   <Typography variant="overline" color="text.secondary" fontSize="0.65rem" letterSpacing={1} display="block" mb={1.5}>
                     Assignment & Status
                   </Typography>
                   <Stack spacing={2}>
                     <Autocomplete
-                      options={/pickup/i.test(drawerTask.typeOfWork || '') || /pickup/i.test(workTypes.find(wt => wt.id === drawerTask.workTypeId)?.name || '')
+                      options={isDriverTask
                         ? users.filter(u => u.role?.name === 'driver')
                         : users}
                       getOptionLabel={u => `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || ''}
                       value={users.find(u => u.id === drawerTask.assignedTo) || null}
                       onChange={handleAssignedToChange}
                       renderInput={params => (
-                        <TextField {...params} label={/pickup/i.test(drawerTask.typeOfWork || '') ? 'Assign driver' : 'Assigned to'} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                        <TextField {...params} label={isDriverTask ? 'Assign driver' : 'Assigned to'} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                       )}
                     />
                     {users.find(u => u.id === drawerTask.assignedTo)?.role?.name === 'driver' && !collectionComplete() && (

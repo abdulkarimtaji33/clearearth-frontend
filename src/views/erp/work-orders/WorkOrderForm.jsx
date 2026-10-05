@@ -29,6 +29,9 @@ import WorkTypesManageDialog from './WorkTypesManageDialog';
 import TaskStatusSegments from './TaskStatusSegments';
 
 const WO_STATUS_OPTIONS = ['new', 'in_progress', 'completed', 'cancelled'];
+// Role names (users.role.name in the DB) that can be assigned a work order task. Matched
+// exactly by /users/assignees, so spelling and case must match the roles table.
+const TASK_ASSIGNEE_ROLES = ['operations_manager', 'Operations Team', 'driver', 'Forklift Operator'];
 const DURATION_UNITS = ['minutes', 'hours', 'days'];
 
 const STATUS_COLOR = {
@@ -223,7 +226,7 @@ const WorkOrderForm = () => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await apiService.getAssignees();
+      const res = await apiService.getAssignees({ roles: TASK_ASSIGNEE_ROLES.join(',') });
       if (res.success) {
         setUsers(Array.isArray(res.data) ? res.data : res.data?.items || []);
       }

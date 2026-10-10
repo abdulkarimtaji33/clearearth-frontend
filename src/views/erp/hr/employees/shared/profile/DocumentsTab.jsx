@@ -121,6 +121,18 @@ const IdentityDocumentCard = ({ base, typeName, icon: Icon, typeId, existingRow,
   const [open, setOpen] = useState(false);
   const info = expiryInfo(existingRow?.expiry_date);
   const accent = existingRow ? (info.tone === 'default' ? 'primary' : info.tone) : null;
+
+  const handleDelete = async (e) => {
+    e.stopPropagation();
+    if (!existingRow || !window.confirm(`Remove the ${typeName} on file?`)) return;
+    try {
+      await apiService.deleteEmployeeChildRecord(base, 'documents', existingRow.id);
+      onSaved();
+    } catch (err) {
+      window.alert(err.message || 'Failed to remove document');
+    }
+  };
+
   return (
     <Box sx={{
       position: 'relative', border: '1px solid', borderColor: 'divider', borderRadius: 2.5, p: 2, height: '100%',
@@ -143,13 +155,22 @@ const IdentityDocumentCard = ({ base, typeName, icon: Icon, typeId, existingRow,
             {existingRow ? (existingRow.document_number || 'No number recorded') : 'Not on file'}
           </Typography>
         </Box>
-        <Tooltip title={existingRow ? 'Edit' : 'Add'}>
-          <span>
-            <IconButton size="small" onClick={() => setOpen(true)} disabled={!typeId} sx={{ border: '1px solid', borderColor: 'divider' }}>
-              {existingRow ? <IconEdit size={16} /> : <IconPlus size={16} />}
-            </IconButton>
-          </span>
-        </Tooltip>
+        <Stack direction="row" spacing={0.75}>
+          <Tooltip title={existingRow ? 'Edit' : 'Add'}>
+            <span>
+              <IconButton size="small" onClick={() => setOpen(true)} disabled={!typeId} sx={{ border: '1px solid', borderColor: 'divider' }}>
+                {existingRow ? <IconEdit size={16} /> : <IconPlus size={16} />}
+              </IconButton>
+            </span>
+          </Tooltip>
+          {existingRow && (
+            <Tooltip title="Remove">
+              <IconButton size="small" onClick={handleDelete} sx={{ border: '1px solid', borderColor: 'divider', '&:hover': { color: 'error.main' } }}>
+                <IconTrash size={16} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Stack>
       </Stack>
       {existingRow && (
         <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" useFlexGap gap={1}>

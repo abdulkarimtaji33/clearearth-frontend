@@ -1069,6 +1069,32 @@ class ApiService {
     });
   }
 
+  async updateWorkOrderTaskAssignees(workOrderId, taskId, assigneeIds) {
+    return this.request(`/work-orders/${workOrderId}/tasks/${taskId}/assign`, {
+      method: 'PATCH',
+      body: JSON.stringify({ assigneeIds }),
+    });
+  }
+
+  // Work order task evidence files
+  async listWorkOrderTaskFiles(workOrderId, taskId) {
+    return this.get(`/work-orders/${workOrderId}/tasks/${taskId}/files`);
+  }
+
+  async uploadWorkOrderTaskFiles(workOrderId, taskId, filesArray) {
+    const formData = new FormData();
+    Array.from(filesArray || []).forEach((f) => formData.append('files', f));
+    return this.post(`/work-orders/${workOrderId}/tasks/${taskId}/files`, formData);
+  }
+
+  async deleteWorkOrderTaskFile(workOrderId, taskId, fileId) {
+    return this.delete(`/work-orders/${workOrderId}/tasks/${taskId}/files/${fileId}`);
+  }
+
+  async linkWorkOrderTaskFileToCertificate(workOrderId, taskId, fileId, certificateRequestId) {
+    return this.post(`/work-orders/${workOrderId}/tasks/${taskId}/files/${fileId}/link-certificate`, { certificateRequestId });
+  }
+
   async getWorkTypes(params) {
     return this.get('/work-types', params);
   }
@@ -1115,6 +1141,10 @@ class ApiService {
 
   async approveGrn(id) {
     return this.post(`/grn/${id}/approve`);
+  }
+
+  async downloadInspectionReportPdf(dealId) {
+    return this._downloadPdf(`${this.baseURL}/deals/${dealId}/inspection-report/pdf`, `inspection-report-${dealId}.pdf`);
   }
 
   async downloadGrnPdf(id) {

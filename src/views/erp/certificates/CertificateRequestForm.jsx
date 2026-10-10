@@ -33,7 +33,7 @@ const emptyForm = () => ({
   companyName: '', contactPerson: '', contactNo: '', contactEmail: '', collectionDate: '',
   grnId: '', grnNo: '', materialWasteDetails: '', totalWeightQuantity: '', invoiceNo: '',
   additionalNotes: '', certificateTypes: [], destructionReportVariant: 'itemized_equipment',
-  wdsRefNo: '', docRef: '', reqNo: '', boeNo: '', barcode: '', materialTypeId: '',
+  wdsRefNo: '', docRef: '', reqNo: '', boeNo: '', barcode: '', uom: '',
 });
 
 const CertificateRequestForm = () => {
@@ -43,7 +43,6 @@ const CertificateRequestForm = () => {
 
   const [form, setForm] = useState(emptyForm());
   const [grns, setGrns] = useState([]);
-  const [materialTypes, setMaterialTypes] = useState([]);
   const [supportingDoc, setSupportingDoc] = useState(null);
   const [photos, setPhotos] = useState([]); // { filePath, fileName, fileType, photoStage }
   const [uploading, setUploading] = useState(false);
@@ -56,9 +55,6 @@ const CertificateRequestForm = () => {
     if (!hasPermission('grn.read')) return;
     apiService.getGrns({ pageSize: 100 }).then((res) => {
       if (res?.success) setGrns(Array.isArray(res.data) ? res.data : []);
-    }).catch(() => {});
-    apiService.getMaterialTypes().then((res) => {
-      if (res?.success) setMaterialTypes(Array.isArray(res.data) ? res.data : []);
     }).catch(() => {});
   }, []);
 
@@ -168,7 +164,7 @@ const CertificateRequestForm = () => {
       reqNo: isBulkVariant ? form.reqNo || undefined : undefined,
       boeNo: isBulkVariant ? form.boeNo || undefined : undefined,
       barcode: isBulkVariant ? form.barcode || undefined : undefined,
-      materialTypeId: form.materialTypeId || undefined,
+      uom: form.uom || undefined,
       attachments,
     };
     try {
@@ -309,18 +305,22 @@ const CertificateRequestForm = () => {
           />
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
             <TextField
-              fullWidth required type="number" label="Total Weight / Quantity (tons)" value={form.totalWeightQuantity} onChange={set('totalWeightQuantity')} inputProps={{ min: 0, step: 'any' }}
+              fullWidth required type="number" label="Quantity" value={form.totalWeightQuantity} onChange={set('totalWeightQuantity')} inputProps={{ min: 0, step: 'any' }}
               error={submitAttempted && Boolean(fieldErrors.totalWeightQuantity)}
               helperText={submitAttempted ? fieldErrors.totalWeightQuantity : ' '}
             />
-            <TextField fullWidth label="Invoice No." value={form.invoiceNo} onChange={set('invoiceNo')} />
             <TextField
-              select fullWidth label="Material Type (for Carbon Footprint calc)"
-              value={form.materialTypeId} onChange={set('materialTypeId')}
+              select fullWidth label="UoM" value={form.uom} onChange={set('uom')}
+              helperText=" "
             >
-              <MenuItem value="">— None / tenant default —</MenuItem>
-              {materialTypes.map((m) => <MenuItem key={m.id} value={String(m.id)}>{m.display_name || m.value}</MenuItem>)}
+              <MenuItem value="">—</MenuItem>
+              <MenuItem value="kg">kg</MenuItem>
+              <MenuItem value="tons">tons</MenuItem>
+              <MenuItem value="pcs">pcs</MenuItem>
+              <MenuItem value="liters">liters</MenuItem>
+              <MenuItem value="cbm">cbm</MenuItem>
             </TextField>
+            <TextField fullWidth label="Invoice No." value={form.invoiceNo} onChange={set('invoiceNo')} />
           </Stack>
           <TextField fullWidth multiline rows={2} label="Additional Notes" value={form.additionalNotes} onChange={set('additionalNotes')} />
           <TextField fullWidth label="Requested By" value={`${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email || ''} disabled />

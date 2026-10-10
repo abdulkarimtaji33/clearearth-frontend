@@ -18,13 +18,13 @@ const TYPE_LABEL = {
 };
 
 function toCsv(rows) {
-  const headers = ['No.', 'Certificate No.', 'Company', 'Quantity', 'Collection Date', 'Certification Date', 'Contact Person', 'Marketing', 'Item Details'];
+  const headers = ['No.', 'Certificate No.', 'Type', 'Company', 'Quantity', 'Collection Date', 'Certification Date', 'Contact Person', 'Marketing', 'Item Details'];
   const lines = [headers.join(',')];
   rows.forEach((r, idx) => {
     const req = r.request || {};
     const marketing = req.requestedByUser ? `${req.requestedByUser.first_name || ''} ${req.requestedByUser.last_name || ''}`.trim() : '';
     const cells = [
-      idx + 1, r.certificate_number, req.company_name, req.total_weight_quantity, req.collection_date?.slice?.(0, 10),
+      idx + 1, r.certificate_number, TYPE_LABEL[r.type] || r.type, req.company_name, req.total_weight_quantity, req.collection_date?.slice?.(0, 10),
       r.issued_date?.slice?.(0, 10), req.contact_person, marketing, req.material_waste_details,
     ].map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`);
     lines.push(cells.join(','));
@@ -45,13 +45,14 @@ const CertificateList = () => {
   const [type, setType] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [collectionDate, setCollectionDate] = useState('');
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       const res = await apiService.getCertificates({
         page: page + 1, pageSize: rowsPerPage, search: search || undefined, type: type || undefined,
-        from: from || undefined, to: to || undefined,
+        from: from || undefined, to: to || undefined, collectionDate: collectionDate || undefined,
       });
       setRows(Array.isArray(res.data) ? res.data : []);
       setTotal(res.pagination?.totalItems ?? 0);
@@ -60,7 +61,7 @@ const CertificateList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, type, from, to]);
+  }, [page, rowsPerPage, search, type, from, to, collectionDate]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -101,6 +102,7 @@ const CertificateList = () => {
             </TextField>
             <TextField size="small" type="date" label="From" InputLabelProps={{ shrink: true }} value={from} onChange={(e) => { setFrom(e.target.value); setPage(0); }} />
             <TextField size="small" type="date" label="To" InputLabelProps={{ shrink: true }} value={to} onChange={(e) => { setTo(e.target.value); setPage(0); }} />
+            <TextField size="small" type="date" label="Collection Date" InputLabelProps={{ shrink: true }} value={collectionDate} onChange={(e) => { setCollectionDate(e.target.value); setPage(0); }} />
           </Stack>
         </Box>
 
@@ -108,17 +110,17 @@ const CertificateList = () => {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                {['No.', 'Certificate No.', 'Company', 'Quantity', 'Collection Date', 'Certification Date', 'Contact Person', 'Marketing', 'Item Details', ''].map((h) => (
+                {['No.', 'Certificate No.', 'Type', 'Company', 'Quantity', 'Collection Date', 'Certification Date', 'Contact Person', 'Marketing', 'Item Details', ''].map((h) => (
                   <TableCell key={h || 'actions'} sx={{ fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, py: 1.5, whiteSpace: 'nowrap', color: 'text.secondary' }}>{h}</TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={10} align="center" sx={{ py: 8 }}><CircularProgress size={28} /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} align="center" sx={{ py: 8 }}><CircularProgress size={28} /></TableCell></TableRow>
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
+                  <TableCell colSpan={11} align="center" sx={{ py: 8 }}>
                     <IconFileCheck size={36} color={theme.palette.text.disabled} />
                     <Typography color="text.secondary" mt={1} fontWeight={600}>No certificates found</Typography>
                   </TableCell>
@@ -131,6 +133,7 @@ const CertificateList = () => {
                     <TableRow key={r.id} hover sx={{ cursor: 'pointer', '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.035) } }} onClick={() => navigate(`/erp/certificates/view/${r.id}`)}>
                       <TableCell>{page * rowsPerPage + idx + 1}</TableCell>
                       <TableCell><Chip size="small" label={r.certificate_number} sx={{ fontFamily: 'monospace', fontWeight: 700, bgcolor: alpha(theme.palette.primary.main, 0.08), color: 'primary.main' }} /></TableCell>
+                      <TableCell>{TYPE_LABEL[r.type] || r.type || '—'}</TableCell>
                       <TableCell><Typography variant="body2" fontWeight={700}>{req.company_name}</Typography></TableCell>
                       <TableCell>{req.total_weight_quantity} tons</TableCell>
                       <TableCell>{req.collection_date?.slice?.(0, 10) || '—'}</TableCell>

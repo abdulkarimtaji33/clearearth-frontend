@@ -4,6 +4,16 @@ import FsLightbox from 'fslightbox-react';
 import { IconX } from '@tabler/icons-react';
 
 const isPdfUrl = (url) => String(url || '').toLowerCase().endsWith('.pdf');
+const isSpreadsheetUrl = (url) => /\.(xls|xlsx)$/i.test(String(url || ''));
+const isDocUrl = (url) => /\.(doc|docx)$/i.test(String(url || ''));
+const isNonImageUrl = (url) => isPdfUrl(url) || isDocUrl(url) || isSpreadsheetUrl(url);
+
+const fileEmoji = (url) => {
+  if (isPdfUrl(url)) return '📄';
+  if (isSpreadsheetUrl(url)) return '📊';
+  if (isDocUrl(url)) return '📝';
+  return '📎';
+};
 
 export default function GrnEvidenceThumbs({
   images = [],
@@ -15,7 +25,7 @@ export default function GrnEvidenceThumbs({
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const imageSources = useMemo(
-    () => images.filter((img) => !(img.isPdf || isPdfUrl(img.imageUrl || img.image_url))).map((img) => img.imageUrl || img.image_url),
+    () => images.filter((img) => !(img.isPdf || isNonImageUrl(img.imageUrl || img.image_url))).map((img) => img.imageUrl || img.image_url),
     [images]
   );
 
@@ -34,10 +44,10 @@ export default function GrnEvidenceThumbs({
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
         {images.map((img, idx) => {
           const url = img.imageUrl || img.image_url;
-          const isPdf = img.isPdf || isPdfUrl(url);
-          const currentImageIdx = !isPdf ? imageOnlyIdx++ : -1;
+          const isNonImage = img.isPdf || isNonImageUrl(url);
+          const currentImageIdx = !isNonImage ? imageOnlyIdx++ : -1;
 
-          if (isPdf) {
+          if (isNonImage) {
             return (
               <Box key={img.id ?? idx} sx={{ position: 'relative' }}>
                 <Box
@@ -58,12 +68,12 @@ export default function GrnEvidenceThumbs({
                     bgcolor: 'action.hover',
                     textDecoration: 'none',
                   }}
-                  title={img.originalName || img.original_name || 'PDF'}
+                  title={img.originalName || img.original_name || 'File'}
                 >
-                  <Typography fontSize={size > 60 ? '1.2rem' : '1rem'}>📄</Typography>
+                  <Typography fontSize={size > 60 ? '1.2rem' : '1rem'}>{fileEmoji(url)}</Typography>
                   {size > 60 && (
                     <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: size - 8, fontSize: '0.55rem' }}>
-                      {img.originalName || img.original_name || 'PDF'}
+                      {img.originalName || img.original_name || 'File'}
                     </Typography>
                   )}
                 </Box>

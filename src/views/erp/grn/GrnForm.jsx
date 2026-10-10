@@ -427,7 +427,7 @@ const GrnForm = () => {
                         type="file"
                         hidden
                         multiple
-                        accept="image/*,application/pdf"
+                        accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         onChange={(e) => handleItemImageUpload(idx, e)}
                       />
                     </Button>

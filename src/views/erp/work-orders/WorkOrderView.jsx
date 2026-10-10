@@ -21,6 +21,7 @@ import {
   IconAlertCircle, IconCircleCheck, IconNote, IconCheck, IconX,
   IconFileReport, IconPrinter, IconReceipt, IconFileInvoice, IconShoppingCart, IconFileDownload,
   IconMapPin, IconPhone, IconPackage, IconTruckDelivery, IconShare, IconCopy,
+  IconPaperclip, IconFile,
 } from '@tabler/icons-react';
 import { TextField, InputAdornment, Autocomplete } from '@mui/material';
 import PageContainer from '../../../components/container/PageContainer';
@@ -31,6 +32,7 @@ import { shouldHideDealFinancials, canGenerateInvoice, canViewDealDetails } from
 import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
 import { buildBillCreateUrl, getWorkOrderPurchaseBills } from '../../../utils/purchaseBills';
+import DealRequirementsBanner from './DealRequirementsBanner';
 
 const WO_STATUS_COLORS = {
   new: 'default',
@@ -127,13 +129,19 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
     if (e.key === 'Escape') { setNoteValue(task.notes || ''); setEditingNote(false); }
   };
 
-  const assigneeName = task.assignedUser
-    ? [task.assignedUser.first_name, task.assignedUser.last_name].filter(Boolean).join(' ')
-    : null;
+  // Prefer the new `assignees` array (multiple assignees); fall back to the legacy
+  // single `assignedUser` for work orders created before multi-assign support.
+  const assigneeList = Array.isArray(task.assignees) && task.assignees.length > 0
+    ? task.assignees
+    : (task.assignedUser ? [task.assignedUser] : []);
+  const assigneeNames = assigneeList
+    .map(u => [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email)
+    .filter(Boolean);
 
-  const initials = assigneeName
-    ? assigneeName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    : null;
+  const initialsOf = (name) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  const taskFiles = Array.isArray(task.files) ? task.files : [];
+  const isImageFile = (f) => /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.image_url || f.original_name || '');
 
   return (
     <Box
@@ -215,12 +223,16 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
 
             {/* Meta row */}
             <Stack direction="row" flexWrap="wrap" gap={1.5} mb={task.notes ? 1 : 0}>
-              {assigneeName && (
-                <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <Avatar sx={{ width: 18, height: 18, fontSize: '0.6rem', bgcolor: alpha(theme.palette.primary.main, 0.15), color: 'primary.main' }}>
-                    {initials}
-                  </Avatar>
-                  <Typography variant="caption" color="text.secondary">{assigneeName}</Typography>
+              {assigneeNames.length > 0 && (
+                <Stack direction="row" alignItems="center" spacing={0.5} flexWrap="wrap">
+                  {assigneeNames.map((name, ni) => (
+                    <Stack key={ni} direction="row" alignItems="center" spacing={0.5} sx={{ mr: 0.5 }}>
+                      <Avatar sx={{ width: 18, height: 18, fontSize: '0.6rem', bgcolor: alpha(theme.palette.primary.main, 0.15), color: 'primary.main' }}>
+                        {initialsOf(name)}
+                      </Avatar>
+                      <Typography variant="caption" color="text.secondary">{name}</Typography>
+                    </Stack>
+                  ))}
                 </Stack>
               )}
               {(task.start_date || task.end_date) && (
@@ -338,6 +350,52 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
                     ? `Driver: ${[task.assignedUser.first_name, task.assignedUser.last_name].filter(Boolean).join(' ')}`
                     : 'Assign to driver'}
                 </Button>
+              </Box>
+            )}
+
+            {/* Evidence files — shown for any task that has attachments, driver-uploaded or added from Edit Work Order */}
+            {taskFiles.length > 0 && (
+              <Box sx={{ mt: 1.5 }} onClick={e => e.stopPropagation()}>
+                <Stack direction="row" alignItems="center" spacing={0.5} mb={0.5}>
+                  <IconPaperclip size={13} style={{ opacity: 0.5 }} />
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    Evidence ({taskFiles.length})
+                  </Typography>
+                </Stack>
+                <Stack direction="row" flexWrap="wrap" gap={1}>
+                  {taskFiles.map((f) => (
+                    <Tooltip key={f.id} title={f.original_name || 'File'}>
+                      <Box
+                        component="a"
+                        href={f.image_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{
+                          display: 'flex', alignItems: 'center', gap: 0.5,
+                          px: 0.75, py: 0.5, borderRadius: 1.5,
+                          border: '1px solid', borderColor: 'divider',
+                          textDecoration: 'none', color: 'text.secondary',
+                          bgcolor: 'background.paper',
+                          '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+                        }}
+                      >
+                        {isImageFile(f) ? (
+                          <Box
+                            component="img"
+                            src={f.image_url}
+                            alt={f.original_name || 'evidence'}
+                            sx={{ width: 20, height: 20, borderRadius: 0.5, objectFit: 'cover', flexShrink: 0 }}
+                          />
+                        ) : (
+                          <IconFile size={14} style={{ flexShrink: 0 }} />
+                        )}
+                        <Typography variant="caption" noWrap sx={{ maxWidth: 110 }}>
+                          {f.original_name || 'File'}
+                        </Typography>
+                      </Box>
+                    </Tooltip>
+                  ))}
+                </Stack>
               </Box>
             )}
 
@@ -924,6 +982,8 @@ const WorkOrderView = () => {
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+
+        <DealRequirementsBanner deal={wo.deal} />
 
         {/* ── Stats row ── */}
         <Stack direction="row" flexWrap="wrap" gap={2} mb={3}>

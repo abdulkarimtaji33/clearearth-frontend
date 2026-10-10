@@ -21,6 +21,8 @@ export const notificationEntityLink = (payload) => {
       return `/erp/purchase-orders/view/${id}`;
     case 'inspection_request':
       return `/erp/inspection-requests/${id}`;
+    case 'grn':
+      return `/erp/grn/view/${id}`;
     default:
       return null;
   }

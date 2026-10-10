@@ -55,6 +55,15 @@ import { formatStatusLabel } from '../../../utils/recordStatus';
 const DEAL_APPROVAL_ELIGIBLE_STATUSES = ['new'];
 const DEAL_QUOTABLE_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
 
+// Keep in sync with TYPE_LABEL in src/views/erp/certificates/CertificateList.jsx
+const CERTIFICATE_TYPE_LABEL = {
+  green_certificate: 'Green Certificate',
+  certificate_of_destruction: 'Certificate of Destruction',
+  certificate_of_data_destruction: 'Certificate of Data Destruction',
+  carbon_footprint: 'Carbon Footprint Certificate',
+  destruction_report_evidence: 'Destruction Report with Evidence',
+};
+
 const validationSchema = Yup.object({
   leadId: Yup.number().nullable().required('Lead is required'),
   companyId: Yup.number().nullable().required('Company is required'),
@@ -277,6 +286,8 @@ const DealForm = () => {
     containerType: null,
     locationType: null,
     wdsRequired: false,
+    certificateRequired: false,
+    requiredCertificateTypes: [],
     inspectionRequired: false,
     customInspection: false,
     trakheesInspection: false,
@@ -466,6 +477,8 @@ const DealForm = () => {
           containerType: d.container_type || null,
           locationType: d.location_type || null,
           wdsRequired: d.wds_required || false,
+          certificateRequired: d.certificate_required || false,
+          requiredCertificateTypes: d.required_certificate_types || [],
           inspectionRequired: d.inspection_required || false,
           customInspection: d.custom_inspection || false,
           trakheesInspection: d.trakhees_inspection || false,
@@ -893,6 +906,8 @@ const DealForm = () => {
         containerType: isOtcCargo ? values.containerType : null,
         locationType: hasOtcLogistics ? values.locationType : null,
         wdsRequired: isOtc ? values.wdsRequired : false,
+        certificateRequired: values.certificateRequired || false,
+        requiredCertificateTypes: values.certificateRequired ? (values.requiredCertificateTypes || []) : [],
         customInspection: hasOtcLogistics ? values.customInspection : false,
         trakheesInspection: hasOtcLogistics ? values.trakheesInspection : false,
         dubaiMunicipalityInspection: hasOtcLogistics ? values.dubaiMunicipalityInspection : false,
@@ -1626,6 +1641,57 @@ const DealForm = () => {
                         )}
                       </>
                     )}
+
+                    {/* Certificate requirement — independent of deal type */}
+                    <Box>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={values.certificateRequired}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setFieldValue('certificateRequired', checked);
+                              if (!checked) {
+                                setFieldValue('requiredCertificateTypes', []);
+                              }
+                            }}
+                            name="certificateRequired"
+                          />
+                        }
+                        label="Certificate Required?"
+                      />
+                      {values.certificateRequired && (
+                        <FormControl component="fieldset" sx={{ mt: 1, display: 'block' }}>
+                          <FormLabel component="legend" sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+                            Certificate types required
+                          </FormLabel>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {Object.entries(CERTIFICATE_TYPE_LABEL).map(([typeCode, label]) => (
+                              <FormControlLabel
+                                key={typeCode}
+                                control={
+                                  <Checkbox
+                                    size="small"
+                                    checked={(values.requiredCertificateTypes || []).includes(typeCode)}
+                                    onChange={(e) => {
+                                      const current = values.requiredCertificateTypes || [];
+                                      setFieldValue(
+                                        'requiredCertificateTypes',
+                                        e.target.checked
+                                          ? [...current, typeCode]
+                                          : current.filter((t) => t !== typeCode)
+                                      );
+                                    }}
+                                    name={`requiredCertificateTypes-${typeCode}`}
+                                  />
+                                }
+                                label={label}
+                              />
+                            ))}
+                          </Box>
+                        </FormControl>
+                      )}
+                    </Box>
 
                     {/* Collection details — always visible for all deal types */}
                     <Box

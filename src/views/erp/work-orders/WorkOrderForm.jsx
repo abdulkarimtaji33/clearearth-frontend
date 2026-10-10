@@ -12,6 +12,7 @@ import {
   IconArrowLeft, IconPlus, IconTrash, IconSettings, IconEdit,
   IconX, IconCheck, IconClock, IconUser, IconCurrencyDollar,
   IconCalendar, IconHammer, IconGripVertical,
+  IconCertificate, IconUpload, IconFile,
 } from '@tabler/icons-react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -27,6 +28,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 import WorkTypesManageDialog from './WorkTypesManageDialog';
 import TaskStatusSegments from './TaskStatusSegments';
+import DealRequirementsBanner from './DealRequirementsBanner';
 
 const WO_STATUS_OPTIONS = ['new', 'in_progress', 'completed', 'cancelled'];
 // Role names (users.role.name in the DB) that can be assigned a work order task. Matched
@@ -53,7 +55,7 @@ const emptyTask = () => ({
   durationUnit: 'hours',
   startDate: '',
   endDate: '',
-  assignedTo: null,
+  assigneeIds: [],
   status: 'not_started',
   notes: '',
 });
@@ -69,7 +71,7 @@ const sumTaskExpenses = (task) => {
 const taskHasBillableContent = (t) => {
   if (t.workTypeId || (t.typeOfWork && String(t.typeOfWork).trim())) return true;
   if (sumTaskExpenses(t) > 0) return true;
-  if (t.durationValue || t.startDate || t.endDate || t.assignedTo) return true;
+  if (t.durationValue || t.startDate || t.endDate || (t.assigneeIds && t.assigneeIds.length > 0)) return true;
   return false;
 };
 
@@ -199,6 +201,9 @@ const WorkOrderForm = () => {
 
   // Collection-details guard
   const [dealCollection, setDealCollection] = useState({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' });
+  // WDS / certificate requirements on the currently selected deal — surfaced in a banner
+  // so Operations sees them while creating/editing the work order, not only after.
+  const [dealRequirements, setDealRequirements] = useState({ wds_required: false, certificate_required: false, required_certificate_types: [] });
   const [collectionDialog, setCollectionDialog] = useState(false);
   const [collectionFields, setCollectionFields] = useState({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' });
   const [collectionSaving, setCollectionSaving] = useState(false);
@@ -206,6 +211,19 @@ const WorkOrderForm = () => {
   // Surfaced under the field itself so the driver's number is fixed before saving.
   const collectionPhoneError = validatePhone(collectionFields.pickup_contact_number, { label: 'Contact number' });
   const pendingDriverId = useRef(null);
+
+  // Task evidence files (only meaningful for tasks that already have an id, i.e. already saved)
+  const [drawerFiles, setDrawerFiles] = useState([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [filesError, setFilesError] = useState('');
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  // Link evidence file to certificate request
+  const [linkDialogFile, setLinkDialogFile] = useState(null);
+  const [certRequests, setCertRequests] = useState([]);
+  const [certRequestsLoading, setCertRequestsLoading] = useState(false);
+  const [selectedCertRequestId, setSelectedCertRequestId] = useState(null);
+  const [linkSaving, setLinkSaving] = useState(false);
+  const [linkError, setLinkError] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -295,9 +313,12 @@ const WorkOrderForm = () => {
               durationUnit: dur.durationUnit,
               startDate: t.start_date || '',
               endDate: t.end_date || '',
-              assignedTo: t.assigned_to || null,
+              assigneeIds: Array.isArray(t.assignees) && t.assignees.length > 0
+                ? t.assignees.map(u => u.id)
+                : (t.assigned_to ? [t.assigned_to] : []),
               status: t.status || 'not_started',
               notes: t.notes || '',
+              files: Array.isArray(t.files) ? t.files : [],
             };
           }),
         });
@@ -376,6 +397,7 @@ const WorkOrderForm = () => {
   useEffect(() => {
     if (!form.dealId) {
       setDealCollection({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' });
+      setDealRequirements({ wds_required: false, certificate_required: false, required_certificate_types: [] });
       return;
     }
     apiService.getDeal(form.dealId).then(res => {
@@ -385,6 +407,11 @@ const WorkOrderForm = () => {
           pickup_location: d.pickup_location || '',
           pickup_contact_name: d.pickup_contact_name || '',
           pickup_contact_number: d.pickup_contact_number || '',
+        });
+        setDealRequirements({
+          wds_required: Boolean(d.wds_required),
+          certificate_required: Boolean(d.certificate_required),
+          required_certificate_types: Array.isArray(d.required_certificate_types) ? d.required_certificate_types : [],
         });
       }
     }).catch(() => {});
@@ -424,6 +451,95 @@ const WorkOrderForm = () => {
   };
 
   const setDrawerField = (field, value) => setDrawerTask(t => ({ ...t, [field]: value }));
+
+  // Load evidence files for the task currently open in the drawer — only possible once the
+  // task has a real id (i.e. the work order and this task were already saved).
+  useEffect(() => {
+    if (!drawerOpen || !drawerTask?.id || !id) {
+      setDrawerFiles([]);
+      return;
+    }
+    (async () => {
+      try {
+        setFilesLoading(true);
+        setFilesError('');
+        const res = await apiService.listWorkOrderTaskFiles(id, drawerTask.id);
+        if (res.success) setDrawerFiles(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        setFilesError(err.message || 'Failed to load evidence files');
+      } finally {
+        setFilesLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerOpen, drawerTask?.id, id]);
+
+  const handleUploadEvidence = async (fileList) => {
+    if (!fileList || fileList.length === 0 || !drawerTask?.id || !id) return;
+    try {
+      setUploadingFiles(true);
+      setFilesError('');
+      await apiService.uploadWorkOrderTaskFiles(id, drawerTask.id, fileList);
+      const res = await apiService.listWorkOrderTaskFiles(id, drawerTask.id);
+      if (res.success) setDrawerFiles(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      setFilesError(err.message || 'Upload failed');
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
+
+  const handleDeleteEvidence = async (fileId) => {
+    if (!drawerTask?.id || !id) return;
+    try {
+      setFilesError('');
+      await apiService.deleteWorkOrderTaskFile(id, drawerTask.id, fileId);
+      setDrawerFiles(prev => prev.filter(f => f.id !== fileId));
+    } catch (err) {
+      setFilesError(err.message || 'Failed to delete file');
+    }
+  };
+
+  const openLinkCertificateDialog = async (file) => {
+    setLinkDialogFile(file);
+    setSelectedCertRequestId(null);
+    setLinkError('');
+    setCertRequests([]);
+    if (!form.dealId) return;
+    try {
+      setCertRequestsLoading(true);
+      const res = await apiService.getCertificateRequests({ dealId: form.dealId, pageSize: 100 });
+      const all = Array.isArray(res.data) ? res.data : res.data?.items || [];
+      setCertRequests(all);
+    } catch (err) {
+      setLinkError(err.message || 'Failed to load certificate requests');
+    } finally {
+      setCertRequestsLoading(false);
+    }
+  };
+
+  const closeLinkCertificateDialog = () => {
+    setLinkDialogFile(null);
+    setCertRequests([]);
+    setSelectedCertRequestId(null);
+    setLinkError('');
+  };
+
+  const confirmLinkCertificate = async () => {
+    if (!linkDialogFile || !selectedCertRequestId || !drawerTask?.id || !id) return;
+    try {
+      setLinkSaving(true);
+      setLinkError('');
+      await apiService.linkWorkOrderTaskFileToCertificate(id, drawerTask.id, linkDialogFile.id, selectedCertRequestId);
+      closeLinkCertificateDialog();
+    } catch (err) {
+      setLinkError(err.message || 'Failed to link evidence to certificate');
+    } finally {
+      setLinkSaving(false);
+    }
+  };
+
+  const isImageEvidence = (f) => /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.image_url || f.original_name || '');
 
   const setDrawerExpenseRow = (idx, field, value) => {
     setDrawerTask(t => {
@@ -469,15 +585,15 @@ const WorkOrderForm = () => {
   const collectionComplete = () =>
     !!(dealCollection.pickup_location || dealCollection.pickup_contact_name || dealCollection.pickup_contact_number);
 
-  const handleAssignedToChange = (_, selectedUser) => {
-    const isDriver = selectedUser?.role?.name === 'driver';
-    if (isDriver && !collectionComplete()) {
-      pendingDriverId.current = selectedUser.id;
+  const handleAssigneesChange = (_, selectedUsers) => {
+    const hasDriver = (selectedUsers || []).some(u => u?.role?.name === 'driver');
+    if (hasDriver && !collectionComplete()) {
+      pendingDriverId.current = (selectedUsers || []).map(u => u.id);
       setCollectionFields({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' });
       setCollectionError('');
       setCollectionDialog(true);
     } else {
-      setDrawerField('assignedTo', selectedUser?.id || null);
+      setDrawerField('assigneeIds', (selectedUsers || []).map(u => u.id));
     }
   };
 
@@ -504,7 +620,7 @@ const WorkOrderForm = () => {
         pickupContactNumber: collectionFields.pickup_contact_number,
       });
       setDealCollection({ ...collectionFields });
-      setDrawerField('assignedTo', pendingDriverId.current);
+      setDrawerField('assigneeIds', Array.isArray(pendingDriverId.current) ? pendingDriverId.current : (pendingDriverId.current ? [pendingDriverId.current] : []));
       pendingDriverId.current = null;
       setCollectionDialog(false);
     } catch (err) {
@@ -515,8 +631,8 @@ const WorkOrderForm = () => {
   };
 
   const saveDrawerTask = () => {
-    const assignedUser = users.find(u => u.id === drawerTask?.assignedTo);
-    if (assignedUser?.role?.name === 'driver' && !collectionComplete()) {
+    const assignedUsers = (drawerTask?.assigneeIds || []).map(uid => users.find(u => u.id === uid)).filter(Boolean);
+    if (assignedUsers.some(u => u?.role?.name === 'driver') && !collectionComplete()) {
       setError('Collection details are required before assigning a driver. Please add them to the linked deal.');
       return;
     }
@@ -564,7 +680,7 @@ const WorkOrderForm = () => {
             estimatedDuration: t.durationValue ? `${t.durationValue} ${t.durationUnit}` : null,
             startDate: t.startDate || null,
             endDate: t.endDate || null,
-            assignedTo: t.assignedTo || null,
+            assigneeIds: t.assigneeIds || [],
             status: t.status || 'not_started',
             notes: t.notes || null,
           })),
@@ -602,8 +718,11 @@ const WorkOrderForm = () => {
   };
 
   const getAssigneeName = (task) => {
-    const u = users.find(u => u.id === task.assignedTo);
-    return u ? `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email : null;
+    const names = (task.assigneeIds || [])
+      .map(uid => users.find(u => u.id === uid))
+      .filter(Boolean)
+      .map(u => `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email);
+    return names.length > 0 ? names.join(', ') : null;
   };
 
   return (
@@ -633,6 +752,8 @@ const WorkOrderForm = () => {
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+
+        <DealRequirementsBanner deal={dealRequirements} />
 
         {/* Overview card */}
         <Paper variant="outlined" sx={{ borderRadius: 3, mb: 3, overflow: 'hidden' }}>
@@ -988,6 +1109,7 @@ const WorkOrderForm = () => {
                   </Typography>
                   <Stack spacing={2}>
                     <Autocomplete
+                      multiple
                       options={isDriverTask
                         ? users.filter(u => u.role?.name === 'driver')
                         : users}
@@ -996,39 +1118,43 @@ const WorkOrderForm = () => {
                         const role = u.role?.display_name || '';
                         return role && name ? `${name} (${role})` : name;
                       }}
-                      value={users.find(u => u.id === drawerTask.assignedTo) || null}
-                      onChange={handleAssignedToChange}
+                      value={(drawerTask.assigneeIds || []).map(uid => users.find(u => u.id === uid)).filter(Boolean)}
+                      onChange={handleAssigneesChange}
                       renderInput={params => (
                         <TextField {...params} label={isDriverTask ? 'Assign driver' : 'Assigned to'} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                       )}
                     />
-                    {users.find(u => u.id === drawerTask.assignedTo)?.role?.name === 'driver' && !collectionComplete() && (
-                      <Alert
-                        severity="warning"
-                        sx={{ borderRadius: 2, py: 0.5 }}
-                        action={
-                          <Button
-                            size="small"
-                            color="warning"
-                            onClick={() => {
-                              setCollectionFields({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' });
-                              setCollectionError('');
-                              pendingDriverId.current = drawerTask.assignedTo;
-                              setCollectionDialog(true);
-                            }}
-                          >
-                            Add now
-                          </Button>
-                        }
-                      >
-                        No collection details on the linked deal. The driver won't see a Maps link or contact info.
-                      </Alert>
-                    )}
-                    {users.find(u => u.id === drawerTask.assignedTo)?.role?.name === 'driver' && collectionComplete() && (
-                      <Alert severity="success" sx={{ borderRadius: 2, py: 0.5 }}>
-                        Collection details are set — driver will see Maps link and contact info.
-                      </Alert>
-                    )}
+                    {(() => {
+                      const assignedUsers = (drawerTask.assigneeIds || []).map(uid => users.find(u => u.id === uid)).filter(Boolean);
+                      const anyDriver = assignedUsers.some(u => u?.role?.name === 'driver');
+                      if (!anyDriver) return null;
+                      return !collectionComplete() ? (
+                        <Alert
+                          severity="warning"
+                          sx={{ borderRadius: 2, py: 0.5 }}
+                          action={
+                            <Button
+                              size="small"
+                              color="warning"
+                              onClick={() => {
+                                setCollectionFields({ pickup_location: '', pickup_contact_name: '', pickup_contact_number: '' });
+                                setCollectionError('');
+                                pendingDriverId.current = drawerTask.assigneeIds || [];
+                                setCollectionDialog(true);
+                              }}
+                            >
+                              Add now
+                            </Button>
+                          }
+                        >
+                          No collection details on the linked deal. The driver won't see a Maps link or contact info.
+                        </Alert>
+                      ) : (
+                        <Alert severity="success" sx={{ borderRadius: 2, py: 0.5 }}>
+                          Collection details are set — driver will see Maps link and contact info.
+                        </Alert>
+                      );
+                    })()}
                     <Box>
                       <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.75}>
                         Task status
@@ -1058,6 +1184,90 @@ const WorkOrderForm = () => {
                     placeholder="Optional details for this task…"
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                   />
+                </Box>
+
+                <Divider />
+
+                {/* Evidence */}
+                <Box>
+                  <Typography variant="overline" color="text.secondary" fontSize="0.65rem" letterSpacing={1} display="block" mb={1.5}>
+                    Evidence
+                  </Typography>
+                  {drawerTask.id ? (
+                    <Stack spacing={1.5}>
+                      {filesError && <Alert severity="error" sx={{ borderRadius: 2 }} onClose={() => setFilesError('')}>{filesError}</Alert>}
+                      {filesLoading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 1.5 }}>
+                          <CircularProgress size={20} />
+                        </Box>
+                      ) : drawerFiles.length === 0 ? (
+                        <Typography variant="body2" color="text.disabled">No evidence uploaded yet.</Typography>
+                      ) : (
+                        <Stack spacing={1}>
+                          {drawerFiles.map(f => (
+                            <Paper
+                              key={f.id}
+                              variant="outlined"
+                              sx={{ p: 1, borderRadius: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+                            >
+                              {isImageEvidence(f) ? (
+                                <Box
+                                  component="img"
+                                  src={f.image_url}
+                                  alt={f.original_name || 'evidence'}
+                                  sx={{ width: 36, height: 36, borderRadius: 1, objectFit: 'cover', flexShrink: 0 }}
+                                />
+                              ) : (
+                                <IconFile size={20} style={{ flexShrink: 0, opacity: 0.6 }} />
+                              )}
+                              <Typography
+                                component="a"
+                                href={f.image_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                variant="body2"
+                                noWrap
+                                sx={{ flex: 1, minWidth: 0, color: 'text.primary', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                              >
+                                {f.original_name || 'File'}
+                              </Typography>
+                              <Tooltip title="Link to certificate">
+                                <IconButton size="small" onClick={() => openLinkCertificateDialog(f)} sx={{ borderRadius: 1.5 }}>
+                                  <IconCertificate size={16} />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete">
+                                <IconButton size="small" color="error" onClick={() => handleDeleteEvidence(f.id)} sx={{ borderRadius: 1.5 }}>
+                                  <IconTrash size={16} />
+                                </IconButton>
+                              </Tooltip>
+                            </Paper>
+                          ))}
+                        </Stack>
+                      )}
+                      <Button
+                        component="label"
+                        size="small"
+                        variant="outlined"
+                        startIcon={uploadingFiles ? <CircularProgress size={14} /> : <IconUpload size={15} />}
+                        disabled={uploadingFiles}
+                        sx={{ borderRadius: 2, alignSelf: 'flex-start' }}
+                      >
+                        {uploadingFiles ? 'Uploading…' : 'Upload evidence'}
+                        <input
+                          type="file"
+                          hidden
+                          multiple
+                          accept="*/*"
+                          onChange={e => { if (e.target.files?.length) handleUploadEvidence(e.target.files); e.target.value = ''; }}
+                        />
+                      </Button>
+                    </Stack>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      Save this task first to attach evidence.
+                    </Typography>
+                  )}
                 </Box>
               </Stack>
             </Box>
@@ -1156,6 +1366,60 @@ const WorkOrderForm = () => {
           >
             {collectionSaving ? 'Saving…' : 'Save & assign driver'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Link evidence to certificate request */}
+      <Dialog
+        open={Boolean(linkDialogFile)}
+        onClose={closeLinkCertificateDialog}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ pb: 1, fontWeight: 800 }}>
+          Link evidence to certificate
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            Attach "{linkDialogFile?.original_name}" as a destruction photo on a certificate request for this deal.
+          </Typography>
+          {linkError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{linkError}</Alert>}
+          {certRequestsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : certRequests.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              No certificate request yet for this deal — create one from Certificate Management.
+            </Typography>
+          ) : (
+            <Autocomplete
+              options={certRequests}
+              getOptionLabel={r => `#${r.id} — ${r.company_name || ''}`}
+              value={certRequests.find(r => r.id === selectedCertRequestId) || null}
+              onChange={(_, v) => setSelectedCertRequestId(v?.id || null)}
+              renderInput={params => (
+                <TextField {...params} label="Certificate request" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+              )}
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+          <Button variant="outlined" onClick={closeLinkCertificateDialog} sx={{ borderRadius: 2 }}>
+            Cancel
+          </Button>
+          {certRequests.length > 0 && (
+            <Button
+              variant="contained"
+              onClick={confirmLinkCertificate}
+              disabled={!selectedCertRequestId || linkSaving}
+              startIcon={linkSaving ? <CircularProgress size={16} color="inherit" /> : <IconCheck size={16} />}
+              sx={{ borderRadius: 2, px: 3 }}
+            >
+              {linkSaving ? 'Linking…' : 'Link'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </PageContainer>

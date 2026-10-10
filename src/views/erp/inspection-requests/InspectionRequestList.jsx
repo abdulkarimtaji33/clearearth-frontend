@@ -87,6 +87,7 @@ const InspectionRequestList = () => {
   const [priorityFilter, setPriorityFilter] = useState('');
   const [rejectDialog, setRejectDialog] = useState({ open: false, req: null });
   const [rejectReason, setRejectReason] = useState('');
+  const [acceptDialog, setAcceptDialog] = useState({ open: false, req: null });
   const [actionLoading, setActionLoading] = useState(null);
 
   const fetchRequests = useCallback(async () => {
@@ -111,13 +112,15 @@ const InspectionRequestList = () => {
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
-  const handleAccept = async (req, e) => {
-    e?.stopPropagation();
+  const handleAcceptConfirm = async () => {
+    if (!acceptDialog.req) return;
+    const req = acceptDialog.req;
     try {
       setActionLoading(req.id);
       setError('');
       await apiService.acceptInspectionRequest(req.id);
       setSuccess('Inspection request accepted');
+      setAcceptDialog({ open: false, req: null });
       fetchRequests();
     } catch (err) {
       setError(err.message || 'Failed to accept request');
@@ -300,7 +303,7 @@ const InspectionRequestList = () => {
                             {req.response_status !== 'accepted' && req.response_status !== 'rejected' && (
                               <>
                                 <Tooltip title="Accept">
-                                  <IconButton size="small" color="success" disabled={actionLoading === req.id} onClick={e => handleAccept(req, e)}>
+                                  <IconButton size="small" color="success" disabled={actionLoading === req.id} onClick={e => { e.stopPropagation(); setAcceptDialog({ open: true, req }); }}>
                                     <IconCheck size={16} />
                                   </IconButton>
                                 </Tooltip>
@@ -338,6 +341,21 @@ const InspectionRequestList = () => {
           </CardContent>
         </Card>
       </Box>
+
+      <Dialog open={acceptDialog.open} onClose={() => setAcceptDialog({ open: false, req: null })} maxWidth="sm" fullWidth>
+        <DialogTitle>Accept Inspection Request</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Accept this inspection request?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAcceptDialog({ open: false, req: null })}>Cancel</Button>
+          <Button variant="contained" color="success" disabled={!!actionLoading} onClick={handleAcceptConfirm}>
+            Accept
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={rejectDialog.open} onClose={() => setRejectDialog({ open: false, req: null })} maxWidth="sm" fullWidth>
         <DialogTitle>Reject Inspection Request</DialogTitle>

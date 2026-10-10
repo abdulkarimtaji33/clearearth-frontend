@@ -440,6 +440,7 @@ const DealView = () => {
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reportFormErrors, setReportFormErrors] = useState({});
   const [reportSaving, setReportSaving] = useState(false);
+  const [inspectionReportPdfDownloading, setInspectionReportPdfDownloading] = useState(false);
   const [users, setUsers] = useState([]);
   const [activeSection, setActiveSection] = useState('sec-overview');
   const [reportForm, setReportForm] = useState({
@@ -742,6 +743,18 @@ const DealView = () => {
     }
     await fetchDeal();
   }, [deal?.inspectionRequest?.id, fetchDeal]);
+
+  const handleDownloadInspectionReportPdf = async () => {
+    if (!deal?.id) return;
+    try {
+      setInspectionReportPdfDownloading(true);
+      await apiService.downloadInspectionReportPdf(deal.id);
+    } catch (e) {
+      setError(e.message || 'Failed to download inspection report');
+    } finally {
+      setInspectionReportPdfDownloading(false);
+    }
+  };
 
   if (!id) {
     return (
@@ -1407,6 +1420,18 @@ const DealView = () => {
                       sx={{ borderRadius: 2 }}
                     >
                       View report
+                    </Button>
+                  )}
+                  {deal.inspectionReport && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<IconDownload size={16} />}
+                      onClick={handleDownloadInspectionReportPdf}
+                      disabled={inspectionReportPdfDownloading}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      {inspectionReportPdfDownloading ? 'Downloading...' : 'Download report'}
                     </Button>
                   )}
                   {canEditDeals && !['sales', 'sales_manager'].includes(getUserRole(user)) && (

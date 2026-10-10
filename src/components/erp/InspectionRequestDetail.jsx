@@ -298,6 +298,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
   });
 
   const [approving, setApproving] = useState(false);
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     if (onRefresh) await onRefresh();
@@ -386,6 +387,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
   const handleApprove = async () => {
     const report = request?.deal?.inspectionReport;
     if (!report || !canApproveInspectionReport(user)) return;
+    setApproveConfirmOpen(false);
     setApproving(true);
     setError('');
     try {
@@ -1100,7 +1102,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
               color="success"
               size="large"
               startIcon={approving ? <CircularProgress size={14} color="inherit" /> : <IconCheck size={17} />}
-              onClick={handleApprove}
+              onClick={() => setApproveConfirmOpen(true)}
               disabled={approving}
               sx={{ borderRadius: 2.5, fontWeight: 700, px: 4 }}
             >
@@ -1242,6 +1244,22 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
             <Button onClick={() => setReportDialogOpen(false)}>Cancel</Button>
             <Button variant="contained" onClick={saveReport} disabled={reportSaving} sx={{ borderRadius: 2 }}>
               {reportSaving ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* ── Approve Report Confirmation Dialog ── */}
+        <Dialog open={approveConfirmOpen} onClose={() => setApproveConfirmOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700 }}>Approve inspection report?</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary">
+              This confirms the inspection report is accurate and complete.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setApproveConfirmOpen(false)}>Cancel</Button>
+            <Button variant="contained" color="success" onClick={handleApprove} disabled={approving}>
+              {approving ? 'Approving…' : 'Approve'}
             </Button>
           </DialogActions>
         </Dialog>

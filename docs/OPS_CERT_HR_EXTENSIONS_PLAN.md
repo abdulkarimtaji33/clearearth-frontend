@@ -63,4 +63,16 @@ _Created 2026-10-10. Scope: `clearearth-backend` + `clearearth-frontend`. Deploy
 Push to `main` on both repos, then `DEPLOY_HOST=root@72.60.223.25 npm run deploy:vps` from `clearearth-backend` (dev only — do not touch 72.60.222.81 live until asked).
 
 ## Progress log
-_(appended per phase)_
+
+**2026-10-10 — All phases shipped to dev (72.60.223.25), live untouched.**
+
+- Schema: `work_order_task_assignees` join table (backfilled from existing `assigned_to`), `deals.certificate_required` / `required_certificate_types`, `certificate_requests.uom`, `certificate_request_attachments.source_task_file_id`. Verified present on dev DB after migration.
+- Work orders: tasks support multiple assignees end-to-end (API + task drawer multi-select); per-task evidence upload/list/delete (any file type) with a "link to certificate request" action that copies the file into Certificate Management as a `destruction_photo` attachment; deal WDS/certificate requirement banner on both the work order form and view, fed from `Deal.wds_required`/`certificate_required`/`required_certificate_types`.
+- Deals: "Certificate Required?" checkbox + certificate type picklist next to the existing WDS fields.
+- GRN: evidence upload accepts images/PDF/Word/Excel on the frontend (backend already did); thumbnails show a generic file tile for non-image types; GRN submission now notifies the deal's sales user (`notifyGrnSubmitted`) who can already download the existing GRN PDF.
+- Certificate register: Quantity relabeled (no more hardcoded "tons"), UoM field added to the request form, Material Type field removed from the form (DB column kept, unused going forward), register gained a Collection Date filter and a Certificate Type column + CSV export.
+- HR: pinned identity documents (Passport/Emirates ID/Visa/Labour Card) can now be deleted, not just added/edited; IT Asset Form generation refuses with a clear error when the employee has no assigned assets (salary certificate/slip already did this).
+- Also done this round, not in the original plan: inspection report PDF download for the sales user from the deal view (`GET /deals/:id/inspection-report/pdf`, gated by the same `deals.read` permission sales already holds); confirmation dialogs added for the inspector's "Accept" action on inspection requests and "Approve" action on inspection reports (reject already had a reason dialog, which doubles as confirmation).
+- QA done: every changed file parsed with esbuild individually, full `vite build` run twice (clean both times), new tables/columns confirmed on the dev DB via a live query, dev frontend (`:3333/erp/work-orders`) and API both return healthy responses after deploy.
+- Not yet done: the admin dashboard redesign (pending a working reference link/screenshot from the user — the shared claude.ai artifact URL could not be opened by either the Artifact tool or WebFetch).
+- Not click-tested in a real browser end-to-end (multi-assignee save round-trip, evidence upload/delete, certificate linking, GRN notification delivery, confirmation dialogs) — logic and build are verified, but no live walkthrough was performed.

@@ -4,7 +4,7 @@ import {
   TableHead, TableRow, Chip, CircularProgress, Alert, TablePagination, TextField, MenuItem, Link, InputAdornment,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconPackage, IconFileCheck, IconFilter } from '@tabler/icons-react';
+import { IconPackage, IconFileCheck, IconFilter, IconSearch } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -22,11 +22,12 @@ const GrnList = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState('');
+  const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiService.getGrns({ page: page + 1, pageSize: rowsPerPage, status: status || undefined });
+      const res = await apiService.getGrns({ page: page + 1, pageSize: rowsPerPage, status: status || undefined, search: search || undefined });
       setRows(Array.isArray(res.data) ? res.data : []);
       setTotal(res.pagination?.totalItems ?? 0);
     } catch (e) {
@@ -34,7 +35,7 @@ const GrnList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, status]);
+  }, [page, rowsPerPage, status, search]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -87,26 +88,42 @@ const GrnList = () => {
             bgcolor: alpha(theme.palette.primary.main, 0.02),
           }}
         >
-          <TextField
-            select
-            size="small"
-            label="Filter by status"
-            value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(0); }}
-            sx={{ width: 220 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <IconFilter size={16} />
-                </InputAdornment>
-              ),
-            }}
-          >
-            <MenuItem value="">All statuses</MenuItem>
-            <MenuItem value="new">New</MenuItem>
-            <MenuItem value="submitted">Submitted</MenuItem>
-            <MenuItem value="approved">Approved</MenuItem>
-          </TextField>
+          <Stack direction="row" flexWrap="wrap" gap={1.5}>
+            <TextField
+              size="small"
+              label="Search GRN # / notes"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              sx={{ width: 260 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <IconSearch size={16} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              select
+              size="small"
+              label="Filter by status"
+              value={status}
+              onChange={(e) => { setStatus(e.target.value); setPage(0); }}
+              sx={{ width: 220 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <IconFilter size={16} />
+                  </InputAdornment>
+                ),
+              }}
+            >
+              <MenuItem value="">All statuses</MenuItem>
+              <MenuItem value="new">New</MenuItem>
+              <MenuItem value="submitted">Submitted</MenuItem>
+              <MenuItem value="approved">Approved</MenuItem>
+            </TextField>
+          </Stack>
         </Box>
 
         <TableContainer sx={{ overflowX: 'auto' }}>

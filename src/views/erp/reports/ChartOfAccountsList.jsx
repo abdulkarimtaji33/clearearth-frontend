@@ -3,11 +3,11 @@ import {
   Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, CircularProgress, Alert, Chip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
-  IconButton, Tooltip, Checkbox, FormControlLabel,
+  IconButton, Tooltip, Checkbox, FormControlLabel, InputAdornment,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import {
-  IconList, IconPlus, IconSeeding, IconEdit, IconTrash, IconCornerDownRight,
+  IconList, IconPlus, IconSeeding, IconEdit, IconTrash, IconCornerDownRight, IconSearch,
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import GlAmountLink from '../../../components/erp/GlAmountLink';
@@ -90,6 +90,7 @@ const ChartOfAccountsList = () => {
   const [editAccount, setEditAccount] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -223,13 +224,44 @@ const ChartOfAccountsList = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {msg && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg('')}>{msg}</Alert>}
 
+      {!loading && accounts.length > 0 && (
+        <TextField
+          size="small"
+          placeholder="Search by account code or name"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ mb: 2, minWidth: 320 }}
+          InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={16} /></InputAdornment> }}
+        />
+      )}
+
       {loading ? (
         <Box display="flex" justifyContent="center" py={10}><CircularProgress /></Box>
       ) : (
         <Stack spacing={2}>
-          {TYPES.map((type) => {
+          {(() => {
+            const s = search.trim().toLowerCase();
+            const sectionsWithResults = s
+              ? TYPES.filter((type) => (grouped[type] || []).some((a) => a.code?.toLowerCase().includes(s) || a.name?.toLowerCase().includes(s)))
+              : null;
+            if (s && sectionsWithResults.length === 0) {
+              return (
+                <Paper variant="outlined" sx={{ borderRadius: 3, py: 6, textAlign: 'center' }}>
+                  <Typography color="text.secondary">No accounts match &quot;{search}&quot;</Typography>
+                </Paper>
+              );
+            }
+            return null;
+          })()}
+          {TYPES.filter((type) => {
+            if (!search.trim()) return true;
+            const s = search.trim().toLowerCase();
+            return (grouped[type] || []).some((a) => a.code?.toLowerCase().includes(s) || a.name?.toLowerCase().includes(s));
+          }).map((type) => {
             const typeAccounts = grouped[type] || [];
-            const rows = flattenTree(buildTree(typeAccounts));
+            const s = search.trim().toLowerCase();
+            const rows = flattenTree(buildTree(typeAccounts))
+              .filter((acc) => !s || acc.code?.toLowerCase().includes(s) || acc.name?.toLowerCase().includes(s));
             return (
               <Paper key={type} variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
                 <Box sx={{ px: 2.5, py: 1.5, bgcolor: alpha(theme.palette.grey[500], 0.06), borderBottom: '1px solid', borderColor: 'divider' }}>

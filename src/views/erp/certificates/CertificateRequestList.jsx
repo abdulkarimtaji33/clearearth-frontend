@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Box, Typography, Stack, Paper, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Chip, CircularProgress, Alert, TablePagination, TextField, MenuItem, Link, Button,
+  TableRow, Chip, CircularProgress, Alert, TablePagination, TextField, MenuItem, Link, Button, InputAdornment,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconCertificate, IconPlus, IconFileCheck } from '@tabler/icons-react';
+import { IconCertificate, IconPlus, IconFileCheck, IconSearch } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -29,12 +29,13 @@ const CertificateRequestList = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState('');
+  const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       const res = await apiService.getCertificateRequests({
-        page: page + 1, pageSize: rowsPerPage, status: status || undefined,
+        page: page + 1, pageSize: rowsPerPage, status: status || undefined, search: search || undefined,
         mine: isVerifier ? undefined : true,
       });
       setRows(Array.isArray(res.data) ? res.data : []);
@@ -44,7 +45,7 @@ const CertificateRequestList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, status, isVerifier]);
+  }, [page, rowsPerPage, status, search, isVerifier]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -71,13 +72,21 @@ const CertificateRequestList = () => {
 
       <Paper elevation={0} variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
         <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
-          <TextField select size="small" label="Filter by status" value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }} sx={{ width: 240 }}>
-            <MenuItem value="">All statuses</MenuItem>
-            <MenuItem value="pending_verification">Pending Verification</MenuItem>
-            <MenuItem value="verified">Verified</MenuItem>
-            <MenuItem value="generated">Generated</MenuItem>
-            <MenuItem value="issued">Issued</MenuItem>
-          </TextField>
+          <Stack direction="row" flexWrap="wrap" gap={1.5}>
+            <TextField
+              size="small" label="Search company / contact / GRN no." value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              sx={{ width: 280 }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={16} /></InputAdornment> }}
+            />
+            <TextField select size="small" label="Filter by status" value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }} sx={{ width: 240 }}>
+              <MenuItem value="">All statuses</MenuItem>
+              <MenuItem value="pending_verification">Pending Verification</MenuItem>
+              <MenuItem value="verified">Verified</MenuItem>
+              <MenuItem value="generated">Generated</MenuItem>
+              <MenuItem value="issued">Issued</MenuItem>
+            </TextField>
+          </Stack>
         </Box>
 
         <TableContainer sx={{ overflowX: 'auto' }}>

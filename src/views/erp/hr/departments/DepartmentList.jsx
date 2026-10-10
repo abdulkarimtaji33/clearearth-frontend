@@ -2,17 +2,17 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   IconButton, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Stack,
-  Skeleton, Tooltip,
+  Skeleton, Tooltip, TextField, MenuItem, InputAdornment,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import {
-  IconPlus, IconEdit, IconTrash, IconBuildingCommunity, IconCircleCheck, IconCircleOff, IconSitemap,
+  IconPlus, IconEdit, IconTrash, IconBuildingCommunity, IconCircleCheck, IconCircleOff, IconSitemap, IconSearch,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import apiService from '../../../../services/api';
 import { useAuth } from '../../../../context/AuthContext';
 import {
-  HrPage, SectionCard, StatTile, StatGrid, StatusChip, PersonCell, EmptyState, tableSx, dialogPaperProps,
+  HrPage, SectionCard, StatTile, StatGrid, StatusChip, PersonCell, EmptyState, FilterBar, inputSx, tableSx, dialogPaperProps,
 } from '../components/HrUi';
 
 const getInitials = (name) => (name || '').split(' ').map((w) => w[0]).join('').substring(0, 2).toUpperCase() || '?';
@@ -24,6 +24,8 @@ const DepartmentList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const canManage = hasPermission('hr.settings.manage');
 
@@ -60,6 +62,16 @@ const DepartmentList = () => {
     nested: departments.filter((d) => d.parent).length,
   }), [departments]);
 
+  const filteredDepartments = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    return departments.filter((d) => {
+      if (statusFilter && d.status !== statusFilter) return false;
+      if (!s) return true;
+      return (d.name || '').toLowerCase().includes(s) || (d.code || '').toLowerCase().includes(s);
+    });
+  }, [departments, search, statusFilter]);
+
+  const hasFilters = !!(search || statusFilter);
   const colCount = canManage ? 6 : 5;
 
   return (
@@ -88,6 +100,25 @@ const DepartmentList = () => {
         subtitle={departments.length > 0 ? `${departments.length} department${departments.length !== 1 ? 's' : ''}` : undefined}
         noPadding
       >
+        {departments.length > 0 && (
+          <FilterBar>
+            <TextField
+              size="small" placeholder="Search name or code" value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{ ...inputSx, minWidth: 240 }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={16} /></InputAdornment> }}
+            />
+            <TextField
+              select size="small" label="Status" value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              sx={{ ...inputSx, minWidth: 160 }}
+            >
+              <MenuItem value="">All statuses</MenuItem>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+            </TextField>
+          </FilterBar>
+        )}
         {!loading && departments.length === 0 ? (
           <EmptyState
             icon={IconBuildingCommunity}
@@ -100,6 +131,8 @@ const DepartmentList = () => {
             )}
             compact
           />
+        ) : !loading && filteredDepartments.length === 0 ? (
+          <EmptyState icon={IconBuildingCommunity} title="No matching departments" message={hasFilters ? 'Try adjusting your search or filters.' : undefined} compact />
         ) : (
           <TableContainer sx={{ overflowX: 'auto' }}>
             <Table sx={{ ...tableSx, minWidth: 760 }}>
@@ -123,7 +156,7 @@ const DepartmentList = () => {
                     </TableRow>
                   ))
                 ) : (
-                  departments.map((d) => (
+                  filteredDepartments.map((d) => (
                     <TableRow key={d.id} hover>
                       <TableCell>
                         <Stack direction="row" alignItems="center" spacing={1.5} minWidth={0}>

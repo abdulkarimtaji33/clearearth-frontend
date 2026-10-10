@@ -3,6 +3,7 @@ import { uniqueId } from 'lodash';
 import {
   IconAddressBook,
   IconPackage,
+  IconBoxSeam,
   IconBriefcase,
   IconFileText,
   IconReceipt,
@@ -250,6 +251,14 @@ const ErpMenuItems = [
     title: 'GRN',
     icon: IconPackage,
     href: '/erp/grn',
+    permission: 'deals.read',
+    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...NO_OPERATIONS_ACCESS_ROLES, ...DRIVER_ONLY_ROLES],
+  },
+  {
+    id: uniqueId(),
+    title: 'Inventory',
+    icon: IconBoxSeam,
+    href: '/erp/inventory',
     permission: 'deals.read',
     excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...NO_OPERATIONS_ACCESS_ROLES, ...DRIVER_ONLY_ROLES],
   },

@@ -1127,6 +1127,10 @@ class ApiService {
     return this.get('/grn', params);
   }
 
+  async getInventoryItems(params) {
+    return this.get('/grn/inventory', params);
+  }
+
   async getGrn(id) {
     return this.get(`/grn/${id}`);
   }
@@ -1245,8 +1249,8 @@ class ApiService {
     return this.post('/carbon-footprint-factors', data);
   }
 
-  async getDashboardOverview() {
-    return this.get('/dashboard/overview');
+  async getDashboardOverview(params = {}) {
+    return this.get('/dashboard/overview', params);
   }
 
   async getDriverPickups() {

@@ -11,6 +11,7 @@ import {
 import KpiCard from './shared/KpiCard';
 import ActionableList from './shared/ActionableList';
 import DashboardChart from './shared/DashboardChart';
+import OperationsPulsePanel from './OperationsPulsePanel';
 import { useAuth } from '../../../context/AuthContext';
 
 const greeting = () => {
@@ -46,7 +47,7 @@ const QUICK_NAV = [
   { label: 'Reports', icon: IconChartBar, href: '/erp/reports/trial-balance', color: 'info' },
 ];
 
-const AdminDashboard = ({ data, onRefresh }) => {
+const AdminDashboard = ({ data, onRefresh, pulsePeriod, onPulsePeriodChange, pulseLoading }) => {
   const { user } = useAuth();
   const theme = useTheme();
   const navigate = useNavigate();
@@ -69,6 +70,14 @@ const AdminDashboard = ({ data, onRefresh }) => {
           Refresh
         </Button>
       </Stack>
+
+      {/* ── Operations Pulse ── */}
+      <OperationsPulsePanel
+        pulse={data.pulse}
+        period={pulsePeriod || data.pulse?.period || 'week'}
+        onPeriodChange={onPulsePeriodChange}
+        loading={pulseLoading}
+      />
 
       {/* ── KPIs ── */}
       <Grid container spacing={2.5} mb={2.5}>

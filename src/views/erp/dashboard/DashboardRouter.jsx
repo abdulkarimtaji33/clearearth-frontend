@@ -33,6 +33,7 @@ const DashboardRouter = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pulsePeriod, setPulsePeriod] = useState('week');
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -41,16 +42,16 @@ const DashboardRouter = () => {
   }, []);
 
   const silentRefresh = useCallback(() => {
-    apiService.getDashboardOverview().then((res) => {
+    apiService.getDashboardOverview({ period: pulsePeriod }).then((res) => {
       if (isMounted.current && res.success) setData(res.data);
     }).catch(() => {});
-  }, []);
+  }, [pulsePeriod]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (period) => {
     try {
       setLoading(true);
       setError('');
-      const res = await apiService.getDashboardOverview();
+      const res = await apiService.getDashboardOverview({ period: period || pulsePeriod });
       if (isMounted.current) {
         if (res.success) setData(res.data);
         else setError(res.message || 'Failed to load dashboard');
@@ -60,9 +61,13 @@ const DashboardRouter = () => {
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, []);
+  }, [pulsePeriod]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handlePeriodChange = useCallback((period) => {
+    setPulsePeriod(period);
+  }, []);
 
   // Real-time refresh on socket notification (e.g. approval requests for sales manager)
   useEffect(() => {
@@ -83,14 +88,20 @@ const DashboardRouter = () => {
 
   return (
     <PageContainer title="Dashboard" description="Your workspace overview">
-      {loading ? (
+      {loading && !data ? (
         <Box display="flex" justifyContent="center" py={12}><CircularProgress /></Box>
       ) : error ? (
         <Alert severity="error">{error}</Alert>
       ) : (
         <>
           {hasPermission('hr.employees.manage') && <HrDashboardWidgets />}
-          <Component data={data} onRefresh={load} />
+          <Component
+            data={data}
+            onRefresh={load}
+            pulsePeriod={pulsePeriod}
+            onPulsePeriodChange={handlePeriodChange}
+            pulseLoading={loading}
+          />
         </>
       )}
     </PageContainer>

@@ -86,6 +86,7 @@ const DriverPickupTaskView = Loadable(lazyWithChunkReload(() => import('../views
 const GrnList = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnList')));
 const GrnForm = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnForm')));
 const GrnView = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnView')));
+const InventoryList = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/InventoryList')));
 const CertificateRequestList = Loadable(lazyWithChunkReload(() => import('../views/erp/certificates/CertificateRequestList')));
 const CertificateRequestForm = Loadable(lazyWithChunkReload(() => import('../views/erp/certificates/CertificateRequestForm')));
 const CertificateRequestDetail = Loadable(lazyWithChunkReload(() => import('../views/erp/certificates/CertificateRequestDetail')));
@@ -220,6 +221,7 @@ const Router = createBrowserRouter([
       { path: '/erp/grn/create', element: <GrnForm /> },
       { path: '/erp/grn/edit/:id', element: <GrnForm /> },
       { path: '/erp/grn/view/:id', element: <GrnView /> },
+      { path: '/erp/inventory', element: <InventoryList /> },
       { path: '/erp/certificates/requests', element: <CertificateRequestList /> },
       { path: '/erp/certificates/requests/new', element: <CertificateRequestForm /> },
       { path: '/erp/certificates/requests/view/:id', element: <CertificateRequestDetail /> },

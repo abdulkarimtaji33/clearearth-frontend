@@ -301,18 +301,18 @@ const InspectionRequestList = () => {
                               </IconButton>
                             </Tooltip>
                             {req.response_status !== 'accepted' && req.response_status !== 'rejected' && (
-                              <>
-                                <Tooltip title="Accept">
-                                  <IconButton size="small" color="success" disabled={actionLoading === req.id} onClick={e => { e.stopPropagation(); setAcceptDialog({ open: true, req }); }}>
-                                    <IconCheck size={16} />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Reject">
-                                  <IconButton size="small" color="error" disabled={actionLoading === req.id} onClick={e => { e.stopPropagation(); setRejectDialog({ open: true, req }); setRejectReason(''); }}>
-                                    <IconX size={16} />
-                                  </IconButton>
-                                </Tooltip>
-                              </>
+                              <Tooltip title="Accept">
+                                <IconButton size="small" color="success" disabled={actionLoading === req.id} onClick={e => { e.stopPropagation(); setAcceptDialog({ open: true, req }); }}>
+                                  <IconCheck size={16} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {req.response_status !== 'rejected' && (
+                              <Tooltip title="Reject">
+                                <IconButton size="small" color="error" disabled={actionLoading === req.id} onClick={e => { e.stopPropagation(); setRejectDialog({ open: true, req }); setRejectReason(''); }}>
+                                  <IconX size={16} />
+                                </IconButton>
+                              </Tooltip>
                             )}
                             {req.deal?.inspectionReport && (
                               <Button size="small" variant="outlined" startIcon={<IconFileReport size={14} />} onClick={() => navigate(`/erp/inspection-requests/${req.id}`)} sx={{ borderRadius: 2, ml: 0.5 }}>

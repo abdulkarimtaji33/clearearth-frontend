@@ -14,6 +14,8 @@ import dayjs from 'dayjs';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import UomSelectField from '../../../components/erp/UomSelectField';
+import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 
 const CERT_TYPES = [
   { value: 'green_certificate', label: 'Green Certificate' },
@@ -30,7 +32,7 @@ const PHOTO_STAGES = [
 ];
 
 const emptyForm = () => ({
-  companyName: '', contactPerson: '', contactNo: '', contactEmail: '', collectionDate: '',
+  companyName: '', contactPerson: '', contactNo: '', contactEmail: '', collectionDate: '', collectionDateTo: '',
   grnId: '', grnNo: '', materialWasteDetails: '', totalWeightQuantity: '', invoiceNo: '',
   additionalNotes: '', certificateTypes: [], destructionReportVariant: 'itemized_equipment',
   wdsRefNo: '', docRef: '', reqNo: '', boeNo: '', barcode: '', uom: '',
@@ -43,6 +45,8 @@ const CertificateRequestForm = () => {
 
   const [form, setForm] = useState(emptyForm());
   const [grns, setGrns] = useState([]);
+  const { unitsOfMeasure: catalogUnits } = useUnitsOfMeasure();
+  const [unitsOfMeasure, setUnitsOfMeasure] = useState([]);
   const [supportingDoc, setSupportingDoc] = useState(null);
   const [photos, setPhotos] = useState([]); // { filePath, fileName, fileType, photoStage }
   const [uploading, setUploading] = useState(false);
@@ -57,6 +61,10 @@ const CertificateRequestForm = () => {
       if (res?.success) setGrns(Array.isArray(res.data) ? res.data : []);
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    setUnitsOfMeasure(catalogUnits);
+  }, [catalogUnits]);
 
   const needsEvidence = form.certificateTypes.includes('destruction_report_evidence');
   const isBulkVariant = needsEvidence && form.destructionReportVariant === 'bulk_material';
@@ -125,6 +133,9 @@ const CertificateRequestForm = () => {
     if (!form.contactNo.trim()) errs.contactNo = 'Contact number is required';
     if (!form.contactEmail.trim()) errs.contactEmail = 'Contact email is required';
     if (!form.collectionDate) errs.collectionDate = 'Collection date is required';
+    if (form.collectionDateTo && form.collectionDateTo < form.collectionDate) {
+      errs.collectionDateTo = '"To" date cannot be before "From" date';
+    }
     if (!form.materialWasteDetails.trim()) errs.materialWasteDetails = 'Material / waste details are required';
     if (!form.totalWeightQuantity) errs.totalWeightQuantity = 'Total weight / quantity is required';
     if (!form.certificateTypes.length) errs.certificateTypes = 'Select at least one certificate type.';
@@ -151,6 +162,7 @@ const CertificateRequestForm = () => {
       contactNo: form.contactNo.trim(),
       contactEmail: form.contactEmail.trim(),
       collectionDate: form.collectionDate,
+      collectionDateTo: form.collectionDateTo || undefined,
       grnId: form.grnId || undefined,
       grnNo: !form.grnId ? (form.grnNo || undefined) : undefined,
       materialWasteDetails: form.materialWasteDetails.trim(),
@@ -263,7 +275,7 @@ const CertificateRequestForm = () => {
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
-                label="Collection Date *"
+                label="Collection Date (From) *"
                 value={form.collectionDate ? dayjs(form.collectionDate) : null}
                 onChange={(val) => setForm((p) => ({ ...p, collectionDate: val && val.isValid() ? val.format('YYYY-MM-DD') : '' }))}
                 slotProps={{
@@ -276,6 +288,23 @@ const CertificateRequestForm = () => {
                 }}
               />
             </LocalizationProvider>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="Collection Date (To)"
+                value={form.collectionDateTo ? dayjs(form.collectionDateTo) : null}
+                minDate={form.collectionDate ? dayjs(form.collectionDate) : undefined}
+                onChange={(val) => setForm((p) => ({ ...p, collectionDateTo: val && val.isValid() ? val.format('YYYY-MM-DD') : '' }))}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    error: submitAttempted && Boolean(fieldErrors.collectionDateTo),
+                    helperText: submitAttempted ? (fieldErrors.collectionDateTo || 'Optional — only if collected over multiple days') : 'Optional — only if collected over multiple days',
+                  },
+                }}
+              />
+            </LocalizationProvider>
+          </Stack>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
             <Autocomplete
               fullWidth
               freeSolo
@@ -309,17 +338,15 @@ const CertificateRequestForm = () => {
               error={submitAttempted && Boolean(fieldErrors.totalWeightQuantity)}
               helperText={submitAttempted ? fieldErrors.totalWeightQuantity : ' '}
             />
-            <TextField
-              select fullWidth label="UoM" value={form.uom} onChange={set('uom')}
+            <UomSelectField
+              fullWidth
+              label="UoM"
+              value={form.uom}
+              onChange={(v) => setForm((p) => ({ ...p, uom: v }))}
+              unitsOfMeasure={unitsOfMeasure}
+              onUnitsChange={setUnitsOfMeasure}
               helperText=" "
-            >
-              <MenuItem value="">—</MenuItem>
-              <MenuItem value="kg">kg</MenuItem>
-              <MenuItem value="tons">tons</MenuItem>
-              <MenuItem value="pcs">pcs</MenuItem>
-              <MenuItem value="liters">liters</MenuItem>
-              <MenuItem value="cbm">cbm</MenuItem>
-            </TextField>
+            />
             <TextField fullWidth label="Invoice No." value={form.invoiceNo} onChange={set('invoiceNo')} />
           </Stack>
           <TextField fullWidth multiline rows={2} label="Additional Notes" value={form.additionalNotes} onChange={set('additionalNotes')} />

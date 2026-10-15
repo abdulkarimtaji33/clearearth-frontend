@@ -135,7 +135,15 @@ const CertificateRequestDetail = () => {
           <Grid item xs={12} md={4}><Typography variant="caption" color="text.secondary">Contact Person</Typography><Typography variant="body2" fontWeight={600}>{request.contact_person}</Typography></Grid>
           <Grid item xs={12} md={4}><Typography variant="caption" color="text.secondary">Contact No.</Typography><Typography variant="body2" fontWeight={600}>{request.contact_no}</Typography></Grid>
           <Grid item xs={12} md={4}><Typography variant="caption" color="text.secondary">Contact Email</Typography><Typography variant="body2" fontWeight={600}>{request.contact_email}</Typography></Grid>
-          <Grid item xs={12} md={4}><Typography variant="caption" color="text.secondary">Collection Date</Typography><Typography variant="body2" fontWeight={600}>{request.collection_date?.slice?.(0, 10)}</Typography></Grid>
+          <Grid item xs={12} md={4}>
+            <Typography variant="caption" color="text.secondary">Collection Date</Typography>
+            <Typography variant="body2" fontWeight={600}>
+              {request.collection_date?.slice?.(0, 10)}
+              {request.collection_date_to && request.collection_date_to.slice(0, 10) !== request.collection_date?.slice?.(0, 10)
+                ? ` – ${request.collection_date_to.slice(0, 10)}`
+                : ''}
+            </Typography>
+          </Grid>
           <Grid item xs={12} md={4}>
             <Typography variant="caption" color="text.secondary">GRN</Typography>
             <Typography variant="body2" fontWeight={600}>

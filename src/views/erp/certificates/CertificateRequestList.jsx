@@ -127,7 +127,12 @@ const CertificateRequestList = () => {
                         {(r.types || []).map((t) => <Chip key={t.id} size="small" label={t.type.replace(/_/g, ' ')} variant="outlined" />)}
                       </Stack>
                     </TableCell>
-                    <TableCell>{r.collection_date?.slice?.(0, 10) || '—'}</TableCell>
+                    <TableCell>
+                      {r.collection_date?.slice?.(0, 10) || '—'}
+                      {r.collection_date_to && r.collection_date_to.slice(0, 10) !== r.collection_date?.slice?.(0, 10)
+                        ? ` – ${r.collection_date_to.slice(0, 10)}`
+                        : ''}
+                    </TableCell>
                     <TableCell>
                       <Chip size="small" label={STATUS_LABEL[r.status] || r.status} color={STATUS_COLOR[r.status] || 'default'} sx={{ fontWeight: 700, borderRadius: 1.5 }} />
                     </TableCell>

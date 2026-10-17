@@ -4,7 +4,7 @@ import {
   FormControlLabel, Divider, Link, Grid,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconArrowLeft, IconCertificate, IconCheck, IconFileDownload } from '@tabler/icons-react';
+import { IconArrowLeft, IconCertificate, IconCheck, IconFileDownload, IconPhoto } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -38,6 +38,9 @@ const CertificateRequestDetail = () => {
   const [verifying, setVerifying] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [taskEvidence, setTaskEvidence] = useState([]);
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const [attachingId, setAttachingId] = useState(null);
 
   const load = async () => {
     try {
@@ -47,11 +50,40 @@ const CertificateRequestDetail = () => {
         setRequest(res.data);
         const alreadyGenerated = new Set((res.data.certificates || []).map((c) => c.type));
         setSelectedTypes((res.data.types || []).map((t) => t.type).filter((t) => !alreadyGenerated.has(t)));
+        if (res.data.deal_id) loadTaskEvidence(res.data.deal_id);
       } else setError(res.message || 'Not found');
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTaskEvidence = async (dealId) => {
+    try {
+      setEvidenceLoading(true);
+      const res = await apiService.getWorkOrders({ dealId, pageSize: 50 });
+      const workOrders = res.success ? (Array.isArray(res.data) ? res.data : []) : [];
+      const files = [];
+      workOrders.forEach((wo) => {
+        (wo.tasks || []).forEach((task) => {
+          (task.files || []).forEach((f) => {
+            files.push({
+              id: f.id,
+              workOrderId: wo.id,
+              taskId: task.id,
+              taskName: task.workType?.name || task.type_of_work || `Task #${task.id}`,
+              imageUrl: f.image_url,
+              originalName: f.original_name,
+            });
+          });
+        });
+      });
+      setTaskEvidence(files);
+    } catch (e) {
+      // non-blocking — certificate generation doesn't depend on this
+    } finally {
+      setEvidenceLoading(false);
     }
   };
 
@@ -82,6 +114,23 @@ const CertificateRequestDetail = () => {
       setError(e.message || 'Certificate generation failed');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const attachEvidence = async (evidence) => {
+    try {
+      setAttachingId(evidence.id);
+      setError('');
+      const res = await apiService.linkWorkOrderTaskFileToCertificate(evidence.workOrderId, evidence.taskId, evidence.id, id);
+      if (res.success) {
+        await load();
+      } else {
+        setError(res.message || 'Failed to attach evidence');
+      }
+    } catch (e) {
+      setError(e.message || 'Failed to attach evidence');
+    } finally {
+      setAttachingId(null);
     }
   };
 
@@ -178,6 +227,65 @@ const CertificateRequestDetail = () => {
               />
             ))}
           </Stack>
+        </Paper>
+      )}
+
+      {(evidenceLoading || taskEvidence.length > 0) && (
+        <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, mb: 2.5 }}>
+          <Typography variant="subtitle2" fontWeight={800} mb={0.5}>Work Task Evidence</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+            Photos uploaded against this deal's work order tasks. Attach any that should be included as destruction evidence on this certificate request.
+          </Typography>
+          {evidenceLoading ? (
+            <Box display="flex" justifyContent="center" py={2}><CircularProgress size={20} /></Box>
+          ) : (
+            <Stack direction="row" flexWrap="wrap" gap={1.5}>
+              {taskEvidence.map((ev) => {
+                const alreadyAttached = (request.attachments || []).some((a) => a.source_task_file_id === ev.id);
+                return (
+                  <Box
+                    key={ev.id}
+                    sx={{ width: 140, borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}
+                  >
+                    <Box
+                      component="a"
+                      href={ev.imageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ display: 'block' }}
+                    >
+                      <Box
+                        component="img"
+                        src={ev.imageUrl}
+                        alt={ev.originalName || 'Evidence'}
+                        sx={{ width: '100%', height: 100, objectFit: 'cover', display: 'block' }}
+                      />
+                    </Box>
+                    <Box sx={{ p: 1 }}>
+                      <Typography variant="caption" color="text.secondary" noWrap display="block" title={ev.taskName}>
+                        {ev.taskName}
+                      </Typography>
+                      {alreadyAttached ? (
+                        <Chip size="small" icon={<IconCheck size={14} />} label="Attached" color="success" sx={{ mt: 0.5, fontWeight: 600 }} />
+                      ) : canVerify ? (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          fullWidth
+                          startIcon={attachingId === ev.id ? <CircularProgress size={12} /> : <IconPhoto size={14} />}
+                          disabled={attachingId === ev.id}
+                          onClick={() => attachEvidence(ev)}
+                          sx={{ mt: 0.5, borderRadius: 1.5, fontSize: '0.7rem', textTransform: 'none' }}
+                        >
+                          Attach as evidence
+                        </Button>
+                      ) : null}
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Stack>
+          )}
         </Paper>
       )}
 

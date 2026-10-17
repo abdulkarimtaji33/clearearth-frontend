@@ -50,7 +50,7 @@ const CertificateRequestDetail = () => {
         setRequest(res.data);
         const alreadyGenerated = new Set((res.data.certificates || []).map((c) => c.type));
         setSelectedTypes((res.data.types || []).map((t) => t.type).filter((t) => !alreadyGenerated.has(t)));
-        if (res.data.deal_id) loadTaskEvidence(res.data.deal_id);
+        loadTaskEvidence();
       } else setError(res.message || 'Not found');
     } catch (e) {
       setError(e.message);
@@ -59,27 +59,11 @@ const CertificateRequestDetail = () => {
     }
   };
 
-  const loadTaskEvidence = async (dealId) => {
+  const loadTaskEvidence = async () => {
     try {
       setEvidenceLoading(true);
-      const res = await apiService.getWorkOrders({ dealId, pageSize: 50 });
-      const workOrders = res.success ? (Array.isArray(res.data) ? res.data : []) : [];
-      const files = [];
-      workOrders.forEach((wo) => {
-        (wo.tasks || []).forEach((task) => {
-          (task.files || []).forEach((f) => {
-            files.push({
-              id: f.id,
-              workOrderId: wo.id,
-              taskId: task.id,
-              taskName: task.workType?.name || task.type_of_work || `Task #${task.id}`,
-              imageUrl: f.image_url,
-              originalName: f.original_name,
-            });
-          });
-        });
-      });
-      setTaskEvidence(files);
+      const res = await apiService.getCertificateRequestTaskEvidence(id);
+      setTaskEvidence(res.success && Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       // non-blocking — certificate generation doesn't depend on this
     } finally {

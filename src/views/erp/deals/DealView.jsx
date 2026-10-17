@@ -65,6 +65,7 @@ import {
   IconTrophy,
   IconX,
   IconCertificate,
+  IconFileDownload,
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import InspectionRequestDetail from '../../../components/erp/InspectionRequestDetail';
@@ -460,6 +461,8 @@ const DealView = () => {
 
   const [relatedQuotations, setRelatedQuotations] = useState([]);
   const [relatedPOs, setRelatedPOs] = useState([]);
+  const [relatedGrns, setRelatedGrns] = useState([]);
+  const [downloadingGrnId, setDownloadingGrnId] = useState(null);
   const [quotMenuAnchor, setQuotMenuAnchor] = useState(null);
   const quotMenuOpen = Boolean(quotMenuAnchor);
 
@@ -499,16 +502,29 @@ const DealView = () => {
   const fetchRelatedDocs = useCallback(async () => {
     if (!id) return;
     try {
-      const [quotRes, poRes] = await Promise.all([
+      const [quotRes, poRes, grnRes] = await Promise.all([
         apiService.getQuotations({ dealId: id, pageSize: 50 }),
         apiService.getPurchaseOrders({ dealId: id, pageSize: 50 }),
+        hasPermission('grn.read') ? apiService.getGrns({ dealId: id, pageSize: 50 }) : Promise.resolve({ success: false }),
       ]);
       if (quotRes.success) setRelatedQuotations(sortQuotationsByVersion(Array.isArray(quotRes.data) ? quotRes.data : []));
       if (poRes.success) setRelatedPOs(Array.isArray(poRes.data) ? poRes.data : []);
+      if (grnRes.success) setRelatedGrns(Array.isArray(grnRes.data) ? grnRes.data : []);
     } catch (err) {
       console.error(err);
     }
   }, [id]);
+
+  const downloadGrnPdf = async (grnId) => {
+    try {
+      setDownloadingGrnId(grnId);
+      await apiService.downloadGrnPdf(grnId);
+    } catch (err) {
+      setError(err.message || 'Failed to download GRN report');
+    } finally {
+      setDownloadingGrnId(null);
+    }
+  };
 
   useEffect(() => {
     if (id) fetchDeal();
@@ -1483,6 +1499,54 @@ const DealView = () => {
             )}
           </CardContent>
         </SectionCard>
+
+        {/* ── GRN Reports (download only — editing happens from the GRN module) ── */}
+        {hasPermission('grn.read') && relatedGrns.length > 0 && (
+          <SectionCard id="sec-grn-reports">
+            <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+              <SectionHeader icon={IconFileDownload} title="GRN Reports" subtitle="Goods receipt notes recorded against this deal" />
+              <Divider sx={{ mb: 2.5 }} />
+              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
+                      <TableCell sx={{ fontWeight: 700 }}>GRN No.</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                      <TableCell align="right">Report</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {relatedGrns.map((g) => (
+                      <TableRow key={g.id} hover>
+                        <TableCell>{g.grn_number}</TableCell>
+                        <TableCell>{g.created_at ? new Date(g.created_at).toLocaleDateString() : '-'}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={(g.status || '-').replace(/_/g, ' ')}
+                            size="small"
+                            color={g.status === 'approved' ? 'success' : 'default'}
+                            sx={{ fontWeight: 600, textTransform: 'capitalize' }}
+                          />
+                        </TableCell>
+                        <TableCell align="right">
+                          <Button
+                            size="small"
+                            startIcon={downloadingGrnId === g.id ? <CircularProgress size={14} /> : <IconFileDownload size={14} />}
+                            disabled={downloadingGrnId === g.id}
+                            onClick={() => downloadGrnPdf(g.id)}
+                          >
+                            Download
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </SectionCard>
+        )}
 
         {/* ── SECTION 5: Quotations ── */}
         <SectionCard id="sec-quotations">

@@ -1185,6 +1185,10 @@ class ApiService {
     return this.get(`/certificate-requests/${id}`);
   }
 
+  async getCertificateRequestAutofill(dealId) {
+    return this.get(`/certificate-requests/autofill/${dealId}`);
+  }
+
   async createCertificateRequest(data) {
     return this.post('/certificate-requests', data);
   }

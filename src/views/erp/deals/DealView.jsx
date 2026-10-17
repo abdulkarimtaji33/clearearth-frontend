@@ -64,6 +64,7 @@ import {
   IconAlertCircle,
   IconTrophy,
   IconX,
+  IconCertificate,
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import InspectionRequestDetail from '../../../components/erp/InspectionRequestDetail';
@@ -898,6 +899,17 @@ const DealView = () => {
                   Mark as Lost
                 </Button>
               </>
+            )}
+            {deal.certificate_required && hasPermission('certificates.create') && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<IconCertificate size={16} />}
+                onClick={() => navigate(`/erp/certificates/requests/new?dealId=${id}`)}
+                sx={{ borderRadius: 2, fontWeight: 600 }}
+              >
+                Create Certificate
+              </Button>
             )}
             {canEditDeals && (
               <Button

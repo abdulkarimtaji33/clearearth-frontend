@@ -1197,6 +1197,10 @@ class ApiService {
     return this.post('/certificate-requests', data);
   }
 
+  async updateCertificateRequest(id, data) {
+    return this.put(`/certificate-requests/${id}`, data);
+  }
+
   async verifyCertificateRequest(id, data) {
     return this.post(`/certificate-requests/${id}/verify`, data);
   }

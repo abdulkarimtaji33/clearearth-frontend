@@ -10,6 +10,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import ApproveQuotationConfirmDialog from '../../../components/erp/ApproveQuotationConfirmDialog';
 import PickupDatePanel from '../../../components/erp/PickupDatePanel';
+import DealRequirementsBanner from '../work-orders/DealRequirementsBanner';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
@@ -235,6 +236,8 @@ const PurchaseOrderView = () => {
             )}
           </Stack>
         </Stack>
+
+        <DealRequirementsBanner deal={po.deal} />
 
         {isApproved && po.requested_pickup_date && (
           <PickupDatePanel

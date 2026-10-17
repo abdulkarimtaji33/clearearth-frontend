@@ -2,7 +2,7 @@ import React from 'react';
 import { Alert, Typography } from '@mui/material';
 
 // Keep in sync with TYPE_LABEL in src/views/erp/certificates/CertificateList.jsx
-const CERTIFICATE_TYPE_LABEL = {
+export const CERTIFICATE_TYPE_LABEL = {
   green_certificate: 'Green Certificate',
   certificate_of_destruction: 'Certificate of Destruction',
   certificate_of_data_destruction: 'Certificate of Data Destruction',

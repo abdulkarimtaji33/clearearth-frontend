@@ -10,6 +10,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import ApproveQuotationConfirmDialog from '../../../components/erp/ApproveQuotationConfirmDialog';
 import PickupDatePanel from '../../../components/erp/PickupDatePanel';
+import DealRequirementsBanner from '../work-orders/DealRequirementsBanner';
 import QuotationVersionBadge from '../../../components/erp/QuotationVersionBadge';
 import apiService from '../../../services/api';
 import { sortQuotationsByVersion, quotationVersion, quotationVersionLabel } from '../../../utils/quotationVersion';
@@ -255,6 +256,8 @@ const QuotationView = () => {
             )}
           </Stack>
         </Stack>
+
+        <DealRequirementsBanner deal={q.deal} />
 
         {isApproved && q.requested_pickup_date && (
           <PickupDatePanel

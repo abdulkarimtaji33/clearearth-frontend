@@ -82,6 +82,7 @@ import {
   resolveInspectorIdForReport,
 } from '../../../utils/inspectionReportHelpers';
 import { parseSupportingDocuments } from '../../../utils/inspectionRequestHelpers';
+import { CERTIFICATE_TYPE_LABEL } from '../work-orders/DealRequirementsBanner';
 
 const DEAL_APPROVABLE_STATUSES = ['new', 'pending_approval'];
 const DEAL_QUOTABLE_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
@@ -1290,6 +1291,15 @@ const DealView = () => {
                 <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Location type" value={deal.location_type} /></Grid>
               )}
               <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Inspection required" value={deal.inspection_required ? 'Yes' : 'No'} /></Grid>
+              <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Certificate required" value={deal.certificate_required ? 'Yes' : 'No'} /></Grid>
+              {deal.certificate_required && Array.isArray(deal.required_certificate_types) && deal.required_certificate_types.length > 0 && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <InfoRow
+                    label="Certificate type(s)"
+                    value={deal.required_certificate_types.map((t) => CERTIFICATE_TYPE_LABEL[t] || t).join(', ')}
+                  />
+                </Grid>
+              )}
               {deal.deal_type === 'offer_to_charge' && (
                 <>
                   <Grid size={{ xs: 12, sm: 6 }}><InfoRow label="Custom inspection" value={deal.custom_inspection ? 'Yes' : 'No'} /></Grid>

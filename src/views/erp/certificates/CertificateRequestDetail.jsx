@@ -181,6 +181,26 @@ const CertificateRequestDetail = () => {
       <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, mb: 2.5 }}>
         <Typography variant="subtitle2" fontWeight={800} mb={1.5}>Request Details</Typography>
         <Grid container spacing={2}>
+          <Grid item xs={12} md={4}>
+            <Typography variant="caption" color="text.secondary">Deal</Typography>
+            <Typography variant="body2" fontWeight={600}>
+              {request.deal ? (
+                <Link component="button" onClick={() => navigate(`/erp/deals/view/${request.deal.id}`)}>
+                  {request.deal.deal_number || `Deal #${request.deal.id}`}{request.deal.title ? ` — ${request.deal.title}` : ''}
+                </Link>
+              ) : '—'}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Typography variant="caption" color="text.secondary">Work Order</Typography>
+            <Typography variant="body2" fontWeight={600}>
+              {request.grn?.work_order_id ? (
+                <Link component="button" onClick={() => navigate(`/erp/work-orders/view/${request.grn.work_order_id}`)}>
+                  Work Order #{request.grn.work_order_id}
+                </Link>
+              ) : '—'}
+            </Typography>
+          </Grid>
           <Grid item xs={12} md={4}><Typography variant="caption" color="text.secondary">Contact Person</Typography><Typography variant="body2" fontWeight={600}>{request.contact_person}</Typography></Grid>
           <Grid item xs={12} md={4}><Typography variant="caption" color="text.secondary">Contact No.</Typography><Typography variant="body2" fontWeight={600}>{request.contact_no}</Typography></Grid>
           <Grid item xs={12} md={4}><Typography variant="caption" color="text.secondary">Contact Email</Typography><Typography variant="body2" fontWeight={600}>{request.contact_email}</Typography></Grid>

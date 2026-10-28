@@ -2,13 +2,15 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, Typography, Stack, Alert, AlertTitle } from '@mui/material';
 import {
   IconLayoutDashboard, IconUser, IconBriefcase, IconFiles, IconSchool, IconDeviceLaptop, IconTimeline,
-  IconPhoneCall, IconMapPin, IconHome, IconUsers, IconUserHeart, IconBuildingBank, IconCertificate,
-  IconBulb, IconBuildingSkyscraper, IconId, IconCalendarTime, IconCash, IconShieldCheck, IconAlertTriangle,
+  IconPhoneCall, IconMapPin, IconHome, IconUsers, IconBuildingBank, IconId, IconCalendarTime, IconCash, IconShieldCheck, IconAlertTriangle,
   IconUserCircle,
 } from '@tabler/icons-react';
 import { useSearchParams } from 'react-router';
 import apiService from '../../../../../services/api';
-import EntityListEditor from './EntityListEditor';
+import HrSectionCard from './HrSectionCard';
+import { PersonalLists, QualificationLists } from './profileLists';
+import LeaveBalancesCard from './profile/LeaveBalancesCard';
+import { useAuth } from '../../../../../context/AuthContext';
 import ChangeRequestSection from './ChangeRequestSection';
 import ProfileHeader from './profile/ProfileHeader';
 import CompensationSection, { compTotal } from './profile/CompensationSection';
@@ -44,7 +46,7 @@ const mainAside = { display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minm
 // Overview
 // ---------------------------------------------------------------------------------------
 
-const OverviewTab = ({ employee, packageTotal, showPackage }) => {
+const OverviewTab = ({ employee, packageTotal, showPackage, isSelf }) => {
   const identity = IDENTITY_FIELDS.map((d) => ({ ...d, info: expiryInfo(employee[d.expiry]) }));
   const expired = identity.filter((d) => d.info.state === 'expired').length;
   const expiring = identity.filter((d) => d.info.state === 'expiring').length;
@@ -135,6 +137,7 @@ const OverviewTab = ({ employee, packageTotal, showPackage }) => {
               ))}
             </Stack>
           </SectionCard>
+          <LeaveBalancesCard employeeId={employee.id} isSelf={isSelf} />
           <SectionCard icon={IconUserCircle} title="About">
             <DetailGrid min={130} gap={2}>
               <DetailItem label="Date of birth" value={fmtDate(employee.date_of_birth)} />
@@ -161,6 +164,8 @@ const OverviewTab = ({ employee, packageTotal, showPackage }) => {
  */
 const EmployeeProfileTabs = ({ mode = 'self', employeeId, headerActions }) => {
   const isSelf = mode === 'self';
+  const { hasPermission } = useAuth();
+  const canEdit = !isSelf && hasPermission('hr.employees.manage');
   const base = isSelf ? '/hr/employees/me' : `/hr/employees/${employeeId}`;
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
@@ -288,6 +293,7 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId, headerActions }) => {
   const showPackage = isSelf ? employee.salaryVisible !== false && !!employee.activeSalaryStructure : true;
   const packageTotal = isSelf ? compTotal(employee.activeSalaryStructure) : (activeHrSalary ? compTotal(activeHrSalary) : 0);
   const changeRequestProps = { employee, selfService: isSelf, pendingRequests, onSubmitted: load };
+  const hrCard = { employee, canEdit, onSaved: load };
 
   return (
     <Box>
@@ -316,209 +322,160 @@ const EmployeeProfileTabs = ({ mode = 'self', employeeId, headerActions }) => {
         </Alert>
       )}
 
-      {tab === 'overview' && <OverviewTab employee={employee} packageTotal={packageTotal} showPackage={showPackage} />}
+      {tab === 'overview' && <OverviewTab employee={employee} packageTotal={packageTotal} showPackage={showPackage} isSelf={isSelf} />}
 
       {tab === 'personal' && (
         <Stack spacing={2.5}>
-          <ChangeRequestSection
-            {...changeRequestProps}
-            icon={IconUser}
-            title="Personal details"
-            fieldGroup="personal"
-            editableFields={[
-              { key: 'legalFullName', column: 'legal_full_name', label: 'Legal full name' },
-              { key: 'preferredName', column: 'preferred_name', label: 'Preferred name' },
-              { key: 'firstName', column: 'first_name', label: 'First name' },
-              { key: 'lastName', column: 'last_name', label: 'Last name' },
-            ]}
-            readOnlyFields={[
-              { column: 'middle_name', label: 'Middle name' },
-              { column: 'date_of_birth', label: 'Date of birth', format: 'date' },
-              { column: 'gender', label: 'Gender', format: 'humanize' },
-              { column: 'marital_status', label: 'Marital status', format: 'humanize' },
-              { column: 'nationality', label: 'Nationality' },
-              { column: 'religion', label: 'Religion' },
-              { column: 'blood_group', label: 'Blood group' },
-              { column: 'national_id', label: 'National ID' },
-              { column: 'passport_number', label: 'Passport number' },
-            ]}
-          />
-          <ChangeRequestSection
-            {...changeRequestProps}
-            icon={IconPhoneCall}
-            title="Contact"
-            fieldGroup="contact"
-            editableFields={[
-              { key: 'personalEmail', column: 'personal_email', label: 'Personal email' },
-              { key: 'personalPhone', column: 'personal_phone', label: 'Personal phone' },
-            ]}
-            readOnlyFields={[
-              { column: 'work_email', label: 'Work email' },
-              { column: 'work_phone', label: 'Work phone' },
-            ]}
-          />
-          <Box sx={twoCol}>
-            <ChangeRequestSection
-              {...changeRequestProps}
-              icon={IconMapPin}
-              title="Current address"
-              fieldGroup="address"
-              min={160}
-              editableFields={[
-                { key: 'currentAddressLine1', column: 'current_address_line1', label: 'Address line 1' },
-                { key: 'currentAddressCity', column: 'current_address_city', label: 'City' },
-                { key: 'currentAddressEmirate', column: 'current_address_emirate', label: 'Emirate / state' },
-                { key: 'currentAddressCountry', column: 'current_address_country', label: 'Country' },
-                { key: 'currentAddressPostal', column: 'current_address_postal', label: 'Postal code' },
-              ]}
-            />
-            <ChangeRequestSection
-              {...changeRequestProps}
-              icon={IconHome}
-              title="Permanent address"
-              fieldGroup="address"
-              min={160}
-              editableFields={[
-                { key: 'permanentAddressLine1', column: 'permanent_address_line1', label: 'Address line 1' },
-                { key: 'permanentAddressCity', column: 'permanent_address_city', label: 'City' },
-                { key: 'permanentAddressEmirate', column: 'permanent_address_emirate', label: 'Emirate / state' },
-                { key: 'permanentAddressCountry', column: 'permanent_address_country', label: 'Country' },
-                { key: 'permanentAddressPostal', column: 'permanent_address_postal', label: 'Postal code' },
-              ]}
-            />
-          </Box>
-          <Box sx={twoCol}>
-            <EntityListEditor
-              title="Emergency contacts" base={base} entity="emergency-contacts"
-              icon={IconUserHeart} emptyMessage="No emergency contacts added yet."
-              highlightWhen={(row) => !!row.is_primary}
-              maxItems={3}
-              maxItemsMessage="Maximum of 3 emergency contacts."
-              fields={[
-                { key: 'name', label: 'Name', required: true },
-                { key: 'relationship', label: 'Relationship' },
-                { key: 'phone', label: 'Phone' },
-                { key: 'email', label: 'Email' },
-                { key: 'isPrimary', label: 'Primary contact', type: 'checkbox' },
-              ]}
-            />
-            <EntityListEditor
-              title="Dependents" base={base} entity="dependents"
-              icon={IconUsers} emptyMessage="No dependents added yet."
-              fields={[
-                { key: 'name', label: 'Name', required: true },
-                { key: 'relationship', label: 'Relationship' },
-                { key: 'dateOfBirth', label: 'Date of birth', type: 'date' },
-                { key: 'idNumber', label: 'ID number' },
-                { key: 'notes', label: 'Notes', multiline: true },
-              ]}
-            />
-          </Box>
+          {isSelf ? (
+            <>
+              <ChangeRequestSection
+                {...changeRequestProps}
+                icon={IconUser}
+                title="Personal details"
+                fieldGroup="personal"
+                editableFields={[
+                  { key: 'legalFullName', column: 'legal_full_name', label: 'Legal full name' },
+                  { key: 'preferredName', column: 'preferred_name', label: 'Preferred name' },
+                  { key: 'firstName', column: 'first_name', label: 'First name' },
+                  { key: 'lastName', column: 'last_name', label: 'Last name' },
+                ]}
+                readOnlyFields={[
+                  { column: 'middle_name', label: 'Middle name' },
+                  { column: 'date_of_birth', label: 'Date of birth', format: 'date' },
+                  { column: 'gender', label: 'Gender', format: 'humanize' },
+                  { column: 'marital_status', label: 'Marital status', format: 'humanize' },
+                  { column: 'nationality', label: 'Nationality' },
+                  { column: 'religion', label: 'Religion' },
+                  { column: 'blood_group', label: 'Blood group' },
+                  { column: 'national_id', label: 'National ID' },
+                  { column: 'passport_number', label: 'Passport number' },
+                ]}
+              />
+              <ChangeRequestSection
+                {...changeRequestProps}
+                icon={IconPhoneCall}
+                title="Contact"
+                fieldGroup="contact"
+                editableFields={[
+                  { key: 'personalEmail', column: 'personal_email', label: 'Personal email' },
+                  { key: 'personalPhone', column: 'personal_phone', label: 'Personal phone' },
+                ]}
+                readOnlyFields={[
+                  { column: 'work_email', label: 'Work email' },
+                  { column: 'work_phone', label: 'Work phone' },
+                ]}
+              />
+              <Box sx={twoCol}>
+                <ChangeRequestSection
+                  {...changeRequestProps}
+                  icon={IconMapPin}
+                  title="Current address"
+                  fieldGroup="address"
+                  min={160}
+                  editableFields={[
+                    { key: 'currentAddressLine1', column: 'current_address_line1', label: 'Address line 1' },
+                    { key: 'currentAddressCity', column: 'current_address_city', label: 'City' },
+                    { key: 'currentAddressEmirate', column: 'current_address_emirate', label: 'Emirate / state' },
+                    { key: 'currentAddressCountry', column: 'current_address_country', label: 'Country' },
+                    { key: 'currentAddressPostal', column: 'current_address_postal', label: 'Postal code' },
+                  ]}
+                />
+                <ChangeRequestSection
+                  {...changeRequestProps}
+                  icon={IconHome}
+                  title="Permanent address"
+                  fieldGroup="address"
+                  min={160}
+                  editableFields={[
+                    { key: 'permanentAddressLine1', column: 'permanent_address_line1', label: 'Address line 1' },
+                    { key: 'permanentAddressCity', column: 'permanent_address_city', label: 'City' },
+                    { key: 'permanentAddressEmirate', column: 'permanent_address_emirate', label: 'Emirate / state' },
+                    { key: 'permanentAddressCountry', column: 'permanent_address_country', label: 'Country' },
+                    { key: 'permanentAddressPostal', column: 'permanent_address_postal', label: 'Postal code' },
+                  ]}
+                />
+              </Box>
+            </>
+          ) : (
+            <>
+              <HrSectionCard {...hrCard} section="basic" />
+              <HrSectionCard {...hrCard} section="contact" />
+              <Box sx={twoCol}>
+                <HrSectionCard {...hrCard} section="currentAddress" min={160} />
+                <HrSectionCard {...hrCard} section="permanentAddress" min={160} />
+              </Box>
+            </>
+          )}
+          <PersonalLists base={base} />
         </Stack>
       )}
 
       {tab === 'employment' && (
         <Stack spacing={2.5}>
-          <SectionCard icon={IconBriefcase} title="Job details">
-            <DetailGrid min={190}>
-              <DetailItem label="Department" value={employee.department?.name} />
-              <DetailItem label="Designation" value={employee.designation?.display_name} />
-              <DetailItem label="Reporting manager" value={fullName(employee.manager)} />
-              <DetailItem label="Work location" value={employee.workLocation?.name} />
-              <DetailItem label="Employment type" value={humanize(employee.employment_type)} />
-              <DetailItem label="Employment status" value={humanize(employee.employment_status)} />
-              <DetailItem label="Joining date" value={fmtDate(employee.date_of_joining)} />
-              <DetailItem label="Probation start" value={fmtDate(employee.probation_start)} />
-              <DetailItem label="Probation end" value={fmtDate(employee.probation_end)} />
-              <DetailItem label="Confirmation date" value={fmtDate(employee.confirmation_date)} />
-              {employee.exit_date && <DetailItem label="Exit date" value={fmtDate(employee.exit_date)} />}
-            </DetailGrid>
-          </SectionCard>
+          {isSelf ? (
+            <SectionCard icon={IconBriefcase} title="Job details">
+              <DetailGrid min={190}>
+                <DetailItem label="Department" value={employee.department?.name} />
+                <DetailItem label="Designation" value={employee.designation?.display_name} />
+                <DetailItem label="Reporting manager" value={fullName(employee.manager)} />
+                <DetailItem label="Work location" value={employee.workLocation?.name} />
+                <DetailItem label="Employment type" value={humanize(employee.employment_type)} />
+                <DetailItem label="Employment status" value={humanize(employee.employment_status)} />
+                <DetailItem label="Joining date" value={fmtDate(employee.date_of_joining)} />
+                <DetailItem label="Probation start" value={fmtDate(employee.probation_start)} />
+                <DetailItem label="Probation end" value={fmtDate(employee.probation_end)} />
+                <DetailItem label="Confirmation date" value={fmtDate(employee.confirmation_date)} />
+                {employee.date_of_exit && <DetailItem label="Exit date" value={fmtDate(employee.date_of_exit)} />}
+              </DetailGrid>
+            </SectionCard>
+          ) : (
+            <HrSectionCard {...hrCard} section="job" min={190} />
+          )}
           <Box sx={mainAside}>
             <CompensationSection
               isSelf={isSelf} employee={employee} employeeId={employeeId}
               salaryHistory={salaryHistory} hrSalaryHistory={hrSalaryHistory} hrSalaryLoaded={hrSalaryLoaded}
               onSaved={refreshHrSalaryHistory}
             />
-            <ChangeRequestSection
-              {...changeRequestProps}
-              icon={IconBuildingBank}
-              title="Bank & payroll IDs"
-              fieldGroup="bank"
-              min={160}
-              editableFields={[
-                { key: 'bankName', column: 'bank_name', label: 'Bank name' },
-                { key: 'bankAccountNumber', column: 'bank_account_number', label: 'Account number' },
-                { key: 'bankIban', column: 'bank_iban', label: 'IBAN' },
-              ]}
-              readOnlyFields={[
-                { column: 'routing_code', label: 'Routing code' },
-                { column: 'labour_card_no', label: 'Labour card no.' },
-                { column: 'mol_person_id', label: 'MOL person ID' },
-                { column: 'wps_person_code', label: 'WPS person code' },
-                { column: 'tax_id', label: 'Tax ID' },
-                { column: 'payment_method_detail', label: 'Payment method', format: 'humanize' },
-              ]}
-            />
+            {isSelf ? (
+              <ChangeRequestSection
+                {...changeRequestProps}
+                icon={IconBuildingBank}
+                title="Bank & payroll IDs"
+                fieldGroup="bank"
+                min={160}
+                editableFields={[
+                  { key: 'bankName', column: 'bank_name', label: 'Bank name' },
+                  { key: 'bankAccountNumber', column: 'bank_account_number', label: 'Account number' },
+                  { key: 'bankIban', column: 'bank_iban', label: 'IBAN' },
+                ]}
+                readOnlyFields={[
+                  { column: 'routing_code', label: 'Routing code' },
+                  { column: 'labour_card_no', label: 'Labour card no.' },
+                  { column: 'mol_person_id', label: 'MOL person ID' },
+                  { column: 'wps_person_code', label: 'WPS person code' },
+                  { column: 'tax_id', label: 'Tax ID' },
+                  { column: 'payment_method_detail', label: 'Payment method', format: 'humanize' },
+                ]}
+              />
+            ) : (
+              <Stack spacing={2.5}>
+                <HrSectionCard {...hrCard} section="bank" min={160} />
+                <HrSectionCard {...hrCard} section="settings" min={160} />
+              </Stack>
+            )}
           </Box>
         </Stack>
       )}
 
-      {tab === 'documents' && <DocumentsTab base={base} />}
-
-      {tab === 'qualifications' && (
+      {tab === 'documents' && (
         <Stack spacing={2.5}>
-          <Box sx={twoCol}>
-            <EntityListEditor
-              title="Education" base={base} entity="qualifications" fileUpload
-              icon={IconSchool} emptyMessage="No qualifications added yet."
-              addLabel="Add qualification"
-              fields={[
-                { key: 'degree', label: 'Degree', required: true },
-                { key: 'institution', label: 'Institution' },
-                { key: 'year', label: 'Year', type: 'number' },
-                { key: 'grade', label: 'Grade' },
-              ]}
-            />
-            <EntityListEditor
-              title="Certifications" base={base} entity="certifications" fileUpload
-              icon={IconCertificate} emptyMessage="No certifications added yet."
-              addLabel="Add certification"
-              fields={[
-                { key: 'name', label: 'Certification name', required: true },
-                { key: 'issuer', label: 'Issuer' },
-                { key: 'certificateNumber', label: 'Certificate no.' },
-                { key: 'issueDate', label: 'Issued', type: 'date' },
-                { key: 'expiryDate', label: 'Expires', type: 'date' },
-              ]}
-            />
-          </Box>
-          <EntityListEditor
-            title="Skills" base={base} entity="skills" variant="chips"
-            icon={IconBulb} emptyMessage="No skills added yet."
-            addLabel="Add skill"
-            fields={[
-              { key: 'skillName', label: 'Skill', required: true },
-              {
-                key: 'proficiencyLevel', label: 'Proficiency', type: 'select',
-                options: ['beginner', 'intermediate', 'advanced', 'expert'].map((v) => ({ value: v, label: v })),
-              },
-            ]}
-          />
-          <EntityListEditor
-            title="Previous employment" base={base} entity="previous-employment"
-            icon={IconBuildingSkyscraper} emptyMessage="No previous employment added yet."
-            addLabel="Add employer"
-            fields={[
-              { key: 'companyName', label: 'Company name', required: true },
-              { key: 'jobTitle', label: 'Job title' },
-              { key: 'startDate', label: 'From', type: 'date' },
-              { key: 'endDate', label: 'To', type: 'date' },
-              { key: 'reasonForLeaving', label: 'Reason for leaving', multiline: true },
-            ]}
-          />
+          {!isSelf && <HrSectionCard {...hrCard} section="identity" min={220} />}
+          <DocumentsTab base={base} />
         </Stack>
       )}
+
+      {tab === 'qualifications' && <QualificationLists base={base} />}
 
       {tab === 'assets' && <AssetsTab isSelf={isSelf} base={base} employeeId={employeeId} />}
 

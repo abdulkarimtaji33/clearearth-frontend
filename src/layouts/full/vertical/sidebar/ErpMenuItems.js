@@ -452,6 +452,7 @@ const ErpMenuItems = [
     permission: 'hr.employees.read',
     children: [
       { id: uniqueId(), title: 'Employees', icon: IconPoint, href: '/erp/hr/employees', permission: 'hr.employees.read' },
+      { id: uniqueId(), title: 'Profile Changes', icon: IconPoint, href: '/erp/hr/employees/change-requests', permission: 'hr.employees.manage' },
       { id: uniqueId(), title: 'Departments', icon: IconPoint, href: '/erp/hr/departments', permission: 'hr.settings.manage' },
     ],
   },

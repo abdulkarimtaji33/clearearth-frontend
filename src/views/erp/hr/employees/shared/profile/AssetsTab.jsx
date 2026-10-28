@@ -22,6 +22,7 @@ const emptyAssetValues = { assetType: '', assetName: '', serialNumber: '', assig
  * IT Asset Form and Handover Form PDFs; self mode is read-only.
  */
 const AssetsTab = ({ isSelf, base, employeeId }) => {
+  const saved = !!employeeId; // false while an employee is still being created (staged assets)
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -136,22 +137,22 @@ const AssetsTab = ({ isSelf, base, employeeId }) => {
         noPadding
         action={!isSelf && (
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent="flex-end">
-            <Button
+            {saved && <Button
               size="small" variant="outlined" color="inherit"
               startIcon={downloading === 'asset-form' ? <CircularProgress size={14} /> : <IconFileDownload size={15} />}
               onClick={() => handleDownload('asset-form')} disabled={!!downloading}
               sx={{ borderRadius: 2, borderColor: 'divider', display: { xs: 'none', md: 'inline-flex' } }}
             >
               Asset form
-            </Button>
-            <Button
+            </Button>}
+            {saved && <Button
               size="small" variant="outlined" color="inherit"
               startIcon={downloading === 'handover-form' ? <CircularProgress size={14} /> : <IconFileDownload size={15} />}
               onClick={() => handleDownload('handover-form')} disabled={!!downloading}
               sx={{ borderRadius: 2, borderColor: 'divider', display: { xs: 'none', md: 'inline-flex' } }}
             >
               Handover form
-            </Button>
+            </Button>}
             <Button size="small" variant="contained" startIcon={<IconPlus size={15} />} onClick={openForm} sx={{ borderRadius: 2 }}>
               Assign asset
             </Button>
@@ -159,7 +160,7 @@ const AssetsTab = ({ isSelf, base, employeeId }) => {
         )}
       >
         {error && <Alert severity="error" sx={{ m: 2, borderRadius: 2 }}>{error}</Alert>}
-        {!isSelf && (
+        {!isSelf && saved && (
           <Stack direction="row" spacing={1} sx={{ display: { xs: 'flex', md: 'none' }, px: 2, pt: 2 }}>
             <Button size="small" variant="outlined" color="inherit" onClick={() => handleDownload('asset-form')} disabled={!!downloading} sx={{ borderRadius: 2, borderColor: 'divider' }}>Asset form</Button>
             <Button size="small" variant="outlined" color="inherit" onClick={() => handleDownload('handover-form')} disabled={!!downloading} sx={{ borderRadius: 2, borderColor: 'divider' }}>Handover form</Button>
@@ -196,7 +197,7 @@ const AssetsTab = ({ isSelf, base, employeeId }) => {
                     {!isSelf && (
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                          {row.status === 'assigned' && (
+                          {saved && row.status === 'assigned' && (
                             <Tooltip title="Mark returned">
                               <IconButton size="small" onClick={() => handleMarkReturned(row.id)} sx={{ '&:hover': { color: 'success.main' } }}>
                                 <IconArrowBackUp size={17} />

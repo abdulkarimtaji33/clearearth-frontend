@@ -280,7 +280,7 @@ const EmployeeList = () => {
                           <IconEye size={18} />
                         </IconButton>
                         {canManage && (
-                          <IconButton size="small" aria-label="Edit employee" onClick={() => navigate(`/erp/hr/employees/edit/${e.id}`)}>
+                          <IconButton size="small" aria-label="Edit employee" onClick={() => navigate(`/erp/hr/employees/view/${e.id}`)}>
                             <IconEdit size={18} />
                           </IconButton>
                         )}

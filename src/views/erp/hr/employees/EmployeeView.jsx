@@ -1,33 +1,15 @@
 import React from 'react';
-import { Button } from '@mui/material';
-import { IconEdit } from '@tabler/icons-react';
-import { useNavigate, useParams } from 'react-router';
-import { useAuth } from '../../../../context/AuthContext';
+import { useParams } from 'react-router';
 import { HrPage } from '../components/HrUi';
 import EmployeeProfileTabs from './shared/EmployeeProfileTabs';
 
+// The profile is the single place to view and edit an employee: each section has its own Edit button.
 const EmployeeView = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { hasPermission } = useAuth();
 
   return (
     <HrPage title="Employee profile" back="/erp/hr/employees" backLabel="All employees" bare>
-      <EmployeeProfileTabs
-        key={id}
-        mode="hr"
-        employeeId={id}
-        headerActions={hasPermission('hr.employees.manage') && (
-          <Button
-            variant="contained"
-            startIcon={<IconEdit size={17} />}
-            onClick={() => navigate(`/erp/hr/employees/edit/${id}`)}
-            sx={{ borderRadius: 2, fontWeight: 600 }}
-          >
-            Edit
-          </Button>
-        )}
-      />
+      <EmployeeProfileTabs key={id} mode="hr" employeeId={id} />
     </HrPage>
   );
 };

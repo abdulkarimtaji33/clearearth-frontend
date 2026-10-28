@@ -1,4 +1,7 @@
 import { formatApiErrorMessage } from '../utils/formatApiError';
+import {
+  isDraftBase, draftList, draftCreate, draftUpdate, draftDelete,
+} from '../views/erp/hr/employees/shared/draftStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
@@ -1391,6 +1394,7 @@ class ApiService {
   async getEmployeeDocumentTypes() { return this.get('/hr/employees/document-types'); }
   async createEmployeeDocumentType(name) { return this.post('/hr/employees/document-types', { name }); }
   async getEmployeeDesignations() { return this.get('/hr/employees/designations'); }
+  async getEmployeeWorkLocations() { return this.get('/hr/employees/work-locations'); }
 
   // ─── HR: Employee Information PDF ─────────────────────────────────────────────────
   async downloadHrEmployeeInfoPdf(employeeId) {
@@ -1410,10 +1414,19 @@ class ApiService {
   // HR-side (base=`/hr/employees/${employeeId}`) routes — entity is one of:
   // emergency-contacts, dependents, qualifications, skills, certifications,
   // previous-employment, documents.
-  async listEmployeeChildRecords(base, entity) { return this.get(`${base}/${entity}`); }
-  async createEmployeeChildRecord(base, entity, data) { return this.post(`${base}/${entity}`, data); }
-  async updateEmployeeChildRecord(base, entity, id, data) { return this.put(`${base}/${entity}/${id}`, data); }
-  async deleteEmployeeChildRecord(base, entity, id) { return this.delete(`${base}/${entity}/${id}`); }
+  // A `draft:` base is the in-memory staging area used by the Add Employee page (see draftStore).
+  async listEmployeeChildRecords(base, entity) {
+    return isDraftBase(base) ? draftList(base, entity) : this.get(`${base}/${entity}`);
+  }
+  async createEmployeeChildRecord(base, entity, data) {
+    return isDraftBase(base) ? draftCreate(base, entity, data) : this.post(`${base}/${entity}`, data);
+  }
+  async updateEmployeeChildRecord(base, entity, id, data) {
+    return isDraftBase(base) ? draftUpdate(base, entity, id, data) : this.put(`${base}/${entity}/${id}`, data);
+  }
+  async deleteEmployeeChildRecord(base, entity, id) {
+    return isDraftBase(base) ? draftDelete(base, entity, id) : this.delete(`${base}/${entity}/${id}`);
+  }
 
   // -- IT Asset tracking (HR-side return action + generated forms) --------------
   async markEmployeeAssetReturned(employeeId, id, returnedDate) {

@@ -353,6 +353,22 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
               </Box>
             )}
 
+            {/* Material details the driver entered from the mobile app when marking the pickup collected */}
+            {((task.pickup_quantity != null && task.pickup_quantity !== '') || task.pickup_condition) && (
+              <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mt: 1.5 }} onClick={e => e.stopPropagation()}>
+                <IconPackage size={14} style={{ opacity: 0.7 }} />
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>Collected by driver:</Typography>
+                <Typography variant="caption" fontWeight={700}>
+                  {[
+                    task.pickup_quantity != null && task.pickup_quantity !== ''
+                      ? `${Number(task.pickup_quantity).toLocaleString(undefined, { maximumFractionDigits: 2 })}${task.pickup_uom ? ` ${task.pickup_uom}` : ''}`
+                      : null,
+                    task.pickup_condition || null,
+                  ].filter(Boolean).join(' · ')}
+                </Typography>
+              </Stack>
+            )}
+
             {/* Evidence files — shown for any task that has attachments, driver-uploaded or added from Edit Work Order */}
             {taskFiles.length > 0 && (
               <Box sx={{ mt: 1.5 }} onClick={e => e.stopPropagation()}>

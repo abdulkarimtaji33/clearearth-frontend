@@ -32,7 +32,7 @@ const CertificateRequestDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const roleName = getUserRole(user);
   const canVerify = VERIFIER_ROLES.includes(roleName);
 
@@ -53,7 +53,8 @@ const CertificateRequestDetail = () => {
   const [grns, setGrns] = useState([]);
   const { unitsOfMeasure: catalogUnits } = useUnitsOfMeasure();
   const [unitsOfMeasure, setUnitsOfMeasure] = useState([]);
-  const canEdit = canVerify && request?.status !== 'issued';
+  const [deals, setDeals] = useState([]);
+  const canEdit = (canVerify || hasPermission('certificates.update')) && request?.status !== 'issued';
 
   const load = async () => {
     try {
@@ -92,6 +93,7 @@ const CertificateRequestDetail = () => {
 
   const startEdit = () => {
     setEditForm({
+      dealId: request.deal_id || '',
       companyName: request.company_name || '',
       contactPerson: request.contact_person || '',
       contactNo: request.contact_no || '',
@@ -107,11 +109,17 @@ const CertificateRequestDetail = () => {
       additionalNotes: request.additional_notes || '',
     });
     setEditing(true);
-    if (request.deal_id) {
-      apiService.getGrns({ dealId: request.deal_id, pageSize: 100 }).then((res) => {
-        if (res?.success) setGrns(Array.isArray(res.data) ? res.data : []);
-      }).catch(() => {});
-    }
+    loadGrnsForDeal(request.deal_id);
+    apiService.getDeals({ pageSize: 500 }).then((res) => {
+      if (res?.success) setDeals(Array.isArray(res.data) ? res.data : []);
+    }).catch(() => {});
+  };
+
+  const loadGrnsForDeal = (dealId) => {
+    if (!dealId) { setGrns([]); return; }
+    apiService.getGrns({ dealId, pageSize: 100 }).then((res) => {
+      if (res?.success) setGrns(Array.isArray(res.data) ? res.data : []);
+    }).catch(() => {});
   };
 
   const cancelEdit = () => {
@@ -122,10 +130,15 @@ const CertificateRequestDetail = () => {
   const setEditField = (field) => (e) => setEditForm((p) => ({ ...p, [field]: e.target.value }));
 
   const saveEdit = async () => {
+    if (!editForm.dealId) {
+      setError('A certificate request must be linked to a deal.');
+      return;
+    }
     try {
       setSaving(true);
       setError('');
       const res = await apiService.updateCertificateRequest(id, {
+        dealId: editForm.dealId,
         companyName: editForm.companyName.trim(),
         contactPerson: editForm.contactPerson.trim(),
         contactNo: editForm.contactNo.trim(),
@@ -265,6 +278,18 @@ const CertificateRequestDetail = () => {
 
         {editing ? (
           <Stack spacing={2}>
+            <Autocomplete
+              fullWidth
+              options={deals}
+              getOptionLabel={(d) => `${d.deal_number || d.id} — ${d.title || ''}`}
+              isOptionEqualToValue={(o, v) => o.id === v.id}
+              value={deals.find((d) => d.id === editForm.dealId) || (request.deal ? { id: request.deal.id, deal_number: request.deal.deal_number, title: request.deal.title } : null)}
+              onChange={(_, v) => {
+                setEditForm((p) => ({ ...p, dealId: v?.id || '', grnId: '', grnNo: '' }));
+                loadGrnsForDeal(v?.id);
+              }}
+              renderInput={(params) => <TextField {...params} required label="Deal" helperText="Every certificate request must be linked to a deal" />}
+            />
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
               <TextField fullWidth label="Company Name" value={editForm.companyName} onChange={setEditField('companyName')} />
               <TextField fullWidth label="Contact Person" value={editForm.contactPerson} onChange={setEditField('contactPerson')} />

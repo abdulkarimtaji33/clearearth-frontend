@@ -463,6 +463,7 @@ const DealView = () => {
   const [relatedPOs, setRelatedPOs] = useState([]);
   const [relatedGrns, setRelatedGrns] = useState([]);
   const [downloadingGrnId, setDownloadingGrnId] = useState(null);
+  const [relatedCertRequests, setRelatedCertRequests] = useState([]);
   const [quotMenuAnchor, setQuotMenuAnchor] = useState(null);
   const quotMenuOpen = Boolean(quotMenuAnchor);
 
@@ -502,11 +503,13 @@ const DealView = () => {
   const fetchRelatedDocs = useCallback(async () => {
     if (!id) return;
     try {
-      const [quotRes, poRes, grnRes] = await Promise.all([
+      const [quotRes, poRes, grnRes, certRes] = await Promise.all([
         apiService.getQuotations({ dealId: id, pageSize: 50 }),
         apiService.getPurchaseOrders({ dealId: id, pageSize: 50 }),
         hasPermission('grn.read') ? apiService.getGrns({ dealId: id, pageSize: 50 }) : Promise.resolve({ success: false }),
+        hasPermission('certificates.read') ? apiService.getCertificateRequests({ dealId: id, pageSize: 50 }) : Promise.resolve({ success: false }),
       ]);
+      if (certRes.success) setRelatedCertRequests(Array.isArray(certRes.data) ? certRes.data : []);
       if (quotRes.success) setRelatedQuotations(sortQuotationsByVersion(Array.isArray(quotRes.data) ? quotRes.data : []));
       if (poRes.success) setRelatedPOs(Array.isArray(poRes.data) ? poRes.data : []);
       if (grnRes.success) setRelatedGrns(Array.isArray(grnRes.data) ? grnRes.data : []);
@@ -1544,6 +1547,62 @@ const DealView = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
+            </CardContent>
+          </SectionCard>
+        )}
+
+        {/* ── Certificate Requests (every request is linked to a deal) ── */}
+        {hasPermission('certificates.read') && (deal.certificate_required || relatedCertRequests.length > 0) && (
+          <SectionCard id="sec-certificate-requests">
+            <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+              <SectionHeader icon={IconCertificate} title="Certificate Requests" subtitle="Certificate requests raised against this deal" />
+              <Divider sx={{ mb: 2.5 }} />
+              {relatedCertRequests.length > 0 ? (
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
+                        <TableCell sx={{ fontWeight: 700 }}>Request</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Certificate type(s)</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                        <TableCell align="right">Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {relatedCertRequests.map((r) => (
+                        <TableRow key={r.id} hover>
+                          <TableCell>#{r.id} · {r.company_name}</TableCell>
+                          <TableCell>{(r.types || []).map((t) => CERTIFICATE_TYPE_LABEL[t.type] || t.type).join(', ') || '-'}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={(r.status || '-').replace(/_/g, ' ')}
+                              size="small"
+                              color={r.status === 'issued' ? 'success' : r.status === 'pending_verification' ? 'default' : 'info'}
+                              sx={{ fontWeight: 600, textTransform: 'capitalize' }}
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            <Button size="small" onClick={() => navigate(`/erp/certificates/requests/view/${r.id}`)}>
+                              {hasPermission('certificates.update') && r.status !== 'issued' ? 'View / Edit' : 'View'}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <Stack spacing={1.5} alignItems="flex-start">
+                  <Typography variant="body2" color="text.secondary">
+                    This deal requires a certificate but no request has been raised yet.
+                  </Typography>
+                  {hasPermission('certificates.create') && (
+                    <Button variant="outlined" size="small" startIcon={<IconCertificate size={16} />} onClick={() => navigate(`/erp/certificates/requests/new?dealId=${id}`)} sx={{ borderRadius: 2, fontWeight: 600 }}>
+                      Create Certificate Request
+                    </Button>
+                  )}
+                </Stack>
+              )}
             </CardContent>
           </SectionCard>
         )}

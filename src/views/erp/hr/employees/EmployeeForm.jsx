@@ -4,7 +4,7 @@ import {
   Checkbox, FormControlLabel, Autocomplete, RadioGroup, Radio, Avatar, Paper, Collapse,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -18,7 +18,8 @@ import apiService from '../../../../services/api';
 import { useAuth } from '../../../../context/AuthContext';
 import { SectionCard, inputSx } from '../components/HrUi';
 import EmployeeFieldGrid, { useEmployeeLookups } from './shared/EmployeeFieldGrid';
-import { SECTIONS, EMPTY_EMPLOYEE_VALUES } from './shared/employeeSections';
+import { SECTIONS, EMPTY_EMPLOYEE_VALUES, valuesFromEmployee, diffValues } from './shared/employeeSections';
+import CompensationSection from './shared/profile/CompensationSection';
 import { PersonalLists, QualificationLists } from './shared/profileLists';
 import DocumentsTab from './shared/profile/DocumentsTab';
 import AssetsTab from './shared/profile/AssetsTab';
@@ -53,7 +54,7 @@ const FormSection = ({ section, values, onChange, lookups, errors, children }) =
 };
 
 /**
- * Add Employee. Uses the same sections and tabs as the employee profile page, so everything that
+ * Add / Edit Employee (edit when the route has an :id). Uses the same sections and tabs as the employee profile page, so everything that
  * can be edited later can be entered right here. Core fields are held in state; contacts,
  * dependents, qualifications, documents (with files) and assets are staged in the draft store and
  * stored together with the employee when HR presses Create.
@@ -61,8 +62,15 @@ const FormSection = ({ section, values, onChange, lookups, errors, children }) =
 const EmployeeForm = () => {
   const { hasPermission } = useAuth();
   const navigate = useNavigate();
+  const { id: editId } = useParams();
+  const isEdit = !!editId;
   const draftKey = useRef(`new-${Date.now()}`);
-  const base = draftBase(draftKey.current);
+  // Edit mode talks to the real child-record endpoints; create mode stages them in the draft store.
+  const base = isEdit ? `/hr/employees/${editId}` : draftBase(draftKey.current);
+  const [employee, setEmployee] = useState(null);
+  const [loadingEmployee, setLoadingEmployee] = useState(isEdit);
+  const [hrSalaryHistory, setHrSalaryHistory] = useState([]);
+  const [hrSalaryLoaded, setHrSalaryLoaded] = useState(false);
 
   const [tab, setTab] = useState('personal');
   const [values, setValues] = useState(EMPTY_EMPLOYEE_VALUES);
@@ -75,7 +83,7 @@ const EmployeeForm = () => {
   const [createdId, setCreatedId] = useState(null);
   const done = useRef({ salary: false, photo: false });
 
-  const lookups = useEmployeeLookups();
+  const lookups = useEmployeeLookups(editId);
 
   // Login for the new employee: none | new account | link an existing user.
   const [loginMode, setLoginMode] = useState('none');
@@ -87,9 +95,27 @@ const EmployeeForm = () => {
   useEffect(() => {
     if (hasPermission('roles.read')) apiService.getRoles({ pageSize: 200 }).then((r) => setRoles(r.data || [])).catch(() => {});
     if (hasPermission('users.read')) apiService.getUsers({ pageSize: 200, unlinked: true }).then((r) => setUnlinkedUsers(r.data || [])).catch(() => {});
-    return () => draftClear(base);
+    return () => { if (!isEdit) draftClear(base); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const refreshSalary = () => apiService.getHrSalaryStructureHistory(editId)
+    .then((res) => { if (res.success) setHrSalaryHistory(res.data || []); })
+    .catch(() => {})
+    .finally(() => setHrSalaryLoaded(true));
+
+  useEffect(() => {
+    if (!isEdit) return;
+    apiService.getHrEmployee(editId)
+      .then((res) => {
+        setEmployee(res.data);
+        setValues(valuesFromEmployee(ALL_FIELDS, res.data));
+      })
+      .catch((err) => setError(err.message || 'Failed to load employee'))
+      .finally(() => setLoadingEmployee(false));
+    refreshSalary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId]);
 
   const photoPreview = useMemo(() => (photoFile ? URL.createObjectURL(photoFile) : ''), [photoFile]);
   useEffect(() => () => { if (photoPreview) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
@@ -134,7 +160,24 @@ const EmployeeForm = () => {
     return payload;
   };
 
+  const handleSaveEdit = async () => {
+    setError('');
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      const patch = diffValues(ALL_FIELDS, employee, values);
+      if (Object.keys(patch).length) await apiService.updateHrEmployee(editId, patch);
+      if (photoFile) await apiService.uploadHrEmployeePhoto(editId, photoFile);
+      navigate(`/erp/hr/employees/view/${editId}`);
+    } catch (err) {
+      setError(err.message || 'Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
+    if (isEdit) return handleSaveEdit();
     setError('');
     setFailures([]);
     if (!createdId && !validate()) return;
@@ -192,18 +235,28 @@ const EmployeeForm = () => {
   const locked = !!createdId; // core fields were already stored; further edits happen on the profile
 
   const coreProps = { values, onChange: setValue, lookups, errors };
+  const currentPhoto = employee?.profile_photo ? apiService.getUploadUrl(employee.profile_photo) : '';
+
+  if (loadingEmployee) {
+    return <PageContainer title="Edit Employee"><Box display="flex" justifyContent="center" py={12}><CircularProgress /></Box></PageContainer>;
+  }
+  if (isEdit && !employee) {
+    return <PageContainer title="Edit Employee"><Alert severity="error">{error || 'Employee not found'}</Alert></PageContainer>;
+  }
 
   return (
-    <PageContainer title="New Employee" description="Add an employee">
+    <PageContainer title={isEdit ? 'Edit Employee' : 'New Employee'} description={isEdit ? 'Edit an employee' : 'Add an employee'}>
       <Box sx={{ maxWidth: 'min(1400px, 100%)', width: '100%', mx: 'auto', px: { xs: 1.5, sm: 2 }, pb: 12 }}>
         <Stack direction="row" alignItems="center" spacing={2} mb={3}>
-          <Button variant="outlined" startIcon={<IconArrowLeft size={20} />} onClick={() => navigate('/erp/hr/employees')} sx={{ borderRadius: 2 }}>
+          <Button variant="outlined" startIcon={<IconArrowLeft size={20} />} onClick={() => navigate(isEdit ? `/erp/hr/employees/view/${editId}` : '/erp/hr/employees')} sx={{ borderRadius: 2 }}>
             Back
           </Button>
           <Box>
-            <Typography variant="h3" fontWeight={700}>New employee</Typography>
+            <Typography variant="h3" fontWeight={700}>{isEdit ? (fullName || 'Edit employee') : 'New employee'}</Typography>
             <Typography variant="body2" color="text.secondary" mt={0.5}>
-              Fill in whatever you have across the tabs. Everything is saved together when you press Create employee.
+              {isEdit
+                ? 'Change anything across the tabs. Details are saved when you press Save changes; contacts, documents, qualifications and assets save as you add them.'
+                : 'Fill in whatever you have across the tabs. Everything is saved together when you press Create employee.'}
             </Typography>
           </Box>
         </Stack>
@@ -234,9 +287,9 @@ const EmployeeForm = () => {
             <Stack spacing={2.5}>
               <SectionCard icon={IconUser} title="Photo">
                 <Stack direction="row" spacing={2} alignItems="center">
-                  <Avatar src={photoPreview} sx={{ width: 72, height: 72 }}>{fullName.slice(0, 1) || <IconUser size={28} />}</Avatar>
+                  <Avatar src={photoPreview || currentPhoto} sx={{ width: 72, height: 72 }}>{fullName.slice(0, 1) || <IconUser size={28} />}</Avatar>
                   <Button component="label" variant="outlined" size="small" startIcon={<IconUpload size={16} />} sx={{ borderRadius: 2 }}>
-                    {photoFile ? 'Change photo' : 'Upload photo (optional)'}
+                    {photoFile || currentPhoto ? 'Change photo' : 'Upload photo (optional)'}
                     <input type="file" accept="image/*" hidden onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
                   </Button>
                 </Stack>
@@ -254,6 +307,13 @@ const EmployeeForm = () => {
           {tab === 'employment' && (
             <Stack spacing={2.5}>
               <FormSection section="job" {...coreProps} />
+              {isEdit ? (
+                <CompensationSection
+                  isSelf={false} employee={employee} employeeId={editId}
+                  salaryHistory={null} hrSalaryHistory={hrSalaryHistory} hrSalaryLoaded={hrSalaryLoaded}
+                  onSaved={refreshSalary}
+                />
+              ) : (
               <SectionCard icon={IconCash} title="Compensation" subtitle="Starting salary structure (optional)">
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 2 }}>
@@ -279,8 +339,10 @@ const EmployeeForm = () => {
                   </Box>
                 </LocalizationProvider>
               </SectionCard>
+              )}
               <FormSection section="bank" {...coreProps} />
               <FormSection section="settings" {...coreProps} />
+              {!isEdit && (
               <SectionCard icon={IconUserPlus} title="Login access" subtitle="Optionally give this employee a login to the system">
                 <RadioGroup row value={loginMode} onChange={(e) => { setLoginMode(e.target.value); setSelectedExistingUser(null); }} sx={{ mb: 2 }}>
                   <FormControlLabel value="none" control={<Radio />} label="No login" />
@@ -313,6 +375,7 @@ const EmployeeForm = () => {
                   />
                 )}
               </SectionCard>
+              )}
             </Stack>
           )}
         </Box>
@@ -320,7 +383,7 @@ const EmployeeForm = () => {
         {tab === 'personal' && <Box mt={2.5}><PersonalLists base={base} /></Box>}
         {tab === 'documents' && <DocumentsTab base={base} />}
         {tab === 'qualifications' && <QualificationLists base={base} />}
-        {tab === 'assets' && <AssetsTab isSelf={false} base={base} employeeId={null} />}
+        {tab === 'assets' && <AssetsTab isSelf={false} base={base} employeeId={isEdit ? editId : null} />}
 
         <Paper
           elevation={6}
@@ -330,12 +393,12 @@ const EmployeeForm = () => {
             border: '1px solid', borderColor: 'divider', bgcolor: (t) => alpha(t.palette.background.paper, 0.97),
           }}
         >
-          <Button color="inherit" onClick={() => navigate('/erp/hr/employees')} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button color="inherit" onClick={() => navigate(isEdit ? `/erp/hr/employees/view/${editId}` : '/erp/hr/employees')} sx={{ borderRadius: 2 }}>Cancel</Button>
           <Button
             variant="contained" onClick={handleSave} disabled={saving} sx={{ borderRadius: 2, minWidth: 190, fontWeight: 600 }}
             startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}
           >
-            {saving ? 'Saving...' : createdId ? 'Retry remaining items' : 'Create employee'}
+            {saving ? 'Saving...' : isEdit ? 'Save changes' : createdId ? 'Retry remaining items' : 'Create employee'}
           </Button>
         </Paper>
       </Box>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, createBrowserRouter } from 'react-router';
+import { Navigate, createBrowserRouter, useParams } from 'react-router';
 
 import Loadable, { lazyWithChunkReload } from '../layouts/full/shared/loadable/Loadable';
 import ChunkLoadErrorElement from '../components/ChunkLoadErrorElement';
@@ -43,7 +43,6 @@ const ProformaInvoiceView = Loadable(lazyWithChunkReload(() => import('../views/
 const TaxInvoiceList = Loadable(lazyWithChunkReload(() => import('../views/erp/tax-invoices/TaxInvoiceList')));
 const TaxInvoiceCreate = Loadable(lazyWithChunkReload(() => import('../views/erp/tax-invoices/TaxInvoiceCreate')));
 const TaxInvoiceView = Loadable(lazyWithChunkReload(() => import('../views/erp/tax-invoices/TaxInvoiceView')));
-const TaxInvoiceEdit = Loadable(lazyWithChunkReload(() => import('../views/erp/tax-invoices/TaxInvoiceEdit')));
 const AccountsWorkOrderList = Loadable(lazyWithChunkReload(() => import('../views/erp/accounts/AccountsWorkOrderList')));
 const AccountsWorkOrderView = Loadable(lazyWithChunkReload(() => import('../views/erp/accounts/AccountsWorkOrderView')));
 const ExpensesList = Loadable(lazyWithChunkReload(() => import('../views/erp/accounts/ExpensesList')));
@@ -110,6 +109,11 @@ const DepartmentForm = Loadable(lazyWithChunkReload(() => import('../views/erp/h
 const EmployeeList = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/EmployeeList')));
 const EmployeeForm = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/EmployeeForm')));
 const EmployeeView = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/EmployeeView')));
+// Posted tax invoices are locked (corrections go through credit notes); old edit links open the invoice.
+const TaxInvoiceEditRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/erp/tax-invoices/view/${id}`} replace />;
+};
 const ChangeRequestsPage = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/ChangeRequestsPage')));
 const MyProfile = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/employees/MyProfile')));
 const MyAttendance = Loadable(lazyWithChunkReload(() => import('../views/erp/hr/attendance/MyAttendance')));
@@ -184,7 +188,7 @@ const Router = createBrowserRouter([
       { path: '/erp/tax-invoices', element: <TaxInvoiceList /> },
       { path: '/erp/tax-invoices/create/:proformaId', element: <RequireInvoiceGenerator><TaxInvoiceCreate /></RequireInvoiceGenerator> },
       { path: '/erp/tax-invoices/view/:id', element: <TaxInvoiceView /> },
-      { path: '/erp/tax-invoices/edit/:id', element: <TaxInvoiceEdit /> },
+      { path: '/erp/tax-invoices/edit/:id', element: <TaxInvoiceEditRedirect /> },
       { path: '/erp/accounts/expenses', element: <ExpensesList /> },
       { path: '/erp/accounts/expenses/create', element: <ExpenseCreate /> },
       { path: '/erp/accounts/work-orders', element: <AccountsWorkOrderList /> },

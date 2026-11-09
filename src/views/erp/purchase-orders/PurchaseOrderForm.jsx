@@ -32,6 +32,8 @@ import PageContainer from '../../../components/container/PageContainer';
 import UomSelectField from '../../../components/erp/UomSelectField';
 import apiService from '../../../services/api';
 import TermsOrderSelector from '../../../components/erp/TermsOrderSelector';
+import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
+import { filterActiveByType } from '../../../utils/accountTree';
 import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 import { billListPath } from '../../../utils/purchaseBills';
@@ -82,6 +84,7 @@ const PurchaseOrderForm = () => {
   const [dropdowns, setDropdowns] = useState({ purchaseOrderStatus: [], unitsOfMeasure: [] });
   const [items, setItems] = useState([initialItem()]);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [expenseAccounts, setExpenseAccounts] = useState([]);
   const [tenantCompanyName, setTenantCompanyName] = useState('Clear Earth Recycling LLC');
   const [initialValues, setInitialValues] = useState({
     dealId: dealIdFromUrl || null,
@@ -89,6 +92,7 @@ const PurchaseOrderForm = () => {
     supplierId: supplierIdFromUrl || null,
     poDate: new Date().toISOString().split('T')[0],
     expectedDelivery: '',
+    expenseAccountId: '',
     status: supplierIdFromUrl ? 'approved' : 'new',
     termsAndConditionsIds: [],
   });
@@ -106,6 +110,12 @@ const PurchaseOrderForm = () => {
         apiService.getTermsAndConditions({ pageSize: 500, status: 'active' }),
         apiService.getAllDropdowns(),
       ]);
+      apiService.getChartOfAccounts({}).then((res) => {
+        if (res.success) {
+          const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
+          setExpenseAccounts(filterActiveByType(list, 'expense'));
+        }
+      }).catch(() => {});
       if (dealsRes.success) setDeals(Array.isArray(dealsRes.data) ? dealsRes.data : []);
       if (companiesRes.success) setCompanies(Array.isArray(companiesRes.data) ? companiesRes.data : []);
       if (suppliersRes.success) setSuppliers(Array.isArray(suppliersRes.data) ? suppliersRes.data : []);
@@ -135,6 +145,7 @@ const PurchaseOrderForm = () => {
           supplierId: po.supplier_id || null,
           poDate: po.po_date || new Date().toISOString().split('T')[0],
           expectedDelivery: po.expected_delivery || '',
+          expenseAccountId: po.expense_account_id ? String(po.expense_account_id) : '',
           status: po.status || 'new',
           termsAndConditionsIds: (po.terms || []).map((t) => t.id),
         });
@@ -323,6 +334,7 @@ const PurchaseOrderForm = () => {
         supplierId: values.supplierId || null,
         poDate: values.poDate,
         expectedDelivery: values.expectedDelivery || null,
+        expenseAccountId: values.expenseAccountId ? Number(values.expenseAccountId) : null,
         ...(canChangeStatus && isClientQuotation ? { status: values.status } : {}),
         termsAndConditionsIds: values.termsAndConditionsIds,
         documentType: isBillMode ? 'bill' : 'quotation',
@@ -567,6 +579,18 @@ const PurchaseOrderForm = () => {
                       onChange={handleChange}
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
+
+                    {expenseAccounts.length > 0 && (
+                      <CascadingAccountSelect
+                        accounts={expenseAccounts}
+                        value={values.expenseAccountId}
+                        onChange={(accId) => setFieldValue('expenseAccountId', accId)}
+                        size="medium"
+                        parentLabel="Expense account (optional)"
+                        childLabel="Expense sub-account"
+                        helperText="Expense head debited when this is approved (Cr 2200 Accrued Expenses). Defaults to 5000 Cost of Services."
+                      />
+                    )}
 
                     {!isBillMode && values.supplierId && (
                       <TextField

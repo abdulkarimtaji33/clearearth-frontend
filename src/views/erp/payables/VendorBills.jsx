@@ -9,20 +9,11 @@ import { IconReceipt, IconUpload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
-import * as accountTree from '../../../utils/accountTree';
+import { filterCashBankAccounts } from '../../../utils/accountTree';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const today = () => new Date().toISOString().slice(0, 10);
 const STATUS_COLOR = { open: 'warning', partial: 'info', paid: 'success', void: 'default' };
-
-// TODO: replace with the shared accountTree.isCashOrBankAccount helper once it is the single source of truth.
-const isCashOrBank = (a) => {
-  if (typeof accountTree.isCashOrBankAccount === 'function') return accountTree.isCashOrBankAccount(a);
-  const code = String(a.code || '');
-  if (a.type !== 'asset' || a.is_group || a.is_active === false) return false;
-  if (['1100', '1200', '1300'].includes(code) || code.startsWith('15')) return false;
-  return ['cash', 'bank', 'cash_and_bank', 'current_asset'].includes(a.sub_type);
-};
 
 const partyKey = (b) => `${b.supplier_id || ''}-${b.company_id || ''}`;
 
@@ -74,7 +65,7 @@ const VendorBills = () => {
   useEffect(() => {
     apiService.getChartOfAccounts({}).then((res) => {
       const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
-      setBankAccounts(list.filter(isCashOrBank));
+      setBankAccounts(filterCashBankAccounts(list));
     }).catch(() => {});
   }, []);
 

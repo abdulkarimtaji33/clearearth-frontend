@@ -168,23 +168,23 @@ const AccountsWorkOrderView = () => {
     const taskLabel = task.type_of_work || task.workType?.name || 'Task';
     const lineDesc = (ex.description || '').trim();
     const notesParts = [woTitle, taskLabel, lineDesc].filter(Boolean);
-    // Default to Cost of Services (the historical behavior) — the approver can pick a more
-    // specific expense head (e.g. Fuel Expense, Vehicle Maintenance) before approving.
-    const postable = expenseAccounts.filter(isPostable);
-    const defaultAccount = postable.find((a) => String(a.code) === '5000') || postable[0];
     setForm({
       amount: String(ex.amount ?? ''),
       expenseDate: new Date().toISOString().slice(0, 10),
       paidTo: 'Operations',
       paymentMethod: 'Bank transfer',
       notes: notesParts.join(' · '),
-      expenseAccountId: defaultAccount ? String(defaultAccount.id) : '',
+      expenseAccountId: '', // the approver must choose the expense head
     });
     setApproveOpen(true);
   };
 
   const handleApproveSubmit = async () => {
     if (!approveCtx || !wo) return;
+    if (!form.expenseAccountId || !expenseAccounts.some((a) => String(a.id) === String(form.expenseAccountId) && isPostable(a))) {
+      setError('Select the expense account (expense head) for this expense.');
+      return;
+    }
     try {
       setSaving(true);
       setError('');
@@ -638,6 +638,7 @@ const AccountsWorkOrderView = () => {
               </Stack>
             )}
             <Stack spacing={2} sx={{ mt: 0 }}>
+              {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
               {expenseAccounts.length > 0 && (
                 <CascadingAccountSelect
                   accounts={expenseAccounts}
@@ -645,7 +646,7 @@ const AccountsWorkOrderView = () => {
                   onChange={(id) => setForm((f) => ({ ...f, expenseAccountId: id }))}
                   parentLabel="Expense account"
                   childLabel="Expense sub-account"
-                  helperText="GL account debited by this expense (e.g. Fuel Expense, Vehicle Maintenance)"
+                  helperText="Required — the expense head debited by this expense (e.g. 5410 Fuel). Credit goes to 2200 Accrued Expenses."
                 />
               )}
               <TextField label="Amount (AED)" size="small" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} fullWidth />

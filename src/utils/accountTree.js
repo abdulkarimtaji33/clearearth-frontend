@@ -41,3 +41,32 @@ export function accountLabel(a) {
   if (!a) return '—';
   return `${a.code} — ${a.name}`;
 }
+
+const CASH_BANK_SUB_TYPES = ['cash', 'bank'];
+const CASH_ACCOUNT_CODE = '1000';
+
+/**
+ * True for accounts money can be received into / paid from: the default 1000 Cash account, any
+ * account with sub_type 'cash' or 'bank', and anything nested under one (e.g. each bank account
+ * under a "Bank" group). Pass the full list so ancestors can be resolved. AR, input VAT, prepaid
+ * and fixed assets are never cash/bank.
+ */
+export function isCashOrBankAccount(account, accounts = []) {
+  if (!account || account.type !== 'asset') return false;
+  const byId = {};
+  (accounts || []).forEach((a) => { byId[a.id] = a; });
+  let cur = account;
+  let depth = 0;
+  while (cur && depth < 20) {
+    if (CASH_BANK_SUB_TYPES.includes(cur.sub_type) || String(cur.code) === CASH_ACCOUNT_CODE) return true;
+    cur = cur.parent_id != null ? byId[cur.parent_id] : null;
+    depth += 1;
+  }
+  return false;
+}
+
+/** Cash/bank accounts for payment pickers (groups included so the cascading picker can nest them). */
+export function filterCashBankAccounts(accounts) {
+  const active = filterActiveByType(accounts, 'asset');
+  return active.filter((a) => isCashOrBankAccount(a, active));
+}

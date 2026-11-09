@@ -121,13 +121,17 @@ const ReceivablesList = () => {
       setPayDialogError('Enter a valid amount greater than zero.');
       return;
     }
+    if (!(payAccountId || defaultPayAccountId)) {
+      setPayDialogError('Select the cash or bank account this payment goes through.');
+      return;
+    }
     try {
       setPaySaving(true);
       setPayDialogError('');
       await apiService.postReceivablePayment(payRow.id, {
         amount: amt,
         paymentMethod: payMethod || undefined,
-        paymentAccountId: payAccountId ? parseInt(payAccountId, 10) : undefined,
+        paymentAccountId: parseInt(payAccountId || defaultPayAccountId, 10),
         receivedFrom: receivedFrom || undefined,
         referenceNo: payRef || undefined,
         paymentDate: payDate || undefined,

@@ -17,6 +17,11 @@ import {
   Divider,
   Autocomplete,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
@@ -53,8 +58,7 @@ const ProformaInvoiceCreate = () => {
   const [remarks, setRemarks] = useState('');
   const [items, setItems] = useState([]);
   const [vatPercentage, setVatPercentage] = useState(0);
-  const [vatAmount, setVatAmount] = useState(0);
-  const [total, setTotal] = useState(0);
+  const [duplicates, setDuplicates] = useState([]);
   const [dropdowns, setDropdowns] = useState({ unitsOfMeasure: [] });
   const [products, setProducts] = useState([]);
 
@@ -62,6 +66,10 @@ const ProformaInvoiceCreate = () => {
     () => items.reduce((s, r) => s + num(r.lineTotal), 0),
     [items]
   );
+
+  // VAT and total are always derived from the lines and the VAT % (never from the deal's stored amount).
+  const vatAmount = useMemo(() => Number(((linesSubtotal * num(vatPercentage)) / 100).toFixed(2)), [linesSubtotal, vatPercentage]);
+  const total = useMemo(() => Number((linesSubtotal + vatAmount).toFixed(2)), [linesSubtotal, vatAmount]);
 
   const fetchCatalog = useCallback(async () => {
     try {
@@ -102,13 +110,7 @@ const ProformaInvoiceCreate = () => {
       setInvoiceDate(inv);
       setDueDate(addDaysISO(inv, 30));
       const vatPct = num(d.deal?.vatPercentage);
-      const lineSum = (d.items || []).reduce((s, it) => s + num(it.lineTotal), 0);
-      const sub = num(d.deal?.subtotal) || lineSum;
-      const vat = num(d.deal?.vatAmount);
-      const tot = num(d.deal?.total);
       setVatPercentage(vatPct);
-      setVatAmount(vat);
-      setTotal(tot || sub + vat);
       setItems(
         (d.items || []).map((it, i) => ({
           key: `row-${i}`,
@@ -188,23 +190,21 @@ const ProformaInvoiceCreate = () => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const applyVatFromPercent = () => {
-    const sub = items.reduce((s, r) => s + num(r.lineTotal), 0);
-    const v = (sub * num(vatPercentage)) / 100;
-    setVatAmount(Number(v.toFixed(2)));
-    setTotal(Number((sub + v).toFixed(2)));
-  };
-
-  useEffect(() => {
-    const sub = items.reduce((s, r) => s + num(r.lineTotal), 0);
-    setTotal(Number((sub + num(vatAmount)).toFixed(2)));
-  }, [items, vatAmount]);
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (skipDuplicateCheck = false) => {
     if (!quotationId) return;
     try {
       setSaving(true);
       setError('');
+      if (skipDuplicateCheck !== true) {
+        try {
+          const dup = await apiService.checkProformaDuplicate({ quotationId, total });
+          if (dup.success && Array.isArray(dup.data) && dup.data.length > 0) {
+            setDuplicates(dup.data);
+            setSaving(false);
+            return;
+          }
+        } catch (e) { /* the check is advisory only; never block saving */ }
+      }
       const sub = items.reduce((s, r) => s + num(r.lineTotal), 0);
       await apiService.createProformaInvoice({
         quotationId: parseInt(quotationId, 10),
@@ -437,7 +437,7 @@ const ProformaInvoiceCreate = () => {
 
         <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, mb: 2 }}>
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>Amounts &amp; tax</Typography>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>VAT is calculated automatically from VAT % × line subtotal; override the total if needed.</Typography>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>VAT is calculated automatically from VAT % × line subtotal.</Typography>
           <Stack spacing={2} alignItems="flex-start" maxWidth={420}>
             <Typography variant="body2" color="text.secondary">
               Subtotal (sum of lines): <strong>{currency} {linesSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
@@ -447,14 +447,7 @@ const ProformaInvoiceCreate = () => {
                 label="VAT %"
                 size="small"
                 value={vatPercentage}
-                onChange={(e) => {
-                  const pct = e.target.value;
-                  setVatPercentage(pct);
-                  const sub = items.reduce((s, r) => s + num(r.lineTotal), 0);
-                  const v = Number(((sub * num(pct)) / 100).toFixed(2));
-                  setVatAmount(v);
-                  setTotal(Number((sub + v).toFixed(2)));
-                }}
+                onChange={(e) => setVatPercentage(e.target.value)}
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
                 sx={{ width: 120 }}
               />
@@ -467,8 +460,8 @@ const ProformaInvoiceCreate = () => {
               <TextField
                 label="Total"
                 size="small"
-                value={total}
-                onChange={(e) => setTotal(e.target.value)}
+                value={total.toFixed(2)}
+                InputProps={{ readOnly: true }}
                 sx={{ width: 160 }}
               />
             </Stack>
@@ -487,12 +480,26 @@ const ProformaInvoiceCreate = () => {
         <Paper variant="outlined" sx={{ borderRadius: 3, p: 2, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent="space-between">
             <Typography variant="body2" color="text.secondary">Review the line totals and VAT before saving.</Typography>
-            <Button variant="contained" size="large" onClick={handleSubmit} disabled={saving || !quotationId} sx={{ borderRadius: 2, fontWeight: 700, px: 4 }}>
+            <Button variant="contained" size="large" onClick={() => handleSubmit()} disabled={saving || !quotationId} sx={{ borderRadius: 2, fontWeight: 700, px: 4 }}>
               {saving ? <CircularProgress size={22} color="inherit" /> : 'Create proforma invoice'}
             </Button>
           </Stack>
         </Paper>
       </Box>
+
+      <Dialog open={duplicates.length > 0} onClose={() => setDuplicates([])} PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle fontWeight={700}>Possible duplicate proforma</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This deal already has a proforma invoice for the same amount ({currency} {total.toLocaleString('en-US', { minimumFractionDigits: 2 })}):{' '}
+            <strong>{duplicates.map((d) => d.proformaNumber).join(', ')}</strong>. Create another one anyway?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDuplicates([])} sx={{ borderRadius: 2 }}>Cancel</Button>
+          <Button variant="contained" onClick={() => { setDuplicates([]); handleSubmit(true); }} sx={{ borderRadius: 2 }}>Create anyway</Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 };

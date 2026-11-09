@@ -22,7 +22,7 @@ const TYPE_COLOR = {
 
 const TYPES = ['asset', 'liability', 'equity', 'revenue', 'expense'];
 const SUB_TYPES = {
-  asset: ['current_asset', 'fixed_asset', 'other_asset'],
+  asset: ['current_asset', 'cash', 'bank', 'fixed_asset', 'other_asset'],
   liability: ['current_liability', 'long_term_liability'],
   equity: [],
   revenue: ['operating_revenue', 'other_income'],

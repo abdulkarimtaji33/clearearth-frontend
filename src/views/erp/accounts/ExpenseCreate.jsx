@@ -27,18 +27,6 @@ import {
   mergeSelectOptions,
 } from '../../../constants/expenseFormOptions';
 
-/** Mirrors chartOfAccounts.service.EXPENSE_CATEGORY_TO_CODE on the backend */
-const EXPENSE_CATEGORY_TO_CODE = {
-  work_orders: '5000',
-  materials: '5200',
-  equipment: '5200',
-  professional: '5300',
-  travel: '5400',
-  fuel: '5400',
-  utility: '5500',
-  other: '5100',
-};
-
 const ExpenseCreate = () => {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -68,15 +56,16 @@ const ExpenseCreate = () => {
     });
   }, []);
 
-  // Default the account from the category map, but don't clobber an explicit user choice.
-  // Only postable (non-group) accounts are valid defaults/leaves.
+  // Default the account from the selected category's own default account, but don't clobber
+  // an explicit user choice. Group accounts are never valid defaults.
   useEffect(() => {
     if (expenseAccountTouched || expenseAccounts.length === 0) return;
-    const postable = expenseAccounts.filter(isPostable);
-    const code = EXPENSE_CATEGORY_TO_CODE[category] || '5100';
-    const match = postable.find((a) => String(a.code) === code) || postable[0];
-    if (match) setExpenseAccountId(String(match.id));
-  }, [category, expenseAccounts, expenseAccountTouched]);
+    const cat = categories.find((c) => c.value === category);
+    const match = cat?.default_account_id
+      ? expenseAccounts.filter(isPostable).find((a) => String(a.id) === String(cat.default_account_id))
+      : null;
+    setExpenseAccountId(match ? String(match.id) : '');
+  }, [category, categories, expenseAccounts, expenseAccountTouched]);
 
   const paidToOptions = useMemo(
     () => mergeSelectOptions(PAID_TO_OPTIONS, customPaidTo, paidTo),

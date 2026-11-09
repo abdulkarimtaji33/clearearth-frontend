@@ -186,11 +186,6 @@ const TaxInvoiceList = () => {
                               <IconEye size={16} />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton size="small" color="error" onClick={() => { setSelected(r); setDeleteOpen(true); }}>
-                              <IconTrash size={16} />
-                            </IconButton>
-                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     ))

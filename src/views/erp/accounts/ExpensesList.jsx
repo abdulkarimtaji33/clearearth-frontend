@@ -159,6 +159,10 @@ const ExpensesList = () => {
       setPayDialogError('Enter a valid amount greater than zero.');
       return;
     }
+    if (!(payAccountId || defaultPayAccountId)) {
+      setPayDialogError('Select the cash or bank account this payment goes through.');
+      return;
+    }
     try {
       setPaySaving(true);
       setPayDialogError('');
@@ -166,7 +170,7 @@ const ExpensesList = () => {
         amount: amt,
         paidAt: payPaidAt || undefined,
         paymentMethod: payMethod.trim() || undefined,
-        paymentAccountId: payAccountId ? parseInt(payAccountId, 10) : undefined,
+        paymentAccountId: parseInt(payAccountId || defaultPayAccountId, 10),
       });
       setPayOpen(false);
       setPayRow(null);

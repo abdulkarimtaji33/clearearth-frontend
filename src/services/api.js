@@ -524,6 +524,10 @@ class ApiService {
     return this._downloadPdf(`${this.baseURL}/proforma-invoices/${id}/pdf`, `proforma-invoice-${id}.pdf`);
   }
 
+  async checkProformaDuplicate(params) {
+    return this.get('/proforma-invoices/check-duplicate', params);
+  }
+
   async createProformaInvoice(data) {
     return this.post('/proforma-invoices', data);
   }
@@ -651,6 +655,22 @@ class ApiService {
 
   async getPayablePayments(id) {
     return this.get(`/payables/${id}/payments`);
+  }
+
+  async getVendorBillsAwaiting() {
+    return this.get('/vendor-bills/awaiting-bill');
+  }
+
+  async getVendorBills(params) {
+    return this.get('/vendor-bills', params);
+  }
+
+  async createVendorBill(data) {
+    return this.post('/vendor-bills', data);
+  }
+
+  async payVendorBills(data) {
+    return this.post('/vendor-bills/pay', data);
   }
 
   async getPayablesAgingSummary(params) {
@@ -1328,7 +1348,7 @@ class ApiService {
   async getJournalEntry(id) { return this.get(`/journal/${id}`); }
   async createJournalEntry(data) { return this.post('/journal', data); }
   async postOpeningBalances(data) { return this.post('/journal/opening-balances', data); }
-  async voidJournalEntry(id) { return this.post(`/journal/${id}/void`); }
+  async reverseJournalEntry(id, data) { return this.post(`/journal/${id}/reverse`, data); }
 
   // ─── Financial Reports ────────────────────────────────────────────────────────
   async getTrialBalance(params) { return this.get('/reports/trial-balance', params); }

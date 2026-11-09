@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, CircularProgress, Alert, Chip, Divider,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconArrowLeft, IconBook2, IconBan } from '@tabler/icons-react';
+import { IconArrowLeft, IconBook2, IconArrowBackUp } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
@@ -19,6 +20,12 @@ const SOURCE_NAV = {
   expense_payment: (id) => `/erp/accounts/work-orders`,
   purchase_order_approved: (id) => `/erp/purchase-orders/view/${id}`,
   po_payment: (id) => `/erp/purchase-orders/view/${id}`,
+  reversal: (id) => `/erp/journal/view/${id}`,
+};
+
+const userName = (u, fallbackId) => {
+  const full = [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim();
+  return full || u?.name || u?.email || (fallbackId != null ? `User #${fallbackId}` : '—');
 };
 
 const JournalEntryView = () => {
@@ -28,7 +35,9 @@ const JournalEntryView = () => {
   const [entry, setEntry] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [voiding, setVoiding] = useState(false);
+  const [reversing, setReversing] = useState(false);
+  const [reverseOpen, setReverseOpen] = useState(false);
+  const [reason, setReason] = useState('');
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
@@ -47,20 +56,24 @@ const JournalEntryView = () => {
     load();
   }, [id]);
 
-  const handleVoid = async () => {
-    if (!window.confirm('Void this entry? A reversing entry will be created automatically.')) return;
-    setVoiding(true);
+  const handleReverse = async () => {
+    if (!reason.trim()) return;
+    setReversing(true);
+    setError('');
     try {
-      const res = await apiService.voidJournalEntry(id);
+      const res = await apiService.reverseJournalEntry(id, { reason: reason.trim() });
       if (res.success) {
-        setMsg('Entry voided. Reversing entry created.');
-        const r2 = await apiService.getJournalEntry(id);
-        if (r2.success) setEntry(r2.data);
+        setEntry(res.data);
+        setReverseOpen(false);
+        setReason('');
+        setMsg(`Entry reversed${res.data?.reversedByEntry ? ` — reversal ${res.data.reversedByEntry.entry_number} posted.` : '.'}`);
       } else {
-        setError(res.message || 'Failed to void');
+        setError(res.message || 'Failed to reverse');
       }
+    } catch (e) {
+      setError(e.message || 'Failed to reverse');
     } finally {
-      setVoiding(false);
+      setReversing(false);
     }
   };
 
@@ -83,11 +96,11 @@ const JournalEntryView = () => {
             <IconBook2 size={22} />
           </Box>
           <Typography variant="h4" fontWeight={800}>{entry?.entry_number}</Typography>
-          <Chip label={entry?.status} color={entry?.status === 'posted' ? 'success' : 'default'} />
+          <Chip label={entry?.reversed_by_id ? 'reversed' : entry?.status} color={entry?.reversed_by_id ? 'warning' : entry?.status === 'posted' ? 'success' : 'default'} />
         </Stack>
-        {entry?.status === 'posted' && (
-          <Button variant="outlined" color="error" startIcon={<IconBan size={18} />} onClick={handleVoid} disabled={voiding} sx={{ borderRadius: 2 }}>
-            {voiding ? 'Voiding…' : 'Void Entry'}
+        {entry?.status === 'posted' && !entry?.reversed_by_id && !entry?.reverses_entry_id && (
+          <Button variant="outlined" color="error" startIcon={<IconArrowBackUp size={18} />} onClick={() => { setReason(''); setReverseOpen(true); }} sx={{ borderRadius: 2 }}>
+            Reverse entry
           </Button>
         )}
       </Stack>
@@ -122,8 +135,30 @@ const JournalEntryView = () => {
             )}
             <Box>
               <Typography variant="caption" color="text.secondary">Created By</Typography>
-              <Typography fontWeight={600}>{entry?.createdByUser?.name || entry?.created_by}</Typography>
+              <Typography fontWeight={600}>{userName(entry?.createdByUser, entry?.created_by)}</Typography>
             </Box>
+            {entry?.reversedByEntry && (
+              <Box>
+                <Typography variant="caption" color="text.secondary">Reversed by</Typography>
+                <Box>
+                  <Button size="small" variant="text" onClick={() => navigate(`/erp/journal/view/${entry.reversedByEntry.id}`)} sx={{ p: 0, minWidth: 0, fontWeight: 600 }}>
+                    {entry.reversedByEntry.entry_number}
+                  </Button>
+                  <Typography variant="caption" display="block" color="text.secondary">{entry.reversal_reason}</Typography>
+                </Box>
+              </Box>
+            )}
+            {entry?.reversesEntry && (
+              <Box>
+                <Typography variant="caption" color="text.secondary">Reverses</Typography>
+                <Box>
+                  <Button size="small" variant="text" onClick={() => navigate(`/erp/journal/view/${entry.reversesEntry.id}`)} sx={{ p: 0, minWidth: 0, fontWeight: 600 }}>
+                    {entry.reversesEntry.entry_number}
+                  </Button>
+                  <Typography variant="caption" display="block" color="text.secondary">{entry.reversal_reason}</Typography>
+                </Box>
+              </Box>
+            )}
             {(entry?.paid_to || entry?.received_from) && (
               <>
                 {entry?.paid_to && (
@@ -190,6 +225,24 @@ const JournalEntryView = () => {
           </Box>
         </Paper>
       </Stack>
+      <Dialog open={reverseOpen} onClose={() => !reversing && setReverseOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 700 }}>Reverse {entry?.entry_number}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            The original entry stays in the ledger. A new entry with every debit and credit swapped is posted today and linked to it.
+          </Typography>
+          <TextField
+            autoFocus fullWidth multiline minRows={2} required label="Reason for reversal" value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button color="inherit" onClick={() => setReverseOpen(false)} disabled={reversing}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleReverse} disabled={reversing || !reason.trim()}>
+            {reversing ? 'Reversing…' : 'Reverse entry'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 };

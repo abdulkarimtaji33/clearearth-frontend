@@ -1,4 +1,4 @@
-import { filterActiveByType, isPostable, accountLabel as _accountLabel } from '../utils/accountTree';
+import { filterCashBankAccounts, isPostable, accountLabel as _accountLabel } from '../utils/accountTree';
 
 /** Default chart-of-accounts code per payment method (matches backend) */
 export const PAYMENT_METHOD_DEFAULT_ACCOUNT_CODE = {
@@ -16,19 +16,21 @@ export function defaultAccountCodeForMethod(paymentMethod) {
 }
 
 /**
- * Active asset accounts suitable for payment routing — includes group (header)
- * accounts, since the cascading picker needs them as parent-level menu entries.
+ * Active cash/bank accounts suitable for payment routing (never AR, VAT, prepaid or fixed assets) —
+ * includes group (header) accounts, since the cascading picker needs them as parent-level entries.
  */
 export function filterPaymentAccounts(accounts) {
-  return filterActiveByType(accounts, 'asset');
+  return filterCashBankAccounts(accounts);
 }
 
-/** Resolve the postable (non-group) default leaf account id for a payment method. */
+/**
+ * Postable default account id for a payment method — only when it is unambiguous: with several
+ * cash/bank accounts to choose from nothing is pre-selected, so the user picks the specific bank.
+ */
 export function resolveDefaultPaymentAccountId(accounts, paymentMethod) {
-  const code = defaultAccountCodeForMethod(paymentMethod);
   const postable = filterPaymentAccounts(accounts).filter(isPostable);
-  const match = postable.find((a) => String(a.code) === code);
-  return match?.id ?? postable[0]?.id ?? '';
+  if (postable.length === 1) return postable[0].id;
+  return '';
 }
 
 export const accountLabel = _accountLabel;

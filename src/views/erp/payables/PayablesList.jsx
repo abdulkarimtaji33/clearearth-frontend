@@ -121,6 +121,10 @@ const PayablesList = () => {
       setPayDialogError('Enter a valid amount greater than zero.');
       return;
     }
+    if (!(payAccountId || defaultPayAccountId)) {
+      setPayDialogError('Select the cash or bank account this payment goes through.');
+      return;
+    }
     try {
       setPaySaving(true);
       setPayDialogError('');
@@ -128,7 +132,7 @@ const PayablesList = () => {
         amount: amt,
         dueDate: payDue || undefined,
         paymentMethod: payMethod || undefined,
-        paymentAccountId: payAccountId ? parseInt(payAccountId, 10) : undefined,
+        paymentAccountId: parseInt(payAccountId || defaultPayAccountId, 10),
         paymentDate: payDate || undefined,
         paidTo: paidTo || undefined,
         referenceNo: payRef || undefined,
@@ -170,6 +174,14 @@ const PayablesList = () => {
             <Button variant="outlined" startIcon={<IconChartHistogram size={18} />} onClick={() => navigate('/erp/payables/aging')} sx={{ borderRadius: 2 }}>Aging summary</Button>
           </Stack>
         </Stack>
+        <Alert
+          severity="info"
+          sx={{ mb: 2, borderRadius: 2 }}
+          action={<Button color="inherit" size="small" onClick={() => navigate('/erp/vendor-bills')}>Open Vendor Bills</Button>}
+        >
+          Purchase orders approved from now on are accrued at approval and settled through <strong>Vendor Bills</strong> (supplier invoice → payment from a specific bank).
+          This list keeps the per-PO receipts for older purchase orders only.
+        </Alert>
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
           <Box sx={{ p: 2.5, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.background.default, 0.6) }}>

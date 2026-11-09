@@ -19,7 +19,6 @@ import {
   filterPaymentAccounts,
   resolveDefaultPaymentAccountId,
   accountLabel,
-  defaultAccountCodeForMethod,
 } from '../../constants/paymentAccounts';
 import { isPostable } from '../../utils/accountTree';
 
@@ -56,8 +55,9 @@ const PaymentRecordingFields = ({
   );
 
   const paymentAccounts = useMemo(() => filterPaymentAccounts(accounts), [accounts]);
-  const defaultCode = defaultAccountCodeForMethod(paymentMethod);
-  const defaultAccount = paymentAccounts.filter(isPostable).find((a) => String(a.code) === defaultCode);
+  // Only a default when there is exactly one cash/bank account; with several, the user picks the bank.
+  const postableAccounts = paymentAccounts.filter(isPostable);
+  const defaultAccount = postableAccounts.length === 1 ? postableAccounts[0] : null;
 
   const addCustomPaymentMethod = useCallback((v) => {
     setCustomPaymentMethods((prev) => {
@@ -109,8 +109,8 @@ const PaymentRecordingFields = ({
             childLabel="Sub-account"
             helperText={
               defaultAccount
-                ? `Default for ${paymentMethod || 'this method'}: ${accountLabel(defaultAccount)}`
-                : 'Choose which cash or bank account this amount posts to'
+                ? `Only cash/bank account: ${accountLabel(defaultAccount)}`
+                : 'Required — choose the specific cash or bank account this amount posts to'
             }
           />
           {selectedAccount && (

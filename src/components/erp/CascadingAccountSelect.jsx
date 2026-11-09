@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { TextField, MenuItem, Stack } from '@mui/material';
+import { TextField, MenuItem, ListSubheader, Stack } from '@mui/material';
 import { getTopLevelAccounts, getChildAccounts, findTopLevelId, accountLabel } from '../../utils/accountTree';
 
 /**
@@ -19,6 +19,8 @@ const CascadingAccountSelect = ({
   disabled = false,
 }) => {
   const topLevel = useMemo(() => getTopLevelAccounts(accounts), [accounts]);
+  const postableTop = useMemo(() => topLevel.filter((a) => !a.is_group), [topLevel]);
+  const groupTop = useMemo(() => topLevel.filter((a) => a.is_group), [topLevel]);
   const selectedTopId = useMemo(() => findTopLevelId(accounts, value), [accounts, value]);
   const selectedTop = topLevel.find((a) => String(a.id) === String(selectedTopId));
   const children = useMemo(() => getChildAccounts(accounts, selectedTopId), [accounts, selectedTopId]);
@@ -46,10 +48,13 @@ const CascadingAccountSelect = ({
         helperText={children.length === 0 ? helperText : undefined}
         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
       >
-        {topLevel.map((a) => (
-          <MenuItem key={a.id} value={String(a.id)}>
-            {accountLabel(a)}{a.is_group ? ' (group)' : ''}
-          </MenuItem>
+        {postableTop.length > 0 && groupTop.length > 0 && <ListSubheader>Accounts</ListSubheader>}
+        {postableTop.map((a) => (
+          <MenuItem key={a.id} value={String(a.id)}>{accountLabel(a)}</MenuItem>
+        ))}
+        {groupTop.length > 0 && <ListSubheader>Account groups — then pick a sub-account</ListSubheader>}
+        {groupTop.map((a) => (
+          <MenuItem key={a.id} value={String(a.id)} sx={{ fontWeight: 600 }}>{accountLabel(a)}</MenuItem>
         ))}
       </TextField>
       {children.length > 0 && (

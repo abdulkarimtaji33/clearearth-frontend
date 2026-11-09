@@ -27,6 +27,7 @@ const SOURCE_META = {
   opening_balance:        { label: 'Opening Balance',   color: 'default' },
   adjustment:             { label: 'Adjustment',        color: 'default' },
   manual:                 { label: 'Manual',            color: 'info' },
+  reversal:               { label: 'Reversal',          color: 'warning' },
 };
 
 const BalanceBadge = ({ debit, credit }) => {
@@ -216,7 +217,7 @@ const JournalList = () => {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: isDark ? alpha(theme.palette.primary.main, 0.08) : alpha(theme.palette.primary.main, 0.04) }}>
-                {['Entry #', 'Date', 'Description', 'Type', 'Debit (AED)', 'Credit (AED)', 'Status', ''].map((h) => (
+                {['Entry #', 'Date', 'Description', 'Type', 'Debit (AED)', 'Credit (AED)', 'Created by', 'Status', ''].map((h) => (
                   <TableCell
                     key={h || 'actions'}
                     align={['Debit (AED)', 'Credit (AED)', ''].includes(h) ? 'right' : 'left'}
@@ -231,14 +232,14 @@ const JournalList = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 10, border: 0 }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 10, border: 0 }}>
                     <CircularProgress size={28} />
                     <Typography variant="body2" color="text.secondary" mt={1.5}>Loading entries…</Typography>
                   </TableCell>
                 </TableRow>
               ) : entries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 10, border: 0 }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 10, border: 0 }}>
                     <IconBook size={40} style={{ opacity: 0.12, marginBottom: 10 }} />
                     <Typography variant="body2" color="text.secondary">No journal entries found</Typography>
                     <Typography variant="caption" color="text.disabled">Try adjusting your filters</Typography>
@@ -303,12 +304,15 @@ const JournalList = () => {
                     <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '0.82rem', color: 'text.primary' }}>
                       {fmt(totalCredit)}
                     </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.82rem', color: 'text.secondary' }}>
+                      {[e.createdByUser?.first_name, e.createdByUser?.last_name].filter(Boolean).join(' ') || `User #${e.created_by}`}
+                    </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={0.75} alignItems="center">
                         <Chip
-                          label={e.status}
+                          label={e.reversed_by_id ? 'reversed' : e.status}
                           size="small"
-                          color={e.status === 'posted' ? 'success' : 'error'}
+                          color={e.reversed_by_id ? 'warning' : e.status === 'posted' ? 'success' : 'error'}
                           variant="soft"
                           sx={{ fontWeight: 700, fontSize: '0.67rem', height: 20, borderRadius: 1 }}
                         />

@@ -63,6 +63,9 @@ const FiscalYearManager = () => {
       } else {
         setError(res.message || 'Failed to create');
       }
+    } catch (e) {
+      setCreateOpen(false);
+      setError(e.message || 'Failed to create');
     } finally {
       setSaving(false);
     }
@@ -107,6 +110,9 @@ const FiscalYearManager = () => {
         </Button>
       </Stack>
 
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Closing a period locks it: no entry dated inside a closed period can be posted. Correct a locked month by reopening it, or post the correction (or a journal reversal) dated in an open period.
+      </Alert>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {actionMsg && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setActionMsg('')}>{actionMsg}</Alert>}
 

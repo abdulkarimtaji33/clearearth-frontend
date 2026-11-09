@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Box, Card, Typography, Button, Stack, TextField, Autocomplete, Alert, CircularProgress,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Divider, FormControlLabel, Checkbox,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Divider, FormControlLabel, Checkbox, Tooltip,
 } from '@mui/material';
+import { createFilterOptions } from '@mui/material/Autocomplete';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router';
-import { IconArrowLeft, IconCoin, IconWand } from '@tabler/icons-react';
+import { IconArrowLeft, IconCoin, IconWand, IconAlertTriangle } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
 import apiService from '../../../services/api';
@@ -18,6 +19,25 @@ import {
   mergeSelectOptions,
   RECEIVED_FROM_OPTIONS,
 } from '../../../constants/expenseFormOptions';
+
+const normalizeName = (name) => String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+const customerFilter = createFilterOptions({ ignoreCase: true, matchFrom: 'any', stringify: (o) => o.company_name || '' });
+
+/**
+ * The company table can hold several rows for one customer (same name). Show each customer once;
+ * `ids` keeps every underlying company id so outstanding invoices from all of them are listed.
+ */
+function dedupeCustomers(list) {
+  const byName = new Map();
+  (list || []).forEach((c) => {
+    const key = normalizeName(c.company_name);
+    if (!key) return;
+    const g = byName.get(key);
+    if (g) g.ids.push(c.id);
+    else byName.set(key, { id: c.id, company_name: String(c.company_name).trim(), ids: [c.id] });
+  });
+  return [...byName.values()].sort((a, b) => a.company_name.localeCompare(b.company_name));
+}
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -51,7 +71,7 @@ const ReceivePaymentView = () => {
 
   useEffect(() => {
     apiService.getCompanies({ pageSize: 500 }).then((res) => {
-      if (res.success) setCompanies(Array.isArray(res.data) ? res.data : extractListData(res));
+      if (res.success) setCompanies(dedupeCustomers(Array.isArray(res.data) ? res.data : extractListData(res)));
     });
     apiService.getChartOfAccounts({}).then((res) => {
       if (res.success) {
@@ -78,12 +98,12 @@ const ReceivePaymentView = () => {
     [paymentAccounts, paymentMethod]
   );
 
-  const fetchInvoices = useCallback(async (companyId) => {
-    if (!companyId) { setInvoices([]); setAllocations({}); return; }
+  const fetchInvoices = useCallback(async (companyIds) => {
+    if (!companyIds || companyIds.length === 0) { setInvoices([]); setAllocations({}); return; }
     try {
       setInvoicesLoading(true);
       setError('');
-      const res = await apiService.getReceivables({ companyId, pageSize: 200 });
+      const res = await apiService.getReceivables({ companyIds: companyIds.join(','), pageSize: 200 });
       const rows = Array.isArray(res.data) ? res.data : extractListData(res);
       setInvoices(rows);
       setAllocations({});
@@ -97,7 +117,7 @@ const ReceivePaymentView = () => {
   const handleCompanyChange = (company) => {
     setSelectedCompany(company);
     setReceivedFrom(company?.company_name || '');
-    fetchInvoices(company?.id);
+    fetchInvoices(company?.ids);
   };
 
   const setAllocation = (invoiceId, value) => {
@@ -134,6 +154,7 @@ const ReceivePaymentView = () => {
       .map(([taxInvoiceId, amount]) => ({ taxInvoiceId: parseInt(taxInvoiceId, 10), amount: parseFloat(amount) }))
       .filter((a) => Number.isFinite(a.amount) && a.amount > 0);
     if (allocationList.length === 0) { setError('Apply the receipt to at least one invoice.'); return; }
+    if (!(paymentAccountId || defaultPayAccountId)) { setError('Select the cash or bank account the receipt goes into.'); return; }
 
     if (remaining < -0.01) {
       setError(`Allocated total (AED ${fmt(totalAllocated)}) cannot exceed the amount received (AED ${fmt(receivedNum)}).`);
@@ -148,9 +169,10 @@ const ReceivePaymentView = () => {
       setSaving(true);
       const res = await apiService.receiveCustomerPayment({
         companyId: selectedCompany.id,
+        companyIds: selectedCompany.ids,
         paymentDate,
         paymentMethod,
-        paymentAccountId: paymentAccountId ? parseInt(paymentAccountId, 10) : undefined,
+        paymentAccountId: parseInt(paymentAccountId || defaultPayAccountId, 10),
         referenceNo: referenceNo || undefined,
         receivedFrom: receivedFrom || undefined,
         allocations: allocationList,
@@ -163,7 +185,7 @@ const ReceivePaymentView = () => {
         setAmountReceived('');
         setReferenceNo('');
         setRecordAsAdvance(false);
-        await fetchInvoices(selectedCompany.id);
+        await fetchInvoices(selectedCompany.ids);
       }
     } catch (e) {
       setError(e.message || 'Failed to record payment');
@@ -192,6 +214,8 @@ const ReceivePaymentView = () => {
         <Stack spacing={2}>
           <Autocomplete
             options={companies}
+            filterOptions={customerFilter}
+            autoHighlight
             getOptionLabel={(opt) => opt.company_name || ''}
             value={selectedCompany}
             onChange={(_, val) => handleCompanyChange(val)}
@@ -278,7 +302,14 @@ const ReceivePaymentView = () => {
                     <TableRow key={inv.id} hover>
                       <TableCell>{inv.tax_invoice_number}</TableCell>
                       <TableCell>{inv.invoice_date || '—'}</TableCell>
-                      <TableCell>{inv.due_date || '—'}</TableCell>
+                      <TableCell>
+                        {inv.due_date || '—'}
+                        {inv.due_date && inv.invoice_date && String(inv.due_date).slice(0, 10) < String(inv.invoice_date).slice(0, 10) && (
+                          <Tooltip title="Due date is before the invoice date — correct it on the tax invoice">
+                            <Box component="span" sx={{ ml: 0.75, color: 'warning.main', verticalAlign: 'middle', display: 'inline-flex' }}><IconAlertTriangle size={16} /></Box>
+                          </Tooltip>
+                        )}
+                      </TableCell>
                       <TableCell align="right">{inv.currency || 'AED'} {fmt(bal)}</TableCell>
                       <TableCell align="right">
                         <TextField

@@ -31,7 +31,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
 import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
 import apiService from '../../../services/api';
-import VendorSelect from '../../../components/erp/VendorSelect';
+import PayeeSelect, { rememberPayee } from '../../../components/erp/PayeeSelect';
 import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 import { filterActiveByType, isPostable } from '../../../utils/accountTree';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
@@ -197,6 +197,7 @@ const AccountsWorkOrderView = () => {
         notes: form.notes || null,
         expenseAccountId: form.expenseAccountId ? parseInt(form.expenseAccountId, 10) : undefined,
       });
+      rememberPayee(form.paidTo);
       setSuccess('Expense recorded');
       setApproveOpen(false);
       setApproveCtx(null);
@@ -655,11 +656,12 @@ const AccountsWorkOrderView = () => {
               )}
               <TextField label="Amount (AED)" size="small" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} fullWidth />
               <TextField label="Expense date" type="date" size="small" value={form.expenseDate} onChange={(e) => setForm((f) => ({ ...f, expenseDate: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
-              <VendorSelect
+              <PayeeSelect
                 value={form.paidTo}
                 onChange={(v) => setForm((f) => ({ ...f, paidTo: v }))}
-                label="Paid to (vendor)"
-                helperText="Vendors only. Optional at approval; the bank account is chosen when the expense is paid."
+                label="Paid to"
+                preferVendors
+                helperText="Optional at approval. The bank account is chosen when the expense is paid."
               />
               <SelectWithAddNew
                 label="Payment method"

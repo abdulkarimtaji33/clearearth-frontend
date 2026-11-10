@@ -16,7 +16,7 @@ import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
 import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
-import VendorSelect from '../../../components/erp/VendorSelect';
+import PayeeSelect, { rememberPayee } from '../../../components/erp/PayeeSelect';
 import apiService from '../../../services/api';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
 import { filterActiveByType, isPostable, filterCashBankAccounts, accountLabel } from '../../../utils/accountTree';
@@ -157,7 +157,7 @@ const ExpenseCreate = () => {
     }
     if (paidAmount !== '' && paid > 0) {
       if (!paidTo.trim()) {
-        setError('Choose the vendor this expense was paid to.');
+        setError('Enter who this expense was paid to.');
         return;
       }
       if (!paymentAccountId) {
@@ -181,6 +181,7 @@ const ExpenseCreate = () => {
       if (paidAmount !== '' && paid > 0) payload.paymentAccountId = parseInt(paymentAccountId, 10);
       const res = await apiService.createAccountsExpense(payload);
       if (res.success === false) throw new Error(res.message || 'Failed to create expense');
+      rememberPayee(paidTo);
       navigate('/erp/accounts/expenses');
     } catch (err) {
       setError(err.message || 'Failed to create expense');
@@ -278,11 +279,11 @@ const ExpenseCreate = () => {
                 onChange={(e) => setExpenseDate(e.target.value)}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
-              <VendorSelect
+              <PayeeSelect
                 value={paidTo}
                 onChange={setPaidTo}
-                label="Paid to (vendor)"
-                helperText="Vendors only. Add a new vendor under Clients & Vendors."
+                label="Paid to"
+                preferVendors={['fuel', 'materials', 'equipment', 'professional', 'utility', 'travel'].includes(category)}
               />
               <SelectWithAddNew
                 label="Payment method"

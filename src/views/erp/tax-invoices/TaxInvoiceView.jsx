@@ -19,12 +19,13 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router';
-import { IconArrowLeft, IconReceipt, IconFileInvoice, IconCoin, IconDownload } from '@tabler/icons-react';
+import { IconArrowLeft, IconReceipt, IconFileInvoice, IconCoin, IconDownload, IconReceiptRefund } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
+import CreditNoteDialog from './CreditNoteDialog';
 
-const PAYMENT_COLOR = { unpaid: 'warning', partial: 'info', paid: 'success' };
+const PAYMENT_COLOR = { unpaid: 'warning', partial: 'info', paid: 'success', credited: 'default' };
 
 const fmtQty = (q) => {
   const n = parseFloat(q);
@@ -50,6 +51,9 @@ const TaxInvoiceView = () => {
   const [error, setError] = useState('');
   const [pdfDownloading, setPdfDownloading] = useState(false);
   const [pdfError, setPdfError] = useState('');
+  const [creditOpen, setCreditOpen] = useState(false);
+  const [creditNotes, setCreditNotes] = useState([]);
+  const [notice, setNotice] = useState('');
 
   const handleDownloadPdf = async () => {
     try {
@@ -78,7 +82,17 @@ const TaxInvoiceView = () => {
     }
   }, [id]);
 
-  useEffect(() => { fetchRow(); }, [fetchRow]);
+  const fetchCreditNotes = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await apiService.getCreditNotes({ taxInvoiceId: id, pageSize: 50 });
+      setCreditNotes(res.data || []);
+    } catch {
+      setCreditNotes([]);
+    }
+  }, [id]);
+
+  useEffect(() => { fetchRow(); fetchCreditNotes(); }, [fetchRow, fetchCreditNotes]);
 
   const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -109,9 +123,13 @@ const TaxInvoiceView = () => {
 
   const totalNum = parseFloat(row.total) || 0;
   const paidNum = row.paid_amount != null ? parseFloat(row.paid_amount) : null;
-  const remainingNum = paidNum != null ? Math.max(0, totalNum - paidNum) : null;
-  const isPartial = row.payment_status === 'partial';
-  const isPaid = row.payment_status === 'paid';
+  const creditedNum = parseFloat(row.credited_amount) || 0;
+  const remainingNum = Math.max(0, totalNum - (paidNum || 0) - creditedNum);
+  const isFullyCredited = creditedNum > 0 && remainingNum <= 0.01 && (paidNum || 0) <= 0.01;
+  const statusKey = isFullyCredited ? 'credited' : row.payment_status;
+  const isPartial = statusKey === 'partial';
+  const isPaid = statusKey === 'paid';
+  const canIssueCredit = remainingNum > 0.01;
 
   return (
     <PageContainer title="Tax invoice">
@@ -131,8 +149,8 @@ const TaxInvoiceView = () => {
                 <Typography variant="h5" fontWeight={800}>Tax Invoice</Typography>
                 <Chip
                   size="small"
-                  label={(row.payment_status || 'unpaid').replace(/_/g, ' ')}
-                  color={PAYMENT_COLOR[row.payment_status] || 'default'}
+                  label={statusKey === 'credited' ? 'cancelled by credit note' : (statusKey || 'unpaid').replace(/_/g, ' ')}
+                  color={PAYMENT_COLOR[statusKey] || 'default'}
                   sx={{ fontWeight: 700, textTransform: 'capitalize' }}
                 />
               </Stack>
@@ -145,6 +163,11 @@ const TaxInvoiceView = () => {
                 View Proforma
               </Button>
             )}
+            {canIssueCredit && (
+              <Button variant="outlined" color="warning" startIcon={<IconReceiptRefund size={16} />} onClick={() => setCreditOpen(true)} sx={{ borderRadius: 2 }}>
+                Issue credit note
+              </Button>
+            )}
             <Button variant="outlined" startIcon={<IconDownload size={16} />} onClick={handleDownloadPdf} disabled={pdfDownloading} sx={{ borderRadius: 2 }}>
               {pdfDownloading ? 'Downloading…' : 'Download PDF'}
             </Button>
@@ -152,6 +175,10 @@ const TaxInvoiceView = () => {
         </Stack>
 
         {pdfError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setPdfError('')}>{pdfError}</Alert>}
+        {notice && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setNotice('')}>{notice}</Alert>}
+        <Alert severity="info" variant="outlined" sx={{ mb: 2, borderRadius: 2 }}>
+          This invoice is posted, so it can no longer be edited or deleted. To correct or cancel it, issue a credit note.
+        </Alert>
 
         {/* Summary */}
         <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2, overflow: 'hidden' }}>
@@ -173,14 +200,21 @@ const TaxInvoiceView = () => {
                   <Typography variant="subtitle2" fontWeight={800} color="primary.main">{cur} {fmt(row.total)}</Typography>
                 </Stack>
 
-                {(isPartial || isPaid) && paidNum != null && (
+                {creditedNum > 0 && (
+                  <Stack direction="row" justifyContent="space-between" spacing={4}>
+                    <Typography variant="body2" color="text.secondary">Credited</Typography>
+                    <Typography variant="body2" fontWeight={700} color="warning.dark">− {cur} {fmt(creditedNum)}</Typography>
+                  </Stack>
+                )}
+
+                {(isPartial || isPaid) && paidNum != null && paidNum > 0 && (
                   <Stack direction="row" justifyContent="space-between" spacing={4}>
                     <Typography variant="body2" color="text.secondary">Amount paid</Typography>
                     <Typography variant="body2" fontWeight={700} color="success.main">{cur} {fmt(paidNum)}</Typography>
                   </Stack>
                 )}
 
-                {isPartial && remainingNum != null && (
+                {(isPartial || (creditedNum > 0 && remainingNum > 0.01 && !isPaid)) && (
                   <Box sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), border: '1px solid', borderColor: alpha(theme.palette.warning.main, 0.35), borderRadius: 2, px: 1.5, py: 1 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
                       <Stack direction="row" alignItems="center" spacing={0.75}>
@@ -242,6 +276,36 @@ const TaxInvoiceView = () => {
             </Box>
           )}
         </Paper>
+
+        {/* Credit notes */}
+        {creditNotes.length > 0 && (
+          <Paper variant="outlined" sx={{ borderRadius: 3, mb: 2, overflow: 'hidden' }}>
+            <Box sx={{ px: 2.5, py: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.06), borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="overline" fontWeight={700} color="warning.dark" letterSpacing={1}>Credit notes on this invoice</Typography>
+            </Box>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  {['Credit note', 'Date', 'Reason', 'Ex VAT', 'VAT', 'Total'].map((h, i) => (
+                    <TableCell key={h} align={i >= 3 ? 'right' : 'left'} sx={{ fontWeight: 700, fontSize: '0.68rem', textTransform: 'uppercase', color: 'text.secondary' }}>{h}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {creditNotes.map((cn) => (
+                  <TableRow key={cn.id}>
+                    <TableCell sx={{ fontWeight: 700 }}>{cn.credit_note_number}</TableCell>
+                    <TableCell>{String(cn.credit_date).slice(0, 10)}</TableCell>
+                    <TableCell>{cn.reason}</TableCell>
+                    <TableCell align="right">{cur} {fmt(cn.subtotal)}</TableCell>
+                    <TableCell align="right">{cur} {fmt(cn.vat_amount)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>{cur} {fmt(cn.total)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Paper>
+        )}
 
         {/* Line items */}
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
@@ -321,6 +385,18 @@ const TaxInvoiceView = () => {
         </Paper>
 
       </Box>
+
+      <CreditNoteDialog
+        open={creditOpen}
+        taxInvoiceId={row.id}
+        onClose={() => setCreditOpen(false)}
+        onIssued={(cn) => {
+          setCreditOpen(false);
+          setNotice(`Credit note ${cn?.credit_note_number || ''} issued. The invoice balance has been updated.`);
+          fetchRow();
+          fetchCreditNotes();
+        }}
+      />
     </PageContainer>
   );
 };

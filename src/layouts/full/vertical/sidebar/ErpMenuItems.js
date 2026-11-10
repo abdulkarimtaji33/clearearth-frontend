@@ -203,6 +203,7 @@ const ErpMenuItems = [
       // ── Invoicing & Payments ─────────────────────────────────────────────
       { id: uniqueId(), title: 'Proforma Invoices', icon: IconFileInvoice, href: '/erp/proforma-invoices', permission: 'accounting.read' },
       { id: uniqueId(), title: 'Tax Invoices', icon: IconReceipt, href: '/erp/tax-invoices', permission: 'accounting.read' },
+      { id: uniqueId(), title: 'Credit Notes', icon: IconReceipt, href: '/erp/credit-notes', permission: 'accounting.read' },
       { id: uniqueId(), title: 'Receivables', icon: IconCoin, href: '/erp/receivables', permission: 'accounting.read' },
       { id: uniqueId(), title: 'Receive Payment', icon: IconCashBanknote, href: '/erp/receivables/receive-payment', permission: 'accounting.update' },
       { id: uniqueId(), title: 'Vendor Bills', icon: IconFileInvoice, href: '/erp/vendor-bills', permission: 'accounting.read' },

@@ -673,6 +673,22 @@ class ApiService {
     return this.post('/vendor-bills/pay', data);
   }
 
+  async getCreditNotes(params) {
+    return this.get('/credit-notes', params);
+  }
+
+  async getCreditNote(id) {
+    return this.get(`/credit-notes/${id}`);
+  }
+
+  async getInvoiceCreditInfo(taxInvoiceId) {
+    return this.get(`/credit-notes/invoice/${taxInvoiceId}/info`);
+  }
+
+  async createCreditNote(data) {
+    return this.post('/credit-notes', data);
+  }
+
   async getPayablesAgingSummary(params) {
     return this.get('/payables/aging-summary', params);
   }

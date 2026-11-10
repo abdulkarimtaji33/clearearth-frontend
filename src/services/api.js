@@ -1358,6 +1358,8 @@ class ApiService {
   async updateChartOfAccount(id, data) { return this.put(`/chart-of-accounts/${id}`, data); }
   async deleteChartOfAccount(id) { return this.delete(`/chart-of-accounts/${id}`); }
   async seedChartOfAccounts() { return this.post('/chart-of-accounts/seed'); }
+  async getNextAccountCode(params) { return this.get('/chart-of-accounts/next-code', params); }
+  async getChartAccountUsage(id) { return this.get(`/chart-of-accounts/${id}/usage`); }
 
   // ─── Journal ─────────────────────────────────────────────────────────────────
   async getJournalEntries(params) { return this.get('/journal', params); }

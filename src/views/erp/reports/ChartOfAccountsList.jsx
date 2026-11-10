@@ -1,96 +1,42 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, CircularProgress, Alert, Chip,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
-  IconButton, Tooltip, Checkbox, FormControlLabel, InputAdornment,
+  Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Stack, Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import {
-  IconList, IconPlus, IconSeeding, IconEdit, IconTrash, IconCornerDownRight, IconSearch,
-} from '@tabler/icons-react';
+import { IconList, IconPlus, IconSeeding, IconDownload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
-import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
 import { asArray } from '../../../utils/reportApi';
+import AccountFilters from './chart-of-accounts/AccountFilters';
+import AccountTree from './chart-of-accounts/AccountTree';
+import AccountDrawer from './chart-of-accounts/AccountDrawer';
+import AccountDialog from './chart-of-accounts/AccountDialog';
+import { DEFAULT_FILTERS, matchesFilters, toCsv } from './chart-of-accounts/coaUtils';
 
-const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const STORE_KEY = 'coa_view_v1';
 
-const TYPE_COLOR = {
-  asset: 'info', liability: 'warning', equity: 'secondary', revenue: 'success', expense: 'error',
-};
-
-const TYPES = ['asset', 'liability', 'equity', 'revenue', 'expense'];
-const SUB_TYPES = {
-  asset: ['current_asset', 'cash', 'bank', 'fixed_asset', 'other_asset'],
-  liability: ['current_liability', 'long_term_liability'],
-  equity: [],
-  revenue: ['operating_revenue', 'other_income'],
-  expense: ['cost_of_revenue', 'operating_expense', 'finance_cost'],
-};
-
-const EMPTY_FORM = {
-  code: '', name: '', type: 'asset', subType: '', normalBalance: 'debit',
-  description: '', parentId: '', isGroup: false,
-};
-
-/** Build a code-ordered forest of {account, children[]} nodes from a flat list of one `type`. */
-function buildTree(list) {
-  const byId = {};
-  list.forEach((a) => { byId[a.id] = { account: a, children: [] }; });
-  const roots = [];
-  list.forEach((a) => {
-    const node = byId[a.id];
-    if (a.parent_id != null && byId[a.parent_id]) {
-      byId[a.parent_id].children.push(node);
-    } else {
-      roots.push(node);
-    }
-  });
-  const sortNodes = (nodes) => {
-    nodes.sort((x, y) => String(x.account.code).localeCompare(String(y.account.code)));
-    nodes.forEach((n) => sortNodes(n.children));
-  };
-  sortNodes(roots);
-  return roots;
-}
-
-/** Flatten a tree back into a depth-annotated row list for rendering. */
-function flattenTree(nodes, depth = 0, out = []) {
-  nodes.forEach((n) => {
-    out.push({ ...n.account, __depth: depth });
-    flattenTree(n.children, depth + 1, out);
-  });
-  return out;
-}
-
-/** All ids in the subtree rooted at `accountId` (inclusive) — used to exclude self/descendants from parent pickers. */
-function descendantIds(accounts, accountId) {
-  const ids = new Set([accountId]);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    accounts.forEach((a) => {
-      if (a.parent_id != null && ids.has(a.parent_id) && !ids.has(a.id)) {
-        ids.add(a.id);
-        grew = true;
-      }
-    });
+const loadStored = () => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+    return { filters: { ...DEFAULT_FILTERS, ...(raw.filters || {}), q: '' }, view: raw.view === 'flat' ? 'flat' : 'tree' };
+  } catch {
+    return { filters: { ...DEFAULT_FILTERS }, view: 'tree' };
   }
-  return ids;
-}
+};
 
 const ChartOfAccountsList = () => {
   const theme = useTheme();
+  const stored = useMemo(loadStored, []);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editAccount, setEditAccount] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState(stored.filters);
+  const [view, setView] = useState(stored.view);
+  const [expanded, setExpanded] = useState(() => new Set());
+  const [drawerId, setDrawerId] = useState(null);
+  const [dialog, setDialog] = useState({ open: false, mode: 'create', account: null, defaults: null });
+  const [confirm, setConfirm] = useState(null); // { title, text, action, label, color }
 
   const load = useCallback(async () => {
     try {
@@ -107,293 +53,157 @@ const ChartOfAccountsList = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleSeed = async () => {
-    if (!window.confirm('Seed the default Chart of Accounts? This will add ~25 standard UAE accounts.')) return;
-    const res = await apiService.seedChartOfAccounts();
-    if (res.success) { setMsg('Chart of Accounts seeded successfully.'); load(); }
-    else setError(res.message || 'Seed failed');
-  };
+  // Remember filters (not the search text) and the view between visits.
+  useEffect(() => {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ filters: { ...filters, q: '' }, view })); } catch { /* storage unavailable */ }
+  }, [filters, view]);
 
-  const openCreate = (defaults = {}) => {
-    setEditAccount(null);
-    setForm({ ...EMPTY_FORM, ...defaults });
-    setDialogOpen(true);
-  };
+  const byId = useMemo(() => Object.fromEntries(accounts.map((a) => [a.id, a])), [accounts]);
+  const drawerAccount = drawerId != null ? byId[drawerId] || null : null;
+  const matches = useMemo(() => accounts.filter((a) => matchesFilters(a, filters, byId)), [accounts, filters, byId]);
+  const forceExpand = filters.q.trim() !== '' || filters.kind !== 'all' || filters.balance !== 'all';
 
-  const openEdit = (acc) => {
-    setEditAccount(acc);
-    setForm({
-      code: acc.code,
-      name: acc.name,
-      type: acc.type,
-      subType: acc.sub_type || '',
-      normalBalance: acc.normal_balance,
-      description: acc.description || '',
-      parentId: acc.parent_id != null ? String(acc.parent_id) : '',
-      isGroup: !!acc.is_group,
-    });
-    setDialogOpen(true);
-  };
+  const openCreate = (defaults = null) => setDialog({ open: true, mode: 'create', account: null, defaults });
+  const openAddSub = (acc) => setDialog({ open: true, mode: 'create', account: null, defaults: { parentId: acc.id } });
+  const openEdit = (acc) => setDialog({ open: true, mode: 'edit', account: acc, defaults: null });
 
-  const openAddSubAccount = (parentAcc) => {
-    setEditAccount(null);
-    setForm({
-      ...EMPTY_FORM,
-      type: parentAcc.type,
-      subType: parentAcc.sub_type || '',
-      normalBalance: parentAcc.normal_balance,
-      parentId: String(parentAcc.id),
-    });
-    setDialogOpen(true);
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
+  const setActive = async (acc, active) => {
     try {
-      const payload = {
-        code: form.code,
-        name: form.name,
-        type: form.type,
-        subType: form.subType || undefined,
-        normalBalance: form.normalBalance,
-        description: form.description || undefined,
-        parentId: form.parentId ? parseInt(form.parentId, 10) : null,
-        isGroup: !!form.isGroup,
-      };
-      const res = editAccount
-        ? await apiService.updateChartOfAccount(editAccount.id, payload)
-        : await apiService.createChartOfAccount(payload);
-      if (res.success) {
-        setDialogOpen(false);
-        load();
-      } else {
-        setError(res.message || 'Save failed');
-      }
-    } catch (e) {
-      setError(e.message || 'Save failed');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Disable this account? It cannot be deleted if it has transactions or sub-accounts.')) return;
-    try {
-      const res = await apiService.deleteChartOfAccount(id);
-      if (res.success) { setMsg('Account disabled.'); load(); }
-      else setError(res.message || 'Failed');
+      const res = await apiService.updateChartOfAccount(acc.id, { isActive: active });
+      if (res.success === false) throw new Error(res.message || 'Failed');
+      setMsg(`${acc.code} ${acc.name} ${active ? 're-activated' : 'disabled'}.`);
+      load();
     } catch (e) {
       setError(e.message || 'Failed');
     }
   };
 
-  const setField = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+  const askToggle = (acc) => {
+    if (acc.is_active) {
+      setConfirm({
+        title: `Disable ${acc.code} ${acc.name}?`,
+        text: 'It will stop appearing in account pickers. Existing postings stay as they are, and you can re-activate it any time.',
+        label: 'Disable', color: 'error', action: () => setActive(acc, false),
+      });
+    } else {
+      setActive(acc, true);
+    }
+  };
 
-  const subTypeOptions = SUB_TYPES[form.type] || [];
+  const handleSeed = () => setConfirm({
+    title: 'Seed the default chart of accounts?',
+    text: 'This adds the standard UAE accounts (about 40). It only works when the chart is empty.',
+    label: 'Seed defaults', color: 'primary',
+    action: async () => {
+      const res = await apiService.seedChartOfAccounts();
+      if (res.success) { setMsg(res.data?.seeded === false ? 'Accounts already exist — nothing was added.' : 'Chart of accounts seeded.'); load(); }
+      else setError(res.message || 'Seed failed');
+    },
+  });
 
-  const grouped = TYPES.reduce((acc, t) => {
-    acc[t] = accounts.filter((a) => a.type === t);
-    return acc;
-  }, {});
-
-  // Valid parent choices for the account currently being edited: same type, not itself/its own descendants
-  const parentOptions = useMemo(() => {
-    const excluded = editAccount ? descendantIds(accounts, editAccount.id) : new Set();
-    return accounts.filter((a) => a.type === form.type && !excluded.has(a.id));
-  }, [accounts, form.type, editAccount]);
+  const exportCsv = () => {
+    const rows = [...matches].sort((x, y) => String(x.code).localeCompare(String(y.code), undefined, { numeric: true }));
+    const blob = new Blob([toCsv(rows, byId)], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chart-of-accounts-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <PageContainer title="Chart of Accounts" description="Master list of all accounting accounts">
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1.5} mb={2.5}>
         <Stack direction="row" alignItems="center" spacing={2}>
-          <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconList size={22} />
+          <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconList size={24} />
           </Box>
-          <Typography variant="h4" fontWeight={800}>Chart of Accounts</Typography>
+          <Box>
+            <Typography variant="h4" fontWeight={800}>Chart of Accounts</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {accounts.length} accounts · click any account for its details, or use + to add a sub-account
+            </Typography>
+          </Box>
         </Stack>
         <Stack direction="row" spacing={1}>
-          <Button variant="outlined" startIcon={<IconSeeding size={18} />} onClick={handleSeed} sx={{ borderRadius: 2 }}>
-            Seed Defaults
+          {accounts.length === 0 && !loading && (
+            <Button variant="outlined" startIcon={<IconSeeding size={18} />} onClick={handleSeed} sx={{ borderRadius: 2 }}>Seed defaults</Button>
+          )}
+          <Button variant="outlined" startIcon={<IconDownload size={18} />} onClick={exportCsv} disabled={!matches.length} sx={{ borderRadius: 2 }}>
+            Export CSV
           </Button>
           <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={() => openCreate()} sx={{ borderRadius: 2 }}>
-            Add Account
+            Add account
           </Button>
         </Stack>
       </Stack>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
-      {msg && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg('')}>{msg}</Alert>}
-
-      {!loading && accounts.length > 0 && (
-        <TextField
-          size="small"
-          placeholder="Search by account code or name"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ mb: 2, minWidth: 320 }}
-          InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={16} /></InputAdornment> }}
-        />
-      )}
+      {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+      {msg && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setMsg('')}>{msg}</Alert>}
 
       {loading ? (
         <Box display="flex" justifyContent="center" py={10}><CircularProgress /></Box>
+      ) : accounts.length === 0 ? (
+        <Alert severity="info" sx={{ borderRadius: 2 }}>No accounts yet. Use “Seed defaults” to start from the standard chart, or add your own.</Alert>
       ) : (
-        <Stack spacing={2}>
-          {(() => {
-            const s = search.trim().toLowerCase();
-            const sectionsWithResults = s
-              ? TYPES.filter((type) => (grouped[type] || []).some((a) => a.code?.toLowerCase().includes(s) || a.name?.toLowerCase().includes(s)))
-              : null;
-            if (s && sectionsWithResults.length === 0) {
-              return (
-                <Paper variant="outlined" sx={{ borderRadius: 3, py: 6, textAlign: 'center' }}>
-                  <Typography color="text.secondary">No accounts match &quot;{search}&quot;</Typography>
-                </Paper>
-              );
-            }
-            return null;
-          })()}
-          {TYPES.filter((type) => {
-            if (!search.trim()) return true;
-            const s = search.trim().toLowerCase();
-            return (grouped[type] || []).some((a) => a.code?.toLowerCase().includes(s) || a.name?.toLowerCase().includes(s));
-          }).map((type) => {
-            const typeAccounts = grouped[type] || [];
-            const s = search.trim().toLowerCase();
-            const rows = flattenTree(buildTree(typeAccounts))
-              .filter((acc) => !s || acc.code?.toLowerCase().includes(s) || acc.name?.toLowerCase().includes(s));
-            return (
-              <Paper key={type} variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
-                <Box sx={{ px: 2.5, py: 1.5, bgcolor: alpha(theme.palette.grey[500], 0.06), borderBottom: '1px solid', borderColor: 'divider' }}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Chip label={type.toUpperCase()} size="small" color={TYPE_COLOR[type]} />
-                    <Typography variant="subtitle2" fontWeight={800} sx={{ textTransform: 'capitalize' }}>
-                      {type} Accounts ({typeAccounts.length})
-                    </Typography>
-                  </Stack>
-                </Box>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        {['Code', 'Name', 'Sub-type', 'Normal Balance', 'Balance (AED)', 'Status', ''].map((h) => (
-                          <TableCell key={h} align={h === 'Balance (AED)' ? 'right' : 'left'} sx={{ fontWeight: 700 }}>{h}</TableCell>
-                        ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rows.length === 0 ? (
-                        <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3 }}><Typography variant="caption" color="text.secondary">No {type} accounts</Typography></TableCell></TableRow>
-                      ) : rows.map((acc) => (
-                        <TableRow key={acc.id} sx={{ bgcolor: acc.is_group ? alpha(theme.palette.grey[500], 0.04) : 'inherit' }}>
-                          <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{acc.code}</TableCell>
-                          <TableCell sx={{ fontWeight: acc.is_group ? 700 : 400, pl: 2 + acc.__depth * 2.5 }}>
-                            <Stack direction="row" alignItems="center" spacing={0.5}>
-                              {acc.__depth > 0 && <IconCornerDownRight size={14} style={{ opacity: 0.5, flexShrink: 0 }} />}
-                              <span>{acc.is_group ? `[${acc.name}]` : acc.name}</span>
-                            </Stack>
-                          </TableCell>
-                          <TableCell><Typography variant="caption" color="text.secondary">{acc.sub_type || '—'}</Typography></TableCell>
-                          <TableCell><Chip label={acc.normal_balance} size="small" variant="outlined" /></TableCell>
-                          <TableCell align="right">
-                            {acc.is_group
-                              ? (acc.rollup_balance != null ? <strong style={{ fontFamily: 'monospace' }}>{fmt(acc.rollup_balance)}</strong> : '—')
-                              : (acc.balance != null ? <GlAmountLink accountId={acc.id} title="View postings that make up this balance">{fmt(acc.balance)}</GlAmountLink> : '—')}
-                          </TableCell>
-                          <TableCell>
-                            {!acc.is_active
-                              ? <Chip label="Inactive" size="small" color="default" />
-                              : <Chip label="Active" size="small" color="success" />}
-                          </TableCell>
-                          <TableCell align="right">
-                            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                              {!acc.is_group && (
-                                <Tooltip title="Add sub-account">
-                                  <IconButton size="small" onClick={() => openAddSubAccount(acc)}>
-                                    <IconPlus size={16} />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                              <Tooltip title="Edit">
-                                <span>
-                                  <IconButton size="small" onClick={() => openEdit(acc)}>
-                                    <IconEdit size={16} />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                              <Tooltip title={acc.is_system ? 'System account — cannot delete' : 'Disable'}>
-                                <span>
-                                  <IconButton size="small" color="error" onClick={() => handleDelete(acc.id)} disabled={!!acc.is_system}>
-                                    <IconTrash size={16} />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
-            );
-          })}
-        </Stack>
+        <>
+          <AccountFilters
+            accounts={accounts}
+            filters={filters}
+            setFilters={setFilters}
+            view={view}
+            setView={setView}
+            shown={matches.length}
+            total={accounts.length}
+            onExpandAll={() => setExpanded(new Set(accounts.filter((a) => a.child_count > 0).map((a) => a.id)))}
+            onCollapseAll={() => setExpanded(new Set())}
+          />
+          <AccountTree
+            accounts={accounts}
+            byId={byId}
+            filters={filters}
+            view={view}
+            expanded={expanded}
+            setExpanded={setExpanded}
+            forceExpand={forceExpand}
+            onOpen={(a) => setDrawerId(a.id)}
+            onAddSub={openAddSub}
+            onEdit={openEdit}
+            onToggleActive={askToggle}
+          />
+        </>
       )}
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editAccount ? 'Edit Account' : 'New Account'}</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} mt={1}>
-            <TextField label="Account Code" value={form.code} onChange={setField('code')} fullWidth disabled={editAccount?.is_system} />
-            <TextField label="Account Name" value={form.name} onChange={setField('name')} fullWidth />
-            <TextField
-              select
-              label="Type"
-              value={form.type}
-              onChange={(e) => setForm((p) => ({ ...p, type: e.target.value, parentId: '' }))}
-              fullWidth
-              disabled={editAccount?.is_system}
-            >
-              {TYPES.map((t) => <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>{t}</MenuItem>)}
-            </TextField>
-            <TextField select label="Sub-type" value={form.subType} onChange={setField('subType')} fullWidth>
-              <MenuItem value="">— None —</MenuItem>
-              {subTypeOptions.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-            </TextField>
-            <TextField select label="Normal Balance" value={form.normalBalance} onChange={setField('normalBalance')} fullWidth disabled={editAccount?.is_system}>
-              <MenuItem value="debit">Debit</MenuItem>
-              <MenuItem value="credit">Credit</MenuItem>
-            </TextField>
-            <TextField
-              select
-              label="Parent account"
-              value={form.parentId}
-              onChange={setField('parentId')}
-              fullWidth
-              helperText="Nest this account under another of the same type to make it a sub-account"
-            >
-              <MenuItem value="">— None (top level) —</MenuItem>
-              {parentOptions.map((a) => (
-                <MenuItem key={a.id} value={String(a.id)}>{a.code} — {a.name}</MenuItem>
-              ))}
-            </TextField>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={!!form.isGroup}
-                  onChange={(e) => setForm((p) => ({ ...p, isGroup: e.target.checked }))}
-                  disabled={!!editAccount?.is_system}
-                />
-              }
-              label="Header / group account (not directly postable — holds sub-accounts only)"
-            />
-            <TextField label="Description" value={form.description} onChange={setField('description')} fullWidth multiline rows={2} />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+      <AccountDrawer
+        account={drawerAccount}
+        accounts={accounts}
+        byId={byId}
+        onClose={() => setDrawerId(null)}
+        onOpen={(a) => setDrawerId(a.id)}
+        onAddSub={openAddSub}
+        onEdit={openEdit}
+        onToggleActive={askToggle}
+      />
+
+      <AccountDialog
+        open={dialog.open}
+        mode={dialog.mode}
+        account={dialog.account}
+        defaults={dialog.defaults}
+        accounts={accounts}
+        onClose={() => setDialog((d) => ({ ...d, open: false }))}
+        onSaved={(text) => { setDialog((d) => ({ ...d, open: false })); setMsg(text); load(); }}
+      />
+
+      <Dialog open={!!confirm} onClose={() => setConfirm(null)} PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 800 }}>{confirm?.title}</DialogTitle>
+        <DialogContent><DialogContentText>{confirm?.text}</DialogContentText></DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setConfirm(null)}>Cancel</Button>
+          <Button variant="contained" color={confirm?.color || 'primary'} onClick={() => { const a = confirm.action; setConfirm(null); a(); }}>
+            {confirm?.label || 'Confirm'}
+          </Button>
         </DialogActions>
       </Dialog>
     </PageContainer>

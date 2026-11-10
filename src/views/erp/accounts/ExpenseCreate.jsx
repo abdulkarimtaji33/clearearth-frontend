@@ -67,6 +67,28 @@ const ExpenseCreate = () => {
     setExpenseAccountId(match ? String(match.id) : '');
   }, [category, categories, expenseAccounts, expenseAccountTouched]);
 
+  // Standard categories may only use their own account group (Fuel -> Fuel & Transport accounts).
+  // "Other" and custom categories can use any expense account.
+  const RESTRICTED_CATEGORIES = ['travel', 'utility', 'fuel', 'materials', 'equipment', 'professional'];
+  const categoryScope = useMemo(() => {
+    const cat = categories.find((c) => c.value === category);
+    if (!cat || !RESTRICTED_CATEGORIES.includes(cat.value) || !cat.default_account_id) return null;
+    const def = expenseAccounts.find((a) => String(a.id) === String(cat.default_account_id));
+    if (!def) return null;
+    const group = def.parent_id ? expenseAccounts.find((a) => a.id === def.parent_id) : null;
+    const allowed = def.parent_id
+      ? expenseAccounts.filter((a) => a.id === def.parent_id || a.parent_id === def.parent_id)
+      : [def];
+    return { allowed, label: group ? `${group.code} ${group.name}` : `${def.code} ${def.name}`, categoryName: cat.name };
+  }, [categories, category, expenseAccounts]);
+
+  const pickableAccounts = categoryScope ? categoryScope.allowed : expenseAccounts;
+
+  const handleCategoryChange = (value) => {
+    setCategory(value);
+    setExpenseAccountTouched(false); // re-apply the new category's own default account
+  };
+
   const paidToOptions = useMemo(
     () => mergeSelectOptions(PAID_TO_OPTIONS, customPaidTo, paidTo),
     [customPaidTo, paidTo]
@@ -212,7 +234,7 @@ const ExpenseCreate = () => {
               <SelectWithAddNew
                 label="Category"
                 value={category}
-                onChange={setCategory}
+                onChange={handleCategoryChange}
                 options={categoryOptions}
                 allowEmpty={false}
                 addDialogTitle="Add expense category"
@@ -222,12 +244,16 @@ const ExpenseCreate = () => {
               />
               {expenseAccounts.length > 0 && (
                 <CascadingAccountSelect
-                  accounts={expenseAccounts}
+                  accounts={pickableAccounts}
                   value={expenseAccountId}
                   onChange={(id) => { setExpenseAccountId(id); setExpenseAccountTouched(true); }}
                   parentLabel="Expense account"
                   childLabel="Expense sub-account"
-                  helperText="GL account debited by this expense — defaults from the category"
+                  helperText={
+                    categoryScope
+                      ? `${categoryScope.categoryName} expenses can only use ${categoryScope.label} accounts`
+                      : 'GL account debited by this expense — defaults from the category'
+                  }
                 />
               )}
               <TextField

@@ -306,23 +306,22 @@ const ExpenseCreate = () => {
                 helperText="Settlement status is set automatically from the amount paid"
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
-              {paidAmount !== '' && parseFloat(paidAmount) > 0 && (
-                <TextField
-                  select
-                  required
-                  fullWidth
-                  size="small"
-                  label="Paid from (bank / cash account)"
-                  value={paymentAccountId}
-                  onChange={(e) => setPaymentAccountId(e.target.value)}
-                  helperText="The account the money leaves from"
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                >
-                  {bankAccounts.map((a) => (
-                    <MenuItem key={a.id} value={String(a.id)}>{accountLabel(a)}</MenuItem>
-                  ))}
-                </TextField>
-              )}
+              <TextField
+                select
+                required={paidAmount !== '' && parseFloat(paidAmount) > 0}
+                fullWidth
+                size="small"
+                label="Paid from (bank / cash account)"
+                value={paymentAccountId}
+                onChange={(e) => setPaymentAccountId(e.target.value)}
+                helperText="The bank or cash account the money leaves from. Required when you enter an amount paid now."
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+              >
+                <MenuItem value=""><em>Not paid yet</em></MenuItem>
+                {bankAccounts.map((a) => (
+                  <MenuItem key={a.id} value={String(a.id)}>{accountLabel(a)}</MenuItem>
+                ))}
+              </TextField>
               {paidAmount !== '' && parseFloat(paidAmount) > 0 && (
                 <TextField
                   fullWidth

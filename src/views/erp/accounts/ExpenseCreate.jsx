@@ -17,9 +17,10 @@ import PageContainer from '../../../components/container/PageContainer';
 import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
 import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
 import PayeeSelect, { rememberPayee } from '../../../components/erp/PayeeSelect';
+import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
 import apiService from '../../../services/api';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
-import { filterActiveByType, isPostable, filterCashBankAccounts, accountLabel } from '../../../utils/accountTree';
+import { filterActiveByType, isPostable } from '../../../utils/accountTree';
 import {
   PAYMENT_METHOD_STORAGE_KEY,
   loadStoredOptions,
@@ -43,7 +44,7 @@ const ExpenseCreate = () => {
   const [paidAt, setPaidAt] = useState('');
   const [customPaymentMethods, setCustomPaymentMethods] = useState(() => loadStoredOptions(PAYMENT_METHOD_STORAGE_KEY));
   const [expenseAccounts, setExpenseAccounts] = useState([]);
-  const [bankAccounts, setBankAccounts] = useState([]);
+  const [allAccounts, setAllAccounts] = useState([]); // same chart-of-accounts feed the Record payment dialog uses
   const [paymentAccountId, setPaymentAccountId] = useState('');
   const [expenseAccountId, setExpenseAccountId] = useState('');
   const [expenseAccountTouched, setExpenseAccountTouched] = useState(false);
@@ -53,7 +54,7 @@ const ExpenseCreate = () => {
       if (res.success) {
         const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
         setExpenseAccounts(filterActiveByType(list, 'expense'));
-        setBankAccounts(filterCashBankAccounts(list.filter((a) => a.is_active)).filter(isPostable));
+        setAllAccounts(list.filter((a) => a.is_active));
       }
     });
   }, []);
@@ -285,15 +286,12 @@ const ExpenseCreate = () => {
                 label="Paid to"
                 preferVendors={['fuel', 'materials', 'equipment', 'professional', 'utility', 'travel'].includes(category)}
               />
-              <SelectWithAddNew
-                label="Payment method"
-                value={paymentMethod}
-                onChange={setPaymentMethod}
-                options={paymentMethodOptions}
-                addDialogTitle="Add payment method"
-                addDialogDescription="Add a custom payment method for this and future expenses"
-                addFieldLabel="Payment method"
-                onOptionAdded={addCustomPaymentMethod}
+              <PaymentRecordingFields
+                paymentMethod={paymentMethod}
+                onPaymentMethodChange={setPaymentMethod}
+                paymentAccountId={paymentAccountId}
+                onPaymentAccountChange={setPaymentAccountId}
+                accounts={allAccounts}
               />
               <TextField
                 fullWidth
@@ -306,22 +304,6 @@ const ExpenseCreate = () => {
                 helperText="Settlement status is set automatically from the amount paid"
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
-              <TextField
-                select
-                required={paidAmount !== '' && parseFloat(paidAmount) > 0}
-                fullWidth
-                size="small"
-                label="Paid from (bank / cash account)"
-                value={paymentAccountId}
-                onChange={(e) => setPaymentAccountId(e.target.value)}
-                helperText="The bank or cash account the money leaves from. Required when you enter an amount paid now."
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              >
-                <MenuItem value=""><em>Not paid yet</em></MenuItem>
-                {bankAccounts.map((a) => (
-                  <MenuItem key={a.id} value={String(a.id)}>{accountLabel(a)}</MenuItem>
-                ))}
-              </TextField>
               {paidAmount !== '' && parseFloat(paidAmount) > 0 && (
                 <TextField
                   fullWidth

@@ -6,6 +6,7 @@ import {
   Typography,
   Button,
   TextField,
+  MenuItem,
   Stack,
   Alert,
 } from '@mui/material';
@@ -15,12 +16,11 @@ import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
 import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
+import VendorSelect from '../../../components/erp/VendorSelect';
 import apiService from '../../../services/api';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
-import { filterActiveByType, isPostable } from '../../../utils/accountTree';
+import { filterActiveByType, isPostable, filterCashBankAccounts, accountLabel } from '../../../utils/accountTree';
 import {
-  PAID_TO_OPTIONS,
-  PAID_TO_STORAGE_KEY,
   PAYMENT_METHOD_STORAGE_KEY,
   loadStoredOptions,
   saveStoredOptions,
@@ -41,9 +41,10 @@ const ExpenseCreate = () => {
   const [notes, setNotes] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
   const [paidAt, setPaidAt] = useState('');
-  const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
   const [customPaymentMethods, setCustomPaymentMethods] = useState(() => loadStoredOptions(PAYMENT_METHOD_STORAGE_KEY));
   const [expenseAccounts, setExpenseAccounts] = useState([]);
+  const [bankAccounts, setBankAccounts] = useState([]);
+  const [paymentAccountId, setPaymentAccountId] = useState('');
   const [expenseAccountId, setExpenseAccountId] = useState('');
   const [expenseAccountTouched, setExpenseAccountTouched] = useState(false);
 
@@ -52,6 +53,7 @@ const ExpenseCreate = () => {
       if (res.success) {
         const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
         setExpenseAccounts(filterActiveByType(list, 'expense'));
+        setBankAccounts(filterCashBankAccounts(list.filter((a) => a.is_active)).filter(isPostable));
       }
     });
   }, []);
@@ -89,23 +91,10 @@ const ExpenseCreate = () => {
     setExpenseAccountTouched(false); // re-apply the new category's own default account
   };
 
-  const paidToOptions = useMemo(
-    () => mergeSelectOptions(PAID_TO_OPTIONS, customPaidTo, paidTo),
-    [customPaidTo, paidTo]
-  );
-
   const paymentMethodOptions = useMemo(
     () => mergeSelectOptions(PAYMENT_METHOD_OPTIONS, customPaymentMethods, paymentMethod),
     [customPaymentMethods, paymentMethod]
   );
-
-  const addCustomPaidTo = useCallback((v) => {
-    setCustomPaidTo((prev) => {
-      const next = prev.includes(v) ? prev : [...prev, v];
-      saveStoredOptions(PAID_TO_STORAGE_KEY, next);
-      return next;
-    });
-  }, []);
 
   const categoryOptions = useMemo(
     () => categories.map((c) => ({ value: c.value, label: c.name })),
@@ -166,6 +155,16 @@ const ExpenseCreate = () => {
       setError('Paid amount must be between 0 and the expense total.');
       return;
     }
+    if (paidAmount !== '' && paid > 0) {
+      if (!paidTo.trim()) {
+        setError('Choose the vendor this expense was paid to.');
+        return;
+      }
+      if (!paymentAccountId) {
+        setError('Select the bank or cash account the money was paid from.');
+        return;
+      }
+    }
     try {
       setSaving(true);
       const payload = {
@@ -179,6 +178,7 @@ const ExpenseCreate = () => {
       if (paidAmount !== '') payload.paidAmount = paid;
       if (paidAt) payload.paidAt = paidAt;
       if (expenseAccountId) payload.expenseAccountId = parseInt(expenseAccountId, 10);
+      if (paidAmount !== '' && paid > 0) payload.paymentAccountId = parseInt(paymentAccountId, 10);
       const res = await apiService.createAccountsExpense(payload);
       if (res.success === false) throw new Error(res.message || 'Failed to create expense');
       navigate('/erp/accounts/expenses');
@@ -278,15 +278,11 @@ const ExpenseCreate = () => {
                 onChange={(e) => setExpenseDate(e.target.value)}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
-              <SelectWithAddNew
-                label="Paid to"
+              <VendorSelect
                 value={paidTo}
                 onChange={setPaidTo}
-                options={paidToOptions}
-                addDialogTitle="Add payee"
-                addDialogDescription="Add a new payee name for this and future expenses"
-                addFieldLabel="Payee name"
-                onOptionAdded={addCustomPaidTo}
+                label="Paid to (vendor)"
+                helperText="Vendors only. Add a new vendor under Clients & Vendors."
               />
               <SelectWithAddNew
                 label="Payment method"
@@ -309,6 +305,23 @@ const ExpenseCreate = () => {
                 helperText="Settlement status is set automatically from the amount paid"
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
               />
+              {paidAmount !== '' && parseFloat(paidAmount) > 0 && (
+                <TextField
+                  select
+                  required
+                  fullWidth
+                  size="small"
+                  label="Paid from (bank / cash account)"
+                  value={paymentAccountId}
+                  onChange={(e) => setPaymentAccountId(e.target.value)}
+                  helperText="The account the money leaves from"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                >
+                  {bankAccounts.map((a) => (
+                    <MenuItem key={a.id} value={String(a.id)}>{accountLabel(a)}</MenuItem>
+                  ))}
+                </TextField>
+              )}
               {paidAmount !== '' && parseFloat(paidAmount) > 0 && (
                 <TextField
                   fullWidth

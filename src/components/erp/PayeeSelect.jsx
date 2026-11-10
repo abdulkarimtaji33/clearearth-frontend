@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Autocomplete, CircularProgress, TextField } from '@mui/material';
+import { Autocomplete, Box, CircularProgress, TextField, Typography } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
+import { IconBuildingStore, IconUsers, IconHistory } from '@tabler/icons-react';
 import apiService from '../../services/api';
 import { PAID_TO_STORAGE_KEY, loadStoredOptions, saveStoredOptions } from '../../constants/expenseFormOptions';
 
@@ -15,6 +17,12 @@ export const rememberPayee = (name) => {
   }
 };
 
+const GROUP_STYLE = {
+  Vendors: { Icon: IconBuildingStore, color: 'primary' },
+  Employees: { Icon: IconUsers, color: 'success' },
+  'Other payees': { Icon: IconHistory, color: 'warning' },
+};
+
 /**
  * "Paid to" picker. Open list: vendors, employees and previously used payees, searchable by typing,
  * and accounts can also type any other name. `preferVendors` puts vendors first (e.g. fuel is paid
@@ -24,6 +32,7 @@ const PayeeSelect = ({ value, onChange, label = 'Paid to', required = false, pre
   const [vendors, setVendors] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const theme = useTheme();
 
   useEffect(() => {
     let alive = true;
@@ -67,6 +76,42 @@ const PayeeSelect = ({ value, onChange, label = 'Paid to', required = false, pre
       size={size}
       options={options}
       groupBy={(o) => o.group}
+      renderGroup={(params) => {
+        const { Icon, color } = GROUP_STYLE[params.group] || { Icon: IconHistory, color: 'primary' };
+        const main = theme.palette[color].main;
+        const count = React.Children.count(params.children);
+        return (
+          <li key={params.key}>
+            <Box
+              sx={{
+                position: 'sticky',
+                top: -8,
+                zIndex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 2,
+                py: 0.75,
+                bgcolor: alpha(main, 0.1),
+                borderTop: '1px solid',
+                borderBottom: '1px solid',
+                borderColor: alpha(main, 0.25),
+                color: main,
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              <Icon size={16} />
+              <Typography variant="caption" fontWeight={800} sx={{ textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                {params.group}
+              </Typography>
+              <Typography variant="caption" sx={{ ml: 'auto', opacity: 0.8, fontWeight: 700 }}>
+                {count}
+              </Typography>
+            </Box>
+            <Box component="ul" sx={{ p: 0, m: 0, '& .MuiAutocomplete-option': { pl: 4 } }}>{params.children}</Box>
+          </li>
+        );
+      }}
       getOptionLabel={(o) => (typeof o === 'string' ? o : o.label)}
       inputValue={value || ''}
       onInputChange={(_, v) => onChange(v)}

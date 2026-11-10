@@ -643,7 +643,10 @@ const AccountsWorkOrderView = () => {
                 <CascadingAccountSelect
                   accounts={expenseAccounts}
                   value={form.expenseAccountId}
-                  onChange={(id) => setForm((f) => ({ ...f, expenseAccountId: id }))}
+                  onChange={(id) => {
+                    setForm((f) => ({ ...f, expenseAccountId: id }));
+                    if (id) setError('');
+                  }}
                   parentLabel="Expense account"
                   childLabel="Expense sub-account"
                   helperText="Required — the expense head debited by this expense (e.g. 5410 Fuel). Credit goes to 2200 Accrued Expenses."

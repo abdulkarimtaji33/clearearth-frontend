@@ -2,12 +2,12 @@ import React, { useMemo, useEffect, useCallback } from 'react';
 import {
   Box,
   TextField,
+  MenuItem,
   Chip,
   Stack,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import SelectWithAddNew from './SelectWithAddNew';
-import CascadingAccountSelect from './CascadingAccountSelect';
 import { PAYMENT_METHOD_OPTIONS } from '../../constants/paymentMethods';
 import {
   PAYMENT_METHOD_STORAGE_KEY,
@@ -101,18 +101,24 @@ const PaymentRecordingFields = ({
 
       {paymentAccounts.length > 0 && onPaymentAccountChange && (
         <Box>
-          <CascadingAccountSelect
-            accounts={paymentAccounts}
-            value={paymentAccountId}
-            onChange={onPaymentAccountChange}
-            parentLabel="Deposit / pay from account"
-            childLabel="Sub-account"
+          <TextField
+            select
+            fullWidth
+            size="small"
+            label="Deposit / pay from account"
+            value={paymentAccountId ? String(paymentAccountId) : ''}
+            onChange={(e) => onPaymentAccountChange(e.target.value)}
             helperText={
               defaultAccount
                 ? `Only cash/bank account: ${accountLabel(defaultAccount)}`
                 : 'Required — choose the specific cash or bank account this amount posts to'
             }
-          />
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+          >
+            {postableAccounts.map((a) => (
+              <MenuItem key={a.id} value={String(a.id)}>{accountLabel(a)}</MenuItem>
+            ))}
+          </TextField>
           {selectedAccount && (
             <Chip
               size="small"

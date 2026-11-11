@@ -137,7 +137,7 @@ const ExpenseCreate = () => {
         </Stack>
         <Typography variant="body2" color="text.secondary" mb={3}>
           For expenses that are already paid. It posts one entry: expense (plus input VAT) against the bank or cash account you choose.
-          If it is still unpaid, enter it as a supplier bill instead.
+          If it is still unpaid, enter it as a supplier bill instead (Vendor Bills → New supplier bill).
         </Typography>
 
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}

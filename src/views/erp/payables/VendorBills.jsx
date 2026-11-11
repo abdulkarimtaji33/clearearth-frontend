@@ -2,14 +2,15 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Box, Card, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   CircularProgress, Alert, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  MenuItem, Tabs, Tab, Checkbox,
+  MenuItem, Tabs, Tab, Checkbox, Autocomplete,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconReceipt, IconUpload } from '@tabler/icons-react';
+import { IconReceipt, IconUpload, IconPlus } from '@tabler/icons-react';
+import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
-import { filterCashBankAccounts } from '../../../utils/accountTree';
+import { filterCashBankAccounts, filterActiveByType } from '../../../utils/accountTree';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const today = () => new Date().toISOString().slice(0, 10);
@@ -40,6 +41,18 @@ const VendorBills = () => {
   const [payAmounts, setPayAmounts] = useState({});
   const [payForm, setPayForm] = useState({ accountId: '', method: 'Bank transfer', date: today(), ref: '', notes: '' });
   const [bankAccounts, setBankAccounts] = useState([]);
+
+  // New supplier bill without a PO (an unpaid expense)
+  const emptyDirect = () => ({
+    supplier: null, expenseAccountId: '', netAmount: '', vatRate: '5', supplierInvoiceNo: '', supplierTrn: '',
+    billDate: today(), dueDate: '', attachmentPath: '', attachmentName: '', notes: '',
+  });
+  const [directOpen, setDirectOpen] = useState(false);
+  const [direct, setDirect] = useState(emptyDirect());
+  const [directSaving, setDirectSaving] = useState(false);
+  const [directError, setDirectError] = useState('');
+  const [suppliers, setSuppliers] = useState([]);
+  const [expenseAccounts, setExpenseAccounts] = useState([]);
   const [paySaving, setPaySaving] = useState(false);
   const [payError, setPayError] = useState('');
 
@@ -66,8 +79,66 @@ const VendorBills = () => {
     apiService.getChartOfAccounts({}).then((res) => {
       const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
       setBankAccounts(filterCashBankAccounts(list));
+      setExpenseAccounts(filterActiveByType(list, 'expense'));
+    }).catch(() => {});
+    apiService.getSuppliers({ page: 1, pageSize: 1000 }).then((res) => {
+      setSuppliers(Array.isArray(res.data) ? res.data : res.data?.items || []);
     }).catch(() => {});
   }, []);
+
+  // ---- New supplier bill (no PO) ----
+  const setD = (k) => (e) => setDirect((f) => ({ ...f, [k]: e.target.value }));
+  const dNet = parseFloat(direct.netAmount) || 0;
+  const dVat = Math.round(dNet * (parseFloat(direct.vatRate) || 0)) / 100;
+  const dTotal = Math.round((dNet + dVat) * 100) / 100;
+
+  const uploadDirectAttachment = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploading(true);
+      const res = await apiService.uploadCertificateAttachment(file);
+      setDirect((f) => ({ ...f, attachmentPath: res.data.path, attachmentName: file.name }));
+    } catch (err) {
+      setDirectError(err.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const saveDirect = async () => {
+    if (!direct.supplier) { setDirectError('Select the supplier'); return; }
+    if (!direct.expenseAccountId) { setDirectError('Select the expense head and sub-head'); return; }
+    if (!direct.supplierInvoiceNo.trim()) { setDirectError('Supplier invoice number is required'); return; }
+    if (!(dNet > 0)) { setDirectError('Enter the amount before VAT'); return; }
+    if (dVat > 0 && !direct.supplierTrn.trim()) { setDirectError('Recoverable VAT needs the supplier TRN'); return; }
+    if (direct.dueDate && direct.dueDate < direct.billDate) { setDirectError('Due date cannot be before the bill date'); return; }
+    try {
+      setDirectSaving(true);
+      setDirectError('');
+      await apiService.createDirectVendorBill({
+        supplierId: direct.supplier.id,
+        expenseAccountId: parseInt(direct.expenseAccountId, 10),
+        netAmount: dNet,
+        vatRate: parseFloat(direct.vatRate) || 0,
+        supplierInvoiceNo: direct.supplierInvoiceNo.trim(),
+        supplierTrn: direct.supplierTrn.trim() || undefined,
+        billDate: direct.billDate,
+        dueDate: direct.dueDate || undefined,
+        attachmentPath: direct.attachmentPath || undefined,
+        notes: direct.notes.trim() || undefined,
+      });
+      setDirectOpen(false);
+      setTab('bills');
+      setSuccess('Supplier bill recorded. It is payable under the supplier until you pay it.');
+      await load();
+    } catch (e) {
+      setDirectError(e.message || 'Failed to record the bill');
+    } finally {
+      setDirectSaving(false);
+    }
+  };
 
   // ---- Record bill ----
   const openBill = (po) => {
@@ -191,12 +262,20 @@ const VendorBills = () => {
           <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.secondary.main, 0.15), color: 'secondary.dark', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <IconReceipt size={20} />
           </Box>
-          <Box>
+          <Box sx={{ flex: 1 }}>
             <Typography variant="h4" fontWeight={700}>Vendor Bills</Typography>
             <Typography variant="body2" color="text.secondary">
               PO approved → accrued · bill recorded → Accounts Payable · payment → bank
             </Typography>
           </Box>
+          <Button
+            variant="contained"
+            startIcon={<IconPlus size={18} />}
+            onClick={() => { setDirect(emptyDirect()); setDirectError(''); setDirectOpen(true); }}
+            sx={{ borderRadius: 2 }}
+          >
+            New supplier bill
+          </Button>
         </Stack>
 
         {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -264,6 +343,7 @@ const VendorBills = () => {
                       <TableCell sx={headCell}>Bill #</TableCell>
                       <TableCell sx={headCell}>Supplier invoice</TableCell>
                       <TableCell sx={headCell}>Party</TableCell>
+                      <TableCell sx={headCell}>For</TableCell>
                       <TableCell sx={headCell}>Bill date</TableCell>
                       <TableCell sx={headCell}>Due</TableCell>
                       <TableCell sx={headCell} align="right">Total</TableCell>
@@ -273,7 +353,7 @@ const VendorBills = () => {
                   </TableHead>
                   <TableBody>
                     {bills.length === 0 && (
-                      <TableRow><TableCell colSpan={9} align="center" sx={{ py: 5, color: 'text.secondary' }}>No vendor bills.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={10} align="center" sx={{ py: 5, color: 'text.secondary' }}>No vendor bills.</TableCell></TableRow>
                     )}
                     {bills.map((b) => {
                       const payable = b.status === 'open' || b.status === 'partial';
@@ -296,6 +376,11 @@ const VendorBills = () => {
                             )}
                           </TableCell>
                           <TableCell>{b.party_name}</TableCell>
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary">
+                              {b.purchase_order_id ? `PO #${b.purchase_order_id}` : b.expenseAccount ? `${b.expenseAccount.code} ${b.expenseAccount.name}` : 'Expense'}
+                            </Typography>
+                          </TableCell>
                           <TableCell>{b.bill_date?.slice?.(0, 10)}</TableCell>
                           <TableCell>{b.due_date?.slice?.(0, 10) || '—'}</TableCell>
                           <TableCell align="right">{fmt(b.total)}</TableCell>
@@ -311,6 +396,65 @@ const VendorBills = () => {
           )}
         </Card>
       </Box>
+
+      {/* New supplier bill (no PO) */}
+      <Dialog open={directOpen} onClose={() => !directSaving && setDirectOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>New supplier bill</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            For an expense that is not paid yet. It posts Dr expense (+ Input VAT) / Cr Accounts Payable and shows as payable under the supplier. Paid expenses go in Add expense.
+          </Typography>
+          {directError && <Alert severity="error" sx={{ mb: 2 }}>{directError}</Alert>}
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Autocomplete
+              options={suppliers}
+              value={direct.supplier}
+              onChange={(_, v) => setDirect((f) => ({ ...f, supplier: v, supplierTrn: v?.vat_number || f.supplierTrn }))}
+              getOptionLabel={(s) => s.company_name || ''}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              renderInput={(p) => <TextField {...p} required label="Supplier" helperText="Add a new supplier under Clients & Vendors first" />}
+            />
+            {expenseAccounts.length > 0 && (
+              <CascadingAccountSelect
+                accounts={expenseAccounts}
+                value={direct.expenseAccountId}
+                onChange={(id) => setDirect((f) => ({ ...f, expenseAccountId: id }))}
+                parentLabel="Expense head"
+                childLabel="Expense sub-head"
+                size="medium"
+              />
+            )}
+            <Stack direction="row" spacing={2}>
+              <TextField required label="Supplier invoice no." value={direct.supplierInvoiceNo} onChange={setD('supplierInvoiceNo')} fullWidth />
+              <TextField label="Supplier TRN" value={direct.supplierTrn} onChange={setD('supplierTrn')} fullWidth />
+            </Stack>
+            <Stack direction="row" spacing={2}>
+              <TextField required type="date" label="Bill date" value={direct.billDate} onChange={setD('billDate')} InputLabelProps={{ shrink: true }} fullWidth />
+              <TextField type="date" label="Due date" value={direct.dueDate} onChange={setD('dueDate')} InputLabelProps={{ shrink: true }} inputProps={{ min: direct.billDate || undefined }} fullWidth />
+            </Stack>
+            <Stack direction="row" spacing={2}>
+              <TextField required type="number" label="Amount before VAT (AED)" value={direct.netAmount} onChange={setD('netAmount')} inputProps={{ min: 0, step: 'any' }} fullWidth />
+              <TextField select label="VAT" value={direct.vatRate} onChange={setD('vatRate')} fullWidth>
+                <MenuItem value="5">5%</MenuItem>
+                <MenuItem value="0">No VAT</MenuItem>
+              </TextField>
+              <TextField label="Total (AED)" value={fmt(dTotal)} disabled fullWidth />
+            </Stack>
+            <Box>
+              <Button component="label" size="small" variant="outlined" startIcon={uploading ? <CircularProgress size={14} /> : <IconUpload size={14} />} disabled={uploading} sx={{ borderRadius: 2 }}>
+                {direct.attachmentName ? 'Replace attachment' : 'Attach supplier invoice'}
+                <input type="file" hidden accept="image/*,application/pdf" onChange={uploadDirectAttachment} />
+              </Button>
+              {direct.attachmentName && <Chip sx={{ ml: 1.5 }} size="small" label={direct.attachmentName} onDelete={() => setDirect((f) => ({ ...f, attachmentPath: '', attachmentName: '' }))} />}
+            </Box>
+            <TextField multiline minRows={2} label="Notes" value={direct.notes} onChange={setD('notes')} fullWidth />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button color="inherit" onClick={() => setDirectOpen(false)} disabled={directSaving}>Cancel</Button>
+          <Button variant="contained" onClick={saveDirect} disabled={directSaving || uploading}>{directSaving ? 'Saving…' : 'Record supplier bill'}</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Record bill */}
       <Dialog open={!!billPo} onClose={() => setBillPo(null)} fullWidth maxWidth="sm">

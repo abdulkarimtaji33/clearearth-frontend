@@ -669,6 +669,10 @@ class ApiService {
     return this.post('/vendor-bills', data);
   }
 
+  async createDirectVendorBill(data) {
+    return this.post('/vendor-bills/direct', data);
+  }
+
   async payVendorBills(data) {
     return this.post('/vendor-bills/pay', data);
   }

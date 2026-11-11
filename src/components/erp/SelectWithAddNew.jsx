@@ -43,6 +43,7 @@ const SelectWithAddNew = ({
   addDialogDescription = '',
   addFieldLabel = 'Name',
   onOptionAdded,
+  hideAdd = false,
 }) => {
   const [addOpen, setAddOpen] = useState(false);
   const [newValue, setNewValue] = useState('');
@@ -131,20 +132,22 @@ const SelectWithAddNew = ({
             ))}
           </Select>
         </FormControl>
-        <Box
-          sx={{
-            position: 'absolute',
-            top: -8,
-            right: 12,
-            backgroundColor: 'background.paper',
-            px: 1,
-            zIndex: 1,
-          }}
-        >
-          <Button size="small" onClick={openAddDialog} sx={addNewButtonSx}>
-            + Add New
-          </Button>
-        </Box>
+        {!hideAdd && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -8,
+              right: 12,
+              backgroundColor: 'background.paper',
+              px: 1,
+              zIndex: 1,
+            }}
+          >
+            <Button size="small" onClick={openAddDialog} sx={addNewButtonSx}>
+              + Add New
+            </Button>
+          </Box>
+        )}
       </Box>
 
       <Dialog

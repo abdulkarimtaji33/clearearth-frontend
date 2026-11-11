@@ -64,7 +64,9 @@ const ExpensesList = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
+  const [headId, setHeadId] = useState('');
+  const [subHeadId, setSubHeadId] = useState('');
+  const [expenseAccts, setExpenseAccts] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -79,24 +81,29 @@ const ExpensesList = () => {
   const [paySaving, setPaySaving] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRow, setHistoryRow] = useState(null);
-  const [categoryOptions, setCategoryOptions] = useState(BASE_CATEGORY_FILTER);
 
+  // Head / sub-head filter options come straight from the chart of accounts.
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await apiService.getExpenseCategories({ activeOnly: true });
-        if (res.success) {
-          const list = Array.isArray(res.data) ? res.data : [];
-          setCategoryOptions([
-            ...BASE_CATEGORY_FILTER,
-            ...list.map((c) => ({ value: c.value, label: c.name })),
-          ]);
-        }
-      } catch (err) {
-        console.error(err);
+    apiService.getChartOfAccounts({}).then((res) => {
+      if (res.success) {
+        const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
+        setExpenseAccts(list.filter((a) => a.type === 'expense' && a.is_active));
       }
-    })();
+    }).catch(() => {});
   }, []);
+
+  const heads = useMemo(
+    () => expenseAccts.filter((a) => a.parent_id == null).sort((x, y) => String(x.code).localeCompare(String(y.code), undefined, { numeric: true })),
+    [expenseAccts]
+  );
+  const subHeads = useMemo(
+    () => expenseAccts.filter((a) => headId && String(a.parent_id) === String(headId)).sort((x, y) => String(x.code).localeCompare(String(y.code), undefined, { numeric: true })),
+    [expenseAccts, headId]
+  );
+  const headOf = useCallback((acct) => {
+    if (!acct) return null;
+    return acct.parent_id != null ? expenseAccts.find((a) => a.id === acct.parent_id) || null : acct;
+  }, [expenseAccts]);
 
   const fetchRows = useCallback(async () => {
     try {
@@ -105,7 +112,8 @@ const ExpensesList = () => {
         page: page + 1,
         pageSize: rowsPerPage,
         search: search || undefined,
-        category: category || undefined,
+        expenseHeadId: !subHeadId && headId ? headId : undefined,
+        expenseAccountId: subHeadId || undefined,
       };
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
@@ -121,7 +129,7 @@ const ExpensesList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, category, dateFrom, dateTo, paymentStatus]);
+  }, [page, rowsPerPage, search, headId, subHeadId, dateFrom, dateTo, paymentStatus]);
 
   useEffect(() => {
     apiService.getChartOfAccounts({}).then((res) => {
@@ -245,7 +253,7 @@ const ExpensesList = () => {
             <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" gap={1}>
               <TextField
                 size="small"
-                placeholder="Search category, paid to, reference, notes..."
+                placeholder="Search paid to, receipt no., reference, notes..."
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -261,21 +269,38 @@ const ExpensesList = () => {
                 }}
                 sx={{ minWidth: 260, flex: 1 }}
               />
-              <FormControl size="small" sx={{ minWidth: 180 }}>
-                <InputLabel>Category</InputLabel>
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <InputLabel>Expense head</InputLabel>
                 <Select
-                  value={category}
-                  label="Category"
+                  value={headId}
+                  label="Expense head"
                   onChange={(e) => {
-                    setCategory(e.target.value);
+                    setHeadId(e.target.value);
+                    setSubHeadId('');
                     setPage(0);
                   }}
                   sx={{ borderRadius: 2 }}
                 >
-                  {categoryOptions.map((o) => (
-                    <MenuItem key={o.value || 'all'} value={o.value}>
-                      {o.label}
-                    </MenuItem>
+                  <MenuItem value="">All heads</MenuItem>
+                  {heads.map((a) => (
+                    <MenuItem key={a.id} value={String(a.id)}>{a.code} — {a.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 200 }} disabled={!headId || subHeads.length === 0}>
+                <InputLabel>Sub-head</InputLabel>
+                <Select
+                  value={subHeadId}
+                  label="Sub-head"
+                  onChange={(e) => {
+                    setSubHeadId(e.target.value);
+                    setPage(0);
+                  }}
+                  sx={{ borderRadius: 2 }}
+                >
+                  <MenuItem value="">All sub-heads</MenuItem>
+                  {subHeads.map((a) => (
+                    <MenuItem key={a.id} value={String(a.id)}>{a.code} — {a.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -325,7 +350,7 @@ const ExpensesList = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.success.main, 0.06) }}>
-                    {['Date', 'Category', 'GL account', 'Amount (AED)', 'Settlement', 'Paid to', 'Method', 'Work order', 'Deal', 'Link', ''].map((h, i) => (
+                    {['Date', 'Expense head', 'GL account', 'Amount (AED)', 'Settlement', 'Paid to', 'Method', 'Work order', 'Deal', 'Link', ''].map((h, i) => (
                       <TableCell
                         key={h || 'actions'}
                         align={i === 3 || i === 10 ? 'right' : 'left'}
@@ -408,9 +433,9 @@ const ExpensesList = () => {
                           <TableCell>
                             <Chip
                               size="small"
-                              label={String(ex.category || '').replace(/_/g, ' ')}
+                              label={ex.category === 'work_orders' ? 'Work orders' : (headOf(ex.expenseAccount)?.name || String(ex.category || '').replace(/_/g, ' '))}
                               variant="outlined"
-                              sx={{ fontWeight: 700, textTransform: 'capitalize' }}
+                              sx={{ fontWeight: 700 }}
                             />
                           </TableCell>
                           <TableCell>

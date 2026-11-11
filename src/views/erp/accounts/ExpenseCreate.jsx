@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -9,178 +9,105 @@ import {
   MenuItem,
   Stack,
   Alert,
+  Divider,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router';
-import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlus, IconUpload, IconPaperclip } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
-import SelectWithAddNew from '../../../components/erp/SelectWithAddNew';
 import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
 import PayeeSelect, { rememberPayee } from '../../../components/erp/PayeeSelect';
 import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
 import apiService from '../../../services/api';
-import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
-import { filterActiveByType, isPostable } from '../../../utils/accountTree';
-import {
-  PAYMENT_METHOD_STORAGE_KEY,
-  loadStoredOptions,
-  saveStoredOptions,
-  mergeSelectOptions,
-} from '../../../constants/expenseFormOptions';
+import { filterActiveByType } from '../../../utils/accountTree';
 
+const round2 = (n) => Math.round((parseFloat(n) || 0) * 100) / 100;
+const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * Add Expense = a PAID expense. Posts one entry: Dr expense sub-head (+ Dr 1200 Input VAT) / Cr the
+ * cash or bank account it was paid from. Unpaid expenses are entered as supplier bills instead.
+ */
 const ExpenseCreate = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const [categories, setCategories] = useState([]);
-  const [category, setCategory] = useState('other');
-  const [amount, setAmount] = useState('');
+  const [accounts, setAccounts] = useState([]); // all active accounts (for payment picker)
+  const [expenseAccounts, setExpenseAccounts] = useState([]);
+  const [expenseAccountId, setExpenseAccountId] = useState('');
+  const [netAmount, setNetAmount] = useState('');
+  const [vatRate, setVatRate] = useState('5');
   const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paidTo, setPaidTo] = useState('');
+  const [receiptNo, setReceiptNo] = useState('');
+  const [supplierTrn, setSupplierTrn] = useState('');
+  const [attachmentPath, setAttachmentPath] = useState('');
+  const [attachmentName, setAttachmentName] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
-  const [notes, setNotes] = useState('');
-  const [paidAmount, setPaidAmount] = useState('');
-  const [paidAt, setPaidAt] = useState('');
-  const [customPaymentMethods, setCustomPaymentMethods] = useState(() => loadStoredOptions(PAYMENT_METHOD_STORAGE_KEY));
-  const [expenseAccounts, setExpenseAccounts] = useState([]);
-  const [allAccounts, setAllAccounts] = useState([]); // same chart-of-accounts feed the Record payment dialog uses
   const [paymentAccountId, setPaymentAccountId] = useState('');
-  const [expenseAccountId, setExpenseAccountId] = useState('');
-  const [expenseAccountTouched, setExpenseAccountTouched] = useState(false);
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     apiService.getChartOfAccounts({}).then((res) => {
       if (res.success) {
         const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
+        setAccounts(list.filter((a) => a.is_active));
         setExpenseAccounts(filterActiveByType(list, 'expense'));
-        setAllAccounts(list.filter((a) => a.is_active));
       }
     });
   }, []);
 
-  // Default the account from the selected category's own default account, but don't clobber
-  // an explicit user choice. Group accounts are never valid defaults.
-  useEffect(() => {
-    if (expenseAccountTouched || expenseAccounts.length === 0) return;
-    const cat = categories.find((c) => c.value === category);
-    const match = cat?.default_account_id
-      ? expenseAccounts.filter(isPostable).find((a) => String(a.id) === String(cat.default_account_id))
-      : null;
-    setExpenseAccountId(match ? String(match.id) : '');
-  }, [category, categories, expenseAccounts, expenseAccountTouched]);
+  const net = round2(netAmount);
+  const vat = round2((net * (parseFloat(vatRate) || 0)) / 100);
+  const total = round2(net + vat);
+  const hasVat = vat > 0;
 
-  // Standard categories may only use their own account group (Fuel -> Fuel & Transport accounts).
-  // "Other" and custom categories can use any expense account.
-  const RESTRICTED_CATEGORIES = ['travel', 'utility', 'fuel', 'materials', 'equipment', 'professional'];
-  const categoryScope = useMemo(() => {
-    const cat = categories.find((c) => c.value === category);
-    if (!cat || !RESTRICTED_CATEGORIES.includes(cat.value) || !cat.default_account_id) return null;
-    const def = expenseAccounts.find((a) => String(a.id) === String(cat.default_account_id));
-    if (!def) return null;
-    const group = def.parent_id ? expenseAccounts.find((a) => a.id === def.parent_id) : null;
-    const allowed = def.parent_id
-      ? expenseAccounts.filter((a) => a.id === def.parent_id || a.parent_id === def.parent_id)
-      : [def];
-    return { allowed, label: group ? `${group.code} ${group.name}` : `${def.code} ${def.name}`, categoryName: cat.name };
-  }, [categories, category, expenseAccounts]);
-
-  const pickableAccounts = categoryScope ? categoryScope.allowed : expenseAccounts;
-
-  const handleCategoryChange = (value) => {
-    setCategory(value);
-    setExpenseAccountTouched(false); // re-apply the new category's own default account
-  };
-
-  const paymentMethodOptions = useMemo(
-    () => mergeSelectOptions(PAYMENT_METHOD_OPTIONS, customPaymentMethods, paymentMethod),
-    [customPaymentMethods, paymentMethod]
-  );
-
-  const categoryOptions = useMemo(
-    () => categories.map((c) => ({ value: c.value, label: c.name })),
-    [categories]
-  );
-
-  const fetchCategories = useCallback(async () => {
+  const onAttach = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     try {
-      const res = await apiService.getExpenseCategories({ activeOnly: true });
-      if (res.success) {
-        const list = Array.isArray(res.data) ? res.data : [];
-        setCategories(list);
-        if (list.length > 0 && !list.some((c) => c.value === category)) {
-          setCategory(list.find((c) => c.value === 'other')?.value || list[0].value);
-        }
-      }
+      setUploading(true);
+      const res = await apiService.uploadExpenseEvidence(file);
+      const path = res.data?.path || res.data?.url || res.path || res.url || '';
+      if (!path) throw new Error('Upload failed');
+      setAttachmentPath(path);
+      setAttachmentName(file.name);
     } catch (err) {
-      console.error(err);
+      setError(err.message || 'Could not upload the file');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
     }
-  }, [category]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
-  const addExpenseCategory = useCallback(async (name) => {
-    const res = await apiService.createExpenseCategory({ name });
-    if (res.success && res.data) {
-      setCategories((prev) => [...prev, res.data]);
-      setCategory(res.data.value);
-    } else {
-      throw new Error(res.message || 'Failed to add category');
-    }
-  }, []);
-
-  const addCustomPaymentMethod = useCallback((v) => {
-    setCustomPaymentMethods((prev) => {
-      const next = prev.includes(v) ? prev : [...prev, v];
-      saveStoredOptions(PAYMENT_METHOD_STORAGE_KEY, next);
-      return next;
-    });
-  }, []);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const amt = parseFloat(String(amount).replace(/,/g, ''));
-    if (!Number.isFinite(amt) || amt <= 0) {
-      setError('Enter a valid amount greater than zero.');
+    if (!expenseAccountId) { setError('Select the expense head and sub-head.'); return; }
+    if (!(net > 0)) { setError('Enter the amount before VAT (greater than zero).'); return; }
+    if (!expenseDate) { setError('Expense date is required.'); return; }
+    if (!paymentAccountId) { setError('Select the bank or cash account the expense is paid from.'); return; }
+    if (hasVat && (!receiptNo.trim() || !supplierTrn.trim())) {
+      setError('Recoverable VAT needs the supplier receipt / invoice number and the supplier TRN.');
       return;
-    }
-    if (!expenseDate) {
-      setError('Expense date is required.');
-      return;
-    }
-    const paid = paidAmount !== '' ? parseFloat(String(paidAmount).replace(/,/g, '')) : 0;
-    if (paidAmount !== '' && (!Number.isFinite(paid) || paid < 0 || paid > amt)) {
-      setError('Paid amount must be between 0 and the expense total.');
-      return;
-    }
-    if (paidAmount !== '' && paid > 0) {
-      if (!paidTo.trim()) {
-        setError('Enter who this expense was paid to.');
-        return;
-      }
-      if (!paymentAccountId) {
-        setError('Select the bank or cash account the money was paid from.');
-        return;
-      }
     }
     try {
       setSaving(true);
-      const payload = {
-        category,
-        amount: amt,
+      const res = await apiService.createAccountsExpense({
+        expenseAccountId: parseInt(expenseAccountId, 10),
+        netAmount: net,
+        vatRate: parseFloat(vatRate) || 0,
         expenseDate,
         paidTo: paidTo.trim() || undefined,
+        receiptNo: receiptNo.trim() || undefined,
+        supplierTrn: supplierTrn.trim() || undefined,
+        attachmentPath: attachmentPath || undefined,
         paymentMethod: paymentMethod.trim() || undefined,
+        paymentAccountId: parseInt(paymentAccountId, 10),
         notes: notes.trim() || undefined,
-      };
-      if (paidAmount !== '') payload.paidAmount = paid;
-      if (paidAt) payload.paidAt = paidAt;
-      if (expenseAccountId) payload.expenseAccountId = parseInt(expenseAccountId, 10);
-      if (paidAmount !== '' && paid > 0) payload.paymentAccountId = parseInt(paymentAccountId, 10);
-      const res = await apiService.createAccountsExpense(payload);
+      });
       if (res.success === false) throw new Error(res.message || 'Failed to create expense');
       rememberPayee(paidTo);
       navigate('/erp/accounts/expenses');
@@ -191,148 +118,100 @@ const ExpenseCreate = () => {
     }
   };
 
+  const field = { '& .MuiOutlinedInput-root': { borderRadius: 2 } };
+
   return (
-    <PageContainer title="Add expense" description="Post a manual ledger entry">
+    <PageContainer title="Add expense" description="Record a paid expense">
       <Box>
         <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-          <Button
-            startIcon={<IconArrowLeft size={18} />}
-            onClick={() => navigate('/erp/accounts/expenses')}
-            color="inherit"
-          >
+          <Button startIcon={<IconArrowLeft size={18} />} onClick={() => navigate('/erp/accounts/expenses')} color="inherit">
             Back
           </Button>
         </Stack>
 
-        <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 2,
-              bgcolor: alpha(theme.palette.success.main, 0.12),
-              color: 'success.dark',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+        <Stack direction="row" alignItems="center" spacing={1.5} mb={1}>
+          <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(theme.palette.success.main, 0.12), color: 'success.dark', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <IconPlus size={20} />
           </Box>
-          <Typography variant="h4" fontWeight={700}>
-            Add expense
-          </Typography>
+          <Typography variant="h4" fontWeight={700}>Add expense</Typography>
         </Stack>
+        <Typography variant="body2" color="text.secondary" mb={3}>
+          For expenses that are already paid. It posts one entry: expense (plus input VAT) against the bank or cash account you choose.
+          If it is still unpaid, enter it as a supplier bill instead.
+        </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
+        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, maxWidth: 560 }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, maxWidth: 600 }}>
           <CardContent component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
             <Stack spacing={2.5}>
-              <SelectWithAddNew
-                label="Category"
-                value={category}
-                onChange={handleCategoryChange}
-                options={categoryOptions}
-                allowEmpty={false}
-                addDialogTitle="Add expense category"
-                addDialogDescription="Add a new category for manual expenses"
-                addFieldLabel="Category name"
-                onOptionAdded={addExpenseCategory}
-              />
               {expenseAccounts.length > 0 && (
                 <CascadingAccountSelect
-                  accounts={pickableAccounts}
+                  accounts={expenseAccounts}
                   value={expenseAccountId}
-                  onChange={(id) => { setExpenseAccountId(id); setExpenseAccountTouched(true); }}
-                  parentLabel="Expense account"
-                  childLabel="Expense sub-account"
-                  helperText={
-                    categoryScope
-                      ? `${categoryScope.categoryName} expenses can only use ${categoryScope.label} accounts`
-                      : 'GL account debited by this expense — defaults from the category'
-                  }
+                  onChange={setExpenseAccountId}
+                  parentLabel="Expense head"
+                  childLabel="Expense sub-head"
+                  helperText="Only active posting accounts from the chart of accounts can be debited"
                 />
               )}
+
+              <Divider textAlign="left"><Typography variant="caption" color="text.secondary" fontWeight={700}>AMOUNT</Typography></Divider>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  required fullWidth size="small" type="number" inputProps={{ min: 0, step: '0.01' }}
+                  label="Amount before VAT (AED)" value={netAmount} onChange={(e) => setNetAmount(e.target.value)} sx={field}
+                />
+                <TextField select fullWidth size="small" label="VAT" value={vatRate} onChange={(e) => setVatRate(e.target.value)} sx={field}>
+                  <MenuItem value="5">5%</MenuItem>
+                  <MenuItem value="0">No VAT</MenuItem>
+                </TextField>
+              </Stack>
+              <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.06) }}>
+                <Stack direction="row" justifyContent="space-between"><Typography variant="body2">VAT (recoverable)</Typography><Typography variant="body2" fontWeight={700}>AED {fmt(vat)}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography variant="subtitle2" fontWeight={800}>Total paid</Typography><Typography variant="subtitle2" fontWeight={800}>AED {fmt(total)}</Typography></Stack>
+              </Box>
+
               <TextField
-                required
-                fullWidth
-                size="small"
-                type="number"
-                inputProps={{ min: 0, step: '0.01' }}
-                label="Amount (AED)"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                required fullWidth size="small" type="date" label="Expense date" InputLabelProps={{ shrink: true }}
+                value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} sx={field}
               />
-              <TextField
-                required
-                fullWidth
-                size="small"
-                type="date"
-                label="Expense date"
-                InputLabelProps={{ shrink: true }}
-                value={expenseDate}
-                onChange={(e) => setExpenseDate(e.target.value)}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-              <PayeeSelect
-                value={paidTo}
-                onChange={setPaidTo}
-                label="Paid to"
-                preferVendors={['fuel', 'materials', 'equipment', 'professional', 'utility', 'travel'].includes(category)}
-              />
+              <PayeeSelect value={paidTo} onChange={setPaidTo} label="Paid to" preferVendors />
+
+              <Divider textAlign="left"><Typography variant="caption" color="text.secondary" fontWeight={700}>RECEIPT</Typography></Divider>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  fullWidth size="small" label="Receipt / invoice no." required={hasVat}
+                  value={receiptNo} onChange={(e) => setReceiptNo(e.target.value)} sx={field}
+                />
+                <TextField
+                  fullWidth size="small" label="Supplier TRN" required={hasVat}
+                  value={supplierTrn} onChange={(e) => setSupplierTrn(e.target.value)} sx={field}
+                  helperText={hasVat ? 'Needed to claim the VAT' : undefined}
+                />
+              </Stack>
+              <Box>
+                <Button component="label" variant="outlined" size="small" startIcon={attachmentName ? <IconPaperclip size={16} /> : <IconUpload size={16} />} disabled={uploading} sx={{ borderRadius: 2 }}>
+                  {uploading ? 'Uploading…' : attachmentName || 'Attach receipt / invoice'}
+                  <input hidden type="file" accept="image/*,.pdf" onChange={onAttach} />
+                </Button>
+              </Box>
+
+              <Divider textAlign="left"><Typography variant="caption" color="text.secondary" fontWeight={700}>PAID FROM</Typography></Divider>
               <PaymentRecordingFields
                 paymentMethod={paymentMethod}
                 onPaymentMethodChange={setPaymentMethod}
                 paymentAccountId={paymentAccountId}
                 onPaymentAccountChange={setPaymentAccountId}
-                accounts={allAccounts}
+                accounts={accounts}
+                autoPickAccount={false}
+                allowAddMethod={false}
               />
-              <TextField
-                fullWidth
-                size="small"
-                type="number"
-                inputProps={{ min: 0, step: '0.01' }}
-                label="Amount paid now (AED)"
-                value={paidAmount}
-                onChange={(e) => setPaidAmount(e.target.value)}
-                helperText="Settlement status is set automatically from the amount paid"
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-              {paidAmount !== '' && parseFloat(paidAmount) > 0 && (
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="date"
-                  label="Payment date (optional)"
-                  InputLabelProps={{ shrink: true }}
-                  value={paidAt}
-                  onChange={(e) => setPaidAt(e.target.value)}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                />
-              )}
-              <TextField
-                fullWidth
-                size="small"
-                label="Notes"
-                multiline
-                minRows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
+
+              <TextField fullWidth size="small" label="Notes" multiline minRows={2} value={notes} onChange={(e) => setNotes(e.target.value)} sx={field} />
               <Stack direction="row" spacing={1.5} justifyContent="flex-end" pt={1}>
-                <Button color="inherit" onClick={() => navigate('/erp/accounts/expenses')} disabled={saving}>
-                  Cancel
-                </Button>
-                <Button type="submit" variant="contained" disabled={saving}>
-                  {saving ? 'Saving…' : 'Save expense'}
-                </Button>
+                <Button color="inherit" onClick={() => navigate('/erp/accounts/expenses')} disabled={saving}>Cancel</Button>
+                <Button type="submit" variant="contained" disabled={saving || uploading}>{saving ? 'Saving…' : 'Save expense'}</Button>
               </Stack>
             </Stack>
           </CardContent>

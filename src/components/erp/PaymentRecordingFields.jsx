@@ -32,6 +32,7 @@ const PaymentRecordingFields = ({
   onPaymentAccountChange,
   accounts = [],
   autoPickAccount = true,
+  allowAddMethod = true,
   showPaidOn = false,
   paidOn,
   onPaidOnChange,
@@ -97,6 +98,7 @@ const PaymentRecordingFields = ({
         addDialogDescription="Add a custom payment method for this and future payments"
         addFieldLabel="Payment method"
         onOptionAdded={addCustomPaymentMethod}
+        hideAdd={!allowAddMethod}
       />
 
       {paymentAccounts.length > 0 && onPaymentAccountChange && (

@@ -8,6 +8,7 @@ import { IconScale, IconDownload } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
+import { localToday, localYearStart, localDate } from '../../../utils/dateLocal';
 import { normalizeTrialBalance, asArray } from '../../../utils/reportApi';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -21,7 +22,7 @@ const TrialBalanceView = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [asOfDate, setAsOfDate] = useState(new Date().toISOString().slice(0, 10));
+  const [asOfDate, setAsOfDate] = useState(localToday());
 
   const load = useCallback(async () => {
     if (!asOfDate) return;

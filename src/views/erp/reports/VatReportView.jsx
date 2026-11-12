@@ -8,13 +8,14 @@ import { IconReceipt } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
+import { localToday, localYearStart, localDate } from '../../../utils/dateLocal';
 import { normalizeVatReport, asArray } from '../../../utils/reportApi';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const VatReportView = () => {
   const theme = useTheme();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +23,7 @@ const VatReportView = () => {
   const getQtrStart = () => {
     const m = new Date().getMonth();
     const qm = Math.floor(m / 3) * 3;
-    return new Date(new Date().getFullYear(), qm, 1).toISOString().slice(0, 10);
+    return localDate(new Date(new Date().getFullYear(), qm, 1));
   };
 
   const [dateFrom, setDateFrom] = useState(getQtrStart());

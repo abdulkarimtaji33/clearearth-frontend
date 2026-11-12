@@ -107,7 +107,7 @@ const ReceivablesList = () => {
     setPayAccountId(resolveDefaultPaymentAccountId(paymentAccounts, r.payment_method || 'Bank transfer'));
     const client = r.proformaInvoice?.deal?.company?.company_name || r.proformaInvoice?.deal?.title || '';
     setReceivedFrom(client);
-    setPayRef(r.reference_no || '');
+    setPayRef('');
     setPayDate(new Date().toISOString().slice(0, 10));
     setPayOpen(true);
   };

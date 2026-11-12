@@ -19,7 +19,7 @@ import CascadingAccountSelect from '../../../components/erp/CascadingAccountSele
 import PayeeSelect, { rememberPayee } from '../../../components/erp/PayeeSelect';
 import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
 import apiService from '../../../services/api';
-import { filterActiveByType } from '../../../utils/accountTree';
+import { filterActiveByType, overdrawInfo } from '../../../utils/accountTree';
 
 const round2 = (n) => Math.round((parseFloat(n) || 0) * 100) / 100;
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -48,9 +48,10 @@ const ExpenseCreate = () => {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentAccountId, setPaymentAccountId] = useState('');
   const [notes, setNotes] = useState('');
+  const [negativeOk, setNegativeOk] = useState(false);
 
   useEffect(() => {
-    apiService.getChartOfAccounts({}).then((res) => {
+    apiService.getChartOfAccounts({ withBalance: true }).then((res) => {
       if (res.success) {
         const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
         setAccounts(list.filter((a) => a.is_active));
@@ -89,6 +90,10 @@ const ExpenseCreate = () => {
     if (!(net > 0)) { setError('Enter the amount before VAT (greater than zero).'); return; }
     if (!expenseDate) { setError('Expense date is required.'); return; }
     if (!paymentAccountId) { setError('Select the bank or cash account the expense is paid from.'); return; }
+    if (overdrawInfo(accounts, paymentAccountId, total) && !negativeOk) {
+      setError('This payment takes the account below zero. Tick "Pay anyway" under Paid from to continue.');
+      return;
+    }
     if (hasVat && (!receiptNo.trim() || !supplierTrn.trim())) {
       setError('Recoverable VAT needs the supplier receipt / invoice number and the supplier TRN.');
       return;
@@ -106,6 +111,7 @@ const ExpenseCreate = () => {
         attachmentPath: attachmentPath || undefined,
         paymentMethod: paymentMethod.trim() || undefined,
         paymentAccountId: parseInt(paymentAccountId, 10),
+        confirmNegative: negativeOk || undefined,
         notes: notes.trim() || undefined,
       });
       if (res.success === false) throw new Error(res.message || 'Failed to create expense');
@@ -206,6 +212,9 @@ const ExpenseCreate = () => {
                 accounts={accounts}
                 autoPickAccount={false}
                 allowAddMethod={false}
+                payAmount={total}
+                negativeConfirmed={negativeOk}
+                onNegativeConfirmedChange={setNegativeOk}
               />
 
               <TextField fullWidth size="small" label="Notes" multiline minRows={2} value={notes} onChange={(e) => setNotes(e.target.value)} sx={field} />

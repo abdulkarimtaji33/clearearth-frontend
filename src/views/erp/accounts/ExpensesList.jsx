@@ -36,6 +36,7 @@ import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFiel
 import PaymentHistoryDialog from '../../../components/erp/PaymentHistoryDialog';
 import apiService from '../../../services/api';
 import { resolveDefaultPaymentAccountId } from '../../../constants/paymentAccounts';
+import { overdrawInfo } from '../../../utils/accountTree';
 
 const BASE_CATEGORY_FILTER = [
   { value: '', label: 'All categories' },
@@ -77,6 +78,7 @@ const ExpensesList = () => {
   const [payPaidAt, setPayPaidAt] = useState('');
   const [payMethod, setPayMethod] = useState('Bank transfer');
   const [payAccountId, setPayAccountId] = useState('');
+  const [negativeOk, setNegativeOk] = useState(false);
   const [paymentAccounts, setPaymentAccounts] = useState([]);
   const [paySaving, setPaySaving] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -132,7 +134,7 @@ const ExpensesList = () => {
   }, [page, rowsPerPage, search, headId, subHeadId, dateFrom, dateTo, paymentStatus]);
 
   useEffect(() => {
-    apiService.getChartOfAccounts({}).then((res) => {
+    apiService.getChartOfAccounts({ withBalance: true }).then((res) => {
       if (res.success) {
         const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
         setPaymentAccounts(list.filter((a) => a.is_active));
@@ -171,6 +173,10 @@ const ExpensesList = () => {
       setPayDialogError('Select the cash or bank account this payment goes through.');
       return;
     }
+    if (overdrawInfo(paymentAccounts, payAccountId || defaultPayAccountId, amt) && !negativeOk) {
+      setPayDialogError('This payment takes the account below zero. Tick "Pay anyway" to continue.');
+      return;
+    }
     try {
       setPaySaving(true);
       setPayDialogError('');
@@ -179,6 +185,7 @@ const ExpensesList = () => {
         paidAt: payPaidAt || undefined,
         paymentMethod: payMethod.trim() || undefined,
         paymentAccountId: parseInt(payAccountId || defaultPayAccountId, 10),
+        confirmNegative: negativeOk || undefined,
       });
       setPayOpen(false);
       setPayRow(null);
@@ -581,6 +588,9 @@ const ExpensesList = () => {
               paymentAccountId={payAccountId || defaultPayAccountId}
               onPaymentAccountChange={setPayAccountId}
               accounts={paymentAccounts}
+              payAmount={parseFloat(String(payAmount).replace(/,/g, '')) || 0}
+              negativeConfirmed={negativeOk}
+              onNegativeConfirmedChange={setNegativeOk}
               showPaidOn
               paidOn={payPaidAt}
               onPaidOnChange={setPayPaidAt}

@@ -65,6 +65,20 @@ export function isCashOrBankAccount(account, accounts = []) {
   return false;
 }
 
+/**
+ * Would paying `amount` out of `accountId` take it below zero? Needs accounts loaded with balances.
+ * Returns { account, balance, after } or null.
+ */
+export function overdrawInfo(accounts, accountId, amount) {
+  const amt = Number(amount) || 0;
+  if (!accountId || !(amt > 0)) return null;
+  const acc = (accounts || []).find((a) => String(a.id) === String(accountId));
+  if (!acc || acc.balance == null) return null;
+  const balance = Number(acc.balance) || 0;
+  const after = Math.round((balance - amt) * 100) / 100;
+  return after < -0.004 ? { account: acc, balance, after } : null;
+}
+
 /** Cash/bank accounts for payment pickers (groups included so the cascading picker can nest them). */
 export function filterCashBankAccounts(accounts) {
   const active = filterActiveByType(accounts, 'asset');

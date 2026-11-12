@@ -10,7 +10,7 @@ import CascadingAccountSelect from '../../../components/erp/CascadingAccountSele
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
-import { filterCashBankAccounts, filterActiveByType } from '../../../utils/accountTree';
+import { filterCashBankAccounts, filterActiveByType, isPostable, overdrawInfo } from '../../../utils/accountTree';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const today = () => new Date().toISOString().slice(0, 10);
@@ -52,9 +52,11 @@ const VendorBills = () => {
   const [directSaving, setDirectSaving] = useState(false);
   const [directError, setDirectError] = useState('');
   const [suppliers, setSuppliers] = useState([]);
+  const [allAccounts, setAllAccounts] = useState([]);
   const [expenseAccounts, setExpenseAccounts] = useState([]);
   const [paySaving, setPaySaving] = useState(false);
   const [payError, setPayError] = useState('');
+  const [negativeOk, setNegativeOk] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -76,9 +78,10 @@ const VendorBills = () => {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    apiService.getChartOfAccounts({}).then((res) => {
+    apiService.getChartOfAccounts({ withBalance: true }).then((res) => {
       const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
-      setBankAccounts(filterCashBankAccounts(list));
+      setBankAccounts(filterCashBankAccounts(list).filter(isPostable));
+      setAllAccounts(list);
       setExpenseAccounts(filterActiveByType(list, 'expense'));
     }).catch(() => {});
     apiService.getSuppliers({ page: 1, pageSize: 1000 }).then((res) => {
@@ -150,14 +153,20 @@ const VendorBills = () => {
       billDate: today(),
       dueDate: '',
       subtotal: String(po.unbilled_amount ?? ''),
-      vatAmount: '0',
+      vatMode: '5',
+      vatAmount: '',
       attachmentPath: '',
       attachmentName: '',
       notes: '',
     });
   };
   const setBill = (k) => (e) => setBillForm((f) => ({ ...f, [k]: e.target.value }));
-  const billTotal = (parseFloat(billForm.subtotal) || 0) + (parseFloat(billForm.vatAmount) || 0);
+  const billVat = billForm.vatMode === 'manual'
+    ? (parseFloat(billForm.vatAmount) || 0)
+    : billForm.vatMode === '0'
+      ? 0
+      : Math.round((parseFloat(billForm.subtotal) || 0) * 5) / 100;
+  const billTotal = (parseFloat(billForm.subtotal) || 0) + billVat;
 
   const uploadAttachment = async (e) => {
     const file = e.target.files?.[0];
@@ -189,7 +198,7 @@ const VendorBills = () => {
         billDate: billForm.billDate,
         dueDate: billForm.dueDate || undefined,
         subtotal: parseFloat(billForm.subtotal),
-        vatAmount: parseFloat(billForm.vatAmount) || 0,
+        vatAmount: billVat,
         attachmentPath: billForm.attachmentPath || undefined,
         notes: billForm.notes || undefined,
       });
@@ -218,6 +227,7 @@ const VendorBills = () => {
     selectedBills.forEach((b) => { amounts[b.id] = String(b.balance_due); });
     setPayAmounts(amounts);
     setPayForm({ accountId: '', method: 'Bank transfer', date: today(), ref: '', notes: '' });
+    setNegativeOk(false);
     setPayError('');
     setPayOpen(true);
   };
@@ -226,6 +236,7 @@ const VendorBills = () => {
 
   const savePay = async () => {
     if (!payForm.accountId) { setPayError('Select the bank / cash account the payment is made from'); return; }
+    if (overdrawInfo(allAccounts, payForm.accountId, payTotal) && !negativeOk) { setPayError('This payment takes the account below zero. Tick "Pay anyway" to continue.'); return; }
     for (const b of selectedBills) {
       const amt = parseFloat(payAmounts[b.id]) || 0;
       if (!(amt > 0)) { setPayError(`Enter an amount for ${b.bill_number}`); return; }
@@ -241,6 +252,7 @@ const VendorBills = () => {
         paymentDate: payForm.date,
         referenceNo: payForm.ref || undefined,
         notes: payForm.notes || undefined,
+        confirmNegative: negativeOk || undefined,
       });
       setPayOpen(false);
       setSelected({});
@@ -473,7 +485,14 @@ const VendorBills = () => {
             </Stack>
             <Stack direction="row" spacing={2}>
               <TextField required type="number" label="Amount excl. VAT (AED)" value={billForm.subtotal || ''} onChange={setBill('subtotal')} inputProps={{ min: 0, step: 'any' }} fullWidth />
-              <TextField type="number" label="VAT (AED)" value={billForm.vatAmount || ''} onChange={setBill('vatAmount')} inputProps={{ min: 0, step: 'any' }} fullWidth />
+              <TextField select label="VAT" value={billForm.vatMode || '5'} onChange={setBill('vatMode')} fullWidth>
+                <MenuItem value="5">5%</MenuItem>
+                <MenuItem value="manual">Manual amount</MenuItem>
+                <MenuItem value="0">No VAT</MenuItem>
+              </TextField>
+              {billForm.vatMode === 'manual' && (
+                <TextField type="number" label="VAT (AED)" value={billForm.vatAmount || ''} onChange={setBill('vatAmount')} inputProps={{ min: 0, step: 'any' }} fullWidth />
+              )}
               <TextField label="Total (AED)" value={fmt(billTotal)} disabled fullWidth />
             </Stack>
             <Box>
@@ -510,6 +529,12 @@ const VendorBills = () => {
               </Stack>
             ))}
             <Typography variant="subtitle2">Total payment: AED {fmt(payTotal)}</Typography>
+            {overdrawInfo(allAccounts, payForm.accountId, payTotal) && (
+              <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                This payment takes the account below zero.
+                <Box><Checkbox size="small" checked={negativeOk} onChange={(e) => setNegativeOk(e.target.checked)} /> Pay anyway</Box>
+              </Alert>
+            )}
             <TextField
               select required label="Pay from account (bank / cash)" value={payForm.accountId}
               onChange={(e) => setPayForm((f) => ({ ...f, accountId: e.target.value }))}

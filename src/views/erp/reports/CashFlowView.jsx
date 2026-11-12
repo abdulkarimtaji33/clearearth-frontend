@@ -8,6 +8,7 @@ import { IconCashBanknote } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
+import { localToday, localYearStart, localDate } from '../../../utils/dateLocal';
 import { normalizeCashFlow, asArray } from '../../../utils/reportApi';
 
 const fmt = (n) => {
@@ -40,8 +41,8 @@ const Row = ({ label, value, accountId, dateFrom, dateTo, indent = 0, bold = fal
 
 const CashFlowView = () => {
   const theme = useTheme();
-  const today = new Date().toISOString().slice(0, 10);
-  const firstOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10);
+  const today = localToday();
+  const firstOfYear = localYearStart();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);

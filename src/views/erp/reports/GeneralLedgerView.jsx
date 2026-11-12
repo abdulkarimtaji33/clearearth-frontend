@@ -9,6 +9,7 @@ import { IconArrowLeft, IconBook, IconDownload, IconSearch, IconScale } from '@t
 import { useNavigate, useSearchParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { localToday, localYearStart, localDate } from '../../../utils/dateLocal';
 import { asArray, normalizeGeneralLedger } from '../../../utils/reportApi';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -60,8 +61,8 @@ const GeneralLedgerView = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(50);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const firstOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10);
+  const today = localToday();
+  const firstOfYear = localYearStart();
 
   const initialAccount = searchParams.get('accountId') || 'all';
   const [accountId, setAccountId] = useState(initialAccount);

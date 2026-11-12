@@ -5,6 +5,9 @@ import {
   MenuItem,
   Chip,
   Stack,
+  Alert,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import SelectWithAddNew from './SelectWithAddNew';
@@ -20,7 +23,7 @@ import {
   resolveDefaultPaymentAccountId,
   accountLabel,
 } from '../../constants/paymentAccounts';
-import { isPostable } from '../../utils/accountTree';
+import { isPostable, overdrawInfo } from '../../utils/accountTree';
 
 /**
  * Shared payment method dropdown + GL account picker for record-payment dialogs.
@@ -33,6 +36,9 @@ const PaymentRecordingFields = ({
   accounts = [],
   autoPickAccount = true,
   allowAddMethod = true,
+  payAmount = 0,
+  negativeConfirmed = false,
+  onNegativeConfirmedChange,
   showPaidOn = false,
   paidOn,
   onPaidOnChange,
@@ -57,8 +63,15 @@ const PaymentRecordingFields = ({
 
   const paymentAccounts = useMemo(() => filterPaymentAccounts(accounts), [accounts]);
   // Only a default when there is exactly one cash/bank account; with several, the user picks the bank.
-  const postableAccounts = paymentAccounts.filter(isPostable);
+  const allPostable = paymentAccounts.filter(isPostable);
+  // The payment method narrows the account list: Cash -> cash accounts, bank methods -> bank accounts.
+  const BANK_METHODS = ['Bank transfer', 'Cheque', 'Credit card', 'Online / portal'];
+  const kindOf = (a) => (a.sub_type === 'cash' || String(a.code) === '1000' ? 'cash' : a.sub_type === 'bank' ? 'bank' : null);
+  const wantedKind = paymentMethod === 'Cash' ? 'cash' : BANK_METHODS.includes(paymentMethod) ? 'bank' : null;
+  const byMethod = wantedKind ? allPostable.filter((a) => kindOf(a) === wantedKind || kindOf(a) == null) : allPostable;
+  const postableAccounts = byMethod.length > 0 ? byMethod : allPostable;
   const defaultAccount = postableAccounts.length === 1 ? postableAccounts[0] : null;
+  const overdraw = overdrawInfo(accounts, paymentAccountId, payAmount);
 
   const addCustomPaymentMethod = useCallback((v) => {
     setCustomPaymentMethods((prev) => {
@@ -121,6 +134,18 @@ const PaymentRecordingFields = ({
               <MenuItem key={a.id} value={String(a.id)}>{accountLabel(a)}</MenuItem>
             ))}
           </TextField>
+          {overdraw && (
+            <Alert severity="warning" sx={{ mt: 1, borderRadius: 2 }}>
+              This payment takes {accountLabel(overdraw.account)} below zero (balance AED {overdraw.balance.toFixed(2)}, it would become {overdraw.after.toFixed(2)}).
+              {onNegativeConfirmedChange && (
+                <FormControlLabel
+                  sx={{ display: 'block', mt: 0.5 }}
+                  control={<Checkbox size="small" checked={negativeConfirmed} onChange={(e) => onNegativeConfirmedChange(e.target.checked)} />}
+                  label="Pay anyway"
+                />
+              )}
+            </Alert>
+          )}
           {selectedAccount && (
             <Chip
               size="small"

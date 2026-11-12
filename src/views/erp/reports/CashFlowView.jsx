@@ -1,15 +1,14 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box, Typography, Button, Stack, Paper, Table, TableBody, TableCell,
-  TableContainer, TableRow, CircularProgress, Alert, TextField, Divider,
+  TableContainer, TableRow, CircularProgress, Alert, TextField, Chip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconCashBanknote } from '@tabler/icons-react';
+import { IconCashBanknote, IconPrinter } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
-import { localToday, localYearStart, localDate } from '../../../utils/dateLocal';
-import { normalizeCashFlow, asArray } from '../../../utils/reportApi';
+import { localToday, localYearStart } from '../../../utils/dateLocal';
 
 const fmt = (n) => {
   const v = Number(n || 0);
@@ -20,54 +19,30 @@ const fmt = (n) => {
 const Row = ({ label, value, accountId, dateFrom, dateTo, indent = 0, bold = false, total = false, sectionHeader = false }) => {
   const theme = useTheme();
   const showValue = value !== null && value !== undefined;
+  const cell = (child) => (accountId != null ? <GlAmountLink accountId={accountId} dateFrom={dateFrom} dateTo={dateTo}>{child}</GlAmountLink> : child);
   return (
-    <TableRow sx={sectionHeader ? { bgcolor: alpha(theme.palette.grey[500], 0.06) } : total ? { bgcolor: alpha(theme.palette.grey[500], 0.04) } : {}}>
-      <TableCell sx={{ pl: 2 + indent * 3, fontWeight: bold || total || sectionHeader ? 700 : 400, letterSpacing: sectionHeader ? 0.5 : 0 }}>
-        {label}
-      </TableCell>
-      <TableCell align="right" sx={{ fontFamily: 'monospace', width: 180, fontWeight: bold || total ? 700 : 400 }}>
-        {!total && showValue ? (
-          accountId != null ? <GlAmountLink accountId={accountId} dateFrom={dateFrom} dateTo={dateTo}>{fmt(value)}</GlAmountLink> : fmt(value)
-        ) : ''}
-      </TableCell>
-      <TableCell align="right" sx={{ fontFamily: 'monospace', width: 180, fontWeight: bold || total ? 800 : 400, borderTop: total ? '2px solid' : 'none', borderColor: 'divider' }}>
-        {total && showValue ? (
-          accountId != null ? <GlAmountLink accountId={accountId} dateFrom={dateFrom} dateTo={dateTo} fontWeight={800}>{fmt(value)}</GlAmountLink> : fmt(value)
-        ) : ''}
-      </TableCell>
+    <TableRow sx={sectionHeader ? { bgcolor: alpha(theme.palette.grey[500], 0.08) } : total ? { bgcolor: alpha(theme.palette.grey[500], 0.04) } : {}}>
+      <TableCell sx={{ pl: 2 + indent * 3, fontWeight: bold || total || sectionHeader ? 700 : 400, letterSpacing: sectionHeader ? 0.5 : 0 }}>{label}</TableCell>
+      <TableCell align="right" sx={{ fontFamily: 'monospace', width: 180 }}>{!total && showValue ? cell(fmt(value)) : ''}</TableCell>
+      <TableCell align="right" sx={{ fontFamily: 'monospace', width: 180, fontWeight: 800, borderTop: total ? '2px solid' : 'none', borderColor: 'divider' }}>{total && showValue ? fmt(value) : ''}</TableCell>
     </TableRow>
   );
 };
 
 const CashFlowView = () => {
   const theme = useTheme();
-  const today = localToday();
-  const firstOfYear = localYearStart();
-
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [dateFrom, setDateFrom] = useState(firstOfYear);
-  const [dateTo, setDateTo] = useState(today);
-  const [cashAccountId, setCashAccountId] = useState(null);
-
-  useEffect(() => {
-    apiService.getChartOfAccounts({}).then((res) => {
-      if (res.success) {
-        const list = asArray(res.data);
-        setCashAccountId(list.find((a) => String(a.code) === '1000')?.id ?? null);
-      }
-    });
-  }, []);
+  const [dateFrom, setDateFrom] = useState(localYearStart());
+  const [dateTo, setDateTo] = useState(localToday());
 
   const load = useCallback(async () => {
     if (!dateFrom || !dateTo) return;
     try {
-      setLoading(true);
-      setError('');
+      setLoading(true); setError('');
       const res = await apiService.getCashFlowStatement({ dateFrom, dateTo });
-      if (res.success) setData(normalizeCashFlow(res.data));
-      else setError(res.message || 'Failed');
+      if (res.success) setData(res.data); else setError(res.message || 'Failed');
     } catch (e) {
       setError(e.message);
     } finally {
@@ -76,9 +51,9 @@ const CashFlowView = () => {
   }, [dateFrom, dateTo]);
 
   const d = data || {};
-  const op = d.operating || {};
-  const inv = d.investing || {};
-  const fin = d.financing || {};
+  const items = (list, indent = 2) => (list || []).map((i) => (
+    <Row key={i.id} label={`${i.code} ${i.name}`} value={i.amount} accountId={i.id} dateFrom={dateFrom} dateTo={dateTo} indent={indent} />
+  ));
 
   return (
     <PageContainer title="Cash Flow Statement" description="Where cash came from and where it went">
@@ -86,16 +61,15 @@ const CashFlowView = () => {
         <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <IconCashBanknote size={22} />
         </Box>
-        <Typography variant="h4" fontWeight={800}>Cash Flow Statement</Typography>
+        <Typography variant="h4" fontWeight={800} sx={{ flex: 1 }}>Cash Flow Statement</Typography>
+        {data && <Button startIcon={<IconPrinter size={18} />} onClick={() => window.print()} sx={{ borderRadius: 2, '@media print': { display: 'none' } }}>Print</Button>}
       </Stack>
 
-      <Paper variant="outlined" sx={{ borderRadius: 3, p: 2, mb: 3 }}>
+      <Paper variant="outlined" sx={{ borderRadius: 3, p: 2, mb: 3, '@media print': { display: 'none' } }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
           <TextField label="From" type="date" size="small" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 180 }} />
           <TextField label="To" type="date" size="small" value={dateTo} onChange={(e) => setDateTo(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 180 }} />
-          <Button variant="contained" onClick={load} disabled={loading} sx={{ borderRadius: 2 }}>
-            {loading ? 'Loading…' : 'Run Report'}
-          </Button>
+          <Button variant="contained" onClick={load} disabled={loading} sx={{ borderRadius: 2 }}>{loading ? 'Loading…' : 'Run Report'}</Button>
         </Stack>
       </Paper>
 
@@ -105,53 +79,43 @@ const CashFlowView = () => {
       {!loading && data && (
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
           <Box sx={{ px: 2.5, py: 2, bgcolor: alpha(theme.palette.grey[500], 0.06), borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="h6" fontWeight={800}>Cash Flow Statement (Indirect Method)</Typography>
-            <Typography variant="caption" color="text.secondary">For the period {dateFrom} to {dateTo} | Amounts in AED</Typography>
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="h6" fontWeight={800}>Cash Flow Statement (Indirect Method)</Typography>
+                <Typography variant="caption" color="text.secondary">For the period {dateFrom} to {dateTo} | Amounts in AED | {d.cash_account_count} cash / bank account{d.cash_account_count === 1 ? '' : 's'} included</Typography>
+              </Box>
+              <Chip size="small" color={d.reconciled ? 'success' : 'error'} label={d.reconciled ? 'Reconciles to the bank and cash balances' : `Does not reconcile (difference ${fmt(d.difference)})`} />
+            </Stack>
           </Box>
           <TableContainer>
             <Table size="small">
               <TableBody>
-                {/* Operating */}
-                <Row label="OPERATING ACTIVITIES" sectionHeader bold />
-                <Row label="Net Income" value={op.net_income} indent={1} />
-                {op.depreciation != null && op.depreciation !== 0 && (
-                  <Row label="Add: Depreciation" value={op.depreciation} indent={1} />
-                )}
-                <Row label="Changes in Working Capital:" indent={1} bold />
-                {op.ar_change != null && <Row label="(Increase)/Decrease in Accounts Receivable" value={-(op.ar_change)} indent={2} />}
-                {op.ap_change != null && <Row label="Increase/(Decrease) in Accounts Payable" value={op.ap_change} indent={2} />}
-                {op.accrued_change != null && <Row label="Increase/(Decrease) in Accrued Expenses" value={op.accrued_change} indent={2} />}
-                {op.vat_change != null && <Row label="Increase/(Decrease) in VAT Payable" value={op.vat_change} indent={2} />}
-                <Row label="Net Cash from Operating Activities" value={d.net_operating} total bold />
+                <Row label="OPERATING ACTIVITIES" sectionHeader />
+                <Row label="Net income for the period" value={d.operating?.net_income} indent={1} />
+                <Row label="Changes in working capital" indent={1} bold />
+                {items(d.operating?.items)}
+                {(d.operating?.items || []).length === 0 && <Row label="No working capital movement in this period" indent={2} />}
+                <Row label="Net cash from operating activities" value={d.operating?.net} total />
 
                 <TableRow><TableCell colSpan={3} sx={{ py: 0.5 }} /></TableRow>
-
-                {/* Investing */}
-                <Row label="INVESTING ACTIVITIES" sectionHeader bold />
-                {inv.equipment != null && <Row label="Purchase of Equipment" value={inv.equipment} indent={1} />}
-                <Row label="Net Cash from Investing Activities" value={d.net_investing} total bold />
-
-                <TableRow><TableCell colSpan={3} sx={{ py: 0.5 }} /></TableRow>
-
-                {/* Financing */}
-                <Row label="FINANCING ACTIVITIES" sectionHeader bold />
-                {fin.capital != null && fin.capital !== 0 && <Row label="Capital Contributions" value={fin.capital} indent={1} />}
-                {fin.drawings != null && fin.drawings !== 0 && <Row label="Drawings" value={-(fin.drawings)} indent={1} />}
-                {fin.loan_proceeds != null && fin.loan_proceeds !== 0 && <Row label="Loan Proceeds" value={fin.loan_proceeds} indent={1} />}
-                {fin.loan_repayments != null && fin.loan_repayments !== 0 && <Row label="Loan Repayments" value={-(fin.loan_repayments)} indent={1} />}
-                <Row label="Net Cash from Financing Activities" value={d.net_financing} total bold />
+                <Row label="INVESTING ACTIVITIES" sectionHeader />
+                {items(d.investing?.items, 1)}
+                {(d.investing?.items || []).length === 0 && <Row label="No investing activity" indent={1} />}
+                <Row label="Net cash from investing activities" value={d.investing?.net} total />
 
                 <TableRow><TableCell colSpan={3} sx={{ py: 0.5 }} /></TableRow>
+                <Row label="FINANCING ACTIVITIES" sectionHeader />
+                {items(d.financing?.items, 1)}
+                {(d.financing?.items || []).length === 0 && <Row label="No financing activity" indent={1} />}
+                <Row label="Net cash from financing activities" value={d.financing?.net} total />
 
-                {/* Summary */}
-                <Row label="Net Change in Cash" value={d.net_cash_change} indent={0} bold />
-                <Row label="Opening Cash Balance" value={d.opening_cash} accountId={cashAccountId} dateTo={dateFrom} indent={0} />
+                <TableRow><TableCell colSpan={3} sx={{ py: 0.5 }} /></TableRow>
+                <Row label="Opening cash and bank balance (start of the first day)" value={d.opening_cash} />
+                <Row label="Net change in cash" value={d.net_change} bold />
                 <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.06) }}>
-                  <TableCell sx={{ fontWeight: 900 }}>CLOSING CASH BALANCE</TableCell>
+                  <TableCell sx={{ fontWeight: 900 }}>CLOSING CASH AND BANK BALANCE</TableCell>
                   <TableCell />
-                  <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '1rem', borderTop: '3px double', borderColor: 'divider' }}>
-                    <GlAmountLink accountId={cashAccountId} dateTo={dateTo} fontWeight={900} title="View all Cash and Cash Equivalents postings">{fmt(d.closing_cash)}</GlAmountLink>
-                  </TableCell>
+                  <TableCell align="right" sx={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '1rem', borderTop: '3px double', borderColor: 'divider' }}>{fmt(d.closing_cash)}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>

@@ -1460,6 +1460,20 @@ class ApiService {
   async getChangesInEquity(params) { return this.get('/reports/changes-in-equity', params); }
   async getVatReport(params) { return this.get('/reports/vat-report', params); }
 
+  async downloadVatReportExcel({ dateFrom, dateTo }) {
+    const token = this.getAuthToken();
+    const res = await fetch(`${this.baseURL}/reports/vat-report/export?dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Could not export the VAT report');
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `vat-return-${dateFrom}-to-${dateTo}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   // ─── Location Share ────────────────────────────────────────────────────────────
   async generateLocationShareToken(dealId) { return this.post(`/location-share/deals/${dealId}/token`); }
   async getLocationShareInfo(token) { return this.get(`/location-share/pin/${token}`); }

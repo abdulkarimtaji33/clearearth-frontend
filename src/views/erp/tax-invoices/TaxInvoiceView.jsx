@@ -129,7 +129,8 @@ const TaxInvoiceView = () => {
   const statusKey = isFullyCredited ? 'credited' : row.payment_status;
   const isPartial = statusKey === 'partial';
   const isPaid = statusKey === 'paid';
-  const canIssueCredit = remainingNum > 0.01;
+  // A paid invoice can still be credited: the paid part is refunded to the customer.
+  const canIssueCredit = Math.max(0, totalNum - creditedNum) > 0.01;
 
   return (
     <PageContainer title="Tax invoice">

@@ -726,6 +726,31 @@ class ApiService {
     return this.post('/supplier-debit-notes', data);
   }
 
+  // Cash / bank transfers and bank reconciliation
+  async getCashBankTransfers(params) {
+    return this.get('/cash-bank/transfers', params);
+  }
+
+  async createCashBankTransfer(data) {
+    return this.post('/cash-bank/transfers', data);
+  }
+
+  async getReconciliationWorkspace(params) {
+    return this.get('/cash-bank/reconciliation/workspace', params);
+  }
+
+  async getReconciliations(params) {
+    return this.get('/cash-bank/reconciliation', params);
+  }
+
+  async getReconciliationReport(id) {
+    return this.get(`/cash-bank/reconciliation/${id}`);
+  }
+
+  async saveReconciliation(data) {
+    return this.post('/cash-bank/reconciliation', data);
+  }
+
   // Supplier advances
   async getSupplierAdvances(params) {
     return this.get('/supplier-advances', params);

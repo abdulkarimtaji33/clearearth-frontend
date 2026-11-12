@@ -55,6 +55,9 @@ const StatementOfAccountView = Loadable(lazyWithChunkReload(() => import('../vie
 const PayablesList = Loadable(lazyWithChunkReload(() => import('../views/erp/payables/PayablesList')));
 const VendorBills = Loadable(lazyWithChunkReload(() => import('../views/erp/payables/VendorBills')));
 const CreditNoteList = Loadable(lazyWithChunkReload(() => import('../views/erp/tax-invoices/CreditNoteList')));
+const DebitNoteList = Loadable(lazyWithChunkReload(() => import('../views/erp/payables/DebitNoteList')));
+const DebitNoteView = Loadable(lazyWithChunkReload(() => import('../views/erp/payables/DebitNoteView')));
+const SupplierAdvances = Loadable(lazyWithChunkReload(() => import('../views/erp/payables/SupplierAdvances')));
 const SupplierPayables = Loadable(lazyWithChunkReload(() => import('../views/erp/payables/SupplierPayables')));
 const SupplierStatement = Loadable(lazyWithChunkReload(() => import('../views/erp/suppliers/SupplierStatement')));
 const PayablesAgingSummaryView = Loadable(lazyWithChunkReload(() => import('../views/erp/payables/PayablesAgingSummaryView')));
@@ -205,6 +208,9 @@ const Router = createBrowserRouter([
       { path: '/erp/vendor-bills', element: <VendorBills /> },
       { path: '/erp/credit-notes', element: <CreditNoteList /> },
       { path: '/erp/payables/suppliers', element: <SupplierPayables /> },
+      { path: '/erp/debit-notes', element: <DebitNoteList /> },
+      { path: '/erp/debit-notes/:id', element: <DebitNoteView /> },
+      { path: '/erp/supplier-advances', element: <SupplierAdvances /> },
       { path: '/erp/suppliers/:id/statement', element: <SupplierStatement /> },
       { path: '/erp/payables/aging', element: <PayablesAgingSummaryView /> },
       { path: '/erp/payment-receipts', element: <PurchasePaymentReceiptsList /> },

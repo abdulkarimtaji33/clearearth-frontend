@@ -208,6 +208,8 @@ const ErpMenuItems = [
       { id: uniqueId(), title: 'Receive Payment', icon: IconCashBanknote, href: '/erp/receivables/receive-payment', permission: 'accounting.update' },
       { id: uniqueId(), title: 'Vendor Bills', icon: IconFileInvoice, href: '/erp/vendor-bills', permission: 'accounting.read' },
       { id: uniqueId(), title: 'Supplier Payables', icon: IconTruckDelivery, href: '/erp/payables/suppliers', permission: 'accounting.read' },
+      { id: uniqueId(), title: 'Supplier Debit Notes', icon: IconReceipt, href: '/erp/debit-notes', permission: 'accounting.read' },
+      { id: uniqueId(), title: 'Supplier Advances', icon: IconCoin, href: '/erp/supplier-advances', permission: 'accounting.read' },
       { id: uniqueId(), title: 'Older PO Payables', icon: IconTruckDelivery, href: '/erp/payables', permission: 'accounting.read' },
       { id: uniqueId(), title: 'Payment Receipts', icon: IconReceipt, href: '/erp/payment-receipts', permission: 'accounting.read' },
       { id: uniqueId(), title: 'Expenses', icon: IconWallet, href: '/erp/accounts/expenses', permission: 'accounting.read' },

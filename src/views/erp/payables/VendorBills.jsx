@@ -8,6 +8,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { IconReceipt, IconUpload, IconPlus } from '@tabler/icons-react';
 import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
 import PageContainer from '../../../components/container/PageContainer';
+import DebitNoteDialog from './DebitNoteDialog';
 import apiService from '../../../services/api';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
 import { filterCashBankAccounts, filterActiveByType, isPostable, overdrawInfo } from '../../../utils/accountTree';
@@ -58,6 +59,7 @@ const VendorBills = () => {
   const [paySaving, setPaySaving] = useState(false);
   const [payError, setPayError] = useState('');
   const [negativeOk, setNegativeOk] = useState(false);
+  const [debitBillId, setDebitBillId] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -415,11 +417,12 @@ const VendorBills = () => {
                       <TableCell sx={headCell} align="right">Total</TableCell>
                       <TableCell sx={headCell} align="right">Balance</TableCell>
                       <TableCell sx={headCell}>Status</TableCell>
+                      <TableCell />
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {bills.length === 0 && (
-                      <TableRow><TableCell colSpan={10} align="center" sx={{ py: 5, color: 'text.secondary' }}>No vendor bills.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={11}align="center" sx={{ py: 5, color: 'text.secondary' }}>No vendor bills.</TableCell></TableRow>
                     )}
                     {bills.map((b) => {
                       const payable = b.status === 'open' || b.status === 'partial';
@@ -451,7 +454,17 @@ const VendorBills = () => {
                           <TableCell>{b.due_date?.slice?.(0, 10) || '—'}</TableCell>
                           <TableCell align="right">{fmt(b.total)}</TableCell>
                           <TableCell align="right"><strong>{fmt(b.balance_due)}</strong></TableCell>
-                          <TableCell><Chip size="small" label={b.status} color={STATUS_COLOR[b.status] || 'default'} sx={{ textTransform: 'capitalize' }} /></TableCell>
+                          <TableCell>
+                            <Chip size="small" label={b.status} color={STATUS_COLOR[b.status] || 'default'} sx={{ textTransform: 'capitalize' }} />
+                            {parseFloat(b.debit_note_amount) > 0 && (
+                              <Typography variant="caption" color="text.secondary" display="block">Debit note {fmt(b.debit_note_amount)}</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell align="right">
+                            {payable && b.supplier_id && (
+                              <Button size="small" variant="text" onClick={() => setDebitBillId(b.id)} sx={{ borderRadius: 2, whiteSpace: 'nowrap' }}>Debit note</Button>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -609,6 +622,13 @@ const VendorBills = () => {
           <Button variant="contained" onClick={saveBill} disabled={billSaving || uploading}>{billSaving ? 'Saving…' : 'Record bill'}</Button>
         </DialogActions>
       </Dialog>
+
+      <DebitNoteDialog
+        open={!!debitBillId}
+        vendorBillId={debitBillId}
+        onClose={() => setDebitBillId(null)}
+        onIssued={(n) => { setDebitBillId(null); setSuccess(`Debit note ${n.debit_note_number} recorded for AED ${fmt(n.total)}`); load(); }}
+      />
 
       {/* Pay selected */}
       <Dialog open={payOpen} onClose={() => setPayOpen(false)} fullWidth maxWidth="sm">

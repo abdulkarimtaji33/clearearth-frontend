@@ -709,6 +709,44 @@ class ApiService {
     return this.post('/credit-notes', data);
   }
 
+  // Supplier debit notes
+  async getSupplierDebitNotes(params) {
+    return this.get('/supplier-debit-notes', params);
+  }
+
+  async getSupplierDebitNote(id) {
+    return this.get(`/supplier-debit-notes/${id}`);
+  }
+
+  async getBillDebitInfo(vendorBillId) {
+    return this.get(`/supplier-debit-notes/bill/${vendorBillId}/info`);
+  }
+
+  async createSupplierDebitNote(data) {
+    return this.post('/supplier-debit-notes', data);
+  }
+
+  // Supplier advances
+  async getSupplierAdvances(params) {
+    return this.get('/supplier-advances', params);
+  }
+
+  async getSupplierAdvance(id) {
+    return this.get(`/supplier-advances/${id}`);
+  }
+
+  async getAdvanceApplyOptions(supplierId) {
+    return this.get(`/supplier-advances/supplier/${supplierId}/apply-options`);
+  }
+
+  async recordSupplierAdvance(data) {
+    return this.post('/supplier-advances', data);
+  }
+
+  async applySupplierAdvance(id, data) {
+    return this.post(`/supplier-advances/${id}/apply`, data);
+  }
+
   async getPayablesAgingSummary(params) {
     return this.get('/payables/aging-summary', params);
   }

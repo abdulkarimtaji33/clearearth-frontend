@@ -669,6 +669,14 @@ class ApiService {
     return this.post('/vendor-bills', data);
   }
 
+  async getVendorBillsAwaitingWo() {
+    return this.get('/vendor-bills/awaiting-wo-expenses');
+  }
+
+  async createWoExpenseBill(data) {
+    return this.post('/vendor-bills/work-order-expense', data);
+  }
+
   async createDirectVendorBill(data) {
     return this.post('/vendor-bills/direct', data);
   }

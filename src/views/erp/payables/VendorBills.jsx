@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Box, Card, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   CircularProgress, Alert, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  MenuItem, Tabs, Tab, Checkbox, Autocomplete,
+  MenuItem, Tabs, Tab, Checkbox, Autocomplete, ToggleButton, ToggleButtonGroup, FormControlLabel,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconReceipt, IconUpload, IconPlus } from '@tabler/icons-react';
@@ -22,6 +22,7 @@ const VendorBills = () => {
   const theme = useTheme();
   const [tab, setTab] = useState('awaiting');
   const [awaiting, setAwaiting] = useState([]);
+  const [woAwaiting, setWoAwaiting] = useState([]);
   const [bills, setBills] = useState([]);
   const [statusFilter, setStatusFilter] = useState('unpaid');
   const [loading, setLoading] = useState(true);
@@ -44,7 +45,7 @@ const VendorBills = () => {
 
   // New supplier bill without a PO (an unpaid expense)
   const emptyDirect = () => ({
-    supplier: null, expenseAccountId: '', netAmount: '', vatRate: '5', supplierInvoiceNo: '', supplierTrn: '',
+    mode: 'expense', woExpenseId: '', supplier: null, expenseAccountId: '', netAmount: '', vatRate: '5', vatManual: '', supplierInvoiceNo: '', supplierTrn: '',
     billDate: today(), dueDate: '', attachmentPath: '', attachmentName: '', notes: '',
   });
   const [directOpen, setDirectOpen] = useState(false);
@@ -61,11 +62,13 @@ const VendorBills = () => {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const [aw, bl] = await Promise.all([
+      const [aw, wo, bl] = await Promise.all([
         apiService.getVendorBillsAwaiting(),
+        apiService.getVendorBillsAwaitingWo().catch(() => ({ data: [] })),
         apiService.getVendorBills({ page: 1, pageSize: 500, status: statusFilter || undefined }),
       ]);
       setAwaiting(Array.isArray(aw.data) ? aw.data : []);
+      setWoAwaiting(Array.isArray(wo.data) ? wo.data : []);
       setBills(Array.isArray(bl.data) ? bl.data : []);
       setError('');
     } catch (e) {
@@ -91,8 +94,9 @@ const VendorBills = () => {
 
   // ---- New supplier bill (no PO) ----
   const setD = (k) => (e) => setDirect((f) => ({ ...f, [k]: e.target.value }));
-  const dNet = parseFloat(direct.netAmount) || 0;
-  const dVat = Math.round(dNet * (parseFloat(direct.vatRate) || 0)) / 100;
+  const woPicked = woAwaiting.find((e) => String(e.id) === String(direct.woExpenseId));
+  const dNet = direct.mode === 'wo' ? (parseFloat(woPicked?.amount) || 0) : (parseFloat(direct.netAmount) || 0);
+  const dVat = direct.vatRate === 'manual' ? Math.round((parseFloat(direct.vatManual) || 0) * 100) / 100 : Math.round(dNet * (parseFloat(direct.vatRate) || 0)) / 100;
   const dTotal = Math.round((dNet + dVat) * 100) / 100;
 
   const uploadDirectAttachment = async (e) => {
@@ -112,7 +116,8 @@ const VendorBills = () => {
 
   const saveDirect = async () => {
     if (!direct.supplier) { setDirectError('Select the supplier'); return; }
-    if (!direct.expenseAccountId) { setDirectError('Select the expense head and sub-head'); return; }
+    if (direct.mode === 'wo' && !direct.woExpenseId) { setDirectError('Select the work order expense'); return; }
+    if (direct.mode === 'expense' && !direct.expenseAccountId) { setDirectError('Select the expense head and sub-head'); return; }
     if (!direct.supplierInvoiceNo.trim()) { setDirectError('Supplier invoice number is required'); return; }
     if (!(dNet > 0)) { setDirectError('Enter the amount before VAT'); return; }
     if (dVat > 0 && !direct.supplierTrn.trim()) { setDirectError('Recoverable VAT needs the supplier TRN'); return; }
@@ -120,18 +125,22 @@ const VendorBills = () => {
     try {
       setDirectSaving(true);
       setDirectError('');
-      await apiService.createDirectVendorBill({
+      const common = {
         supplierId: direct.supplier.id,
-        expenseAccountId: parseInt(direct.expenseAccountId, 10),
-        netAmount: dNet,
-        vatRate: parseFloat(direct.vatRate) || 0,
+        vatRate: direct.vatRate === 'manual' ? 'manual' : parseFloat(direct.vatRate) || 0,
+        vatAmount: direct.vatRate === 'manual' ? dVat : undefined,
         supplierInvoiceNo: direct.supplierInvoiceNo.trim(),
         supplierTrn: direct.supplierTrn.trim() || undefined,
         billDate: direct.billDate,
         dueDate: direct.dueDate || undefined,
         attachmentPath: direct.attachmentPath || undefined,
         notes: direct.notes.trim() || undefined,
-      });
+      };
+      if (direct.mode === 'wo') {
+        await apiService.createWoExpenseBill({ ...common, workOrderExpenseId: parseInt(direct.woExpenseId, 10) });
+      } else {
+        await apiService.createDirectVendorBill({ ...common, expenseAccountId: parseInt(direct.expenseAccountId, 10), netAmount: dNet });
+      }
       setDirectOpen(false);
       setTab('bills');
       setSuccess('Supplier bill recorded. It is payable under the supplier until you pay it.');
@@ -155,6 +164,8 @@ const VendorBills = () => {
       subtotal: String(po.unbilled_amount ?? ''),
       vatMode: '5',
       vatAmount: '',
+      expenseAccountId: po.expense_account_id ? String(po.expense_account_id) : '',
+      approveOverage: false,
       attachmentPath: '',
       attachmentName: '',
       notes: '',
@@ -167,6 +178,7 @@ const VendorBills = () => {
       ? 0
       : Math.round((parseFloat(billForm.subtotal) || 0) * 5) / 100;
   const billTotal = (parseFloat(billForm.subtotal) || 0) + billVat;
+  const billOverage = Math.max(0, Math.round(((parseFloat(billForm.subtotal) || 0) - (parseFloat(billPo?.unbilled_amount) || 0)) * 100) / 100);
 
   const uploadAttachment = async (e) => {
     const file = e.target.files?.[0];
@@ -188,11 +200,15 @@ const VendorBills = () => {
     if (!billForm.billDate) { setBillError('Bill date is required'); return; }
     if (billForm.dueDate && billForm.dueDate < billForm.billDate) { setBillError('Due date cannot be before the bill date'); return; }
     if (!(parseFloat(billForm.subtotal) > 0)) { setBillError('Amount (excluding VAT) must be greater than zero'); return; }
+    if (!billForm.expenseAccountId) { setBillError('Select the expense head and sub-head'); return; }
+    if (billOverage > 0.01 && !billForm.approveOverage) { setBillError(`The bill is AED ${fmt(billOverage)} above what is left on the PO. Tick "Approve the extra amount" to continue.`); return; }
     try {
       setBillSaving(true);
       setBillError('');
       await apiService.createVendorBill({
         purchaseOrderId: billPo.id,
+        expenseAccountId: parseInt(billForm.expenseAccountId, 10),
+        approveOverage: billForm.approveOverage || undefined,
         supplierInvoiceNo: billForm.supplierInvoiceNo.trim(),
         supplierTrn: billForm.supplierTrn.trim() || undefined,
         billDate: billForm.billDate,
@@ -277,7 +293,7 @@ const VendorBills = () => {
           <Box sx={{ flex: 1 }}>
             <Typography variant="h4" fontWeight={700}>Vendor Bills</Typography>
             <Typography variant="body2" color="text.secondary">
-              PO approved → accrued · bill recorded → Accounts Payable · payment → bank
+              Supplier invoice recorded → payable under the supplier · payment → bank or cash
             </Typography>
           </Box>
           <Button
@@ -302,6 +318,7 @@ const VendorBills = () => {
           {loading ? (
             <Box display="flex" justifyContent="center" py={8}><CircularProgress /></Box>
           ) : tab === 'awaiting' ? (
+            <>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -335,6 +352,43 @@ const VendorBills = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+            {woAwaiting.length > 0 && (
+              <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
+                <Box sx={{ px: 2, py: 1.5, bgcolor: alpha(theme.palette.warning.main, 0.06) }}>
+                  <Typography variant="subtitle2" fontWeight={800}>Work order expenses awaiting a supplier bill ({woAwaiting.length})</Typography>
+                  <Typography variant="caption" color="text.secondary">Approved and accrued to 2200. Recording the bill clears the accrual (Dr 2200 / Cr Accounts Payable).</Typography>
+                </Box>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={headCell}>Work order</TableCell>
+                        <TableCell sx={headCell}>Expense</TableCell>
+                        <TableCell sx={headCell}>Head</TableCell>
+                        <TableCell sx={headCell}>Date</TableCell>
+                        <TableCell sx={headCell} align="right">Amount</TableCell>
+                        <TableCell />
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {woAwaiting.map((e) => (
+                        <TableRow key={e.id} hover>
+                          <TableCell>WO #{e.work_order?.id || '—'}</TableCell>
+                          <TableCell>{e.description || '—'}</TableCell>
+                          <TableCell>{e.expenseAccount ? `${e.expenseAccount.code} ${e.expenseAccount.name}` : '—'}</TableCell>
+                          <TableCell>{String(e.expense_date).slice(0, 10)}</TableCell>
+                          <TableCell align="right"><strong>{fmt(e.amount)}</strong></TableCell>
+                          <TableCell align="right">
+                            <Button size="small" variant="contained" onClick={() => { setDirect({ ...emptyDirect(), mode: 'wo', woExpenseId: String(e.id) }); setDirectError(''); setDirectOpen(true); }} sx={{ borderRadius: 2 }}>Record bill</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+            </>
           ) : (
             <>
               <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ p: 2 }}>
@@ -414,8 +468,16 @@ const VendorBills = () => {
         <DialogTitle>New supplier bill</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            For an expense that is not paid yet. It posts Dr expense (+ Input VAT) / Cr Accounts Payable and shows as payable under the supplier. Paid expenses go in Add expense.
+            For a cost that is not paid yet (rent, utilities, services…). It posts Dr expense (+ Input VAT) / Cr Accounts Payable and shows as payable under the supplier. Paid expenses go in Add expense.
           </Typography>
+          <ToggleButtonGroup
+            exclusive fullWidth size="small" value={direct.mode}
+            onChange={(_, v) => v && setDirect((f) => ({ ...f, mode: v }))}
+            sx={{ mb: 2 }}
+          >
+            <ToggleButton value="expense">Rent, utilities, services and other costs</ToggleButton>
+            <ToggleButton value="wo">A work order expense</ToggleButton>
+          </ToggleButtonGroup>
           {directError && <Alert severity="error" sx={{ mb: 2 }}>{directError}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Autocomplete
@@ -426,7 +488,21 @@ const VendorBills = () => {
               isOptionEqualToValue={(a, b) => a.id === b.id}
               renderInput={(p) => <TextField {...p} required label="Supplier" helperText="Add a new supplier under Clients & Vendors first" />}
             />
-            {expenseAccounts.length > 0 && (
+            {direct.mode === 'wo' && (
+              <TextField
+                select required label="Work order expense" value={direct.woExpenseId}
+                onChange={setD('woExpenseId')}
+                helperText={woAwaiting.length ? 'Clears the accrual on 2200: Dr 2200 (+ Input VAT) / Cr Accounts Payable' : 'No approved work order expenses are waiting for a bill'}
+                fullWidth
+              >
+                {woAwaiting.map((e) => (
+                  <MenuItem key={e.id} value={String(e.id)}>
+                    WO #{e.work_order?.id || '—'} · {e.description || 'expense'} · AED {fmt(e.amount)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+            {direct.mode === 'expense' && expenseAccounts.length > 0 && (
               <CascadingAccountSelect
                 accounts={expenseAccounts}
                 value={direct.expenseAccountId}
@@ -445,11 +521,15 @@ const VendorBills = () => {
               <TextField type="date" label="Due date" value={direct.dueDate} onChange={setD('dueDate')} InputLabelProps={{ shrink: true }} inputProps={{ min: direct.billDate || undefined }} fullWidth />
             </Stack>
             <Stack direction="row" spacing={2}>
-              <TextField required type="number" label="Amount before VAT (AED)" value={direct.netAmount} onChange={setD('netAmount')} inputProps={{ min: 0, step: 'any' }} fullWidth />
+              <TextField required type="number" label="Amount before VAT (AED)" value={direct.mode === 'wo' ? String(dNet || '') : direct.netAmount} onChange={setD('netAmount')} disabled={direct.mode === 'wo'} inputProps={{ min: 0, step: 'any' }} fullWidth />
               <TextField select label="VAT" value={direct.vatRate} onChange={setD('vatRate')} fullWidth>
                 <MenuItem value="5">5%</MenuItem>
+                <MenuItem value="manual">Manual amount</MenuItem>
                 <MenuItem value="0">No VAT</MenuItem>
               </TextField>
+              {direct.vatRate === 'manual' && (
+                <TextField type="number" label="VAT (AED)" value={direct.vatManual} onChange={setD('vatManual')} inputProps={{ min: 0, step: 'any' }} fullWidth />
+              )}
               <TextField label="Total (AED)" value={fmt(dTotal)} disabled fullWidth />
             </Stack>
             <Box>
@@ -473,10 +553,21 @@ const VendorBills = () => {
         <DialogTitle>Record vendor bill — PO #{billPo?.id}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            {billPo?.party_name} · unbilled accrual AED {fmt(billPo?.unbilled_amount)}. Posts Dr Accrued Expenses + Dr Input VAT / Cr Accounts Payable.
+            {billPo?.party_name} · AED {fmt(billPo?.unbilled_amount)} left to bill on this PO. Posts Dr expense head + Dr Input VAT / Cr Accounts Payable, under the supplier.
           </Typography>
           {billError && <Alert severity="error" sx={{ mb: 2 }}>{billError}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
+            {expenseAccounts.length > 0 && (
+              <CascadingAccountSelect
+                accounts={expenseAccounts}
+                value={billForm.expenseAccountId || ''}
+                onChange={(id) => setBillForm((f) => ({ ...f, expenseAccountId: id }))}
+                parentLabel="Expense head"
+                childLabel="Expense sub-head"
+                size="medium"
+                helperText="Taken from the PO. You can change it here."
+              />
+            )}
             <TextField required label="Supplier invoice no." value={billForm.supplierInvoiceNo || ''} onChange={setBill('supplierInvoiceNo')} fullWidth />
             <TextField label="Supplier TRN" value={billForm.supplierTrn || ''} onChange={setBill('supplierTrn')} fullWidth />
             <Stack direction="row" spacing={2}>
@@ -495,6 +586,14 @@ const VendorBills = () => {
               )}
               <TextField label="Total (AED)" value={fmt(billTotal)} disabled fullWidth />
             </Stack>
+            {billOverage > 0.01 && (
+              <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                This bill is <strong>AED {fmt(billOverage)}</strong> above what is left on the PO. The difference is posted to the expense head.
+                <Box>
+                  <FormControlLabel control={<Checkbox size="small" checked={!!billForm.approveOverage} onChange={(e) => setBillForm((f) => ({ ...f, approveOverage: e.target.checked }))} />} label="Approve the extra amount" />
+                </Box>
+              </Alert>
+            )}
             <Box>
               <Button component="label" size="small" variant="outlined" startIcon={uploading ? <CircularProgress size={14} /> : <IconUpload size={14} />} disabled={uploading} sx={{ borderRadius: 2 }}>
                 {billForm.attachmentName ? 'Replace attachment' : 'Attach supplier invoice'}

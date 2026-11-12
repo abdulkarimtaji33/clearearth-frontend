@@ -39,6 +39,7 @@ const ExpenseCreate = () => {
   const [expenseAccountId, setExpenseAccountId] = useState('');
   const [netAmount, setNetAmount] = useState('');
   const [vatRate, setVatRate] = useState('5');
+  const [vatManual, setVatManual] = useState('');
   const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paidTo, setPaidTo] = useState('');
   const [receiptNo, setReceiptNo] = useState('');
@@ -61,7 +62,7 @@ const ExpenseCreate = () => {
   }, []);
 
   const net = round2(netAmount);
-  const vat = round2((net * (parseFloat(vatRate) || 0)) / 100);
+  const vat = vatRate === 'manual' ? round2(vatManual) : round2((net * (parseFloat(vatRate) || 0)) / 100);
   const total = round2(net + vat);
   const hasVat = vat > 0;
 
@@ -103,7 +104,8 @@ const ExpenseCreate = () => {
       const res = await apiService.createAccountsExpense({
         expenseAccountId: parseInt(expenseAccountId, 10),
         netAmount: net,
-        vatRate: parseFloat(vatRate) || 0,
+        vatRate: vatRate === 'manual' ? 'manual' : parseFloat(vatRate) || 0,
+        vatAmount: vatRate === 'manual' ? round2(vatManual) : undefined,
         expenseDate,
         paidTo: paidTo.trim() || undefined,
         receiptNo: receiptNo.trim() || undefined,
@@ -170,9 +172,17 @@ const ExpenseCreate = () => {
                 />
                 <TextField select fullWidth size="small" label="VAT" value={vatRate} onChange={(e) => setVatRate(e.target.value)} sx={field}>
                   <MenuItem value="5">5%</MenuItem>
+                  <MenuItem value="manual">Manual amount</MenuItem>
                   <MenuItem value="0">No VAT</MenuItem>
                 </TextField>
               </Stack>
+              {vatRate === 'manual' && (
+                <TextField
+                  fullWidth size="small" type="number" inputProps={{ min: 0, step: '0.01' }}
+                  label="VAT amount (AED)" value={vatManual} onChange={(e) => setVatManual(e.target.value)} sx={field}
+                  helperText="Type the VAT shown on the supplier's receipt or invoice"
+                />
+              )}
               <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.06) }}>
                 <Stack direction="row" justifyContent="space-between"><Typography variant="body2">VAT (recoverable)</Typography><Typography variant="body2" fontWeight={700}>AED {fmt(vat)}</Typography></Stack>
                 <Stack direction="row" justifyContent="space-between"><Typography variant="subtitle2" fontWeight={800}>Total paid</Typography><Typography variant="subtitle2" fontWeight={800}>AED {fmt(total)}</Typography></Stack>

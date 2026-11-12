@@ -35,6 +35,9 @@ import PayeeSelect, { rememberPayee } from '../../../components/erp/PayeeSelect'
 import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 import { filterActiveByType, isPostable } from '../../../utils/accountTree';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
+import { Checkbox, FormControlLabel } from '@mui/material';
+import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
+import { overdrawInfo } from '../../../utils/accountTree';
 import {
   PAID_TO_OPTIONS,
   PAID_TO_STORAGE_KEY,
@@ -84,15 +87,20 @@ const AccountsWorkOrderView = () => {
     paymentMethod: 'Bank transfer',
     notes: '',
     expenseAccountId: '',
+    paidNow: false,
+    paymentAccountId: '',
   });
+  const [negativeOk, setNegativeOk] = useState(false);
+  const [allAccounts, setAllAccounts] = useState([]);
   const [customPaidTo, setCustomPaidTo] = useState(() => loadStoredOptions(PAID_TO_STORAGE_KEY));
   const [customPaymentMethods, setCustomPaymentMethods] = useState(() => loadStoredOptions(PAYMENT_METHOD_STORAGE_KEY));
   const [expenseAccounts, setExpenseAccounts] = useState([]);
 
   useEffect(() => {
-    apiService.getChartOfAccounts({}).then((res) => {
+    apiService.getChartOfAccounts({ withBalance: true }).then((res) => {
       if (res.success) {
         const list = Array.isArray(res.data) ? res.data : res.data?.items || [];
+        setAllAccounts(list.filter((a) => a.is_active));
         setExpenseAccounts(filterActiveByType(list, 'expense'));
       }
     });
@@ -176,7 +184,10 @@ const AccountsWorkOrderView = () => {
       paymentMethod: 'Bank transfer',
       notes: notesParts.join(' · '),
       expenseAccountId: '', // the approver must choose the expense head
+      paidNow: false,
+      paymentAccountId: '',
     });
+    setNegativeOk(false);
     setApproveOpen(true);
   };
 
@@ -184,6 +195,14 @@ const AccountsWorkOrderView = () => {
     if (!approveCtx || !wo) return;
     if (!form.expenseAccountId || !expenseAccounts.some((a) => String(a.id) === String(form.expenseAccountId) && isPostable(a))) {
       setError('Select the expense account (expense head) for this expense.');
+      return;
+    }
+    if (form.paidNow && !form.paymentAccountId) {
+      setError('Select the bank or cash account it was paid from.');
+      return;
+    }
+    if (form.paidNow && overdrawInfo(allAccounts, form.paymentAccountId, num(form.amount)) && !negativeOk) {
+      setError('This payment takes the account below zero. Tick "Pay anyway" to continue.');
       return;
     }
     try {
@@ -196,6 +215,9 @@ const AccountsWorkOrderView = () => {
         paymentMethod: form.paymentMethod || null,
         notes: form.notes || null,
         expenseAccountId: form.expenseAccountId ? parseInt(form.expenseAccountId, 10) : undefined,
+        paidNow: form.paidNow || undefined,
+        paymentAccountId: form.paidNow ? parseInt(form.paymentAccountId, 10) : undefined,
+        confirmNegative: negativeOk || undefined,
       });
       rememberPayee(form.paidTo);
       setSuccess('Expense recorded');
@@ -651,7 +673,7 @@ const AccountsWorkOrderView = () => {
                   }}
                   parentLabel="Expense account"
                   childLabel="Expense sub-account"
-                  helperText="Required — the expense head debited by this expense (e.g. 5410 Fuel). Credit goes to 2200 Accrued Expenses."
+                  helperText="Required — the expense head debited by this expense (e.g. 5410 Fuel)."
                 />
               )}
               <TextField label="Amount (AED)" size="small" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} fullWidth />
@@ -661,25 +683,37 @@ const AccountsWorkOrderView = () => {
                 onChange={(v) => setForm((f) => ({ ...f, paidTo: v }))}
                 label="Paid to"
                 preferVendors
-                helperText="Optional at approval. The bank account is chosen when the expense is paid."
+                helperText="Optional. Pick a vendor, an employee, or type any other name."
               />
-              <SelectWithAddNew
-                label="Payment method"
-                value={form.paymentMethod}
-                onChange={(v) => setForm((f) => ({ ...f, paymentMethod: v }))}
-                options={paymentMethodOptions}
-                addDialogTitle="Add payment method"
-                addDialogDescription="Add a custom payment method for this and future expenses"
-                addFieldLabel="Payment method"
-                onOptionAdded={addCustomPaymentMethod}
+              <FormControlLabel
+                control={<Checkbox checked={!!form.paidNow} onChange={(e) => setForm((f) => ({ ...f, paidNow: e.target.checked }))} />}
+                label={<Typography variant="body2"><strong>Paid at the time</strong> — pay it now from a bank or cash account</Typography>}
               />
+              {form.paidNow ? (
+                <PaymentRecordingFields
+                  paymentMethod={form.paymentMethod}
+                  onPaymentMethodChange={(v) => setForm((f) => ({ ...f, paymentMethod: v }))}
+                  paymentAccountId={form.paymentAccountId}
+                  onPaymentAccountChange={(v) => setForm((f) => ({ ...f, paymentAccountId: v }))}
+                  accounts={allAccounts}
+                  autoPickAccount={false}
+                  allowAddMethod={false}
+                  payAmount={num(form.amount)}
+                  negativeConfirmed={negativeOk}
+                  onNegativeConfirmedChange={setNegativeOk}
+                />
+              ) : (
+                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                  Not paid yet: this is accrued to <strong>2200 Accrued Expenses</strong> until the supplier's bill is recorded in Vendor Bills.
+                </Alert>
+              )}
               <TextField label="Notes" size="small" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} multiline minRows={2} fullWidth placeholder="Context is prefilled; edit if needed." />
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={() => setApproveOpen(false)} disabled={saving}>Cancel</Button>
             <Button variant="contained" onClick={handleApproveSubmit} disabled={saving}>
-              {saving ? <CircularProgress size={20} /> : 'Approve & post to ledger'}
+              {saving ? <CircularProgress size={20} /> : form.paidNow ? 'Approve & pay' : 'Approve & accrue'}
             </Button>
           </DialogActions>
         </Dialog>

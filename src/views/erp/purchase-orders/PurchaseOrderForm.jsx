@@ -586,9 +586,9 @@ const PurchaseOrderForm = () => {
                         value={values.expenseAccountId}
                         onChange={(accId) => setFieldValue('expenseAccountId', accId)}
                         size="medium"
-                        parentLabel="Expense account (optional)"
-                        childLabel="Expense sub-account"
-                        helperText="Expense head debited when this is approved (Cr 2200 Accrued Expenses). Defaults to 5000 Cost of Services."
+                        parentLabel="Expense head (required to approve)"
+                        childLabel="Expense sub-head"
+                        helperText="Nothing is posted when the PO is approved. This head is used when the supplier's bill is recorded in Vendor Bills (Dr expense head + Input VAT / Cr Accounts Payable)."
                       />
                     )}
 

@@ -178,7 +178,7 @@ const StatementOfAccountView = () => {
                       <TableRow key={idx} hover>
                         <TableCell sx={{ whiteSpace: 'nowrap', color: 'text.secondary', fontSize: '0.8rem' }}>{t.date}</TableCell>
                         <TableCell>
-                          <Chip size="small" label={t.docType} color={t.docType === 'Invoice' ? 'warning' : 'success'} variant="outlined" sx={{ fontWeight: 700 }} />
+                          <Chip size="small" label={t.docType} color={t.docType === 'Invoice' ? 'warning' : t.docType === 'Credit Note' ? 'info' : t.docType === 'Refund Paid' ? 'error' : 'success'} variant="outlined" sx={{ fontWeight: 700 }} />
                         </TableCell>
                         <TableCell sx={{ maxWidth: 260 }}>
                           <Typography variant="body2" noWrap title={t.details}>{t.details}</Typography>
@@ -186,12 +186,12 @@ const StatementOfAccountView = () => {
                         </TableCell>
                         <TableCell align="right">
                           {t.amount > 0 ? (
-                            <AmountButton onClick={() => setDialog({ kind: 'invoice', data: t.breakdown })}>{fmt(t.amount)}</AmountButton>
+                            t.docType === 'Refund Paid' ? fmt(t.amount) : <AmountButton onClick={() => setDialog({ kind: 'invoice', data: t.breakdown })}>{fmt(t.amount)}</AmountButton>
                           ) : '—'}
                         </TableCell>
                         <TableCell align="right">
                           {t.receipts > 0 ? (
-                            <AmountButton color={theme.palette.success.dark} onClick={() => setDialog({ kind: 'receipt', data: t.breakdown })}>{fmt(t.receipts)}</AmountButton>
+                            t.docType === 'Credit Note' ? fmt(t.receipts) : <AmountButton color={theme.palette.success.dark} onClick={() => setDialog({ kind: 'receipt', data: t.breakdown })}>{fmt(t.receipts)}</AmountButton>
                           ) : '—'}
                         </TableCell>
                         <TableCell align="right">

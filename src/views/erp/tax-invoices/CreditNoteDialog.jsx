@@ -17,6 +17,8 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconCircleCheck, IconCircleDashed, IconReceiptRefund } from '@tabler/icons-react';
 import apiService from '../../../services/api';
+import { filterCashBankAccounts, isPostable, overdrawInfo } from '../../../utils/accountTree';
+import { MenuItem, Checkbox, FormControlLabel } from '@mui/material';
 
 const round2 = (n) => Math.round((parseFloat(n) || 0) * 100) / 100;
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -68,6 +70,18 @@ const CreditNoteDialog = ({ open, taxInvoiceId, onClose, onIssued }) => {
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
   const [creditDate, setCreditDate] = useState(new Date().toISOString().slice(0, 10));
+  const [includePaid, setIncludePaid] = useState(false);
+  const [refundMethod, setRefundMethod] = useState('Bank transfer');
+  const [refundAccountId, setRefundAccountId] = useState('');
+  const [refundRef, setRefundRef] = useState('');
+  const [negativeOk, setNegativeOk] = useState(false);
+  const [accounts, setAccounts] = useState([]);
+
+  useEffect(() => {
+    apiService.getChartOfAccounts({ withBalance: true })
+      .then((res) => setAccounts(Array.isArray(res.data) ? res.data : res.data?.items || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!open || !taxInvoiceId) return;
@@ -78,6 +92,7 @@ const CreditNoteDialog = ({ open, taxInvoiceId, onClose, onIssued }) => {
     setReason('');
     setNotes('');
     setCreditDate(new Date().toISOString().slice(0, 10));
+    setIncludePaid(false); setRefundAccountId(''); setRefundRef(''); setNegativeOk(false);
     setLoading(true);
     apiService
       .getInvoiceCreditInfo(taxInvoiceId)
@@ -89,19 +104,26 @@ const CreditNoteDialog = ({ open, taxInvoiceId, onClose, onIssued }) => {
   const cur = info?.currency || 'AED';
 
   // What this credit note amounts to, split into ex-VAT, VAT and total.
+  const limit = info ? (includePaid ? info.creditableTotal : info.outstanding) : 0;
   const preview = useMemo(() => {
     if (!info) return null;
     if (mode === 'full') {
-      return { subtotal: info.maxSubtotal, vat: info.maxVat, total: info.outstanding };
+      return includePaid
+        ? { subtotal: info.maxSubtotalAll, vat: info.maxVatAll, total: info.creditableTotal }
+        : { subtotal: info.maxSubtotal, vat: info.maxVat, total: info.outstanding };
     }
     const subtotal = round2(amount);
     const vat = round2((subtotal * info.vatPercentage) / 100);
     return { subtotal, vat, total: round2(subtotal + vat) };
-  }, [info, mode, amount]);
+  }, [info, mode, amount, includePaid]);
 
-  const tooMuch = preview && info && preview.total > info.outstanding + 0.01;
+  const tooMuch = preview && info && preview.total > limit + 0.01;
+  const refund = preview && info ? Math.max(0, round2(preview.total - info.outstanding)) : 0; // the part the customer already paid
   const customerOwesAfter = preview && info ? Math.max(0, round2(info.outstanding - preview.total)) : 0;
-  const ready = !!info?.canCredit && !!reason && preview && preview.total > 0 && !tooMuch && !!creditDate;
+  const cashBank = useMemo(() => filterCashBankAccounts(accounts).filter(isPostable), [accounts]);
+  const overdraw = refund > 0 && refundAccountId ? overdrawInfo(accounts, refundAccountId, refund) : null;
+  const ready = !!info?.canCredit && !!reason && preview && preview.total > 0 && !tooMuch && !!creditDate
+    && (refund <= 0 || (!!refundAccountId && (!overdraw || negativeOk)));
 
   const submit = async () => {
     try {
@@ -113,6 +135,8 @@ const CreditNoteDialog = ({ open, taxInvoiceId, onClose, onIssued }) => {
         notes: notes.trim() || undefined,
         creditDate,
         amountExVat: mode === 'full' ? undefined : round2(amount),
+        includePaid: includePaid || undefined,
+        ...(refund > 0 ? { refundAmount: refund, refundAccountId: parseInt(refundAccountId, 10), refundMethod, refundReference: refundRef || undefined, confirmNegative: negativeOk || undefined } : {}),
       });
       onIssued?.(res.data);
     } catch (e) {
@@ -177,6 +201,17 @@ const CreditNoteDialog = ({ open, taxInvoiceId, onClose, onIssued }) => {
                   onClick={() => setMode('partial')}
                 />
               </Stack>
+              {info.canRefund && (
+                <Box sx={{ mt: 1.5, p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.warning.main, 0.08) }}>
+                  <FormControlLabel
+                    control={<Checkbox size="small" checked={includePaid} onChange={(e) => setIncludePaid(e.target.checked)} />}
+                    label={<Typography variant="body2" fontWeight={700}>Also credit what the customer has already paid ({cur} {fmt(info.paid)}) and refund it</Typography>}
+                  />
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ pl: 4 }}>
+                    Tick this to cancel or correct an invoice that was paid. The paid part is handed back from a bank or cash account.
+                  </Typography>
+                </Box>
+              )}
               {mode === 'partial' && (
                 <TextField
                   autoFocus
@@ -186,7 +221,7 @@ const CreditNoteDialog = ({ open, taxInvoiceId, onClose, onIssued }) => {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   InputProps={{ startAdornment: <InputAdornment position="start">{cur}</InputAdornment> }}
-                  helperText={`VAT at ${info.vatPercentage}% is added automatically. You can credit up to ${cur} ${fmt(info.maxSubtotal)} excluding VAT.`}
+                  helperText={`VAT at ${info.vatPercentage}% is added automatically. You can credit up to ${cur} ${fmt(includePaid ? info.maxSubtotalAll : info.maxSubtotal)} excluding VAT.`}
                   error={!!tooMuch}
                   sx={{ mt: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
@@ -236,7 +271,7 @@ const CreditNoteDialog = ({ open, taxInvoiceId, onClose, onIssued }) => {
               <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: tooMuch ? 'error.main' : 'divider' }}>
                 {tooMuch ? (
                   <Typography variant="body2" color="error.main" fontWeight={600}>
-                    That is more than the customer still owes ({cur} {fmt(info.outstanding)} including VAT). Lower the amount.
+                    That is more than can be credited ({cur} {fmt(limit)} including VAT){!includePaid && info.canRefund ? '. Tick the box above to include what was already paid.' : '. Lower the amount.'}
                   </Typography>
                 ) : preview && preview.total > 0 ? (
                   <Stack spacing={0.75}>
@@ -246,9 +281,33 @@ const CreditNoteDialog = ({ open, taxInvoiceId, onClose, onIssued }) => {
                     <Typography variant="body2">
                       After this, the customer owes <strong>{cur} {fmt(customerOwesAfter)}</strong> on this invoice.
                     </Typography>
+                    {refund > 0 && (
+                      <Typography variant="body2" color="warning.dark" fontWeight={700}>
+                        {cur} {fmt(refund)} of this was already paid and will be refunded to the customer.
+                      </Typography>
+                    )}
                     <Typography variant="caption" color="text.secondary">
-                      In the books: revenue and VAT payable are reduced, and Accounts Receivable is reduced by the same total. The original invoice stays as it is.
+                      In the books: revenue and VAT payable are reduced; {refund > 0 ? `Accounts Receivable is reduced by ${cur} ${fmt(round2(preview.total - refund))} and the bank or cash account by ${cur} ${fmt(refund)}` : 'Accounts Receivable is reduced by the same total'}. The original invoice stays as it is.
                     </Typography>
+                    {refund > 0 && (
+                      <Stack spacing={1.5} sx={{ pt: 1 }}>
+                        <TextField select size="small" required label="Refund paid from (bank / cash)" value={refundAccountId} onChange={(e) => setRefundAccountId(e.target.value)} fullWidth>
+                          {cashBank.map((a) => <MenuItem key={a.id} value={String(a.id)}>{a.code} — {a.name}</MenuItem>)}
+                        </TextField>
+                        <Stack direction="row" spacing={1.5}>
+                          <TextField select size="small" label="Method" value={refundMethod} onChange={(e) => setRefundMethod(e.target.value)} fullWidth>
+                            {['Bank transfer', 'Cash', 'Cheque', 'Credit card'].map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}
+                          </TextField>
+                          <TextField size="small" label="Reference" value={refundRef} onChange={(e) => setRefundRef(e.target.value)} fullWidth />
+                        </Stack>
+                        {overdraw && (
+                          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                            This takes the account below zero.
+                            <Box><Checkbox size="small" checked={negativeOk} onChange={(e) => setNegativeOk(e.target.checked)} /> Refund anyway</Box>
+                          </Alert>
+                        )}
+                      </Stack>
+                    )}
                   </Stack>
                 ) : (
                   <Typography variant="body2" color="text.secondary">Choose an amount to see what will happen.</Typography>

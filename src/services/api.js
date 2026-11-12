@@ -709,6 +709,10 @@ class ApiService {
     return this.post('/credit-notes', data);
   }
 
+  async downloadCreditNotePdf(id, number) {
+    return this._downloadPdf(`${this.baseURL}/credit-notes/${id}/pdf`, `credit-note-${String(number || id).replace(/[\\/]/g, '-')}.pdf`);
+  }
+
   // Supplier debit notes
   async getSupplierDebitNotes(params) {
     return this.get('/supplier-debit-notes', params);

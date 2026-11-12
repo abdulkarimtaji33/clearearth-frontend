@@ -100,7 +100,7 @@ const CreditNoteList = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  {['Credit note', 'Date', 'Invoice', 'Reason', 'Ex VAT', 'VAT', 'Total', 'Issued by'].map((h, i) => (
+                  {['Credit note', 'Date', 'Invoice', 'Reason', 'Ex VAT', 'VAT', 'Total', 'Refunded', 'Issued by', ''].map((h, i) => (
                     <TableCell key={h} align={i >= 4 && i <= 6 ? 'right' : 'left'} sx={{ fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', color: 'text.secondary', whiteSpace: 'nowrap' }}>{h}</TableCell>
                   ))}
                 </TableRow>
@@ -122,7 +122,11 @@ const CreditNoteList = () => {
                       <TableCell align="right">{fmt(cn.subtotal)}</TableCell>
                       <TableCell align="right">{fmt(cn.vat_amount)}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700 }}>{fmt(cn.total)}</TableCell>
+                      <TableCell align="right">{parseFloat(cn.refund_amount) > 0 ? fmt(cn.refund_amount) : '—'}</TableCell>
                       <TableCell>{by}</TableCell>
+                      <TableCell align="right">
+                        <Button size="small" onClick={(e) => { e.stopPropagation(); apiService.downloadCreditNotePdf(cn.id, cn.credit_note_number).catch((err) => setError(err.message)); }} sx={{ borderRadius: 2, whiteSpace: 'nowrap' }}>PDF</Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}

@@ -669,6 +669,14 @@ class ApiService {
     return this.post('/vendor-bills', data);
   }
 
+  async getPayablesBySupplier(params) {
+    return this.get('/payables/by-supplier', params);
+  }
+
+  async getSupplierStatement(supplierId, params) {
+    return this.get(`/payables/supplier-statement/${supplierId}`, params);
+  }
+
   async getVendorBillsAwaitingWo() {
     return this.get('/vendor-bills/awaiting-wo-expenses');
   }

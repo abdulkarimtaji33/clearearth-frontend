@@ -262,19 +262,19 @@ const SupplierList = () => {
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.04) }}>
-                  {['Supplier', 'Primary Contact', 'Email', 'Phone', 'Industry', 'Status', ''].map((h, i) => (
-                    <TableCell key={i} align={i === 6 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                  {['Supplier', 'Primary Contact', 'Email', 'Phone', 'Industry', 'Balance owed (AED)', 'Status', ''].map((h, i) => (
+                    <TableCell key={i} align={i === 5 ? 'right' : i === 7 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                   ))}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   [...Array(5)].map((_, i) => (
-                    <TableRow key={i}><TableCell colSpan={7} sx={{ py: 2 }}><Box sx={{ height: 20, bgcolor: 'action.hover', borderRadius: 1, animation: 'pulse 1.5s ease-in-out infinite', '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } } }} /></TableCell></TableRow>
+                    <TableRow key={i}><TableCell colSpan={8} sx={{ py: 2 }}><Box sx={{ height: 20, bgcolor: 'action.hover', borderRadius: 1, animation: 'pulse 1.5s ease-in-out infinite', '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } } }} /></TableCell></TableRow>
                   ))
                 ) : suppliers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
                       <IconTruckDelivery size={40} style={{ opacity: 0.2, marginBottom: 8 }} />
                       <Typography variant="body2" color="text.secondary">
                         {hasFilters ? 'No suppliers match your filters' : 'No suppliers yet'}
@@ -332,6 +332,18 @@ const SupplierList = () => {
                         ) : <Typography variant="body2" color="text.disabled">—</Typography>}
                       </TableCell>
                       <TableCell><Typography variant="body2">{supplier.industry_type || <Box component="span" sx={{ color: 'text.disabled' }}>—</Box>}</Typography></TableCell>
+                      <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                        {Number(supplier.balance_due) > 0 ? (
+                          <Typography
+                            variant="body2" fontWeight={800} color="warning.dark"
+                            sx={{ cursor: 'pointer', textDecoration: 'underline dotted' }}
+                            onClick={() => navigate(`/erp/suppliers/${supplier.id}/statement`)}
+                            title="Open the statement of account"
+                          >
+                            {Number(supplier.balance_due).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Typography>
+                        ) : <Box component="span" sx={{ color: 'text.disabled' }}>—</Box>}
+                      </TableCell>
                       <TableCell>
                         <Chip label={supplier.status === 'active' ? 'Active' : 'Inactive'} size="small" color={supplier.status === 'active' ? 'success' : 'default'} sx={{ fontWeight: 600 }} />
                       </TableCell>

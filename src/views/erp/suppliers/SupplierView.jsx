@@ -191,6 +191,7 @@ const SupplierView = () => {
                 {supplier.address && <Stack direction="row" alignItems="center" spacing={0.5}><IconMapPin size={13} style={{ opacity: 0.4 }} /><Typography variant="body2">{supplier.address}</Typography></Stack>}
               </Stack>
             </Box>
+            <Button variant="outlined" onClick={() => navigate(`/erp/suppliers/${id}/statement`)} sx={{ borderRadius: 2.5, fontWeight: 700, flexShrink: 0, mr: 1 }}>Statement of account</Button>
             <Button variant="contained" startIcon={<IconEdit size={15} />} onClick={goEdit} sx={{ borderRadius: 2.5, fontWeight: 700, flexShrink: 0 }}>Edit</Button>
           </Box>
           <Box sx={{ display: 'flex', borderTop: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.background.default, 0.5) }}>

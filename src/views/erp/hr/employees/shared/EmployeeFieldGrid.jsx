@@ -43,7 +43,7 @@ const EmployeeFieldGrid = ({ fields, values, onChange, lookups = {}, errors = {}
     <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${min}px, 1fr))`, gap: 2 }}>
       {fields.map((f) => {
         const value = values[f.key] ?? (f.type === 'switch' ? false : '');
-        const common = { fullWidth: true, label: f.label, required: f.required, error: !!errors[f.key], helperText: errors[f.key] || '', sx: inputSx };
+        const common = { fullWidth: true, label: f.label, required: f.required, error: !!errors[f.key], helperText: errors[f.key] || f.hint || '', placeholder: f.placeholder, InputLabelProps: { shrink: true }, sx: inputSx };
         if (f.type === 'switch') {
           return (
             <Box key={f.key} sx={{ gridColumn: '1 / -1' }}>
@@ -58,7 +58,7 @@ const EmployeeFieldGrid = ({ fields, values, onChange, lookups = {}, errors = {}
               label={f.label}
               value={value ? dayjs(value) : null}
               onChange={(nv) => onChange(f.key, nv && nv.isValid() ? nv.format('YYYY-MM-DD') : '')}
-              slotProps={{ textField: { fullWidth: true, required: f.required, error: !!errors[f.key], helperText: errors[f.key] || '', sx: inputSx } }}
+              slotProps={{ textField: { fullWidth: true, required: f.required, error: !!errors[f.key], helperText: errors[f.key] || f.hint || '', sx: inputSx } }}
             />
           );
         }

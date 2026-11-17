@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, Stack, Alert, Button, Chip, Paper, Snackbar, Typography, Divider, Link, Collapse, ButtonBase } from '@mui/material';
-import { IconEdit, IconCheck, IconX, IconChevronDown } from '@tabler/icons-react';
+import { IconEdit, IconCheck, IconX, IconChevronDown, IconCopy } from '@tabler/icons-react';
 import apiService from '../../../../../services/api';
 import { useAuth } from '../../../../../context/AuthContext';
 import ProfileHeader from './profile/ProfileHeader';
@@ -74,6 +74,7 @@ const EmployeeDetailPage = ({ employeeId }) => {
   const [docs, setDocs] = useState([]);
   const [idFiles, setIdFiles] = useState({});
   const [showEmpty, setShowEmpty] = useState(false);
+  const [errors, setErrors] = useState({});
   const [openSecs, setOpenSecs] = useState({}); // collapsible secondary sections
   const [docsVersion, setDocsVersion] = useState(0);
 
@@ -127,14 +128,28 @@ const EmployeeDetailPage = ({ employeeId }) => {
     });
     setValues(initial);
     setIdFiles({});
+    setErrors({});
     setFormError('');
     setEditing(true);
   };
-  const cancelEdit = () => { setEditing(false); setFormError(''); };
+  const cancelEdit = () => {
+    if (changeCount > 0 && !window.confirm('Discard your unsaved changes?')) return;
+    setEditing(false); setFormError(''); setErrors({});
+  };
 
   const save = async () => {
-    const missing = ALL_FIELDS.find((f) => f.required && !values[f.key]);
-    if (missing) { setFormError(`${missing.label} is required`); return; }
+    const nextErrors = {};
+    ALL_FIELDS.forEach((f) => {
+      const v = String(values[f.key] ?? '').trim();
+      if (f.required && !v) nextErrors[f.key] = `${f.label} is required`;
+      else if (f.type === 'email' && v && !/^\S+@\S+\.\S+$/.test(v)) nextErrors[f.key] = 'Enter a valid email address';
+    });
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) {
+      setFormError(`Please fix ${Object.keys(nextErrors).length} highlighted field(s)`);
+      setTimeout(() => document.querySelector('[aria-invalid="true"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+      return;
+    }
     const patch = diffValues(ALL_FIELDS, employee, values);
     setSaving(true);
     setFormError('');
@@ -211,6 +226,10 @@ const EmployeeDetailPage = ({ employeeId }) => {
     return list.map((a) => ({ ...a, loading: downloading === a.key, onClick: () => handleDownload(a.key) }));
   }, [activeSalary, downloading, handleDownload]);
 
+  const changeCount = (editing && employee)
+    ? Object.keys(diffValues(ALL_FIELDS, employee, values)).length + Object.values(idFiles).filter(Boolean).length
+    : 0;
+
   if (loading) return <LoadingBlock py={10} />;
   if (error) return <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>;
   if (!employee) return null;
@@ -266,6 +285,33 @@ const EmployeeDetailPage = ({ employeeId }) => {
     </Box>
   );
 
+  const setField = (k, v) => {
+    setValues((prev) => ({ ...prev, [k]: v }));
+    if (errors[k]) setErrors((prev) => { const n = { ...prev }; delete n[k]; return n; });
+  };
+
+  const copyCurrentAddress = () => setValues((prev) => ({
+    ...prev,
+    permanentAddressLine1: prev.currentAddressLine1,
+    permanentAddressCity: prev.currentAddressCity,
+    permanentAddressEmirate: prev.currentAddressEmirate,
+    permanentAddressCountry: prev.currentAddressCountry,
+    permanentAddressPostal: prev.currentAddressPostal,
+  }));
+
+  // Edit mode: one clear card per topic, roomy 3-column fields.
+  const editCard = (key, extra = {}) => {
+    const def = SECTIONS[key];
+    return (
+      <SectionCard key={key} id={sectionId(key)} icon={def.icon} title={def.title} subtitle={def.subtitle} sx={{ scrollMarginTop: 90 }} action={extra.action}>
+        <EmployeeFieldGrid
+          fields={def.fields} values={values} lookups={lookups} errors={errors} min={extra.min || 250}
+          onChange={setField}
+        />
+      </SectionCard>
+    );
+  };
+
   const anchor = (id, node) => <Box id={id} sx={{ scrollMarginTop: 90 }}>{node}</Box>;
 
   // Secondary sections are folded away by default to keep the page short.
@@ -315,12 +361,6 @@ const EmployeeDetailPage = ({ employeeId }) => {
         </Alert>
       )}
 
-      {editing && (
-        <Alert severity="info" sx={{ mb: 2.5, borderRadius: 2.5 }}>
-          Edit mode — change anything below, then press <b>Save changes</b> at the bottom.
-        </Alert>
-      )}
-
       {/* Quick jump (stays visible while scrolling) */}
       <Box sx={{ position: 'sticky', top: 0, zIndex: 5, py: 1, mb: 2, bgcolor: 'background.default' }}>
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
@@ -335,6 +375,38 @@ const EmployeeDetailPage = ({ employeeId }) => {
       </Box>
 
       <Stack spacing={2.5}>
+        {editing ? (
+          <>
+            {editCard('job')}
+            {editCard('basic')}
+            {editCard('contact')}
+            <Box sx={twoCol}>
+              {editCard('currentAddress', { min: 200 })}
+              {editCard('permanentAddress', {
+                min: 200,
+                action: (
+                  <Button size="small" variant="outlined" startIcon={<IconCopy size={15} />} onClick={copyCurrentAddress} sx={{ borderRadius: 2 }}>
+                    Same as current
+                  </Button>
+                ),
+              })}
+            </Box>
+        <IdentityDocumentsSection
+          id="sec-ids"
+          employee={employee}
+          editing={editing}
+          values={values}
+          onChange={setField}
+          files={idFiles}
+          onFile={(type, f) => setIdFiles((prev) => ({ ...prev, [type]: f }))}
+          docTypes={docTypes}
+          docs={docs}
+        />
+            {editCard('bank')}
+            {editCard('settings')}
+          </>
+        ) : (
+          <>
         {/* At-a-glance strip */}
         <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
           <Stack direction="row" flexWrap="wrap" divider={<Divider orientation="vertical" flexItem />}>
@@ -376,12 +448,14 @@ const EmployeeDetailPage = ({ employeeId }) => {
           employee={employee}
           editing={editing}
           values={values}
-          onChange={(k, v) => setValues((prev) => ({ ...prev, [k]: v }))}
+          onChange={setField}
           files={idFiles}
           onFile={(type, f) => setIdFiles((prev) => ({ ...prev, [type]: f }))}
           docTypes={docTypes}
           docs={docs}
         />
+          </>
+        )}
         <DocumentsTab key={docsVersion} base={base} hidePinned />
 
         {anchor('sec-pay', (
@@ -421,7 +495,10 @@ const EmployeeDetailPage = ({ employeeId }) => {
           }}
         >
           <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="flex-end" sx={{ maxWidth: 1400, mx: 'auto' }}>
-            {formError && <Alert severity="error" sx={{ py: 0, mr: 'auto', borderRadius: 2 }}>{formError}</Alert>}
+            <Typography variant="body2" color={changeCount ? 'warning.main' : 'text.secondary'} fontWeight={600} sx={{ mr: 'auto' }}>
+              {changeCount ? `${changeCount} unsaved change${changeCount > 1 ? 's' : ''}` : 'Editing — no changes yet'}
+            </Typography>
+            {formError && <Alert severity="error" sx={{ py: 0, borderRadius: 2 }}>{formError}</Alert>}
             <Button color="inherit" startIcon={<IconX size={16} />} onClick={cancelEdit} disabled={saving} sx={{ borderRadius: 2 }}>Cancel</Button>
             <Button variant="contained" startIcon={<IconCheck size={16} />} onClick={save} disabled={saving} sx={{ borderRadius: 2, fontWeight: 700 }}>
               {saving ? 'Saving...' : 'Save changes'}

@@ -371,7 +371,7 @@ const OtherDocumentsSection = ({ base, rows, documentTypes, onSaved }) => {
   );
 };
 
-const DocumentsTab = ({ base }) => {
+const DocumentsTab = ({ base, hidePinned = false }) => {
   const [documentTypes, setDocumentTypes] = useState([]);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -411,6 +411,7 @@ const DocumentsTab = ({ base }) => {
   return (
     <Stack spacing={2.5}>
       {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
+      {!hidePinned && (
       <SectionCard icon={IconId} title="Identity & compliance" subtitle={`${onFile} of ${pinned.length} documents on file`}>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
           {pinned.map((p) => (
@@ -418,6 +419,7 @@ const DocumentsTab = ({ base }) => {
           ))}
         </Box>
       </SectionCard>
+      )}
       <OtherDocumentsSection base={base} rows={otherDocs} documentTypes={documentTypes} onSaved={load} />
     </Stack>
   );

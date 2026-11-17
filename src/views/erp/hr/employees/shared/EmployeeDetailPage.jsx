@@ -1,21 +1,22 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Stack, Alert, Button, Chip, Paper, Snackbar } from '@mui/material';
-import { IconEdit, IconCheck, IconX } from '@tabler/icons-react';
+import { Box, Stack, Alert, Button, Chip, Paper, Snackbar, Typography, Divider, Link, Collapse, ButtonBase } from '@mui/material';
+import { IconEdit, IconCheck, IconX, IconChevronDown } from '@tabler/icons-react';
 import apiService from '../../../../../services/api';
 import { useAuth } from '../../../../../context/AuthContext';
 import ProfileHeader from './profile/ProfileHeader';
-import CompensationSection from './profile/CompensationSection';
+import CompensationSection, { compTotal } from './profile/CompensationSection';
 import DocumentsTab from './profile/DocumentsTab';
 import AssetsTab from './profile/AssetsTab';
 import { HistoryTimeline, NotesSection } from './profile/ActivityTab';
 import { PersonalLists, QualificationLists } from './profileLists';
 import LeaveBalancesCard from './profile/LeaveBalancesCard';
+import IdentityDocumentsSection, { IDENTITY_DOCS, findDocRow, currentIdentity } from './IdentityDocumentsSection';
 import EmployeeFieldGrid, { useEmployeeLookups } from './EmployeeFieldGrid';
 import {
   SECTIONS, displayFieldValue, valuesFromEmployee, diffValues,
 } from './employeeSections';
 import {
-  SectionCard, DetailGrid, DetailItem, LoadingBlock, expiryInfo,
+  SectionCard, LoadingBlock, expiryInfo, StatusChip, fmtDate, fmtMoney, tenureOf, humanize,
 } from '../../components/HrUi';
 import { IconAlertTriangle } from '@tabler/icons-react';
 
@@ -23,14 +24,14 @@ import { IconAlertTriangle } from '@tabler/icons-react';
 const FIELD_SECTIONS = ['job', 'basic', 'contact', 'currentAddress', 'permanentAddress', 'identity', 'bank', 'settings'];
 const ALL_FIELDS = FIELD_SECTIONS.flatMap((k) => SECTIONS[k].fields);
 
+// Identity fields are edited inside the ID documents card, so 'identity' is not rendered as its own card.
 const NAV = [
   { id: 'sec-job', label: 'Job' },
   { id: 'sec-basic', label: 'Personal' },
   { id: 'sec-contact', label: 'Contact' },
-  { id: 'sec-identity', label: 'IDs' },
+  { id: 'sec-ids', label: 'IDs & documents' },
+  { id: 'sec-pay', label: 'Salary & leave' },
   { id: 'sec-bank', label: 'Bank' },
-  { id: 'sec-pay', label: 'Salary' },
-  { id: 'sec-docs', label: 'Documents' },
   { id: 'sec-quals', label: 'Qualifications' },
   { id: 'sec-assets', label: 'Assets' },
   { id: 'sec-activity', label: 'Activity' },
@@ -69,6 +70,12 @@ const EmployeeDetailPage = ({ employeeId }) => {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [actionError, setActionError] = useState('');
   const [downloading, setDownloading] = useState('');
+  const [docTypes, setDocTypes] = useState([]);
+  const [docs, setDocs] = useState([]);
+  const [idFiles, setIdFiles] = useState({});
+  const [showEmpty, setShowEmpty] = useState(false);
+  const [openSecs, setOpenSecs] = useState({}); // collapsible secondary sections
+  const [docsVersion, setDocsVersion] = useState(0);
 
   const lookups = useEmployeeLookups(employeeId, editing);
 
@@ -89,7 +96,19 @@ const EmployeeDetailPage = ({ employeeId }) => {
     .catch(() => {})
     .finally(() => setHrSalaryLoaded(true)), [employeeId]);
 
-  useEffect(() => { load(); refreshSalary(); }, [load, refreshSalary]);
+  const refreshDocs = useCallback(async () => {
+    try {
+      const [t, d] = await Promise.all([
+        apiService.getEmployeeDocumentTypes(),
+        apiService.listEmployeeChildRecords(base, 'documents'),
+      ]);
+      if (t.success) setDocTypes(t.data || []);
+      if (d.success) setDocs(d.data || []);
+    } catch { /* section shows employee-record data only */ }
+    setDocsVersion((v) => v + 1);
+  }, [base]);
+
+  useEffect(() => { load(); refreshSalary(); refreshDocs(); }, [load, refreshSalary, refreshDocs]);
   useEffect(() => {
     apiService.getHrEmployeeHistory(employeeId)
       .then((res) => { if (res.success) setHistory(res.data || []); })
@@ -98,7 +117,16 @@ const EmployeeDetailPage = ({ employeeId }) => {
   }, [employeeId]);
 
   const startEdit = () => {
-    setValues(valuesFromEmployee(ALL_FIELDS, employee));
+    const initial = valuesFromEmployee(ALL_FIELDS, employee);
+    // If the number/dates only exist on the uploaded document, bring them in so one Save syncs both.
+    IDENTITY_DOCS.forEach((def) => {
+      const cur = currentIdentity(def, employee, findDocRow(def, docTypes, docs).row);
+      initial[def.number] = cur.number;
+      initial[def.issue] = cur.issue;
+      initial[def.expiry] = cur.expiry;
+    });
+    setValues(initial);
+    setIdFiles({});
     setFormError('');
     setEditing(true);
   };
@@ -108,12 +136,32 @@ const EmployeeDetailPage = ({ employeeId }) => {
     const missing = ALL_FIELDS.find((f) => f.required && !values[f.key]);
     if (missing) { setFormError(`${missing.label} is required`); return; }
     const patch = diffValues(ALL_FIELDS, employee, values);
-    if (!Object.keys(patch).length) { setEditing(false); return; }
     setSaving(true);
     setFormError('');
     try {
-      await apiService.updateHrEmployee(employee.id, patch);
-      await load();
+      if (Object.keys(patch).length) await apiService.updateHrEmployee(employee.id, patch);
+      // Keep the uploaded-document rows in step with the ID numbers/dates (and upload new scans).
+      for (const def of IDENTITY_DOCS) {
+        const { typeId, row } = findDocRow(def, docTypes, docs);
+        if (!typeId) continue;
+        const num = values[def.number] || '';
+        const issue = values[def.issue] || '';
+        const expiry = values[def.expiry] || '';
+        const file = idFiles[def.type];
+        const changed = file
+          || (row ? ((row.document_number || '') !== num || String(row.issue_date || '').slice(0, 10) !== issue || String(row.expiry_date || '').slice(0, 10) !== expiry)
+            : !!(num || issue || expiry));
+        if (!changed) continue;
+        const fd = new FormData();
+        fd.append('documentTypeId', typeId);
+        fd.append('documentNumber', num);
+        fd.append('issueDate', issue);
+        fd.append('expiryDate', expiry);
+        if (file) fd.append('file', file);
+        if (row) await apiService.updateEmployeeChildRecord(base, 'documents', row.id, fd);
+        else await apiService.createEmployeeChildRecord(base, 'documents', fd);
+      }
+      await Promise.all([load(), refreshDocs()]);
       setEditing(false);
       setToast('Saved');
     } catch (err) {
@@ -171,30 +219,78 @@ const EmployeeDetailPage = ({ employeeId }) => {
     .map((d) => ({ ...d, info: expiryInfo(employee[d.expiry]) }))
     .filter((d) => d.info.state === 'expired' || d.info.state === 'expiring');
 
-  const sectionId = (key) => ({ job: 'sec-job', basic: 'sec-basic', contact: 'sec-contact', identity: 'sec-identity', bank: 'sec-bank' }[key]);
+  const sectionId = (key) => ({ job: 'sec-job', basic: 'sec-basic', contact: 'sec-contact', bank: 'sec-bank' }[key]);
 
-  // One card per field-section: shows values, or inputs while editing.
-  const renderSection = (key, min = 220) => {
+  // Compact "label  value" rows for one field-group; inputs while editing.
+  const renderGroup = (key) => {
     const def = SECTIONS[key];
+    const rows = def.fields
+      .map((f) => ({ f, text: displayFieldValue(f, employee) }));
+    const visible = editing || showEmpty ? rows : rows.filter(({ text }) => text !== '' && text !== null && text !== undefined);
     return (
-      <SectionCard key={key} id={sectionId(key)} icon={def.icon} title={def.title} subtitle={def.subtitle} sx={{ scrollMarginTop: 90 }}>
+      <Box key={key} id={sectionId(key)} sx={{ scrollMarginTop: 90, mb: 2.5 }}>
+        <Typography variant="overline" fontWeight={800} color="text.secondary" sx={{ letterSpacing: '0.08em', display: 'block', mb: 0.5 }}>
+          {def.title}
+        </Typography>
         {editing ? (
           <EmployeeFieldGrid
-            fields={def.fields} values={values} lookups={lookups} min={min}
+            fields={def.fields} values={values} lookups={lookups} min={190}
             onChange={(k, v) => setValues((prev) => ({ ...prev, [k]: v }))}
           />
         ) : (
-          <DetailGrid min={min}>
-            {def.fields.filter((f) => f.type !== 'textarea' || displayFieldValue(f, employee)).map((f) => (
-              <DetailItem key={f.key} label={f.type === 'switch' ? 'Salary visible to employee' : f.label} value={displayFieldValue(f, employee)} />
+          <Stack divider={<Divider flexItem sx={{ borderStyle: 'dotted' }} />}>
+            {visible.length === 0 && <Typography variant="body2" color="text.disabled" py={0.75}>Nothing recorded</Typography>}
+            {visible.map(({ f, text }) => (
+              <Stack key={f.key} direction="row" spacing={2} py={0.7} alignItems="baseline">
+                <Typography variant="body2" fontWeight={700} sx={{ width: { xs: 120, sm: 170 }, flexShrink: 0 }}>
+                  {f.type === 'switch' ? 'Salary visible to employee' : f.label}
+                </Typography>
+                <Typography variant="body2" color={text ? 'text.primary' : 'text.disabled'} sx={{ wordBreak: 'break-word', minWidth: 0 }}>
+                  {text || '—'}
+                </Typography>
+              </Stack>
             ))}
-          </DetailGrid>
+          </Stack>
         )}
-      </SectionCard>
+      </Box>
     );
   };
 
+  const idStates = IDENTITY.map((d) => expiryInfo(employee[d.expiry]).state);
+  const idsValid = idStates.filter((x) => x === 'valid').length;
+  const package_ = activeSalary ? compTotal(activeSalary) : 0;
+  const statCell = (label, node) => (
+    <Box sx={{ flex: '1 1 180px', px: 2.5, py: 1.75, minWidth: 0 }}>
+      <Typography variant="body2" color="text.secondary">{label}</Typography>
+      <Box mt={0.5}>{node}</Box>
+    </Box>
+  );
+
   const anchor = (id, node) => <Box id={id} sx={{ scrollMarginTop: 90 }}>{node}</Box>;
+
+  // Secondary sections are folded away by default to keep the page short.
+  const fold = (id, title, subtitle, node) => (
+    <Paper id={id} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden', scrollMarginTop: 90 }}>
+      <ButtonBase
+        onClick={() => setOpenSecs((o) => ({ ...o, [id]: !o[id] }))}
+        sx={{ width: '100%', px: 2.5, py: 1.75, justifyContent: 'space-between', textAlign: 'left' }}
+      >
+        <Box>
+          <Typography variant="subtitle1" fontWeight={700}>{title}</Typography>
+          <Typography variant="caption" color="text.secondary">{subtitle}</Typography>
+        </Box>
+        <IconChevronDown size={20} style={{ transform: openSecs[id] ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+      </ButtonBase>
+      <Collapse in={!!openSecs[id]} unmountOnExit>
+        <Box sx={{ p: 2.5, pt: 0.5 }}>{node}</Box>
+      </Collapse>
+    </Paper>
+  );
+
+  const jumpTo = (id) => {
+    setOpenSecs((o) => ({ ...o, [id]: true }));
+    setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+  };
 
   return (
     <Box sx={{ pb: editing ? 10 : 0 }}>
@@ -225,49 +321,90 @@ const EmployeeDetailPage = ({ employeeId }) => {
         </Alert>
       )}
 
-      {/* Quick jump */}
-      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" mb={2.5}>
-        {NAV.map((n) => (
-          <Chip
-            key={n.id} label={n.label} size="small" variant="outlined" clickable
-            onClick={() => document.getElementById(n.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            sx={{ fontWeight: 600 }}
-          />
-        ))}
-      </Stack>
+      {/* Quick jump (stays visible while scrolling) */}
+      <Box sx={{ position: 'sticky', top: 0, zIndex: 5, py: 1, mb: 2, bgcolor: 'background.default' }}>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          {NAV.map((n) => (
+            <Chip
+              key={n.id} label={n.label} size="small" variant="outlined" clickable
+              onClick={() => jumpTo(n.id)}
+              sx={{ fontWeight: 600, bgcolor: 'background.paper' }}
+            />
+          ))}
+        </Stack>
+      </Box>
 
       <Stack spacing={2.5}>
-        {renderSection('job', 200)}
-        {renderSection('basic')}
-        {renderSection('contact')}
-        <Box sx={twoCol}>
-          {renderSection('currentAddress', 160)}
-          {renderSection('permanentAddress', 160)}
-        </Box>
-        {renderSection('identity')}
-        {renderSection('bank')}
-        {renderSection('settings')}
+        {/* At-a-glance strip */}
+        <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
+          <Stack direction="row" flexWrap="wrap" divider={<Divider orientation="vertical" flexItem />}>
+            {statCell('Status', <StatusChip status={employee.employment_status} />)}
+            {statCell('Tenure', <Typography fontWeight={700}>{tenureOf(employee.date_of_joining) || '—'}{employee.date_of_joining ? <Typography component="span" variant="caption" color="text.secondary"> · since {fmtDate(employee.date_of_joining)}</Typography> : null}</Typography>)}
+            {statCell('Type', <Typography fontWeight={700}>{humanize(employee.employment_type) || '—'}</Typography>)}
+            {statCell('Monthly package', <Typography fontWeight={700} color="primary.main">{package_ ? fmtMoney(package_) : '—'}</Typography>)}
+            {statCell('ID documents', <Typography fontWeight={700}>{idsValid}/{IDENTITY.length} valid</Typography>)}
+          </Stack>
+        </Paper>
+
+        {/* All core details in one card, two columns */}
+        <SectionCard
+          title="Employee details"
+          action={!editing && (
+            <Link component="button" type="button" underline="hover" variant="body2" fontWeight={600} onClick={() => setShowEmpty((v) => !v)}>
+              {showEmpty ? 'Hide empty fields' : 'Show empty fields'}
+            </Link>
+          )}
+          contentSx={{ pt: 1.5 }}
+        >
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, columnGap: 6, alignItems: 'start' }}>
+            <Box>
+              {renderGroup('job')}
+              {renderGroup('basic')}
+              {renderGroup('settings')}
+            </Box>
+            <Box>
+              {renderGroup('contact')}
+              {renderGroup('currentAddress')}
+              {renderGroup('permanentAddress')}
+              {renderGroup('bank')}
+            </Box>
+          </Box>
+        </SectionCard>
+
+        <IdentityDocumentsSection
+          id="sec-ids"
+          employee={employee}
+          editing={editing}
+          values={values}
+          onChange={(k, v) => setValues((prev) => ({ ...prev, [k]: v }))}
+          files={idFiles}
+          onFile={(type, f) => setIdFiles((prev) => ({ ...prev, [type]: f }))}
+          docTypes={docTypes}
+          docs={docs}
+        />
+        <DocumentsTab key={docsVersion} base={base} hidePinned />
 
         {anchor('sec-pay', (
-          <Stack spacing={2.5}>
+          <Box sx={twoCol}>
             <CompensationSection
               isSelf={false} employee={employee} employeeId={employeeId}
               salaryHistory={null} hrSalaryHistory={hrSalaryHistory} hrSalaryLoaded={hrSalaryLoaded}
               onSaved={refreshSalary}
             />
             <LeaveBalancesCard employeeId={employee.id} isSelf={false} />
-          </Stack>
+          </Box>
         ))}
 
-        {anchor('sec-docs', <DocumentsTab base={base} />)}
-        {anchor('sec-quals', (
+        {fold('sec-quals', 'Family & qualifications', 'Emergency contacts, dependents, education, certifications, skills, previous jobs', (
           <Stack spacing={2.5}>
             <PersonalLists base={base} />
             <QualificationLists base={base} />
           </Stack>
         ))}
-        {anchor('sec-assets', <AssetsTab isSelf={false} base={base} employeeId={employeeId} />)}
-        {anchor('sec-activity', (
+        {fold('sec-assets', 'Assets', 'Company equipment issued to this employee', (
+          <AssetsTab isSelf={false} base={base} employeeId={employeeId} />
+        ))}
+        {fold('sec-activity', 'Activity & notes', 'Change history and private HR notes', (
           <Box sx={twoCol}>
             <HistoryTimeline history={history} loading={!historyLoaded} />
             <NotesSection employeeId={employeeId} />

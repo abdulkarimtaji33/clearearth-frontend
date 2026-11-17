@@ -24,6 +24,21 @@ export const IDENTITY_DOCS = [
   { type: 'Labour Card', icon: IconIdBadge2, number: 'labourCardNo', issue: 'labourCardIssueDate', expiry: 'labourCardExpiryDate', col: { number: 'labour_card_no', issue: 'labour_card_issue_date', expiry: 'labour_card_expiry_date' } },
 ];
 
+/** Front / back scan links (or "No scan"). */
+const ScanLinks = ({ row }) => {
+  const links = [['Front', row?.file_path], ['Back', row?.file_path_back]].filter(([, p]) => !!p);
+  if (!links.length) return <Typography variant="body2" color="text.disabled">No scan</Typography>;
+  return (
+    <Stack direction="row" spacing={1.25}>
+      {links.map(([label, path]) => (
+        <Link key={label} href={apiService.getUploadUrl(path)} target="_blank" rel="noopener noreferrer" underline="hover" variant="body2" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, fontWeight: 600 }}>
+          <IconPaperclip size={14} /> {label}
+        </Link>
+      ))}
+    </Stack>
+  );
+};
+
 const ymd = (v) => (v ? String(v).slice(0, 10) : '');
 
 export const findDocRow = (def, docTypes, docs) => {
@@ -57,6 +72,7 @@ const IdentityDocumentsSection = ({
           const info = expiryInfo(cur.expiry);
           const accent = cur.number || cur.expiry || row ? (info.tone === 'default' ? 'primary' : info.tone) : null;
           const file = files[def.type];
+          const fileBack = files[`${def.type}:back`];
           return (
             <Box
               key={def.type}
@@ -100,16 +116,26 @@ const IdentityDocumentsSection = ({
                       slotProps={{ textField: { fullWidth: true, sx: inputSx } }}
                     />
                   ))}
-                  <Box sx={{ gridColumn: '1 / -1' }}>
-                    <Button variant="outlined" component="label" color="inherit" startIcon={<IconPaperclip size={16} />} sx={{ borderRadius: 2, borderStyle: 'dashed' }}>
-                      {file ? file.name : (row?.file_path ? 'Replace scanned copy' : 'Attach scanned copy')}
-                      <input type="file" hidden onChange={(e) => onFile(def.type, e.target.files?.[0] || null)} />
-                    </Button>
-                    {row?.file_path && !file && (
-                      <Link href={apiService.getUploadUrl(row.file_path)} target="_blank" rel="noopener noreferrer" variant="caption" sx={{ ml: 1.5 }}>
-                        View current file
-                      </Link>
-                    )}
+                  <Box sx={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+                    {[['front', 'Front side', row?.file_path, file], ['back', 'Back side', row?.file_path_back, fileBack]].map(([side, label, existing, picked]) => (
+                      <Box key={side}>
+                        <Button
+                          fullWidth variant="outlined" component="label" color="inherit"
+                          startIcon={<IconPaperclip size={16} />}
+                          sx={{ borderRadius: 2, borderStyle: 'dashed', justifyContent: 'flex-start', textTransform: 'none' }}
+                        >
+                          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {picked ? picked.name : `${existing ? 'Replace' : 'Attach'} ${label.toLowerCase()}`}
+                          </Box>
+                          <input type="file" hidden accept="image/*,application/pdf" onChange={(e) => onFile(def.type, e.target.files?.[0] || null, side)} />
+                        </Button>
+                        {existing && !picked && (
+                          <Link href={apiService.getUploadUrl(existing)} target="_blank" rel="noopener noreferrer" variant="caption" sx={{ ml: 0.5 }}>
+                            View current {label.toLowerCase()}
+                          </Link>
+                        )}
+                      </Box>
+                    ))}
                   </Box>
                 </Box>
               ) : (
@@ -119,13 +145,7 @@ const IdentityDocumentsSection = ({
                     {' · '}
                     {cur.expiry ? `Expires ${fmtDate(cur.expiry)}` : 'No expiry date'}
                   </Typography>
-                  {row?.file_path ? (
-                    <Link href={apiService.getUploadUrl(row.file_path)} target="_blank" rel="noopener noreferrer" underline="hover" variant="caption" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontWeight: 600 }}>
-                      <IconPaperclip size={13} /> View scanned copy
-                    </Link>
-                  ) : (
-                    <Typography variant="caption" color="text.disabled">No scan attached</Typography>
-                  )}
+                  <ScanLinks row={row} />
                 </Stack>
               )}
             </Box>
@@ -140,7 +160,7 @@ const IdentityDocumentsSection = ({
 export const IdentityCompactRows = ({ employee, docTypes, docs }) => (
   <Box sx={{ overflowX: 'auto' }}>
     <Box sx={{ minWidth: 640 }}>
-      <Box sx={{ display: 'grid', gridTemplateColumns: '130px 1.4fr 1fr 1fr 110px 120px', columnGap: 2, pb: 0.5 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: '130px 1.4fr 1fr 1fr 110px 130px', columnGap: 2, pb: 0.5 }}>
         {['Document', 'Number', 'Issued', 'Expires', 'Status', 'Scan'].map((h) => (
           <Typography key={h} variant="caption" color="text.secondary" fontWeight={700}>{h}</Typography>
         ))}
@@ -152,7 +172,7 @@ export const IdentityCompactRows = ({ employee, docTypes, docs }) => (
         return (
           <Box
             key={def.type}
-            sx={{ display: 'grid', gridTemplateColumns: '130px 1.4fr 1fr 1fr 110px 120px', columnGap: 2, py: 0.9, alignItems: 'center', borderTop: '1px dotted', borderColor: 'divider' }}
+            sx={{ display: 'grid', gridTemplateColumns: '130px 1.4fr 1fr 1fr 110px 130px', columnGap: 2, py: 0.9, alignItems: 'center', borderTop: '1px dotted', borderColor: 'divider' }}
           >
             <Stack direction="row" spacing={0.75} alignItems="center">
               <Icon size={16} />
@@ -162,13 +182,7 @@ export const IdentityCompactRows = ({ employee, docTypes, docs }) => (
             <Typography variant="body2" color={cur.issue ? 'text.primary' : 'text.disabled'}>{cur.issue ? fmtDate(cur.issue) : '—'}</Typography>
             <Typography variant="body2" color={cur.expiry ? 'text.primary' : 'text.disabled'}>{cur.expiry ? fmtDate(cur.expiry) : '—'}</Typography>
             <Box>{cur.expiry ? <ExpiryChip expiry={cur.expiry} /> : <Typography variant="body2" color="text.disabled">—</Typography>}</Box>
-            {row?.file_path ? (
-              <Link href={apiService.getUploadUrl(row.file_path)} target="_blank" rel="noopener noreferrer" underline="hover" variant="body2" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontWeight: 600 }}>
-                <IconPaperclip size={14} /> View
-              </Link>
-            ) : (
-              <Typography variant="body2" color="text.disabled">None</Typography>
-            )}
+            <ScanLinks row={row} />
           </Box>
         );
       })}

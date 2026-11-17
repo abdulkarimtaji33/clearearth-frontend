@@ -150,7 +150,8 @@ const EmployeeDetailPage = ({ employeeId }) => {
         const issue = values[def.issue] || '';
         const expiry = values[def.expiry] || '';
         const file = idFiles[def.type];
-        const changed = file
+        const fileBack = idFiles[`${def.type}:back`];
+        const changed = file || fileBack
           || (row ? ((row.document_number || '') !== num || String(row.issue_date || '').slice(0, 10) !== issue || String(row.expiry_date || '').slice(0, 10) !== expiry)
             : !!(num || issue || expiry));
         if (!changed) continue;
@@ -160,6 +161,7 @@ const EmployeeDetailPage = ({ employeeId }) => {
         fd.append('issueDate', issue);
         fd.append('expiryDate', expiry);
         if (file) fd.append('file', file);
+        if (fileBack) fd.append('fileBack', fileBack);
         if (row) await apiService.updateEmployeeChildRecord(base, 'documents', row.id, fd);
         else await apiService.createEmployeeChildRecord(base, 'documents', fd);
       }
@@ -368,7 +370,7 @@ const EmployeeDetailPage = ({ employeeId }) => {
           values={values}
           onChange={setField}
           files={idFiles}
-          onFile={(type, f) => setIdFiles((prev) => ({ ...prev, [type]: f }))}
+          onFile={(type, f, side) => setIdFiles((prev) => ({ ...prev, [side === 'back' ? `${type}:back` : type]: f }))}
           docTypes={docTypes}
           docs={docs}
         />

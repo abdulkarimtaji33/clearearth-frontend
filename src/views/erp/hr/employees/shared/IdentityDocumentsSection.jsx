@@ -136,4 +136,44 @@ const IdentityDocumentsSection = ({
   </SectionCard>
 );
 
+/** View-mode: all 4 IDs as one compact table (number, dates, status, scan) for the details card. */
+export const IdentityCompactRows = ({ employee, docTypes, docs }) => (
+  <Box sx={{ overflowX: 'auto' }}>
+    <Box sx={{ minWidth: 640 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: '130px 1.4fr 1fr 1fr 110px 120px', columnGap: 2, pb: 0.5 }}>
+        {['Document', 'Number', 'Issued', 'Expires', 'Status', 'Scan'].map((h) => (
+          <Typography key={h} variant="caption" color="text.secondary" fontWeight={700}>{h}</Typography>
+        ))}
+      </Box>
+      {IDENTITY_DOCS.map((def) => {
+        const { row } = findDocRow(def, docTypes, docs);
+        const cur = currentIdentity(def, employee, row);
+        const Icon = def.icon;
+        return (
+          <Box
+            key={def.type}
+            sx={{ display: 'grid', gridTemplateColumns: '130px 1.4fr 1fr 1fr 110px 120px', columnGap: 2, py: 0.9, alignItems: 'center', borderTop: '1px dotted', borderColor: 'divider' }}
+          >
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              <Icon size={16} />
+              <Typography variant="body2" fontWeight={700}>{def.type}</Typography>
+            </Stack>
+            <Typography variant="body2" sx={{ fontFamily: cur.number ? 'monospace' : undefined }} color={cur.number ? 'text.primary' : 'text.disabled'}>{cur.number || '—'}</Typography>
+            <Typography variant="body2" color={cur.issue ? 'text.primary' : 'text.disabled'}>{cur.issue ? fmtDate(cur.issue) : '—'}</Typography>
+            <Typography variant="body2" color={cur.expiry ? 'text.primary' : 'text.disabled'}>{cur.expiry ? fmtDate(cur.expiry) : '—'}</Typography>
+            <Box>{cur.expiry ? <ExpiryChip expiry={cur.expiry} /> : <Typography variant="body2" color="text.disabled">—</Typography>}</Box>
+            {row?.file_path ? (
+              <Link href={apiService.getUploadUrl(row.file_path)} target="_blank" rel="noopener noreferrer" underline="hover" variant="body2" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontWeight: 600 }}>
+                <IconPaperclip size={14} /> View
+              </Link>
+            ) : (
+              <Typography variant="body2" color="text.disabled">None</Typography>
+            )}
+          </Box>
+        );
+      })}
+    </Box>
+  </Box>
+);
+
 export default IdentityDocumentsSection;

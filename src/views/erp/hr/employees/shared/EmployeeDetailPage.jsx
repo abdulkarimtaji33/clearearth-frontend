@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Stack, Alert, Button, Chip, Paper, Snackbar, Typography, Divider, Link, Collapse, ButtonBase } from '@mui/material';
+import { Box, Stack, Alert, Button, Paper, Snackbar, Typography, Divider, Link, Collapse, ButtonBase } from '@mui/material';
 import { IconEdit, IconCheck, IconX, IconChevronDown, IconCopy } from '@tabler/icons-react';
 import apiService from '../../../../../services/api';
 import { useAuth } from '../../../../../context/AuthContext';
@@ -10,7 +10,7 @@ import AssetsTab from './profile/AssetsTab';
 import { HistoryTimeline, NotesSection } from './profile/ActivityTab';
 import { PersonalLists, QualificationLists } from './profileLists';
 import LeaveBalancesCard from './profile/LeaveBalancesCard';
-import IdentityDocumentsSection, { IDENTITY_DOCS, findDocRow, currentIdentity } from './IdentityDocumentsSection';
+import IdentityDocumentsSection, { IdentityCompactRows, IDENTITY_DOCS, findDocRow, currentIdentity } from './IdentityDocumentsSection';
 import EmployeeFieldGrid, { useEmployeeLookups } from './EmployeeFieldGrid';
 import {
   SECTIONS, displayFieldValue, valuesFromEmployee, diffValues,
@@ -23,19 +23,6 @@ import { IconAlertTriangle } from '@tabler/icons-react';
 // Order = reading order on the page. Each is a key of SECTIONS.
 const FIELD_SECTIONS = ['job', 'basic', 'contact', 'currentAddress', 'permanentAddress', 'identity', 'bank', 'settings'];
 const ALL_FIELDS = FIELD_SECTIONS.flatMap((k) => SECTIONS[k].fields);
-
-// Identity fields are edited inside the ID documents card, so 'identity' is not rendered as its own card.
-const NAV = [
-  { id: 'sec-job', label: 'Job' },
-  { id: 'sec-basic', label: 'Personal' },
-  { id: 'sec-contact', label: 'Contact' },
-  { id: 'sec-ids', label: 'IDs & documents' },
-  { id: 'sec-pay', label: 'Salary & leave' },
-  { id: 'sec-bank', label: 'Bank' },
-  { id: 'sec-quals', label: 'Qualifications' },
-  { id: 'sec-assets', label: 'Assets' },
-  { id: 'sec-activity', label: 'Activity' },
-];
 
 const twoCol = { display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, gap: 2.5, alignItems: 'start' };
 
@@ -333,10 +320,6 @@ const EmployeeDetailPage = ({ employeeId }) => {
     </Paper>
   );
 
-  const jumpTo = (id) => {
-    setOpenSecs((o) => ({ ...o, [id]: true }));
-    setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
-  };
 
   return (
     <Box sx={{ pb: editing ? 10 : 0 }}>
@@ -360,19 +343,6 @@ const EmployeeDetailPage = ({ employeeId }) => {
           {flagged.map((d) => `${d.label}: ${d.info.label.toLowerCase()}`).join(' · ')}
         </Alert>
       )}
-
-      {/* Quick jump (stays visible while scrolling) */}
-      <Box sx={{ position: 'sticky', top: 0, zIndex: 5, py: 1, mb: 2, bgcolor: 'background.default' }}>
-        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          {NAV.map((n) => (
-            <Chip
-              key={n.id} label={n.label} size="small" variant="outlined" clickable
-              onClick={() => jumpTo(n.id)}
-              sx={{ fontWeight: 600, bgcolor: 'background.paper' }}
-            />
-          ))}
-        </Stack>
-      </Box>
 
       <Stack spacing={2.5}>
         {editing ? (
@@ -441,19 +411,14 @@ const EmployeeDetailPage = ({ employeeId }) => {
               {renderGroup('bank')}
             </Box>
           </Box>
+          <Box id="sec-ids" sx={{ mt: 1, scrollMarginTop: 90 }}>
+            <Typography variant="overline" fontWeight={800} color="text.secondary" sx={{ letterSpacing: '0.08em', display: 'block', mb: 0.5 }}>
+              ID documents
+            </Typography>
+            <IdentityCompactRows employee={employee} docTypes={docTypes} docs={docs} />
+          </Box>
         </SectionCard>
 
-        <IdentityDocumentsSection
-          id="sec-ids"
-          employee={employee}
-          editing={editing}
-          values={values}
-          onChange={setField}
-          files={idFiles}
-          onFile={(type, f) => setIdFiles((prev) => ({ ...prev, [type]: f }))}
-          docTypes={docTypes}
-          docs={docs}
-        />
           </>
         )}
         <DocumentsTab key={docsVersion} base={base} hidePinned />

@@ -40,7 +40,7 @@ const ProfileHeader = ({
   return (
     <Card elevation={0} sx={{ ...cardSx, overflow: 'hidden', mb: 3 }}>
       <Box sx={{
-        height: { xs: 64, sm: 88 },
+        height: { xs: 36, sm: 48 },
         background: (t) => `linear-gradient(120deg, ${alpha(t.palette.primary.main, 0.22)} 0%, ${alpha(t.palette.secondary.main, 0.12)} 55%, ${alpha(t.palette.success.main, 0.1)} 100%)`,
       }}
       />
@@ -49,13 +49,13 @@ const ProfileHeader = ({
           direction={{ xs: 'column', md: 'row' }}
           spacing={{ xs: 1.5, md: 2.5 }}
           alignItems={{ xs: 'flex-start', md: 'flex-end' }}
-          sx={{ mt: { xs: -5, sm: -6 } }}
+          sx={{ mt: { xs: -4, sm: -5 } }}
         >
           <Box sx={{ position: 'relative', flexShrink: 0 }}>
             <PersonAvatar
               person={employee}
               src={photoUrl}
-              size={112}
+              size={88}
               sx={{ border: '4px solid', borderColor: 'background.paper', boxShadow: (t) => `0 4px 14px ${alpha(t.palette.common.black, 0.08)}` }}
             />
             {onPhotoUpload && (
@@ -79,7 +79,7 @@ const ProfileHeader = ({
 
           <Box flex={1} minWidth={0} pb={{ md: 0.5 }}>
             <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap" useFlexGap>
-              <Typography variant="h3" fontWeight={700} sx={{ letterSpacing: '-0.02em', wordBreak: 'break-word' }}>{name}</Typography>
+              <Typography variant="h4" fontWeight={700} sx={{ letterSpacing: '-0.02em', wordBreak: 'break-word' }}>{name}</Typography>
               <StatusChip status={employee.employment_status} />
             </Stack>
             <Typography variant="body1" color={roleLine ? 'text.secondary' : 'text.disabled'} mt={0.25}>

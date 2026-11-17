@@ -26,7 +26,7 @@ const MetaItem = ({ icon: Icon, children, title }) => (
  * and the section tabs docked at the bottom of the card.
  */
 const ProfileHeader = ({
-  employee, photoUrl, photoUploading, onPhotoUpload, tabs, tab, onTabChange, actions, documentActions = [],
+  employee, photoUrl, photoUploading, onPhotoUpload, tabs = [], tab, onTabChange, actions, documentActions = [],
 }) => {
   const [menuAnchor, setMenuAnchor] = useState(null);
   const name = fullName(employee) || 'Unnamed employee';
@@ -147,6 +147,7 @@ const ProfileHeader = ({
         </Stack>
       </Box>
 
+      {tabs.length > 0 && (
       <Tabs
         value={tab}
         onChange={(_, v) => onTabChange(v)}
@@ -175,6 +176,7 @@ const ProfileHeader = ({
           />
         ))}
       </Tabs>
+      )}
     </Card>
   );
 };

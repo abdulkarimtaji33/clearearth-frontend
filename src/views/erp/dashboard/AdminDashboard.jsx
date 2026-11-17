@@ -22,7 +22,7 @@ const greeting = () => {
 };
 
 const KPI_ICONS = {
-  'Revenue (paid) this month': IconTrendingUp,
+  'Revenue collected': IconTrendingUp,
   'Outstanding AR': IconReceiptTax,
   'Outstanding AP': IconReceiptRefund,
   'Open deals': IconBuildingBank,
@@ -47,7 +47,7 @@ const QUICK_NAV = [
   { label: 'Reports', icon: IconChartBar, href: '/erp/reports/trial-balance', color: 'info' },
 ];
 
-const AdminDashboard = ({ data, onRefresh, pulsePeriod, onPulsePeriodChange, pulseLoading }) => {
+const AdminDashboard = ({ data, onRefresh, toolbar, hrSlot }) => {
   const { user } = useAuth();
   const theme = useTheme();
   const navigate = useNavigate();
@@ -71,13 +71,12 @@ const AdminDashboard = ({ data, onRefresh, pulsePeriod, onPulsePeriodChange, pul
         </Button>
       </Stack>
 
-      {/* ── Operations Pulse ── */}
-      <OperationsPulsePanel
-        pulse={data.pulse}
-        period={pulsePeriod || data.pulse?.period || 'week'}
-        onPeriodChange={onPulsePeriodChange}
-        loading={pulseLoading}
-      />
+      {/* ── One date filter for everything below ── */}
+      {toolbar && <Box mb={3}>{toolbar}</Box>}
+
+      {hrSlot}
+
+      <OperationsPulsePanel pulse={data.pulse} />
 
       {/* ── KPIs ── */}
       <Grid container spacing={2.5} mb={2.5}>
@@ -97,7 +96,7 @@ const AdminDashboard = ({ data, onRefresh, pulsePeriod, onPulsePeriodChange, pul
             </Box>
             <Box>
               <Typography variant="h5" fontWeight={900} color="success.main">{stats.completedWOsThisMonth ?? '—'}</Typography>
-              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', fontSize: '0.63rem', letterSpacing: 0.4 }}>WOs completed this month</Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', fontSize: '0.63rem', letterSpacing: 0.4 }}>Work orders completed</Typography>
             </Box>
           </Paper>
         </Grid>
@@ -108,7 +107,7 @@ const AdminDashboard = ({ data, onRefresh, pulsePeriod, onPulsePeriodChange, pul
             </Box>
             <Box>
               <Typography variant="h5" fontWeight={900} color="warning.main">{stats.wonDealsThisMonth ?? '—'}</Typography>
-              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', fontSize: '0.63rem', letterSpacing: 0.4 }}>Deals won this month</Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', fontSize: '0.63rem', letterSpacing: 0.4 }}>Deals won</Typography>
             </Box>
           </Paper>
         </Grid>

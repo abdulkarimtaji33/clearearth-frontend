@@ -13,6 +13,7 @@ import DriverPickupList from '../driver/DriverPickupList';
 import SuperAdminDashboard from './SuperAdminDashboard';
 import AccountsDashboard from './AccountsDashboard';
 import HrDashboardWidgets from '../hr/HrDashboardWidgets';
+import DateRangeFilter, { DEFAULT_RANGE, rangeToParams } from './shared/DateRangeFilter';
 
 const ROLE_MAP = {
   admin: AdminDashboard,
@@ -33,7 +34,7 @@ const DashboardRouter = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [pulsePeriod, setPulsePeriod] = useState('week');
+  const [range, setRange] = useState(DEFAULT_RANGE); // one date filter for the whole dashboard (default: this month)
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -42,16 +43,16 @@ const DashboardRouter = () => {
   }, []);
 
   const silentRefresh = useCallback(() => {
-    apiService.getDashboardOverview({ period: pulsePeriod }).then((res) => {
+    apiService.getDashboardOverview(rangeToParams(range)).then((res) => {
       if (isMounted.current && res.success) setData(res.data);
     }).catch(() => {});
-  }, [pulsePeriod]);
+  }, [range]);
 
-  const load = useCallback(async (period) => {
+  const load = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      const res = await apiService.getDashboardOverview({ period: period || pulsePeriod });
+      const res = await apiService.getDashboardOverview(rangeToParams(range));
       if (isMounted.current) {
         if (res.success) setData(res.data);
         else setError(res.message || 'Failed to load dashboard');
@@ -61,13 +62,9 @@ const DashboardRouter = () => {
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [pulsePeriod]);
+  }, [range]);
 
   useEffect(() => { load(); }, [load]);
-
-  const handlePeriodChange = useCallback((period) => {
-    setPulsePeriod(period);
-  }, []);
 
   // Real-time refresh on socket notification (e.g. approval requests for sales manager)
   useEffect(() => {
@@ -85,6 +82,10 @@ const DashboardRouter = () => {
   }, [roleName, silentRefresh]);
 
   const Component = ROLE_MAP[roleName] || SalesDashboard;
+  const isAdmin = roleName === 'admin' || roleName === 'tenant_admin';
+  const showHr = hasPermission('hr.employees.manage');
+  const filter = <DateRangeFilter value={range} onChange={setRange} />;
+  const hrSlot = showHr ? <HrDashboardWidgets range={range} /> : null;
 
   return (
     <PageContainer title="Dashboard" description="Your workspace overview">
@@ -94,13 +95,14 @@ const DashboardRouter = () => {
         <Alert severity="error">{error}</Alert>
       ) : (
         <>
-          {hasPermission('hr.employees.manage') && <HrDashboardWidgets />}
+          {!isAdmin && showHr && <Box mb={2}>{filter}</Box>}
+          {!isAdmin && hrSlot}
           <Component
             data={data}
             onRefresh={load}
-            pulsePeriod={pulsePeriod}
-            onPulsePeriodChange={handlePeriodChange}
-            pulseLoading={loading}
+            toolbar={filter}
+            hrSlot={hrSlot}
+            loading={loading}
           />
         </>
       )}

@@ -586,9 +586,9 @@ const PurchaseOrderForm = () => {
                         value={values.expenseAccountId}
                         onChange={(accId) => setFieldValue('expenseAccountId', accId)}
                         size="medium"
-                        parentLabel="Expense head (required to approve)"
+                        parentLabel="Expense head (optional)"
                         childLabel="Expense sub-head"
-                        helperText="Nothing is posted when the PO is approved. This head is used when the supplier's bill is recorded in Vendor Bills (Dr expense head + Input VAT / Cr Accounts Payable)."
+                        helperText="Optional, and not needed to approve. Nothing is posted when the PO is approved. Accounts can pick or change the head when the supplier's bill is recorded in Vendor Bills."
                       />
                     )}
 

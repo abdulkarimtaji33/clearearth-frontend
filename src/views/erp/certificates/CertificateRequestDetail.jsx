@@ -19,7 +19,6 @@ import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 
 const STATUS_COLOR = { pending_verification: 'default', verified: 'info', generated: 'warning', issued: 'success' };
 const STATUS_LABEL = { pending_verification: 'Pending Verification', verified: 'Verified', generated: 'Generated', issued: 'Issued' };
-const VERIFIER_ROLES = ['hr_manager', 'admin', 'tenant_admin', 'super_admin'];
 const TYPE_LABEL = {
   green_certificate: 'Green Certificate',
   certificate_of_destruction: 'Certificate of Destruction',
@@ -34,7 +33,7 @@ const CertificateRequestDetail = () => {
   const theme = useTheme();
   const { user, hasPermission } = useAuth();
   const roleName = getUserRole(user);
-  const canVerify = VERIFIER_ROLES.includes(roleName);
+  const canVerify = hasPermission('certificates.verify');
 
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);

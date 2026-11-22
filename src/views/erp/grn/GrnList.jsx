@@ -8,7 +8,7 @@ import { IconPackage, IconFileCheck, IconFilter, IconSearch } from '@tabler/icon
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { getClientLabel, getContactDetails, getSalesPerson } from './grnDisplayHelpers';
+import { getClientLabel, getSalesPerson } from './grnDisplayHelpers';
 
 const STATUS_COLOR = { new: 'default', submitted: 'info', approved: 'success' };
 
@@ -39,7 +39,7 @@ const GrnList = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const colSpan = 10;
+  const colSpan = 9;
 
   return (
     <PageContainer title="GRN" description="Goods received notes">
@@ -130,7 +130,7 @@ const GrnList = () => {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                {['GRN #', 'Deal', 'Client / Lead', 'Contact', 'Sales person', 'Work Order', 'Items', 'Status', 'Created', ''].map((h) => (
+                {['GRN #', 'Deal', 'Client / Lead', 'Sales person', 'Work Order', 'Items', 'Status', 'Created', ''].map((h) => (
                   <TableCell
                     key={h || 'actions'}
                     sx={{ fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, py: 1.5, whiteSpace: 'nowrap', color: 'text.secondary' }}
@@ -167,7 +167,6 @@ const GrnList = () => {
                 rows.map((r) => {
                   const deal = r.deal;
                   const client = getClientLabel(deal);
-                  const contact = getContactDetails(deal);
                   const sales = getSalesPerson(deal);
 
                   return (
@@ -217,29 +216,6 @@ const GrnList = () => {
                         <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 160 }}>
                           {client}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        {contact.name || contact.phone || contact.email ? (
-                          <Box>
-                            {contact.name && (
-                              <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 140 }}>
-                                {contact.name}
-                              </Typography>
-                            )}
-                            {contact.phone && (
-                              <Typography variant="caption" color="text.secondary" display="block">
-                                {contact.phone}
-                              </Typography>
-                            )}
-                            {contact.email && !contact.phone && (
-                              <Typography variant="caption" color="text.secondary" display="block" noWrap sx={{ maxWidth: 140 }}>
-                                {contact.email}
-                              </Typography>
-                            )}
-                          </Box>
-                        ) : (
-                          <Typography variant="body2" color="text.disabled">—</Typography>
-                        )}
                       </TableCell>
                       <TableCell>
                         {sales ? (

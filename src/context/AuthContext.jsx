@@ -110,43 +110,34 @@ export const AuthProvider = ({ children }) => {
     return collectPermissionsFromUserPayload(user);
   }, [permissions, user]);
 
+  // Permissions are the effective set from the API: role permissions ± per-user overrides.
   const hasPermission = (permission) => {
     if (!user) return false;
-    const roleName = getUserRole(user);
-    if (roleName === 'super_admin') return true;
-    const perms = effectivePermissions();
-    if (perms.includes(permission)) return true;
-    // accounts role: menu uses accounting.read; grant if any accounting.* assigned
-    if (roleName === 'accounts' && permission?.startsWith('accounting.')) {
-      return perms.some((p) => p.startsWith('accounting.'));
-    }
-    if (roleName === 'accounts' && permission?.startsWith('reports.')) {
-      return perms.some((p) => p.startsWith('reports.'));
-    }
-    if (roleName === 'operations_manager' && permission?.startsWith('operations.')) {
-      return perms.some((p) => p.startsWith('operations.'));
-    }
-    return false;
+    if (getUserRole(user) === 'super_admin' || user.access?.isSuperAdmin) return true;
+    return effectivePermissions().includes(permission);
   };
 
-  const hasAnyPermission = (permissionList) => {
-    if (!user) return false;
-    const roleName = getUserRole(user);
-    if (roleName === 'super_admin') return true;
-    const perms = effectivePermissions();
-    return permissionList.some((p) => perms.includes(p) || hasPermission(p));
-  };
+  const hasAnyPermission = (permissionList) => permissionList.some((p) => hasPermission(p));
 
+  // Display-only helper; avoid using role names for access decisions — use permissions.
   const hasRole = (role) => {
     if (!user) return false;
     return getUserRole(user) === role;
   };
 
+  /** "Admin-level" = holds the admin dashboard permission (or is Super Admin). */
   const hasAdminDashboardAccess = useCallback(() => {
     if (!user) return false;
-    const roleName = getUserRole(user);
-    return ['admin', 'tenant_admin', 'super_admin'].includes(roleName);
-  }, [user]);
+    if (getUserRole(user) === 'super_admin' || user.access?.isSuperAdmin) return true;
+    return effectivePermissions().includes('dashboard.view_admin');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, permissions]);
+
+  /** Data scope for a module: 'own' | 'team' | 'all'. */
+  const getScope = (moduleKey, fallback = 'all') => user?.access?.scopes?.[moduleKey] || fallback;
+
+  /** True when a field group (e.g. "financials") is hidden for this user. */
+  const hidesField = (group) => Boolean(user?.access?.hiddenFieldGroups?.includes(group)) && !user?.access?.isSuperAdmin;
 
   const value = {
     user,
@@ -162,6 +153,8 @@ export const AuthProvider = ({ children }) => {
     hasAnyPermission,
     hasRole,
     hasAdminDashboardAccess,
+    getScope,
+    hidesField,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

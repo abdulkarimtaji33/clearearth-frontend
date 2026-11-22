@@ -484,12 +484,12 @@ class ApiService {
     return this.put(`/quotations/${id}`, data);
   }
 
-  async approveQuotation(id, requestedPickupDate) {
-    return this.post(`/quotations/${id}/approve`, { requestedPickupDate: requestedPickupDate || undefined });
+  async approveQuotation(id, requestedPickupDate, pickupRequestNote) {
+    return this.post(`/quotations/${id}/approve`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined });
   }
 
-  async requestQuotationApproval(id, requestedPickupDate) {
-    return this.post(`/quotations/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined });
+  async requestQuotationApproval(id, requestedPickupDate, pickupRequestNote) {
+    return this.post(`/quotations/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined });
   }
 
   async confirmQuotationPickupDate(id) {
@@ -878,12 +878,12 @@ class ApiService {
     return this.put(`/purchase-orders/${id}`, data);
   }
 
-  async approvePurchaseOrder(id, requestedPickupDate) {
-    return this.post(`/purchase-orders/${id}/approve`, { requestedPickupDate: requestedPickupDate || undefined });
+  async approvePurchaseOrder(id, requestedPickupDate, pickupRequestNote) {
+    return this.post(`/purchase-orders/${id}/approve`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined });
   }
 
-  async requestPurchaseOrderApproval(id, requestedPickupDate) {
-    return this.post(`/purchase-orders/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined });
+  async requestPurchaseOrderApproval(id, requestedPickupDate, pickupRequestNote) {
+    return this.post(`/purchase-orders/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined });
   }
 
   async confirmPurchaseOrderPickupDate(id) {
@@ -1153,6 +1153,43 @@ class ApiService {
     return this.put(`/roles/${id}`, data);
   }
 
+  // Dynamic access control (roles matrix, data scopes, field rules, per-user overrides)
+  async getAccessCatalog() {
+    return this.get('/roles/catalog');
+  }
+
+  async saveRoleAccess(id, data) {
+    return this.put(`/roles/${id}/access`, data);
+  }
+
+  async cloneRole(id, data) {
+    return this.post(`/roles/${id}/clone`, data);
+  }
+
+  async resetRole(id) {
+    return this.post(`/roles/${id}/reset`, {});
+  }
+
+  async getRoleUsers(id) {
+    return this.get(`/roles/${id}/users`);
+  }
+
+  async getPermissionHolders(name) {
+    return this.get(`/roles/permissions/${encodeURIComponent(name)}/holders`);
+  }
+
+  async getAccessAudit(params) {
+    return this.get('/roles/audit', params);
+  }
+
+  async getUserAccess(userId) {
+    return this.get(`/roles/user-access/${userId}`);
+  }
+
+  async saveUserAccessOverrides(userId, overrides) {
+    return this.put(`/roles/user-access/${userId}/overrides`, { overrides });
+  }
+
   // Work Orders
   async getWorkOrders(params) {
     return this.get('/work-orders', params);
@@ -1271,6 +1308,70 @@ class ApiService {
 
   async approveGrn(id) {
     return this.post(`/grn/${id}/approve`);
+  }
+
+  async getStorageFacilities() {
+    return this.get('/grn/facilities');
+  }
+
+  async createStorageFacility(name) {
+    return this.post('/grn/facilities', { name });
+  }
+
+  // Outbound (entries are created automatically with each GRN, so there is no create call)
+  async getOutbounds(params) {
+    return this.get('/outbound', params);
+  }
+
+  async getOutbound(id) {
+    return this.get(`/outbound/${id}`);
+  }
+
+  async updateOutbound(id, data) {
+    return this.patch(`/outbound/${id}`, data);
+  }
+
+  async requestOutboundDelivery(id, data) {
+    return this.post(`/outbound/${id}/delivery-request`, data);
+  }
+
+  async confirmOutboundDelivery(id) {
+    return this.post(`/outbound/${id}/confirm-delivery`);
+  }
+
+  async requestOutboundReschedule(id, note) {
+    return this.post(`/outbound/${id}/request-reschedule`, { note });
+  }
+
+  async downloadGatepassPdf(id, number) {
+    return this._downloadPdf(`${this.baseURL}/outbound/${id}/gatepass`, `gatepass-${String(number || id).replace(/[\\/]/g, '-')}.pdf`);
+  }
+
+  // Registers: purchase | service | sales
+  async getRegister(kind, params) {
+    return this.get(`/registers/${kind}`, params);
+  }
+
+  // Pickup report
+  async getPickupReport(params) {
+    return this.get('/pickup-reports', params);
+  }
+
+  async downloadPickupReportCsv(params) {
+    const token = this.getAuthToken();
+    const qs = new URLSearchParams(Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null && v !== '')).toString();
+    const res = await fetch(`${this.baseURL}/pickup-reports/export${qs ? `?${qs}` : ''}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!res.ok) throw new Error('Could not export the pickup report');
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `pickup-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  async downloadPickupNotePdf(taskId) {
+    return this._downloadPdf(`${this.baseURL}/pickup-reports/${taskId}/pdf`, `pickup-note-${taskId}.pdf`);
   }
 
   async downloadInspectionReportPdf(dealId) {

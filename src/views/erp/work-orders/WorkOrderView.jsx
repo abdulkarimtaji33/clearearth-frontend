@@ -134,8 +134,12 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
   const assigneeList = Array.isArray(task.assignees) && task.assignees.length > 0
     ? task.assignees
     : (task.assignedUser ? [task.assignedUser] : []);
+  const helperIdSet = new Set((Array.isArray(task.assigneeRows) ? task.assigneeRows : []).filter(r => r.role === 'helper').map(r => r.user_id));
   const assigneeNames = assigneeList
-    .map(u => [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email)
+    .map(u => {
+      const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email;
+      return name && helperIdSet.has(u.id) ? `${name} (helper)` : name;
+    })
     .filter(Boolean);
 
   const initialsOf = (name) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);

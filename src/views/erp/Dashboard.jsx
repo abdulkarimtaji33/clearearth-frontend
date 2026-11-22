@@ -34,7 +34,6 @@ import ListDateRangeFilter from '../../components/erp/ListDateRangeFilter';
 import apiService from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
-const ADMIN_ROLES = ['admin', 'tenant_admin', 'super_admin'];
 
 const STATUS_COLORS = {
   new: 'default', pending: 'warning', approved: 'info',
@@ -114,8 +113,7 @@ const Dashboard = () => {
   const [leads, setLeads] = useState([]);
   const [deals, setDeals] = useState([]);
 
-  const roleName = user?.role?.name ?? user?.role;
-  const allowed = typeof hasAdminDashboardAccess === 'function' ? hasAdminDashboardAccess() : ADMIN_ROLES.includes(roleName);
+  const allowed = typeof hasAdminDashboardAccess === 'function' ? hasAdminDashboardAccess() : false;
 
   const rangeParams = useMemo(() => {
     const p = { page: 1, pageSize: 500 };

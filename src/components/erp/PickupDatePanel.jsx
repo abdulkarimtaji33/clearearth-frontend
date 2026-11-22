@@ -14,7 +14,7 @@ const STATUS_META = {
  * Operations confirms it or requests a reschedule; sales (the preparer) submits a new
  * date once a reschedule has been requested.
  */
-const PickupDatePanel = ({ entity, isOperations, isPreparer, onConfirm, onRequestReschedule, onReschedule, loading, error }) => {
+const PickupDatePanel = ({ entity, isOperations, isPreparer, onConfirm, onRequestReschedule, onReschedule, loading, error, label = 'Pickup' }) => {
   const theme = useTheme();
   const [rescheduleNote, setRescheduleNote] = useState('');
   const [showRescheduleInput, setShowRescheduleInput] = useState(false);
@@ -39,9 +39,14 @@ const PickupDatePanel = ({ entity, isOperations, isPreparer, onConfirm, onReques
       {error && <Alert severity="error" sx={{ mb: 1.5, borderRadius: 2 }}>{error}</Alert>}
       <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
         <IconTruck size={20} />
-        <Typography variant="subtitle2" fontWeight={700}>Pickup date: {dateToShow}</Typography>
+        <Typography variant="subtitle2" fontWeight={700}>{label} date: {dateToShow}</Typography>
         <Chip label={meta.label} size="small" color={meta.color} sx={{ fontWeight: 600 }} />
       </Stack>
+      {entity.request_note && (
+        <Typography variant="body2" color="text.secondary" mt={0.5}>
+          Note from sales: {entity.request_note}
+        </Typography>
+      )}
       {status === 'reschedule_requested' && entity.pickup_reschedule_note && (
         <Typography variant="body2" color="text.secondary" mt={0.5}>
           Note from operations: {entity.pickup_reschedule_note}
@@ -51,7 +56,7 @@ const PickupDatePanel = ({ entity, isOperations, isPreparer, onConfirm, onReques
       {isOperations && status === 'pending' && (
         <Stack direction="row" spacing={1} mt={1.5} flexWrap="wrap">
           <Button size="small" variant="contained" color="success" disabled={loading} onClick={onConfirm}>
-            {loading ? <CircularProgress size={16} color="inherit" /> : 'Confirm pickup date'}
+            {loading ? <CircularProgress size={16} color="inherit" /> : `Confirm ${label.toLowerCase()} date`}
           </Button>
           {!showRescheduleInput ? (
             <Button size="small" variant="outlined" color="warning" disabled={loading} onClick={() => setShowRescheduleInput(true)}>
@@ -85,7 +90,7 @@ const PickupDatePanel = ({ entity, isOperations, isPreparer, onConfirm, onReques
           <TextField
             size="small"
             type="date"
-            label="New pickup date"
+            label={`New ${label.toLowerCase()} date`}
             value={newDate}
             onChange={(e) => setNewDate(e.target.value)}
             InputLabelProps={{ shrink: true }}

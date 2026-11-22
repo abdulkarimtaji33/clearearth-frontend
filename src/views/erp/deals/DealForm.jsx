@@ -211,8 +211,6 @@ const InspectionDocumentDropzone = ({ onDrop, uploading, onReject }) => {
   );
 };
 
-const canAssignDeals = (roleName) =>
-  ['sales_manager', 'admin', 'tenant_admin', 'super_admin'].includes(roleName);
 
 const mergeById = (list, item) => {
   if (!item?.id) return list;
@@ -225,8 +223,7 @@ const DealForm = () => {
   const leadIdFromUrl = searchParams.get('leadId');
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
-  const roleName = user?.role?.name ?? user?.role;
-  const showAssignedTo = canAssignDeals(roleName);
+  const showAssignedTo = hasPermission('workflow.manager');
   const canEditDeals = hasPermission('deals.update');
   // Sales can change pipeline status; "approved" is never offered here — only managers approve via workflow
   const canChangeStatus = canEditDeals;

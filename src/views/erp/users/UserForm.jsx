@@ -25,8 +25,9 @@ import {
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
-import { IconArrowLeft, IconUsers, IconUpload } from '@tabler/icons-react';
+import { IconArrowLeft, IconUsers, IconUpload, IconShieldLock } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import UserAccessDialog from '../../../components/erp/access/UserAccessDialog';
 import apiService from '../../../services/api';
 import { phoneYup, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
@@ -40,6 +41,7 @@ const UserForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [roles, setRoles] = useState([]);
+  const [accessOpen, setAccessOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState('');
   const [emailConfirmOpen, setEmailConfirmOpen] = useState(false);
@@ -324,6 +326,17 @@ const UserForm = () => {
                       isOptionEqualToValue={(a, b) => a?.id === b?.id}
                       sx={{ maxWidth: 400 }}
                     />
+                    {isEdit && hasPermission('roles.update') && (
+                      <Box sx={{ maxWidth: 400, p: 2, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
+                        <Typography variant="subtitle2" fontWeight={700}>Individual access</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                          Give this person extra permissions, or take some away, without changing their role.
+                        </Typography>
+                        <Button variant="outlined" size="small" startIcon={<IconShieldLock size={16} />} onClick={() => setAccessOpen(true)}>
+                          Manage this user’s access
+                        </Button>
+                      </Box>
+                    )}
                     {(!isEdit || canChangePassword) && (
                       <Stack spacing={3} sx={{ maxWidth: 400 }}>
                         <Typography variant="subtitle2" color="text.secondary">
@@ -413,6 +426,7 @@ const UserForm = () => {
             </Button>
           </DialogActions>
         </Dialog>
+        {accessOpen && <UserAccessDialog open userId={Number(id)} onClose={() => setAccessOpen(false)} />}
       </Box>
     </PageContainer>
   );

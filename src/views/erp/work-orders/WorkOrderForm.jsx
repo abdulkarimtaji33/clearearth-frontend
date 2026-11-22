@@ -56,6 +56,7 @@ const emptyTask = () => ({
   startDate: '',
   endDate: '',
   assigneeIds: [],
+  helperIds: [],
   status: 'not_started',
   notes: '',
 });
@@ -313,9 +314,18 @@ const WorkOrderForm = () => {
               durationUnit: dur.durationUnit,
               startDate: t.start_date || '',
               endDate: t.end_date || '',
-              assigneeIds: Array.isArray(t.assignees) && t.assignees.length > 0
-                ? t.assignees.map(u => u.id)
-                : (t.assigned_to ? [t.assigned_to] : []),
+              // One driver per task (role "driver"); everyone else on the task is a helper under that driver.
+              assigneeIds: (() => {
+                const rows = Array.isArray(t.assigneeRows) ? t.assigneeRows : [];
+                const d = rows.find(r => r.role !== 'helper')?.user_id || t.assigned_to || (Array.isArray(t.assignees) && t.assignees[0]?.id) || null;
+                return d ? [d] : [];
+              })(),
+              helperIds: (() => {
+                const rows = Array.isArray(t.assigneeRows) ? t.assigneeRows : [];
+                if (rows.length) return rows.filter(r => r.role === 'helper').map(r => r.user_id);
+                const all = Array.isArray(t.assignees) ? t.assignees.map(u => u.id) : [];
+                return all.filter(uid => uid !== t.assigned_to);
+              })(),
               status: t.status || 'not_started',
               notes: t.notes || '',
               files: Array.isArray(t.files) ? t.files : [],
@@ -585,7 +595,10 @@ const WorkOrderForm = () => {
   const collectionComplete = () =>
     !!(dealCollection.pickup_location || dealCollection.pickup_contact_name || dealCollection.pickup_contact_number);
 
-  const handleAssigneesChange = (_, selectedUsers) => {
+  const handleAssigneesChange = (_, selectedUser) => {
+    const selectedUsers = selectedUser ? [selectedUser] : [];
+    // A driver cannot also be a helper on the same task.
+    setDrawerField('helperIds', (drawerTask?.helperIds || []).filter(uid => uid !== selectedUser?.id));
     const hasDriver = (selectedUsers || []).some(u => u?.role?.name === 'driver');
     if (hasDriver && !collectionComplete()) {
       pendingDriverId.current = (selectedUsers || []).map(u => u.id);
@@ -680,7 +693,8 @@ const WorkOrderForm = () => {
             estimatedDuration: t.durationValue ? `${t.durationValue} ${t.durationUnit}` : null,
             startDate: t.startDate || null,
             endDate: t.endDate || null,
-            assigneeIds: t.assigneeIds || [],
+            assigneeIds: (t.assigneeIds || []).slice(0, 1),
+            helperIds: t.helperIds || [],
             status: t.status || 'not_started',
             notes: t.notes || null,
           })),
@@ -722,7 +736,8 @@ const WorkOrderForm = () => {
       .map(uid => users.find(u => u.id === uid))
       .filter(Boolean)
       .map(u => `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email);
-    return names.length > 0 ? names.join(', ') : null;
+    const helpers = (task.helperIds || []).length;
+    return names.length > 0 ? `${names.join(', ')}${helpers ? ` +${helpers} helper${helpers > 1 ? 's' : ''}` : ''}` : null;
   };
 
   return (
@@ -1109,7 +1124,6 @@ const WorkOrderForm = () => {
                   </Typography>
                   <Stack spacing={2}>
                     <Autocomplete
-                      multiple
                       options={isDriverTask
                         ? users.filter(u => u.role?.name === 'driver')
                         : users}
@@ -1118,10 +1132,26 @@ const WorkOrderForm = () => {
                         const role = u.role?.display_name || '';
                         return role && name ? `${name} (${role})` : name;
                       }}
-                      value={(drawerTask.assigneeIds || []).map(uid => users.find(u => u.id === uid)).filter(Boolean)}
+                      isOptionEqualToValue={(a, b) => a.id === b.id}
+                      value={(drawerTask.assigneeIds || []).map(uid => users.find(u => u.id === uid)).filter(Boolean)[0] || null}
                       onChange={handleAssigneesChange}
                       renderInput={params => (
-                        <TextField {...params} label={isDriverTask ? 'Assign driver' : 'Assigned to'} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                        <TextField {...params} label={isDriverTask ? 'Driver (one per task)' : 'Assigned to (one per task)'} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                      )}
+                    />
+                    <Autocomplete
+                      multiple
+                      options={users.filter(u => !(drawerTask.assigneeIds || []).includes(u.id))}
+                      getOptionLabel={u => {
+                        const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || '';
+                        const role = u.role?.display_name || '';
+                        return role && name ? `${name} (${role})` : name;
+                      }}
+                      isOptionEqualToValue={(a, b) => a.id === b.id}
+                      value={(drawerTask.helperIds || []).map(uid => users.find(u => u.id === uid)).filter(Boolean)}
+                      onChange={(_, sel) => setDrawerField('helperIds', (sel || []).map(u => u.id))}
+                      renderInput={params => (
+                        <TextField {...params} label="Helpers (any number, work under the driver)" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                       )}
                     />
                     {(() => {

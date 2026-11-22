@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Button, Stack, Paper, TextField, MenuItem, IconButton,
-  Alert, CircularProgress, Divider, Chip,
+  Alert, CircularProgress, Divider, Chip, FormControlLabel, Checkbox,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconPlus, IconTrash, IconArrowLeft, IconUpload, IconPackage, IconHammer } from '@tabler/icons-react';
@@ -25,6 +25,10 @@ const GrnForm = () => {
   const isEdit = Boolean(editId);
 
   const [notes, setNotes] = useState('');
+  const [facilities, setFacilities] = useState([]);
+  const [facilityId, setFacilityId] = useState('');
+  const [disposedWithout, setDisposedWithout] = useState(false);
+  const [driverComment, setDriverComment] = useState('');
   const [items, setItems] = useState([emptyItem()]);
   const [materialTypes, setMaterialTypes] = useState([]);
   const [unitsOfMeasure, setUnitsOfMeasure] = useState([]);
@@ -33,6 +37,10 @@ const GrnForm = () => {
   const [loadingExisting, setLoadingExisting] = useState(isEdit);
   const [error, setError] = useState('');
   const [woTitle, setWoTitle] = useState('');
+
+  useEffect(() => {
+    apiService.getStorageFacilities().then((r) => { if (r.success) setFacilities(Array.isArray(r.data) ? r.data : []); }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isEdit) return;
@@ -71,6 +79,9 @@ const GrnForm = () => {
         if (res.success && res.data) {
           const g = res.data;
           setNotes(g.notes || '');
+          setFacilityId(g.storage_facility_id ? String(g.storage_facility_id) : '');
+          setDisposedWithout(Boolean(g.disposed_without_facility));
+          setDriverComment(g.driver_comment || '');
           setItems(
             (g.items || []).length
               ? g.items.map((it) => ({
@@ -156,8 +167,15 @@ const GrnForm = () => {
       setError('Add at least one item with name and quantity');
       return;
     }
+    if (disposedWithout && !driverComment.trim()) {
+      setError('Add a driver comment explaining why the waste did not come to the facility');
+      return;
+    }
     const payload = {
       notes,
+      storageFacilityId: disposedWithout ? null : (facilityId ? parseInt(facilityId, 10) : null),
+      disposedWithoutFacility: disposedWithout,
+      driverComment: driverComment.trim() || null,
       items: validItems.map((it) => ({
         itemName: it.itemName.trim(),
         materialTypeId: it.materialTypeId ? parseInt(it.materialTypeId, 10) : undefined,
@@ -252,6 +270,42 @@ const GrnForm = () => {
       )}
 
       {error && <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }}>{error}</Alert>}
+
+      <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', mb: 2.5 }}>
+        <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
+          <Typography variant="subtitle2" fontWeight={800}>
+            Storage facility and driver comment
+          </Typography>
+        </Box>
+        <Box sx={{ p: 2.5 }}>
+          <Stack spacing={2}>
+            <TextField
+              select
+              fullWidth
+              label="Storage facility"
+              value={disposedWithout ? '' : facilityId}
+              onChange={(e) => setFacilityId(e.target.value)}
+              disabled={disposedWithout}
+              helperText={disposedWithout ? 'Not needed: the waste did not come to a facility' : 'Where the goods are stored. It appears on the GRN and is needed to submit it.'}
+            >
+              {facilities.map((f) => <MenuItem key={f.id} value={String(f.id)}>{f.name}</MenuItem>)}
+            </TextField>
+            <FormControlLabel
+              control={<Checkbox checked={disposedWithout} onChange={(e) => setDisposedWithout(e.target.checked)} />}
+              label="Disposed without coming to the facility"
+            />
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              label={disposedWithout ? 'Driver comment (required)' : 'Driver comment (optional)'}
+              value={driverComment}
+              onChange={(e) => setDriverComment(e.target.value)}
+              placeholder="For example: where the waste was disposed and why it did not come to the facility"
+            />
+          </Stack>
+        </Box>
+      </Paper>
 
       <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden', mb: 2.5 }}>
         <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>

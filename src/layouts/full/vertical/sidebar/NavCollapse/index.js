@@ -9,7 +9,7 @@ import { CustomizerContext } from 'src/context/CustomizerContext';
 // custom imports
 import NavItem from '../NavItem';
 import { useAuth } from 'src/context/AuthContext';
-import { getUserRole } from 'src/utils/authHelpers';
+import { isItemVisible } from '../menuAccess';
 
 // plugins
 import { IconChevronDown, IconChevronUp } from '@tabler/icons';
@@ -28,26 +28,10 @@ function pathMatchesMenuBranch(children, pathname) {
   return false;
 }
 
-function branchHasVisibleItem(items, hasPermission, hasAdminDashboardAccess) {
-  if (!items?.length) return false;
-  return items.some((item) => {
-    if (item.adminDashboardOnly && !hasAdminDashboardAccess()) return false;
-    if (item.children?.length) return branchHasVisibleItem(item.children, hasPermission, hasAdminDashboardAccess);
-    return !item.permission || hasPermission(item.permission);
-  });
-}
-
 // FC Component For Dropdown Menu
 const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hideMenu }) => {
   const { isBorderRadius } = useContext(CustomizerContext);
-  const { hasPermission, hasAdminDashboardAccess, user } = useAuth();
-  const userRole = getUserRole(user);
-
-  const isRoleAllowed = (item) => {
-    if (item.excludeRoles?.includes(userRole)) return false;
-    if (item.includeRoles && !item.includeRoles.includes(userRole)) return false;
-    return true;
-  };
+  const { hasPermission } = useAuth();
 
   const Icon = menu.icon;
   const theme = useTheme();
@@ -89,12 +73,7 @@ const NavCollapse = ({ menu, level, pathWithoutLastPart, pathDirect, onClick, hi
     borderRadius: `${isBorderRadius}px`,
   }));
   // If Menu has Children - filter by permission
-  const visibleChildren = (menu.children || []).filter((item) => {
-    if (!isRoleAllowed(item)) return false;
-    if (item.adminDashboardOnly && !hasAdminDashboardAccess()) return false;
-    if (item.children?.length) return branchHasVisibleItem(item.children, hasPermission, hasAdminDashboardAccess);
-    return !item.permission || hasPermission(item.permission);
-  });
+  const visibleChildren = (menu.children || []).filter((item) => isItemVisible(item, hasPermission));
   if (visibleChildren.length === 0) return null;
   const submenus = visibleChildren.map((item) => {
     if (item.children) {

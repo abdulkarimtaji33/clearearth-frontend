@@ -18,6 +18,8 @@ const ApproveQuotationConfirmDialog = ({
   listLabel = 'The quotation will be removed from the Quotation List.',
   pickupDate = '',
   onPickupDateChange,
+  pickupNote = '',
+  onPickupNoteChange,
 }) => (
   <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
     <DialogTitle fontWeight={700}>Approve {entityLabel}?</DialogTitle>
@@ -39,6 +41,18 @@ const ApproveQuotationConfirmDialog = ({
           onChange={(e) => onPickupDateChange(e.target.value)}
           InputLabelProps={{ shrink: true }}
           helperText="Operations will confirm this date, or request a reschedule."
+          sx={{ mt: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+        />
+      )}
+      {onPickupNoteChange && (
+        <TextField
+          fullWidth
+          multiline
+          rows={2}
+          label="Note for operations (optional)"
+          value={pickupNote || ''}
+          onChange={(e) => onPickupNoteChange(e.target.value)}
+          placeholder="Important information to share with operations"
           sx={{ mt: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
         />
       )}

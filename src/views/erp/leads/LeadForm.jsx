@@ -46,15 +46,12 @@ const validationSchema = Yup.object({
   notes: Yup.string().trim().nullable(),
 });
 
-const canAssignLeads = (roleName) =>
-  ['sales_manager', 'admin', 'tenant_admin', 'super_admin'].includes(roleName);
 
 const LeadForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const roleName = user?.role?.name ?? user?.role;
-  const showAssignedTo = canAssignLeads(roleName);
+  const { hasPermission } = useAuth();
+  const showAssignedTo = hasPermission('workflow.manager');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');

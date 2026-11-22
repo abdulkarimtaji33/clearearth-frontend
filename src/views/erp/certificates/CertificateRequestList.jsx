@@ -13,14 +13,13 @@ import { getUserRole } from '../../../utils/authHelpers';
 
 const STATUS_COLOR = { pending_verification: 'default', verified: 'info', generated: 'warning', issued: 'success' };
 const STATUS_LABEL = { pending_verification: 'Pending Verification', verified: 'Verified', generated: 'Generated', issued: 'Issued' };
-const VERIFIER_ROLES = ['hr_manager', 'admin', 'tenant_admin', 'super_admin'];
 
 const CertificateRequestList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const roleName = getUserRole(user);
-  const isVerifier = VERIFIER_ROLES.includes(roleName);
+  const isVerifier = hasPermission('certificates.verify');
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);

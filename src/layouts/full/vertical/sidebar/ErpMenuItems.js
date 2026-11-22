@@ -36,508 +36,162 @@ import {
   IconLeaf,
 } from '@tabler/icons-react';
 
-// Roles that should only see their designated section (Operations or Accounts).
-const SECTION_RESTRICTED_ROLES = ['operations_manager', 'accounts'];
-const ACCOUNTS_ONLY_ROLES = ['accounts'];
-const OPERATIONS_ONLY_ROLES = ['operations_manager'];
-/** Sales users only see items under the CRM sidebar heading. */
-const CRM_ONLY_ROLES = ['sales'];
-/** Sales and sales manager must not access Operations (work orders, GRN). */
-const NO_OPERATIONS_ACCESS_ROLES = ['sales', 'sales_manager'];
-const DRIVER_ONLY_ROLES = ['driver'];
+/**
+ * Sidebar menu — gated purely by permissions (no role names).
+ *   permission : the user must hold it
+ *   anyOf      : the user must hold at least one
+ *   (neither)  : always visible (self-service items)
+ * Section headings (navlabel) appear only when at least one item under them is visible.
+ * Menu visibility follows the same permissions the Roles screen edits.
+ */
+const item = (title, href, icon, gate = {}, children) => ({
+  id: uniqueId(),
+  title,
+  icon,
+  href,
+  ...gate,
+  ...(children ? { children } : {}),
+});
+const leaf = (title, href, gate = {}) => item(title, href, IconPoint, gate);
+const heading = (subheader) => ({ navlabel: true, subheader });
 
 const ErpMenuItems = [
-  {
-    id: uniqueId(),
-    title: 'Dashboard',
-    icon: IconLayoutDashboard,
-    href: '/erp/dashboard',
-  },
-  {
-    id: uniqueId(),
-    title: 'My Commissions',
-    icon: IconCoin,
-    href: '/erp/commissions/mine',
-    includeRoles: ['sales', 'sales_executive', 'sales_manager'],
-  },
-  // ─── CRM ────────────────────────────────────────────────────────────────────
-  {
-    navlabel: true,
-    subheader: 'CRM',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Clients & Vendors',
-    icon: IconAddressBook,
-    href: '/erp/contacts',
-    permission: 'contacts.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
-    children: [
-      { id: uniqueId(), title: 'Contacts', icon: IconPoint, href: '/erp/contacts', permission: 'contacts.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-      { id: uniqueId(), title: 'Clients', icon: IconPoint, href: '/erp/companies', permission: 'companies.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-      { id: uniqueId(), title: 'Vendors', icon: IconPoint, href: '/erp/suppliers', permission: 'suppliers.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-    ],
-  },
-  {
-    id: uniqueId(),
-    title: 'Leads & Deals',
-    icon: IconBriefcase,
-    href: '/erp/leads',
-    permission: 'leads.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
-    children: [
-      { id: uniqueId(), title: 'Leads', icon: IconPoint, href: '/erp/leads', permission: 'leads.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-      { id: uniqueId(), title: 'Deals', icon: IconPoint, href: '/erp/deals', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-    ],
-  },
-  {
-    id: uniqueId(),
-    title: 'Service and Purchase',
-    icon: IconReceipt,
-    href: '/erp/quotations',
-    permission: 'deals.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
-    children: [
-      {
-        id: uniqueId(),
-        title: 'Quotations',
-        icon: IconFileText,
-        href: '/erp/quotations',
-        permission: 'deals.read',
-        excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
-        children: [
-          { id: uniqueId(), title: 'Service Quotation', icon: IconPoint, href: '/erp/quotations', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-          { id: uniqueId(), title: 'Client purchase quotations', icon: IconPoint, href: '/erp/client-purchase-quotations', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-          // { id: uniqueId(), title: 'Vendor purchase quotations', icon: IconPoint, href: '/erp/vendor-purchase-quotations', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-        ],
-      },
-      {
-        id: uniqueId(),
-        title: 'Orders',
-        icon: IconShoppingCart,
-        href: '/erp/service-orders',
-        permission: 'deals.read',
-        excludeRoles: [...SECTION_RESTRICTED_ROLES, ...DRIVER_ONLY_ROLES],
-        children: [
-          { id: uniqueId(), title: 'Clients Service Orders', icon: IconPoint, href: '/erp/service-orders', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-          { id: uniqueId(), title: 'Clients Purchase Orders', icon: IconPoint, href: '/erp/client-purchase-orders', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-          { id: uniqueId(), title: 'Vendor Purchase Orders', icon: IconPoint, href: '/erp/supplier-purchase-orders', permission: 'deals.read', excludeRoles: SECTION_RESTRICTED_ROLES },
-        ],
-      },
-    ],
-  },
+  item('Dashboard', '/erp/dashboard', IconLayoutDashboard),
+  item('My Commissions', '/erp/commissions/mine', IconCoin, { permission: 'commissions.view_own' }),
 
-  // ─── Accounts (collapsible dropdown) ────────────────────────────────────────
-  {
-    navlabel: true,
-    subheader: 'Accounts',
-    excludeRoles: [...OPERATIONS_ONLY_ROLES, ...CRM_ONLY_ROLES],
-  },
-  // Standalone "Deals" link for accounts-only role (no CRM section for them)
-  {
-    id: uniqueId(),
-    title: 'Deals',
-    icon: IconBriefcase,
-    href: '/erp/deals',
-    permission: 'deals.read',
-    includeRoles: ACCOUNTS_ONLY_ROLES,
-  },
-  {
-    id: uniqueId(),
-    title: 'Clients & Vendors',
-    icon: IconAddressBook,
-    href: '/erp/companies',
-    includeRoles: ACCOUNTS_ONLY_ROLES,
-    children: [
-      { id: uniqueId(), title: 'Clients', icon: IconPoint, href: '/erp/companies', permission: 'companies.read', includeRoles: ACCOUNTS_ONLY_ROLES },
-      { id: uniqueId(), title: 'Vendors', icon: IconPoint, href: '/erp/suppliers', permission: 'suppliers.read', includeRoles: ACCOUNTS_ONLY_ROLES },
-    ],
-  },
-  // Quotations & orders for accounts role
-  {
-    id: uniqueId(),
-    title: 'Service and Purchase',
-    icon: IconReceipt,
-    href: '/erp/quotations',
-    permission: 'quotations.read',
-    includeRoles: ACCOUNTS_ONLY_ROLES,
-    children: [
-      {
-        id: uniqueId(),
-        title: 'Quotations',
-        icon: IconFileText,
-        href: '/erp/quotations',
-        permission: 'quotations.read',
-        includeRoles: ACCOUNTS_ONLY_ROLES,
-        children: [
-          { id: uniqueId(), title: 'Service Quotation', icon: IconPoint, href: '/erp/quotations', permission: 'quotations.read', includeRoles: ACCOUNTS_ONLY_ROLES },
-          { id: uniqueId(), title: 'Client purchase quotations', icon: IconPoint, href: '/erp/client-purchase-quotations', permission: 'purchase_orders.read', includeRoles: ACCOUNTS_ONLY_ROLES },
-          // { id: uniqueId(), title: 'Vendor purchase quotations', icon: IconPoint, href: '/erp/vendor-purchase-quotations', permission: 'purchase_orders.read', includeRoles: ACCOUNTS_ONLY_ROLES },
-        ],
-      },
-      {
-        id: uniqueId(),
-        title: 'Orders',
-        icon: IconShoppingCart,
-        href: '/erp/service-orders',
-        permission: 'quotations.read',
-        includeRoles: ACCOUNTS_ONLY_ROLES,
-        children: [
-          { id: uniqueId(), title: 'Clients Service Orders', icon: IconPoint, href: '/erp/service-orders', permission: 'quotations.read', includeRoles: ACCOUNTS_ONLY_ROLES },
-          { id: uniqueId(), title: 'Clients Purchase Orders', icon: IconPoint, href: '/erp/client-purchase-orders', permission: 'purchase_orders.read', includeRoles: ACCOUNTS_ONLY_ROLES },
-          { id: uniqueId(), title: 'Vendor Purchase Orders', icon: IconPoint, href: '/erp/supplier-purchase-orders', permission: 'purchase_orders.read', includeRoles: ACCOUNTS_ONLY_ROLES },
-        ],
-      },
-    ],
-  },
-  // Main Accounts collapsible — visible to everyone except operations_manager
-  {
-    id: uniqueId(),
-    title: 'Accounts',
-    icon: IconCalculator,
-    href: '/erp/tax-invoices',
-    permission: 'accounting.read',
-    excludeRoles: [...OPERATIONS_ONLY_ROLES, ...CRM_ONLY_ROLES],
-    children: [
-      {
-        id: uniqueId(),
-        title: 'Sales & Receivables',
-        icon: IconCoin,
-        href: '/erp/tax-invoices',
-        permission: 'accounting.read',
-        children: [
-          { id: uniqueId(), title: 'Proforma Invoices', icon: IconFileInvoice, href: '/erp/proforma-invoices', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Tax Invoices', icon: IconReceipt, href: '/erp/tax-invoices', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Credit Notes', icon: IconReceipt, href: '/erp/credit-notes', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Receivables', icon: IconCoin, href: '/erp/receivables', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Receive Payment', icon: IconCashBanknote, href: '/erp/receivables/receive-payment', permission: 'accounting.update' },
-          { id: uniqueId(), title: 'Payment Receipts', icon: IconReceipt, href: '/erp/payment-receipts', permission: 'accounting.read' },
-        ],
-      },
-      {
-        id: uniqueId(),
-        title: 'Purchases & Payables',
-        icon: IconTruckDelivery,
-        href: '/erp/vendor-bills',
-        permission: 'accounting.read',
-        children: [
-          { id: uniqueId(), title: 'Vendor Bills', icon: IconFileInvoice, href: '/erp/vendor-bills', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Supplier Payables', icon: IconTruckDelivery, href: '/erp/payables/suppliers', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Supplier Debit Notes', icon: IconReceipt, href: '/erp/debit-notes', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Supplier Advances', icon: IconCoin, href: '/erp/supplier-advances', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Older PO Payables', icon: IconTruckDelivery, href: '/erp/payables', permission: 'accounting.read' },
-        ],
-      },
-      {
-        id: uniqueId(),
-        title: 'Expenses',
-        icon: IconWallet,
-        href: '/erp/accounts/expenses',
-        permission: 'accounting.read',
-        children: [
-          { id: uniqueId(), title: 'Expenses', icon: IconWallet, href: '/erp/accounts/expenses', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Work Orders (Accounts)', icon: IconClipboardCheck, href: '/erp/accounts/work-orders', permission: 'accounting.read' },
-        ],
-      },
-      {
-        id: uniqueId(),
-        title: 'Cash & Bank',
-        icon: IconBuildingBank,
-        href: '/erp/cash-bank-transfers',
-        permission: 'accounting.read',
-        children: [
-          { id: uniqueId(), title: 'Transfers', icon: IconCashBanknote, href: '/erp/cash-bank-transfers', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Bank Reconciliation', icon: IconScale, href: '/erp/bank-reconciliation', permission: 'accounting.read' },
-        ],
-      },
-      {
-        id: uniqueId(),
-        title: 'General Ledger',
-        icon: IconBook,
-        href: '/erp/chart-of-accounts',
-        permission: 'accounting.read',
-        children: [
-          { id: uniqueId(), title: 'Chart of Accounts', icon: IconList, href: '/erp/chart-of-accounts', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Journal', icon: IconBook, href: '/erp/journal', permission: 'accounting.read' },
-        ],
-      },
-      // ── Financial Reports ────────────────────────────────────────────────
-      {
-        id: uniqueId(),
-        title: 'Financial Reports',
-        icon: IconReportMoney,
-        href: '/erp/reports/trial-balance',
-        permission: 'accounting.read',
-        children: [
-          { id: uniqueId(), title: 'Trial Balance', icon: IconScale, href: '/erp/reports/trial-balance', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'General Ledger', icon: IconBook, href: '/erp/reports/general-ledger', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Income Statement', icon: IconReportMoney, href: '/erp/reports/income-statement', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Balance Sheet', icon: IconBuildingBank, href: '/erp/reports/balance-sheet', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Cash Flow', icon: IconCashBanknote, href: '/erp/reports/cash-flow', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'Changes in Equity', icon: IconChartBar, href: '/erp/reports/changes-in-equity', permission: 'accounting.read' },
-          { id: uniqueId(), title: 'VAT Report', icon: IconReceipt, href: '/erp/reports/vat-report', permission: 'accounting.read' },
-        ],
-      },
-    ],
-  },
+  // ─── CRM ────────────────────────────────────────────────────────────────────
+  heading('CRM'),
+  item('Clients & Vendors', '/erp/contacts', IconAddressBook, { anyOf: ['contacts.read', 'companies.read', 'suppliers.read'] }, [
+    leaf('Contacts', '/erp/contacts', { permission: 'contacts.read' }),
+    leaf('Clients', '/erp/companies', { permission: 'companies.read' }),
+    leaf('Vendors', '/erp/suppliers', { permission: 'suppliers.read' }),
+  ]),
+  item('Leads & Deals', '/erp/leads', IconBriefcase, { anyOf: ['leads.read', 'deals.read'] }, [
+    leaf('Leads', '/erp/leads', { permission: 'leads.read' }),
+    leaf('Deals', '/erp/deals', { permission: 'deals.read' }),
+  ]),
+  item('Service and Purchase', '/erp/quotations', IconReceipt, { anyOf: ['deals.read', 'quotations.read', 'purchase_orders.read'] }, [
+    item('Quotations', '/erp/quotations', IconFileText, { anyOf: ['deals.read', 'quotations.read', 'purchase_orders.read'] }, [
+      leaf('Service Quotation', '/erp/quotations', { anyOf: ['deals.read', 'quotations.read'] }),
+      leaf('Client purchase quotations', '/erp/client-purchase-quotations', { anyOf: ['deals.read', 'purchase_orders.read'] }),
+    ]),
+    item('Orders', '/erp/service-orders', IconShoppingCart, { anyOf: ['deals.read', 'quotations.read', 'purchase_orders.read'] }, [
+      leaf('Clients Service Orders', '/erp/service-orders', { anyOf: ['deals.read', 'quotations.read'] }),
+      leaf('Clients Purchase Orders', '/erp/client-purchase-orders', { anyOf: ['deals.read', 'purchase_orders.read'] }),
+      leaf('Vendor Purchase Orders', '/erp/supplier-purchase-orders', { anyOf: ['deals.read', 'purchase_orders.read'] }),
+    ]),
+  ]),
+
+  // ─── Accounts ───────────────────────────────────────────────────────────────
+  heading('Accounts'),
+  item('Accounts', '/erp/tax-invoices', IconCalculator, { permission: 'accounting.read' }, [
+    item('Sales & Receivables', '/erp/tax-invoices', IconCoin, { permission: 'accounting.read' }, [
+      item('Proforma Invoices', '/erp/proforma-invoices', IconFileInvoice, { permission: 'accounting.read' }),
+      item('Tax Invoices', '/erp/tax-invoices', IconReceipt, { permission: 'accounting.read' }),
+      item('Credit Notes', '/erp/credit-notes', IconReceipt, { permission: 'accounting.read' }),
+      item('Receivables', '/erp/receivables', IconCoin, { permission: 'accounting.read' }),
+      item('Receive Payment', '/erp/receivables/receive-payment', IconCashBanknote, { permission: 'accounting.update' }),
+      item('Payment Receipts', '/erp/payment-receipts', IconReceipt, { permission: 'accounting.read' }),
+    ]),
+    item('Purchases & Payables', '/erp/vendor-bills', IconTruckDelivery, { permission: 'accounting.read' }, [
+      item('Vendor Bills', '/erp/vendor-bills', IconFileInvoice, { permission: 'accounting.read' }),
+      item('Supplier Payables', '/erp/payables/suppliers', IconTruckDelivery, { permission: 'accounting.read' }),
+      item('Supplier Debit Notes', '/erp/debit-notes', IconReceipt, { permission: 'accounting.read' }),
+      item('Supplier Advances', '/erp/supplier-advances', IconCoin, { permission: 'accounting.read' }),
+      item('Older PO Payables', '/erp/payables', IconTruckDelivery, { permission: 'accounting.read' }),
+    ]),
+    item('Expenses', '/erp/accounts/expenses', IconWallet, { permission: 'accounting.read' }, [
+      item('Expenses', '/erp/accounts/expenses', IconWallet, { permission: 'accounting.read' }),
+      item('Work Orders (Accounts)', '/erp/accounts/work-orders', IconClipboardCheck, { permission: 'accounting.read' }),
+    ]),
+    item('Cash & Bank', '/erp/cash-bank-transfers', IconBuildingBank, { permission: 'accounting.read' }, [
+      item('Transfers', '/erp/cash-bank-transfers', IconCashBanknote, { permission: 'accounting.read' }),
+      item('Bank Reconciliation', '/erp/bank-reconciliation', IconScale, { permission: 'accounting.read' }),
+    ]),
+    item('General Ledger', '/erp/chart-of-accounts', IconBook, { permission: 'accounting.read' }, [
+      item('Chart of Accounts', '/erp/chart-of-accounts', IconList, { permission: 'accounting.read' }),
+      item('Journal', '/erp/journal', IconBook, { permission: 'accounting.read' }),
+    ]),
+    item('Financial Reports', '/erp/reports/trial-balance', IconReportMoney, { anyOf: ['accounting.read', 'reports.read'] }, [
+      item('Trial Balance', '/erp/reports/trial-balance', IconScale, { anyOf: ['accounting.read', 'reports.read'] }),
+      item('General Ledger', '/erp/reports/general-ledger', IconBook, { anyOf: ['accounting.read', 'reports.read'] }),
+      item('Income Statement', '/erp/reports/income-statement', IconReportMoney, { anyOf: ['accounting.read', 'reports.read'] }),
+      item('Balance Sheet', '/erp/reports/balance-sheet', IconBuildingBank, { anyOf: ['accounting.read', 'reports.read'] }),
+      item('Cash Flow', '/erp/reports/cash-flow', IconCashBanknote, { anyOf: ['accounting.read', 'reports.read'] }),
+      item('Changes in Equity', '/erp/reports/changes-in-equity', IconChartBar, { anyOf: ['accounting.read', 'reports.read'] }),
+      item('VAT Report', '/erp/reports/vat-report', IconReceipt, { anyOf: ['accounting.read', 'reports.read'] }),
+    ]),
+  ]),
 
   // ─── Operations ─────────────────────────────────────────────────────────────
-  {
-    navlabel: true,
-    subheader: 'Operations',
-    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...NO_OPERATIONS_ACCESS_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Deals',
-    icon: IconBriefcase,
-    href: '/erp/deals',
-    permission: 'deals.read',
-    includeRoles: OPERATIONS_ONLY_ROLES,
-  },
-  {
-    id: uniqueId(),
-    title: 'GRN',
-    icon: IconPackage,
-    href: '/erp/grn',
-    permission: 'deals.read',
-    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...NO_OPERATIONS_ACCESS_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Inventory',
-    icon: IconBoxSeam,
-    href: '/erp/inventory',
-    permission: 'deals.read',
-    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...NO_OPERATIONS_ACCESS_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Work Orders',
-    icon: IconHammer,
-    href: '/erp/work-orders',
-    permission: 'deals.read',
-    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...NO_OPERATIONS_ACCESS_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Certificates',
-    icon: IconCertificate,
-    href: '/erp/certificates/requests',
-    permission: 'certificates.read',
-    excludeRoles: [...ACCOUNTS_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-    children: [
-      { id: uniqueId(), title: 'Requests', icon: IconPoint, href: '/erp/certificates/requests', permission: 'certificates.read' },
-      { id: uniqueId(), title: 'Register', icon: IconPoint, href: '/erp/certificates/register', permission: 'certificates.read' },
-    ],
-  },
-  {
-    id: uniqueId(),
-    title: 'Service and Purchase',
-    icon: IconReceipt,
-    href: '/erp/quotations',
-    permission: 'quotations.read',
-    includeRoles: OPERATIONS_ONLY_ROLES,
-    children: [
-      {
-        id: uniqueId(),
-        title: 'Orders',
-        icon: IconShoppingCart,
-        href: '/erp/service-orders',
-        permission: 'quotations.read',
-        includeRoles: OPERATIONS_ONLY_ROLES,
-        children: [
-          { id: uniqueId(), title: 'Clients Service Orders', icon: IconPoint, href: '/erp/service-orders', permission: 'quotations.read', includeRoles: OPERATIONS_ONLY_ROLES },
-          { id: uniqueId(), title: 'Clients Purchase Orders', icon: IconPoint, href: '/erp/client-purchase-orders', permission: 'purchase_orders.read', includeRoles: OPERATIONS_ONLY_ROLES },
-          { id: uniqueId(), title: 'Vendor Purchase Orders', icon: IconPoint, href: '/erp/supplier-purchase-orders', permission: 'purchase_orders.read', includeRoles: OPERATIONS_ONLY_ROLES },
-        ],
-      },
-    ],
-  },
+  heading('Operations'),
+  item('GRN', '/erp/grn', IconPackage, { permission: 'grn.read' }),
+  item('Inbound', '/erp/registers/purchase', IconTruckDelivery, { anyOf: ['grn.read', 'outbound.read', 'operations.read'] }, [
+    leaf('Purchase Register', '/erp/registers/purchase', { anyOf: ['grn.read', 'outbound.read', 'purchase_orders.read'] }),
+    leaf('Purchase Orders', '/erp/supplier-purchase-orders', { anyOf: ['deals.read', 'purchase_orders.read'] }),
+    leaf('Purchase Invoices', '/erp/vendor-bills', { permission: 'accounting.read' }),
+    leaf('Service Register', '/erp/registers/service', { anyOf: ['grn.read', 'outbound.read', 'quotations.read'] }),
+    leaf('Service Orders', '/erp/service-orders', { anyOf: ['deals.read', 'quotations.read'] }),
+    leaf('Service Invoices', '/erp/tax-invoices', { permission: 'accounting.read' }),
+    leaf('Pickup Report', '/erp/pickup-report', { permission: 'operations.read' }),
+  ]),
+  item('Outbound', '/erp/outbound', IconTruckDelivery, { anyOf: ['outbound.read', 'grn.read'] }, [
+    leaf('Outbound', '/erp/outbound', { anyOf: ['outbound.read', 'grn.read'] }),
+    leaf('Sales Register', '/erp/registers/sales', { anyOf: ['outbound.read', 'grn.read'] }),
+    leaf('Sales Orders', '/erp/outbound?type=sale', { anyOf: ['outbound.read', 'grn.read'] }),
+    leaf('Sales Invoices', '/erp/registers/sales?type=Sales%20Invoice', { anyOf: ['outbound.read', 'grn.read'] }),
+  ]),
+  item('Inventory', '/erp/inventory', IconBoxSeam, { permission: 'grn.read' }),
+  item('Work Orders', '/erp/work-orders', IconHammer, { permission: 'operations.read' }),
+  item('Certificates', '/erp/certificates/requests', IconCertificate, { permission: 'certificates.read' }, [
+    leaf('Requests', '/erp/certificates/requests', { permission: 'certificates.read' }),
+    leaf('Register', '/erp/certificates/register', { permission: 'certificates.read' }),
+  ]),
 
   // ─── Others ─────────────────────────────────────────────────────────────────
-  {
-    navlabel: true,
-    subheader: 'Others',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Products & Services',
-    icon: IconPackage,
-    href: '/erp/products',
-    permission: 'products.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Terms & Conditions',
-    icon: IconFileText,
-    href: '/erp/terms',
-    permission: 'deals.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
+  heading('Others'),
+  item('Products & Services', '/erp/products', IconPackage, { anyOf: ['products.create', 'products.update', 'products.delete'] }),
+  item('Terms & Conditions', '/erp/terms', IconFileText, { anyOf: ['settings.manage', 'workflow.manager'] }),
 
   // ─── Inspections ────────────────────────────────────────────────────────────
-  {
-    navlabel: true,
-    subheader: 'Inspections',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Inspection Requests',
-    icon: IconClipboardCheck,
-    href: '/erp/inspection-requests',
-    permission: 'inspection_requests.read',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
+  heading('Inspections'),
+  item('Inspection Requests', '/erp/inspection-requests', IconClipboardCheck, { permission: 'inspection_requests.read' }),
 
   // ─── Administration ─────────────────────────────────────────────────────────
-  {
-    navlabel: true,
-    subheader: 'Administration',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Roles',
-    icon: IconShield,
-    href: '/erp/roles',
-    adminDashboardOnly: true,
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Users',
-    icon: IconUsers,
-    href: '/erp/users',
-    adminDashboardOnly: true,
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Company Settings',
-    icon: IconSettings,
-    href: '/erp/settings/company',
-    adminDashboardOnly: true,
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Fiscal Years',
-    icon: IconCalendar,
-    href: '/erp/settings/fiscal-years',
-    permission: 'accounting.read',
-    excludeRoles: [...OPERATIONS_ONLY_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Commission Settings',
-    icon: IconCoin,
-    href: '/erp/commissions/settings',
-    adminDashboardOnly: true,
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
-  {
-    id: uniqueId(),
-    title: 'Carbon Footprint Factors',
-    icon: IconLeaf,
-    href: '/erp/settings/carbon-factors',
-    permission: 'certificates.manage',
-    excludeRoles: [...SECTION_RESTRICTED_ROLES, ...CRM_ONLY_ROLES, ...DRIVER_ONLY_ROLES],
-  },
+  heading('Administration'),
+  item('Roles & Access', '/erp/roles', IconShield, { permission: 'roles.read' }),
+  item('Users', '/erp/users', IconUsers, { permission: 'users.read' }),
+  item('Company Settings', '/erp/settings/company', IconSettings, { permission: 'settings.manage' }),
+  item('Fiscal Years', '/erp/settings/fiscal-years', IconCalendar, { permission: 'accounting.update' }),
+  item('Commission Settings', '/erp/commissions/settings', IconCoin, { permission: 'commissions.manage' }),
+  item('Carbon Footprint Factors', '/erp/settings/carbon-factors', IconLeaf, { permission: 'certificates.manage' }),
+
   // ─── My HR (self-service, always visible to every authenticated user) ───────
-  {
-    navlabel: true,
-    subheader: 'My HR',
-  },
-  {
-    id: uniqueId(),
-    title: 'My Profile',
-    icon: IconUserCircle,
-    href: '/erp/hr/me',
-    children: [
-      { id: uniqueId(), title: 'My Profile', icon: IconPoint, href: '/erp/hr/me' },
-    ],
-  },
-  {
-    id: uniqueId(),
-    title: 'Attendance',
-    icon: IconClock,
-    href: '/erp/hr/attendance/my',
-    children: [
-      { id: uniqueId(), title: 'My Attendance', icon: IconPoint, href: '/erp/hr/attendance/my' },
-    ],
-  },
-  {
-    id: uniqueId(),
-    title: 'Leave',
-    icon: IconCalendarEvent,
-    href: '/erp/hr/leave/my',
-    children: [
-      { id: uniqueId(), title: 'My Leave', icon: IconPoint, href: '/erp/hr/leave/my' },
-    ],
-  },
-  {
-    id: uniqueId(),
-    title: 'Payroll',
-    icon: IconCash,
-    href: '/erp/hr/payroll/my-payslips',
-    children: [
-      { id: uniqueId(), title: 'My Payslips', icon: IconPoint, href: '/erp/hr/payroll/my-payslips' },
-    ],
-  },
-  // ─── HR Management (permission-gated) ────────────────────────────────────────
-  {
-    navlabel: true,
-    subheader: 'HR Management',
-  },
-  {
-    id: uniqueId(),
-    title: 'Employees',
-    icon: IconUsers,
-    href: '/erp/hr/employees',
-    permission: 'hr.employees.read',
-    children: [
-      { id: uniqueId(), title: 'Employees', icon: IconPoint, href: '/erp/hr/employees', permission: 'hr.employees.read' },
-      { id: uniqueId(), title: 'Profile Changes', icon: IconPoint, href: '/erp/hr/employees/change-requests', permission: 'hr.employees.manage' },
-      { id: uniqueId(), title: 'Departments', icon: IconPoint, href: '/erp/hr/departments', permission: 'hr.settings.manage' },
-    ],
-  },
-  {
-    id: uniqueId(),
-    title: 'Attendance Management',
-    icon: IconClock,
-    href: '/erp/hr/attendance/sheet',
-    permission: 'hr.attendance.manage',
-    children: [
-      { id: uniqueId(), title: 'Attendance Sheet', icon: IconPoint, href: '/erp/hr/attendance/sheet', permission: 'hr.attendance.manage' },
-      { id: uniqueId(), title: 'Regularization Requests', icon: IconPoint, href: '/erp/hr/attendance/regularizations', permission: 'hr.attendance.manage' },
-    ],
-  },
-  {
-    id: uniqueId(),
-    title: 'Leave Management',
-    icon: IconCalendarEvent,
-    href: '/erp/hr/leave/approvals',
-    children: [
-      { id: uniqueId(), title: 'Approvals', icon: IconPoint, href: '/erp/hr/leave/approvals', permission: 'hr.leave.approve' },
-      { id: uniqueId(), title: 'Leave Types', icon: IconPoint, href: '/erp/hr/leave/types', permission: 'hr.settings.manage' },
-      { id: uniqueId(), title: 'Holidays', icon: IconPoint, href: '/erp/hr/leave/holidays', permission: 'hr.settings.manage' },
-    ],
-  },
-  {
-    id: uniqueId(),
-    title: 'Payroll Management',
-    icon: IconCash,
-    href: '/erp/hr/payroll/runs',
-    permission: 'hr.payroll.read',
-    children: [
-      { id: uniqueId(), title: 'Payroll Runs', icon: IconPoint, href: '/erp/hr/payroll/runs', permission: 'hr.payroll.read' },
-    ],
-  },
+  heading('My HR'),
+  item('My Profile', '/erp/hr/me', IconUserCircle, {}, [leaf('My Profile', '/erp/hr/me')]),
+  item('Attendance', '/erp/hr/attendance/my', IconClock, {}, [leaf('My Attendance', '/erp/hr/attendance/my')]),
+  item('Leave', '/erp/hr/leave/my', IconCalendarEvent, {}, [leaf('My Leave', '/erp/hr/leave/my')]),
+  item('Payroll', '/erp/hr/payroll/my-payslips', IconCash, {}, [leaf('My Payslips', '/erp/hr/payroll/my-payslips')]),
+
+  // ─── HR Management (permission-gated) ───────────────────────────────────────
+  heading('HR Management'),
+  item('Employees', '/erp/hr/employees', IconUsers, { permission: 'hr.employees.read' }, [
+    leaf('Employees', '/erp/hr/employees', { permission: 'hr.employees.read' }),
+    leaf('Profile Changes', '/erp/hr/employees/change-requests', { permission: 'hr.employees.manage' }),
+    leaf('Departments', '/erp/hr/departments', { permission: 'hr.settings.manage' }),
+  ]),
+  item('Attendance Management', '/erp/hr/attendance/sheet', IconClock, { permission: 'hr.attendance.manage' }, [
+    leaf('Attendance Sheet', '/erp/hr/attendance/sheet', { permission: 'hr.attendance.manage' }),
+    leaf('Regularization Requests', '/erp/hr/attendance/regularizations', { permission: 'hr.attendance.manage' }),
+  ]),
+  item('Leave Management', '/erp/hr/leave/approvals', IconCalendarEvent, { anyOf: ['hr.leave.approve', 'hr.settings.manage'] }, [
+    leaf('Approvals', '/erp/hr/leave/approvals', { permission: 'hr.leave.approve' }),
+    leaf('Leave Types', '/erp/hr/leave/types', { permission: 'hr.settings.manage' }),
+    leaf('Holidays', '/erp/hr/leave/holidays', { permission: 'hr.settings.manage' }),
+  ]),
+  item('Payroll Management', '/erp/hr/payroll/runs', IconCash, { permission: 'hr.payroll.read' }, [
+    leaf('Payroll Runs', '/erp/hr/payroll/runs', { permission: 'hr.payroll.read' }),
+  ]),
 ];
 
 export default ErpMenuItems;

@@ -24,7 +24,6 @@ import apiService from '../../../services/api';
 import { phoneYup, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
 
-const ADMIN_ROLES = ['admin', 'tenant_admin', 'super_admin'];
 
 const validationSchema = Yup.object({
   name: Yup.string().trim().required('Tenant name is required'),
@@ -42,9 +41,8 @@ const validationSchema = Yup.object({
 const CompanySettings = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { user } = useAuth();
-  const roleName = user?.role?.name ?? user?.role;
-  const canManageApprovalPin = ADMIN_ROLES.includes(roleName);
+  const { hasPermission } = useAuth();
+  const canManageApprovalPin = hasPermission('settings.manage');
   const logoInputRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

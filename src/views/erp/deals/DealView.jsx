@@ -432,7 +432,7 @@ const DealView = () => {
   const theme = useTheme();
   const { user, hasPermission } = useAuth();
   const hideDealAmounts = shouldHideDealFinancials(user);
-  const showWorkOrderActions = getUserRole(user) !== 'sales';
+  const showWorkOrderActions = hasPermission('operations.create') || hasPermission('operations.update');
   const canEditDeals = hasPermission('deals.update');
   const canDirectApprove = canDirectManagerApprove(user);
   const [loading, setLoading] = useState(true);
@@ -1475,7 +1475,7 @@ const DealView = () => {
                       {inspectionReportPdfDownloading ? 'Downloading...' : 'Download report'}
                     </Button>
                   )}
-                  {canEditDeals && !['sales', 'sales_manager'].includes(getUserRole(user)) && (
+                  {canEditDeals && (hasPermission('inspection_reports.create') || hasPermission('inspection_reports.update')) && (
                     <Button variant="contained" size="small" startIcon={<IconPlus size={16} />} onClick={openReportDialog} sx={{ borderRadius: 2 }}>
                       {deal.inspectionReport ? 'Edit report' : 'Add report'}
                     </Button>

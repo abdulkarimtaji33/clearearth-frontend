@@ -30,7 +30,8 @@ import {
   InputLabel,
   Select,
 } from '@mui/material';
-import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconLock, IconLogin, IconBan, IconCircleCheck } from '@tabler/icons-react';
+import { IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical, IconLock, IconLogin, IconBan, IconCircleCheck, IconShieldLock } from '@tabler/icons-react';
+import UserAccessDialog from '../../../components/erp/access/UserAccessDialog';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
@@ -42,6 +43,8 @@ const UserList = () => {
   const { hasPermission } = useAuth();
   const canUpdateUsers = hasPermission('users.update');
   const canImpersonate = hasPermission('users.impersonate');
+  const canManageAccess = hasPermission('roles.update');
+  const [accessUserId, setAccessUserId] = useState(null);
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -362,6 +365,17 @@ const UserList = () => {
             <IconEdit size={18} style={{ marginRight: 8 }} />
             Edit
           </MenuItem>
+          {canManageAccess && (
+            <MenuItem
+              onClick={() => {
+                setAccessUserId(selectedUser?.id);
+                handleMenuClose();
+              }}
+            >
+              <IconShieldLock size={18} style={{ marginRight: 8 }} />
+              Manage access
+            </MenuItem>
+          )}
           {canUpdateUsers && (
             <MenuItem onClick={openPasswordDialog}>
               <IconLock size={18} style={{ marginRight: 8 }} />
@@ -445,6 +459,10 @@ const UserList = () => {
             <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
           </DialogActions>
         </Dialog>
+
+        {accessUserId && (
+          <UserAccessDialog open userId={accessUserId} onClose={() => setAccessUserId(null)} />
+        )}
       </Box>
     </PageContainer>
   );

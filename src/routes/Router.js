@@ -4,6 +4,7 @@ import { Navigate, createBrowserRouter, useParams } from 'react-router';
 import Loadable, { lazyWithChunkReload } from '../layouts/full/shared/loadable/Loadable';
 import ChunkLoadErrorElement from '../components/ChunkLoadErrorElement';
 import RequireAdmin from '../components/auth/RequireAdmin';
+import RequirePermission from '../components/auth/RequirePermission';
 import RequireQuotationPoEditor from '../components/auth/RequireQuotationPoEditor';
 import RequireWorkOrderCreator from '../components/auth/RequireWorkOrderCreator';
 import RequireInvoiceGenerator from '../components/auth/RequireInvoiceGenerator';
@@ -95,6 +96,10 @@ const DriverPickupTaskView = Loadable(lazyWithChunkReload(() => import('../views
 const GrnList = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnList')));
 const GrnForm = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnForm')));
 const GrnView = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/GrnView')));
+const OutboundList = Loadable(lazyWithChunkReload(() => import('../views/erp/outbound/OutboundList')));
+const OutboundView = Loadable(lazyWithChunkReload(() => import('../views/erp/outbound/OutboundView')));
+const RegisterList = Loadable(lazyWithChunkReload(() => import('../views/erp/registers/RegisterList')));
+const PickupReport = Loadable(lazyWithChunkReload(() => import('../views/erp/operations/PickupReport')));
 const InventoryList = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/InventoryList')));
 const CertificateRequestList = Loadable(lazyWithChunkReload(() => import('../views/erp/certificates/CertificateRequestList')));
 const CertificateRequestForm = Loadable(lazyWithChunkReload(() => import('../views/erp/certificates/CertificateRequestForm')));
@@ -229,12 +234,12 @@ const Router = createBrowserRouter([
       { path: '/erp/purchase-orders/edit/:id', element: <RequireQuotationPoEditor><PurchaseOrderForm /></RequireQuotationPoEditor> },
       { path: '/erp/client-purchase-orders', element: <ClientPurchaseOrderList /> },
       { path: '/erp/supplier-purchase-orders', element: <SupplierPurchaseOrderList /> },
-      { path: '/erp/roles', element: <RequireAdmin><RoleList /></RequireAdmin> },
-      { path: '/erp/roles/create', element: <RequireAdmin><RoleForm /></RequireAdmin> },
-      { path: '/erp/roles/edit/:id', element: <RequireAdmin><RoleForm /></RequireAdmin> },
-      { path: '/erp/users', element: <RequireAdmin><UserList /></RequireAdmin> },
-      { path: '/erp/users/create', element: <RequireAdmin><UserForm /></RequireAdmin> },
-      { path: '/erp/users/edit/:id', element: <RequireAdmin><UserForm /></RequireAdmin> },
+      { path: '/erp/roles', element: <RequirePermission permission="roles.read"><RoleList /></RequirePermission> },
+      { path: '/erp/roles/create', element: <RequirePermission permission="roles.read"><RoleForm /></RequirePermission> },
+      { path: '/erp/roles/edit/:id', element: <RequirePermission permission="roles.read"><RoleForm /></RequirePermission> },
+      { path: '/erp/users', element: <RequirePermission permission="users.read"><UserList /></RequirePermission> },
+      { path: '/erp/users/create', element: <RequirePermission permission="users.read"><UserForm /></RequirePermission> },
+      { path: '/erp/users/edit/:id', element: <RequirePermission permission="users.read"><UserForm /></RequirePermission> },
       { path: '/erp/inspection-requests', element: <InspectionRequestList /> },
       { path: '/erp/inspection-requests/:id', element: <InspectionRequestView /> },
       { path: '/erp/work-orders', element: <WorkOrderList /> },
@@ -246,6 +251,10 @@ const Router = createBrowserRouter([
       { path: '/erp/grn/create', element: <GrnForm /> },
       { path: '/erp/grn/edit/:id', element: <GrnForm /> },
       { path: '/erp/grn/view/:id', element: <GrnView /> },
+      { path: '/erp/outbound', element: <OutboundList /> },
+      { path: '/erp/outbound/view/:id', element: <OutboundView /> },
+      { path: '/erp/registers/:kind', element: <RegisterList /> },
+      { path: '/erp/pickup-report', element: <PickupReport /> },
       { path: '/erp/inventory', element: <InventoryList /> },
       { path: '/erp/certificates/requests', element: <CertificateRequestList /> },
       { path: '/erp/certificates/requests/new', element: <CertificateRequestForm /> },
@@ -253,7 +262,7 @@ const Router = createBrowserRouter([
       { path: '/erp/certificates/register', element: <CertificateList /> },
       { path: '/erp/certificates/view/:id', element: <CertificateDetail /> },
       { path: '/erp/settings/carbon-factors', element: <CarbonFactorsSettings /> },
-      { path: '/erp/settings/company', element: <RequireAdmin><CompanySettings /></RequireAdmin> },
+      { path: '/erp/settings/company', element: <RequirePermission permission="settings.manage"><CompanySettings /></RequirePermission> },
       { path: '/erp/account/password', element: <ChangePassword /> },
       { path: '/erp/account/signature', element: <MySignature /> },
       { path: '/erp/settings/fiscal-years', element: <FiscalYearManager /> },
@@ -269,7 +278,7 @@ const Router = createBrowserRouter([
       { path: '/erp/reports/cash-flow', element: <CashFlowView /> },
       { path: '/erp/reports/changes-in-equity', element: <ChangesInEquityView /> },
       { path: '/erp/reports/vat-report', element: <VatReportView /> },
-      { path: '/erp/commissions/settings', element: <RequireAdmin><CommissionSettings /></RequireAdmin> },
+      { path: '/erp/commissions/settings', element: <RequirePermission permission="commissions.manage"><CommissionSettings /></RequirePermission> },
       { path: '/erp/commissions/mine', element: <MyCommissions /> },
       { path: '/erp/hr/departments', element: <DepartmentList /> },
       { path: '/erp/hr/departments/create', element: <DepartmentForm /> },

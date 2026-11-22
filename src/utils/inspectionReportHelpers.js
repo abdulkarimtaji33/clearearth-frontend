@@ -1,11 +1,10 @@
-import { getUserRole } from './authHelpers';
+import { userCan } from './authHelpers';
 
-export const INSPECTION_ROLE_NAMES = ['inspection_team', 'inspection'];
-export const INSPECTION_REPORT_APPROVER_ROLES = ['sales', 'sales_manager', 'operations_manager', 'admin', 'tenant_admin', 'super_admin'];
+/** Inspectors record reports under their own name — the `inspection_reports.perform` permission. */
+export const isInspectionRole = (user) => userCan(user, 'inspection_reports.perform');
 
-export const isInspectionRole = (user) => INSPECTION_ROLE_NAMES.includes(getUserRole(user));
-
-export const canApproveInspectionReport = (user) => INSPECTION_REPORT_APPROVER_ROLES.includes(getUserRole(user));
+/** Approving an inspection report — the `inspection_reports.approve` permission. */
+export const canApproveInspectionReport = (user) => userCan(user, 'inspection_reports.approve');
 
 export const formatUserDisplayName = (user) => {
   if (!user) return '';

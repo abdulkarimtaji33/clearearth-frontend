@@ -20,46 +20,72 @@ export function normalizePermissions(perms) {
   return [];
 }
 
-/** Operations (and similar) see full deal detail but not pricing. */
+/**
+ * Effective access attached to the user by the API (role permissions ± per-user overrides,
+ * data scopes and hidden field groups). Everything below is driven by it — not by role names.
+ */
+export function getAccess(user) {
+  return user?.access || null;
+}
+
+/** True when the user holds the permission (Super Admin holds everything). */
+export function userCan(user, permission) {
+  if (!user) return false;
+  if (getUserRole(user) === 'super_admin') return true;
+  const access = getAccess(user);
+  if (access?.isSuperAdmin) return true;
+  const list = access?.permissions ?? normalizePermissions(user.permissions ?? user.role?.permissions);
+  return list.includes(permission);
+}
+
+/** Data scope for a module ('own' | 'team' | 'all'). */
+export function userScope(user, moduleKey, fallback = 'all') {
+  return getAccess(user)?.scopes?.[moduleKey] || fallback;
+}
+
+/** True when a field group (e.g. 'financials') is hidden for the user. */
+export function userHidesField(user, group) {
+  if (!user) return false;
+  if (getAccess(user)?.isSuperAdmin) return false;
+  return Boolean(getAccess(user)?.hiddenFieldGroups?.includes(group));
+}
+
+/** Roles whose "prices & amounts" field group is hidden (configured per role under Roles → Field visibility). */
 export function shouldHideDealFinancials(user) {
-  return getUserRole(user) === 'operations_manager';
+  return userHidesField(user, 'financials');
 }
 
 const SALES_ROLES = ['sales', 'sales_executive'];
 
-/** Sales and Sales Manager — CRM roles that must not create work orders. */
-const NO_WORK_ORDER_CREATE_ROLES = ['sales', 'sales_manager'];
-
-/** Operations roles — must not open the deal detail page. */
-const OPERATIONS_ROLES = ['operations_manager', 'operations'];
-
-/** CRM and operations roles blocked from creating proforma / tax invoices. */
-const INVOICE_GENERATION_BLOCKED_ROLES = ['sales', 'sales_executive', 'sales_manager', 'operations_manager', 'operations'];
-
-/** Sales Executive / Sales (legacy helper — invoice blocking uses canGenerateInvoice). */
+/** Sales roles (legacy helper, kept for display purposes only). */
 export function isSalesRole(user) {
   return SALES_ROLES.includes(getUserRole(user));
 }
 
+/** Legacy helper kept for compatibility — prefer permissions. */
 export function isOperationsRole(user) {
-  return OPERATIONS_ROLES.includes(getUserRole(user));
+  return ['operations_manager', 'operations'].includes(getUserRole(user));
 }
 
-/** Operations users may list deals but must not open deal detail. */
+/** Users who cannot see pricing also don't get the deal detail page (it is pricing-centric). */
 export function canViewDealDetails(user) {
-  return !isOperationsRole(user);
+  return userCan(user, 'deals.read') && !shouldHideDealFinancials(user);
 }
 
-/** Sales, sales manager, and operations roles must not create proforma or tax invoices. */
+/** Proforma / tax invoice creation is the `invoices.generate` permission. */
 export function canGenerateInvoice(user) {
-  return !INVOICE_GENERATION_BLOCKED_ROLES.includes(getUserRole(user));
+  return userCan(user, 'invoices.generate');
 }
 
-/** True when the user may create a work order (Operations and admins only). */
+/** Work order creation is the `operations.create` permission. */
 export function canCreateWorkOrder(user, hasPermission) {
-  if (NO_WORK_ORDER_CREATE_ROLES.includes(getUserRole(user))) return false;
   if (typeof hasPermission === 'function') return hasPermission('operations.create');
-  return true;
+  return userCan(user, 'operations.create');
+}
+
+/** Create / edit / approve quotations & orders is the `orders.modify` permission. */
+export function canModifyOrders(user) {
+  return userCan(user, 'orders.modify');
 }
 
 export function collectPermissionsFromUserPayload(data) {
@@ -68,6 +94,7 @@ export function collectPermissionsFromUserPayload(data) {
   return normalizePermissions(
     data.permissions
       ?? user.permissions
+      ?? user.access?.permissions
       ?? user.role?.permissions
   );
 }

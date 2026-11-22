@@ -37,11 +37,13 @@ const ApprovalWorkflowDialogs = ({
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [pickupDate, setPickupDate] = useState('');
+  const [pickupNote, setPickupNote] = useState('');
 
   const handleDecideLater = () => {
     setPinDialogOpen(false);
     setPin('');
     setPickupDate('');
+    setPickupNote('');
     onDecideLater?.();
   };
 
@@ -53,7 +55,7 @@ const ApprovalWorkflowDialogs = ({
   };
 
   const handleSendForApproval = async () => {
-    await onRequestApproval?.(showPickupDate ? (pickupDate || null) : undefined);
+    await onRequestApproval?.(showPickupDate ? (pickupDate || null) : undefined, showPickupDate ? (pickupNote.trim() || undefined) : undefined);
   };
 
   const resolvedApproveLabel = approveButtonLabel || `Approve ${entityLabel}`;
@@ -85,6 +87,18 @@ const ApprovalWorkflowDialogs = ({
               InputLabelProps={{ shrink: true }}
               InputProps={{ startAdornment: <IconTruckDelivery size={18} style={{ marginRight: 8, opacity: 0.6 }} /> }}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            />
+          )}
+          {showPickupDate && (
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              label="Note for operations (optional)"
+              value={pickupNote}
+              onChange={(e) => setPickupNote(e.target.value)}
+              placeholder="Important information to share with operations"
+              sx={{ mt: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
           )}
         </DialogContent>

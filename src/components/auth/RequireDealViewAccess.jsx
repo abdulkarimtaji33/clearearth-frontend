@@ -2,9 +2,9 @@ import React from 'react';
 import { Navigate } from 'react-router';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
-import { getUserRole, canViewDealDetails } from '../../utils/authHelpers';
+import { canViewDealDetails } from '../../utils/authHelpers';
 
-/** Block drivers and operations roles from the deal detail page. */
+/** The deal detail page needs `deals.read` and is hidden from users whose prices & amounts are hidden. */
 const RequireDealViewAccess = ({ children }) => {
   const { user, loading } = useAuth();
 
@@ -16,7 +16,7 @@ const RequireDealViewAccess = ({ children }) => {
     );
   }
 
-  if (getUserRole(user) === 'driver' || !canViewDealDetails(user)) {
+  if (!canViewDealDetails(user)) {
     return <Navigate to="/erp/dashboard" replace />;
   }
 

@@ -15,22 +15,24 @@ import AccountsDashboard from './AccountsDashboard';
 import HrDashboardWidgets from '../hr/HrDashboardWidgets';
 import DateRangeFilter, { DEFAULT_RANGE, rangeToParams } from './shared/DateRangeFilter';
 
-const ROLE_MAP = {
-  admin: AdminDashboard,
-  tenant_admin: AdminDashboard,
-  super_admin: SuperAdminDashboard,
-  sales: SalesDashboard,
-  sales_manager: SalesManagerDashboard,
-  inspection_team: InspectionDashboard,
-  operations_manager: OperationsDashboard,
-  driver: DriverPickupList,
-  accounts: AccountsDashboard,
-};
+// Which dashboard a user gets is decided by their dashboard.view_* permissions (first match wins),
+// matching the server's choice of data — configurable per role in Roles & Access.
+const VARIANTS = [
+  ['dashboard.view_super_admin', SuperAdminDashboard, 'super_admin'],
+  ['dashboard.view_admin', AdminDashboard, 'admin'],
+  ['dashboard.view_operations', OperationsDashboard, 'operations_manager'],
+  ['dashboard.view_accounts', AccountsDashboard, 'accounts'],
+  ['dashboard.view_sales_manager', SalesManagerDashboard, 'sales_manager'],
+  ['dashboard.view_inspection', InspectionDashboard, 'inspection_team'],
+  ['dashboard.view_driver', DriverPickupList, 'driver'],
+  ['dashboard.view_sales', SalesDashboard, 'sales'],
+];
 
 const DashboardRouter = () => {
   const { user, hasPermission } = useAuth();
   const { on, connected } = useSocket() || {};
-  const roleName = user?.role?.name || user?.Role?.name || 'sales';
+  const variant = VARIANTS.find(([perm]) => hasPermission(perm)) || [null, SalesDashboard, 'sales'];
+  const roleName = variant[2];
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -81,8 +83,8 @@ const DashboardRouter = () => {
     return () => clearInterval(interval);
   }, [roleName, silentRefresh]);
 
-  const Component = ROLE_MAP[roleName] || SalesDashboard;
-  const isAdmin = roleName === 'admin' || roleName === 'tenant_admin';
+  const Component = variant[1];
+  const isAdmin = roleName === 'admin';
   const showHr = hasPermission('hr.employees.manage');
   const filter = <DateRangeFilter value={range} onChange={setRange} />;
   const hrSlot = showHr ? <HrDashboardWidgets range={range} /> : null;

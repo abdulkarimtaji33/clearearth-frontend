@@ -7,6 +7,7 @@ import { CustomizerContextProvider } from './context/CustomizerContext';
 import { AuthProvider } from './context/AuthContext';
 import { installGlobalChunkReloadHandlers } from './utils/chunkReload';
 import { SocketProvider } from './context/SocketContext';
+import AccessLiveRefresh from './components/auth/AccessLiveRefresh';
 
 installGlobalChunkReloadHandlers();
 
@@ -22,6 +23,7 @@ deferRender().then(() => {
     <CustomizerContextProvider>
       <AuthProvider>
         <SocketProvider>
+          <AccessLiveRefresh />
           <Suspense fallback={<Spinner />}>
             <App />
           </Suspense>

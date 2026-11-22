@@ -5,9 +5,6 @@ import { useNavigate } from 'react-router';
 import { IconCoin, IconArrowRight } from '@tabler/icons-react';
 import apiService from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { getUserRole } from '../../utils/authHelpers';
-
-const SALES_ROLES = ['sales', 'sales_executive', 'sales_manager'];
 
 /**
  * Small commission summary card for the sales dashboard — accrued/paid totals
@@ -17,9 +14,8 @@ const SALES_ROLES = ['sales', 'sales_executive', 'sales_manager'];
 const CommissionSummaryCard = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const roleName = getUserRole(user);
-  const isSales = SALES_ROLES.includes(roleName);
+  const { hasPermission } = useAuth();
+  const isSales = hasPermission('commissions.view_own');
 
   const [loading, setLoading] = useState(isSales);
   const [summary, setSummary] = useState(null);

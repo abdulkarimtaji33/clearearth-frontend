@@ -2,9 +2,9 @@ import React from 'react';
 import { Navigate } from 'react-router';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
-import { shouldHideDealFinancials } from '../../utils/authHelpers';
+import { canModifyOrders } from '../../utils/authHelpers';
 
-/** Block operations managers from quotation/purchase-order create and edit forms. */
+/** Only users with `orders.modify` may open quotation / purchase-order create and edit forms. */
 const RequireQuotationPoEditor = ({ children }) => {
   const { user, loading } = useAuth();
 
@@ -16,7 +16,7 @@ const RequireQuotationPoEditor = ({ children }) => {
     );
   }
 
-  if (shouldHideDealFinancials(user)) {
+  if (!canModifyOrders(user)) {
     return <Navigate to="/erp/dashboard" replace />;
   }
 

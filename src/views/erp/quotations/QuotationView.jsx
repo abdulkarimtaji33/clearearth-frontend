@@ -16,7 +16,7 @@ import apiService from '../../../services/api';
 import { sortQuotationsByVersion, quotationVersion, quotationVersionLabel } from '../../../utils/quotationVersion';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
-import { shouldHideDealFinancials, canCreateWorkOrder, canGenerateInvoice, canViewDealDetails } from '../../../utils/authHelpers';
+import { shouldHideDealFinancials, canCreateWorkOrder, canGenerateInvoice, canViewDealDetails, canModifyOrders } from '../../../utils/authHelpers';
 import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
 
 const QUOTATION_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
@@ -56,9 +56,10 @@ const QuotationView = () => {
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
   const [approvePickupDate, setApprovePickupDate] = useState('');
+  const [approvePickupNote, setApprovePickupNote] = useState('');
   const [pickupActionLoading, setPickupActionLoading] = useState(false);
   const [pickupActionError, setPickupActionError] = useState('');
-  const isOperationsUser = user?.role?.name === 'operations_manager' || user?.role?.name === 'operations';
+  const isOperationsUser = !canModifyOrders(user);
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalError, setApprovalError] = useState('');
   const [dealWorkOrders, setDealWorkOrders] = useState([]);
@@ -125,7 +126,7 @@ const QuotationView = () => {
     setApproveError('');
     try {
       setApproveLoading(true);
-      await apiService.approveQuotation(id, approvePickupDate || null);
+      await apiService.approveQuotation(id, approvePickupDate || null, approvePickupNote || undefined);
       setApproveConfirmOpen(false);
       setApprovePickupDate('');
       await fetchQ();
@@ -140,12 +141,12 @@ const QuotationView = () => {
     setApproveConfirmOpen(true);
   };
 
-  const handleRequestQuotationApproval = async (requestedPickupDate) => {
+  const handleRequestQuotationApproval = async (requestedPickupDate, pickupRequestNote) => {
     if (!id) return;
     try {
       setApprovalLoading(true);
       setApprovalError('');
-      await apiService.requestQuotationApproval(id, requestedPickupDate);
+      await apiService.requestQuotationApproval(id, requestedPickupDate, pickupRequestNote);
       setApprovalDialogOpen(false);
       await fetchQ();
     } catch (e) {
@@ -261,7 +262,7 @@ const QuotationView = () => {
 
         {isApproved && q.requested_pickup_date && (
           <PickupDatePanel
-            entity={q}
+            entity={{ ...q, request_note: q.pickup_request_note }}
             isOperations={isOperationsUser}
             isPreparer={String(q.prepared_by) === String(user?.id)}
             onConfirm={async () => {
@@ -485,6 +486,8 @@ const QuotationView = () => {
           loading={approveLoading}
           entityLabel="service quotation"
           pickupDate={approvePickupDate}
+          pickupNote={approvePickupNote}
+          onPickupNoteChange={setApprovePickupNote}
           onPickupDateChange={setApprovePickupDate}
         />
       </Box>

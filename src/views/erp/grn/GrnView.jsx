@@ -19,16 +19,14 @@ import GrnEvidenceThumbs from './GrnEvidenceThumbs';
 const STATUS_COLOR = { new: 'default', submitted: 'info', approved: 'success' };
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
-const APPROVER_ROLES = ['admin', 'tenant_admin', 'operations_manager'];
 
 const GrnView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
   const { formatItem: formatItemUom } = useUnitsOfMeasure();
-  const { user } = useAuth();
-  const roleName = getUserRole(user);
-  const canApprove = APPROVER_ROLES.includes(roleName);
+  const { hasPermission } = useAuth();
+  const canApprove = hasPermission('grn.update');
   const [grn, setGrn] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -273,20 +271,9 @@ const GrnView = () => {
                     <RefItem icon={IconBuilding} label="Lead">
                       <Typography variant="body2" fontWeight={700}>
                         {lead.company?.company_name
-                          || [lead.contact?.first_name, lead.contact?.last_name].filter(Boolean).join(' ')
                           || lead.lead_number
                           || '—'}
                       </Typography>
-                      {lead.contact && lead.company?.company_name && (
-                        <Typography variant="caption" color="text.secondary">
-                          {[lead.contact.first_name, lead.contact.last_name].filter(Boolean).join(' ')}
-                        </Typography>
-                      )}
-                      {(lead.phone || lead.contact?.phone) && (
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          {lead.phone || lead.contact?.phone}
-                        </Typography>
-                      )}
                     </RefItem>
                   </Grid>
                 )}
@@ -366,6 +353,26 @@ const GrnView = () => {
           </Paper>
         );
       })()}
+
+      <Paper variant="outlined" sx={{ p: 2.5, mb: 2.5, borderRadius: 3 }}>
+        <Typography variant="subtitle2" fontWeight={700} mb={0.75}>
+          Storage facility
+        </Typography>
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+          {grn.disposed_without_facility ? (
+            <Chip size="small" color="warning" label="Disposed without coming to the facility" sx={{ fontWeight: 700 }} />
+          ) : grn.storageFacility?.name ? (
+            <Chip size="small" color="primary" variant="outlined" label={grn.storageFacility.name} sx={{ fontWeight: 700 }} />
+          ) : (
+            <Typography variant="body2" color="text.secondary">Not set yet. Choose it by editing the GRN, before submitting.</Typography>
+          )}
+        </Stack>
+        {grn.driver_comment && (
+          <Typography variant="body2" color="text.secondary" mt={1}>
+            <strong>Driver comment:</strong> {grn.driver_comment}
+          </Typography>
+        )}
+      </Paper>
 
       {grn.notes && (
         <Paper variant="outlined" sx={{ p: 2.5, mb: 2.5, borderRadius: 3 }}>

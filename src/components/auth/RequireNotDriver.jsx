@@ -2,11 +2,10 @@ import React from 'react';
 import { Navigate } from 'react-router';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
-import { getUserRole } from '../../utils/authHelpers';
 
-/** Block drivers from CRM deal screens; they use driver pickup views instead. */
+/** Only users who can view deals (`deals.read`) may open CRM deal screens — e.g. drivers use pickup views instead. */
 const RequireNotDriver = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { loading, hasPermission } = useAuth();
 
   if (loading) {
     return (
@@ -16,7 +15,7 @@ const RequireNotDriver = ({ children }) => {
     );
   }
 
-  if (getUserRole(user) === 'driver') {
+  if (!hasPermission('deals.read')) {
     return <Navigate to="/erp/dashboard" replace />;
   }
 

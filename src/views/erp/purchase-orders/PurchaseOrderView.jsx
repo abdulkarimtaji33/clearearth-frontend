@@ -14,7 +14,7 @@ import DealRequirementsBanner from '../work-orders/DealRequirementsBanner';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { canDirectManagerApprove } from '../../../utils/recordStatus';
-import { shouldHideDealFinancials, canCreateWorkOrder, canViewDealDetails } from '../../../utils/authHelpers';
+import { shouldHideDealFinancials, canCreateWorkOrder, canViewDealDetails, canModifyOrders } from '../../../utils/authHelpers';
 
 const PO_APPROVABLE_STATUSES = ['new', 'sent', 'under_review', 'revised', 'pending_approval'];
 
@@ -50,9 +50,10 @@ const PurchaseOrderView = () => {
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
   const [approvePickupDate, setApprovePickupDate] = useState('');
+  const [approvePickupNote, setApprovePickupNote] = useState('');
   const [pickupActionLoading, setPickupActionLoading] = useState(false);
   const [pickupActionError, setPickupActionError] = useState('');
-  const isOperationsUser = user?.role?.name === 'operations_manager' || user?.role?.name === 'operations';
+  const isOperationsUser = !canModifyOrders(user);
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approvalError, setApprovalError] = useState('');
   const [tenantCompanyName, setTenantCompanyName] = useState('Clear Earth Recycling LLC');
@@ -101,7 +102,7 @@ const PurchaseOrderView = () => {
     setApproveError('');
     try {
       setApproveLoading(true);
-      await apiService.approvePurchaseOrder(id, approvePickupDate || null);
+      await apiService.approvePurchaseOrder(id, approvePickupDate || null, approvePickupNote || undefined);
       setApproveConfirmOpen(false);
       setApprovePickupDate('');
       await fetchPo();
@@ -117,12 +118,12 @@ const PurchaseOrderView = () => {
     setApproveConfirmOpen(true);
   };
 
-  const handleRequestPoApproval = async (requestedPickupDate) => {
+  const handleRequestPoApproval = async (requestedPickupDate, pickupRequestNote) => {
     if (!id) return;
     try {
       setApprovalLoading(true);
       setApprovalError('');
-      await apiService.requestPurchaseOrderApproval(id, requestedPickupDate);
+      await apiService.requestPurchaseOrderApproval(id, requestedPickupDate, pickupRequestNote);
       setApprovalDialogOpen(false);
       await fetchPo();
     } catch (e) {
@@ -241,7 +242,7 @@ const PurchaseOrderView = () => {
 
         {isApproved && po.requested_pickup_date && (
           <PickupDatePanel
-            entity={po}
+            entity={{ ...po, request_note: po.pickup_request_note }}
             isOperations={isOperationsUser}
             isPreparer={String(po.created_by) === String(user?.id)}
             onConfirm={async () => {
@@ -452,6 +453,8 @@ const PurchaseOrderView = () => {
           entityLabel="client purchase quotation"
           orderCreatedLabel="A Purchase Order will be created."
           pickupDate={approvePickupDate}
+          pickupNote={approvePickupNote}
+          onPickupNoteChange={setApprovePickupNote}
           onPickupDateChange={setApprovePickupDate}
           listLabel="The quotation will be removed from the Purchase Quotation List."
         />

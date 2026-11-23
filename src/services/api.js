@@ -484,12 +484,22 @@ class ApiService {
     return this.put(`/quotations/${id}`, data);
   }
 
-  async approveQuotation(id, requestedPickupDate, pickupRequestNote) {
-    return this.post(`/quotations/${id}/approve`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined });
+  async getPickupRequestPrefill(sourceType, id) {
+    const base = sourceType === 'purchase_order' ? 'purchase-orders' : 'quotations';
+    return this.get(`/${base}/${id}/pickup-request/prefill`);
   }
 
-  async requestQuotationApproval(id, requestedPickupDate, pickupRequestNote) {
-    return this.post(`/quotations/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined });
+  async getPickupRequest(sourceType, id) {
+    const base = sourceType === 'purchase_order' ? 'purchase-orders' : 'quotations';
+    return this.get(`/${base}/${id}/pickup-request`);
+  }
+
+  async approveQuotation(id, requestedPickupDate, pickupRequestNote, pickupRequest) {
+    return this.post(`/quotations/${id}/approve`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined, pickupRequest: pickupRequest || undefined });
+  }
+
+  async requestQuotationApproval(id, requestedPickupDate, pickupRequestNote, pickupRequest) {
+    return this.post(`/quotations/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined, pickupRequest: pickupRequest || undefined });
   }
 
   async confirmQuotationPickupDate(id) {
@@ -878,12 +888,12 @@ class ApiService {
     return this.put(`/purchase-orders/${id}`, data);
   }
 
-  async approvePurchaseOrder(id, requestedPickupDate, pickupRequestNote) {
-    return this.post(`/purchase-orders/${id}/approve`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined });
+  async approvePurchaseOrder(id, requestedPickupDate, pickupRequestNote, pickupRequest) {
+    return this.post(`/purchase-orders/${id}/approve`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined, pickupRequest: pickupRequest || undefined });
   }
 
-  async requestPurchaseOrderApproval(id, requestedPickupDate, pickupRequestNote) {
-    return this.post(`/purchase-orders/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined });
+  async requestPurchaseOrderApproval(id, requestedPickupDate, pickupRequestNote, pickupRequest) {
+    return this.post(`/purchase-orders/${id}/request-approval`, { requestedPickupDate: requestedPickupDate || undefined, pickupRequestNote: pickupRequestNote || undefined, pickupRequest: pickupRequest || undefined });
   }
 
   async confirmPurchaseOrderPickupDate(id) {

@@ -57,6 +57,8 @@ const QuotationView = () => {
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
   const [approvePickupDate, setApprovePickupDate] = useState('');
   const [approvePickupNote, setApprovePickupNote] = useState('');
+  const [approveRequestEnabled, setApproveRequestEnabled] = useState(false);
+  const [approvePickupRequest, setApprovePickupRequest] = useState(null);
   const [pickupActionLoading, setPickupActionLoading] = useState(false);
   const [pickupActionError, setPickupActionError] = useState('');
   const isOperationsUser = !canModifyOrders(user);
@@ -126,7 +128,7 @@ const QuotationView = () => {
     setApproveError('');
     try {
       setApproveLoading(true);
-      await apiService.approveQuotation(id, approvePickupDate || null, approvePickupNote || undefined);
+      await apiService.approveQuotation(id, approvePickupDate || null, approvePickupNote || undefined, approveRequestEnabled ? approvePickupRequest : undefined);
       setApproveConfirmOpen(false);
       setApprovePickupDate('');
       await fetchQ();
@@ -141,12 +143,12 @@ const QuotationView = () => {
     setApproveConfirmOpen(true);
   };
 
-  const handleRequestQuotationApproval = async (requestedPickupDate, pickupRequestNote) => {
+  const handleRequestQuotationApproval = async (requestedPickupDate, pickupRequestNote, pickupRequest) => {
     if (!id) return;
     try {
       setApprovalLoading(true);
       setApprovalError('');
-      await apiService.requestQuotationApproval(id, requestedPickupDate, pickupRequestNote);
+      await apiService.requestQuotationApproval(id, requestedPickupDate, pickupRequestNote, pickupRequest);
       setApprovalDialogOpen(false);
       await fetchQ();
     } catch (e) {
@@ -263,6 +265,7 @@ const QuotationView = () => {
         {isApproved && q.requested_pickup_date && (
           <PickupDatePanel
             entity={{ ...q, request_note: q.pickup_request_note }}
+            requestSource={{ type: 'quotation', id }}
             isOperations={isOperationsUser}
             isPreparer={String(q.prepared_by) === String(user?.id)}
             onConfirm={async () => {
@@ -476,6 +479,7 @@ const QuotationView = () => {
           onClose={() => setApprovalDialogOpen(false)}
           onDecideLater={() => setApprovalDialogOpen(false)}
           onRequestApproval={handleRequestQuotationApproval}
+          requestSource={{ type: 'quotation', id }}
           approveButtonLabel="Approve quotation"
         />
 
@@ -489,6 +493,11 @@ const QuotationView = () => {
           pickupNote={approvePickupNote}
           onPickupNoteChange={setApprovePickupNote}
           onPickupDateChange={setApprovePickupDate}
+          requestSource={{ type: 'quotation', id }}
+          requestEnabled={approveRequestEnabled}
+          onRequestEnabledChange={setApproveRequestEnabled}
+          pickupRequest={approvePickupRequest}
+          onPickupRequestChange={setApprovePickupRequest}
         />
       </Box>
     </PageContainer>

@@ -11,6 +11,7 @@ import {
   TextField,
 } from '@mui/material';
 import { IconKey, IconUserCheck, IconTruckDelivery } from '@tabler/icons-react';
+import PickupRequestFields, { missingPickupRequestFields } from './PickupRequestFields';
 
 /**
  * Shared approval-request dialogs.
@@ -33,17 +34,23 @@ const ApprovalWorkflowDialogs = ({
   onRequestApproval,
   onApproveWithPin,
   approveButtonLabel,
+  requestSource = null,
 }) => {
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [pickupDate, setPickupDate] = useState('');
   const [pickupNote, setPickupNote] = useState('');
+  const [requestEnabled, setRequestEnabled] = useState(false);
+  const [pickupRequest, setPickupRequest] = useState(null);
+  const missing = requestSource && requestEnabled ? missingPickupRequestFields(pickupRequest) : [];
 
   const handleDecideLater = () => {
     setPinDialogOpen(false);
     setPin('');
     setPickupDate('');
     setPickupNote('');
+    setRequestEnabled(false);
+    setPickupRequest(null);
     onDecideLater?.();
   };
 
@@ -55,7 +62,12 @@ const ApprovalWorkflowDialogs = ({
   };
 
   const handleSendForApproval = async () => {
-    await onRequestApproval?.(showPickupDate ? (pickupDate || null) : undefined, showPickupDate ? (pickupNote.trim() || undefined) : undefined);
+    const useRequest = requestSource && requestEnabled && pickupRequest;
+    await onRequestApproval?.(
+      showPickupDate ? ((useRequest ? pickupRequest.requestDate : pickupDate) || null) : undefined,
+      showPickupDate ? ((useRequest ? pickupRequest.additionalNotes : pickupNote.trim()) || undefined) : undefined,
+      useRequest ? pickupRequest : undefined,
+    );
   };
 
   const resolvedApproveLabel = approveButtonLabel || `Approve ${entityLabel}`;
@@ -65,7 +77,7 @@ const ApprovalWorkflowDialogs = ({
       <Dialog
         open={open}
         onClose={() => !loading && handleDecideLater()}
-        maxWidth="sm"
+        maxWidth={requestSource ? 'md' : 'sm'}
         fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}
       >
@@ -77,7 +89,17 @@ const ApprovalWorkflowDialogs = ({
         </DialogTitle>
         <DialogContent sx={{ px: 3, pt: 2 }}>
           {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
-          {showPickupDate && (
+          {showPickupDate && requestSource && (
+            <PickupRequestFields
+              sourceType={requestSource.type}
+              sourceId={requestSource.id}
+              enabled={requestEnabled}
+              onEnabledChange={setRequestEnabled}
+              value={pickupRequest}
+              onChange={setPickupRequest}
+            />
+          )}
+          {showPickupDate && !requestSource && (
             <TextField
               fullWidth
               type="date"
@@ -89,7 +111,7 @@ const ApprovalWorkflowDialogs = ({
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
             />
           )}
-          {showPickupDate && (
+          {showPickupDate && !requestSource && (
             <TextField
               fullWidth
               multiline
@@ -110,7 +132,8 @@ const ApprovalWorkflowDialogs = ({
             variant="contained"
             startIcon={<IconUserCheck size={18} />}
             onClick={handleSendForApproval}
-            disabled={loading}
+            disabled={loading || missing.length > 0}
+            title={missing.length ? `Required: ${missing.join(', ')}` : undefined}
             sx={{ borderRadius: 2, fontWeight: 700 }}
           >
             {loading ? 'Sending…' : 'Send for approval'}

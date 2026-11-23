@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Box, TextField,
 } from '@mui/material';
+import PickupRequestFields, { missingPickupRequestFields } from './PickupRequestFields';
 
 /**
  * Confirms quotation approval — approved records move to Orders and leave the quotations list.
@@ -20,8 +21,20 @@ const ApproveQuotationConfirmDialog = ({
   onPickupDateChange,
   pickupNote = '',
   onPickupNoteChange,
-}) => (
-  <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+  requestSource = null,
+  requestEnabled = false,
+  onRequestEnabledChange,
+  pickupRequest = null,
+  onPickupRequestChange,
+}) => {
+  const missing = requestSource && requestEnabled ? missingPickupRequestFields(pickupRequest) : [];
+  const handleRequestChange = (v) => {
+    onPickupRequestChange?.(v);
+    onPickupDateChange?.(v?.requestDate || '');
+    onPickupNoteChange?.(v?.additionalNotes || '');
+  };
+  return (
+  <Dialog open={open} onClose={onClose} maxWidth={requestSource ? 'md' : 'sm'} fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
     <DialogTitle fontWeight={700}>Approve {entityLabel}?</DialogTitle>
     <DialogContent>
       <DialogContentText component="div">
@@ -32,7 +45,17 @@ const ApproveQuotationConfirmDialog = ({
           <li>The quotation can no longer be edited or reverted.</li>
         </Box>
       </DialogContentText>
-      {onPickupDateChange && (
+      {requestSource && (
+        <PickupRequestFields
+          sourceType={requestSource.type}
+          sourceId={requestSource.id}
+          enabled={requestEnabled}
+          onEnabledChange={onRequestEnabledChange}
+          value={pickupRequest}
+          onChange={handleRequestChange}
+        />
+      )}
+      {!requestSource && onPickupDateChange && (
         <TextField
           fullWidth
           type="date"
@@ -44,7 +67,7 @@ const ApproveQuotationConfirmDialog = ({
           sx={{ mt: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
         />
       )}
-      {onPickupNoteChange && (
+      {!requestSource && onPickupNoteChange && (
         <TextField
           fullWidth
           multiline
@@ -62,11 +85,12 @@ const ApproveQuotationConfirmDialog = ({
     </DialogContent>
     <DialogActions sx={{ px: 3, pb: 2.5 }}>
       <Button onClick={onClose} disabled={loading} sx={{ borderRadius: 2 }}>Cancel</Button>
-      <Button onClick={onConfirm} color="success" variant="contained" disabled={loading} sx={{ borderRadius: 2 }}>
+      <Button onClick={onConfirm} color="success" variant="contained" disabled={loading || missing.length > 0} title={missing.length ? `Required: ${missing.join(', ')}` : undefined} sx={{ borderRadius: 2 }}>
         {loading ? 'Approving…' : 'Yes, approve'}
       </Button>
     </DialogActions>
   </Dialog>
-);
+  );
+};
 
 export default ApproveQuotationConfirmDialog;

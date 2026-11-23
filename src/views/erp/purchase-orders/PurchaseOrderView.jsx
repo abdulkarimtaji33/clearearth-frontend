@@ -51,6 +51,8 @@ const PurchaseOrderView = () => {
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
   const [approvePickupDate, setApprovePickupDate] = useState('');
   const [approvePickupNote, setApprovePickupNote] = useState('');
+  const [approveRequestEnabled, setApproveRequestEnabled] = useState(false);
+  const [approvePickupRequest, setApprovePickupRequest] = useState(null);
   const [pickupActionLoading, setPickupActionLoading] = useState(false);
   const [pickupActionError, setPickupActionError] = useState('');
   const isOperationsUser = !canModifyOrders(user);
@@ -102,7 +104,7 @@ const PurchaseOrderView = () => {
     setApproveError('');
     try {
       setApproveLoading(true);
-      await apiService.approvePurchaseOrder(id, approvePickupDate || null, approvePickupNote || undefined);
+      await apiService.approvePurchaseOrder(id, approvePickupDate || null, approvePickupNote || undefined, approveRequestEnabled ? approvePickupRequest : undefined);
       setApproveConfirmOpen(false);
       setApprovePickupDate('');
       await fetchPo();
@@ -118,12 +120,12 @@ const PurchaseOrderView = () => {
     setApproveConfirmOpen(true);
   };
 
-  const handleRequestPoApproval = async (requestedPickupDate, pickupRequestNote) => {
+  const handleRequestPoApproval = async (requestedPickupDate, pickupRequestNote, pickupRequest) => {
     if (!id) return;
     try {
       setApprovalLoading(true);
       setApprovalError('');
-      await apiService.requestPurchaseOrderApproval(id, requestedPickupDate, pickupRequestNote);
+      await apiService.requestPurchaseOrderApproval(id, requestedPickupDate, pickupRequestNote, pickupRequest);
       setApprovalDialogOpen(false);
       await fetchPo();
     } catch (e) {
@@ -243,6 +245,7 @@ const PurchaseOrderView = () => {
         {isApproved && po.requested_pickup_date && (
           <PickupDatePanel
             entity={{ ...po, request_note: po.pickup_request_note }}
+            requestSource={{ type: 'purchase_order', id }}
             isOperations={isOperationsUser}
             isPreparer={String(po.created_by) === String(user?.id)}
             onConfirm={async () => {
@@ -442,6 +445,7 @@ const PurchaseOrderView = () => {
           onClose={() => setApprovalDialogOpen(false)}
           onDecideLater={() => setApprovalDialogOpen(false)}
           onRequestApproval={handleRequestPoApproval}
+          requestSource={{ type: 'purchase_order', id }}
           approveButtonLabel="Approve quotation"
         />
 
@@ -456,6 +460,11 @@ const PurchaseOrderView = () => {
           pickupNote={approvePickupNote}
           onPickupNoteChange={setApprovePickupNote}
           onPickupDateChange={setApprovePickupDate}
+          requestSource={{ type: 'purchase_order', id }}
+          requestEnabled={approveRequestEnabled}
+          onRequestEnabledChange={setApproveRequestEnabled}
+          pickupRequest={approvePickupRequest}
+          onPickupRequestChange={setApprovePickupRequest}
           listLabel="The quotation will be removed from the Purchase Quotation List."
         />
       </Box>

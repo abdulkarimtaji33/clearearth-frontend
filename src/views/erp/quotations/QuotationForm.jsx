@@ -22,8 +22,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-} from '@mui/material';
+  DialogActions, Checkbox, Tooltip, } from '@mui/material';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
@@ -45,6 +44,7 @@ const initialLineItem = () => ({
   unitOfMeasure: '',
   unitPrice: '',
   lineTotal: '',
+  vatApplicable: true,
 });
 
 const validationSchema = Yup.object({
@@ -94,7 +94,9 @@ const QuotationForm = () => {
   const recalcQuotationAmount = useCallback((items, vatPct, dealType) => {
     if (dealType === 'free_of_charge') return '0.00';
     const sub = items.reduce((sum, item) => sum + parseFloat(item.lineTotal || 0), 0);
-    const vat = (sub * parseFloat(vatPct || 5)) / 100;
+    // VAT is added only on the lines whose VAT box is ticked
+    const taxable = items.reduce((sum, item) => sum + (item.vatApplicable === false ? 0 : parseFloat(item.lineTotal || 0)), 0);
+    const vat = (taxable * parseFloat(vatPct || 5)) / 100;
     return (sub + vat).toFixed(2);
   }, []);
 
@@ -113,6 +115,7 @@ const QuotationForm = () => {
           unitOfMeasure: it.unit_of_measure || it.productService?.unit_of_measure || '',
           unitPrice: String(it.unit_price ?? ''),
           lineTotal: String(it.line_total ?? ''),
+          vatApplicable: !(it.vat_applicable === false || it.vat_applicable === 0),
         }))
       : [initialLineItem()];
 
@@ -311,6 +314,7 @@ const QuotationForm = () => {
           unitPrice: parseFloat(item.unitPrice),
           unitOfMeasure: item.unitOfMeasure?.toString().trim() || null,
           notes: item.notes?.toString().trim() || null,
+          vatApplicable: item.vatApplicable !== false,
         })),
         termsAndConditionsIds: values.termsAndConditionsIds || [],
       });
@@ -442,7 +446,7 @@ const QuotationForm = () => {
                       onChange={handleChange}
                       onBlur={handleBlur}
                       error={touched.quotationAmount && Boolean(errors.quotationAmount)}
-                      helperText={(touched.quotationAmount && errors.quotationAmount) || 'Auto-calculated from line items and deal VAT'}
+                      helperText={(touched.quotationAmount && errors.quotationAmount) || 'Auto-calculated: VAT is added only on lines with the VAT box ticked'}
                       required
                       placeholder="0.00"
                       InputProps={{ inputProps: { min: 0, step: 0.01 } }}
@@ -535,6 +539,9 @@ const QuotationForm = () => {
                             <TableCell sx={{ fontWeight: 600 }}>Quantity (Required)</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>UOM (Required)</TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Unit Price (Required)</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>
+                              <Tooltip title="Tick if VAT applies to this item. Untick for items that do not need VAT."><span>VAT</span></Tooltip>
+                            </TableCell>
                             <TableCell sx={{ fontWeight: 600 }}>Total</TableCell>
                             <TableCell width={60} />
                           </TableRow>
@@ -595,6 +602,15 @@ const QuotationForm = () => {
                                   sx={{ width: 100 }}
                                   inputProps={{ min: 0, step: 0.01 }}
                                 />
+                              </TableCell>
+                              <TableCell align="center">
+                                <Tooltip title={row.vatApplicable === false ? 'No VAT on this item' : 'VAT applies to this item'}>
+                                  <Checkbox
+                                    size="small"
+                                    checked={row.vatApplicable !== false}
+                                    onChange={(e) => handleLineItemChange(idx, 'vatApplicable', e.target.checked)}
+                                  />
+                                </Tooltip>
                               </TableCell>
                               <TableCell>
                                 <TextField

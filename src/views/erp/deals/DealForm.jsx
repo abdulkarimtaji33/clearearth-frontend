@@ -591,6 +591,7 @@ const DealForm = () => {
             unitPrice,
             lineTotal: (qty * parseFloat(unitPrice || 0)).toFixed(2),
             notes: item.notes || '',
+            vatApplicable: !(item.vat_applicable === false || item.vat_applicable === 0),
           };
         });
         setLineItems(items);
@@ -657,6 +658,7 @@ const DealForm = () => {
           unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
           lineTotal: (Number.isFinite(unitPrice) ? unitPrice : 0).toFixed(2),
           notes: '',
+          vatApplicable: true,
         }]);
       }
     } catch (err) {
@@ -750,7 +752,9 @@ const DealForm = () => {
     const sub = lineItems.reduce((sum, item) => sum + parseFloat(item.lineTotal || 0), 0);
     setSubtotal(sub);
     
-    const vat = (sub * parseFloat(initialValues.vatPercentage || 5)) / 100;
+    // VAT only on the lines whose VAT box is ticked
+    const taxable = lineItems.reduce((sum, item) => sum + (item.vatApplicable === false ? 0 : parseFloat(item.lineTotal || 0)), 0);
+    const vat = (taxable * parseFloat(initialValues.vatPercentage || 5)) / 100;
     setVatAmount(vat);
     
     setTotal(sub + vat);
@@ -765,6 +769,7 @@ const DealForm = () => {
       unitPrice: 0,
       lineTotal: 0,
       notes: '',
+      vatApplicable: true,
     }]);
   };
 
@@ -914,6 +919,7 @@ const DealForm = () => {
           unitPrice: parseFloat(item.unitPrice),
           unitOfMeasure: item.unitOfMeasure?.toString().trim() || null,
           notes: item.notes?.toString().trim() || null,
+          vatApplicable: item.vatApplicable !== false,
         })),
         wdsDetails: values.wdsRequired && hasWdsContent(wdsDetails, wdsAttachments)
           ? { ...wdsDetails, attachments: wdsAttachments.map(a => ({ path: a.path, fileName: a.fileName })) }
@@ -2045,6 +2051,20 @@ const DealForm = () => {
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                               />
                             </Box>
+                            <Box sx={{ flex: '0 0 130px' }}>
+                              <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>VAT</Typography>
+                              <FormControlLabel
+                                sx={{ ml: 0, mr: 0 }}
+                                control={(
+                                  <Checkbox
+                                    size="small"
+                                    checked={item.vatApplicable !== false}
+                                    onChange={(e) => handleLineItemChange(index, 'vatApplicable', e.target.checked)}
+                                  />
+                                )}
+                                label={<Typography variant="body2">{item.vatApplicable === false ? 'No VAT' : 'VAT applies'}</Typography>}
+                              />
+                            </Box>
                             <Box sx={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
                               <Box sx={{ pb: 0.25 }}>
                                 <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.5}>Total</Typography>
@@ -2082,7 +2102,8 @@ const DealForm = () => {
                                 value={values.vatPercentage}
                                 onChange={(e) => {
                                   handleChange(e);
-                                  const newVat = (subtotal * parseFloat(e.target.value || 0)) / 100;
+                                  const taxableNow = lineItems.reduce((sum, it) => sum + (it.vatApplicable === false ? 0 : parseFloat(it.lineTotal || 0)), 0);
+                                  const newVat = (taxableNow * parseFloat(e.target.value || 0)) / 100;
                                   setVatAmount(newVat);
                                   setTotal(subtotal + (values.isRcmApplicable ? 0 : newVat));
                                 }}

@@ -338,7 +338,10 @@ const TaxInvoiceView = () => {
                 ) : (
                   items.map((it, idx) => {
                     const ps = it.productService;
-                    const share = lineVatShare(it.line_total, row.subtotal, row.vat_amount);
+                    // VAT is spread only over the lines that carry VAT; a line marked No VAT shows none
+                    const lineHasVat = !(it.vat_applicable === false || it.vat_applicable === 0);
+                    const taxableBase = items.reduce((sum, x) => sum + ((x.vat_applicable === false || x.vat_applicable === 0) ? 0 : (parseFloat(x.line_total) || 0)), 0);
+                    const share = lineHasVat ? lineVatShare(it.line_total, taxableBase, row.vat_amount) : 0;
                     const lineIncl = (parseFloat(it.line_total) || 0) + share;
                     const desc = (it.description || '').trim() || ps?.name || '—';
                     return (
@@ -354,7 +357,7 @@ const TaxInvoiceView = () => {
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{fmtQty(it.quantity)}</TableCell>
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{cur} {fmt(it.unit_price)}</TableCell>
                         <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{cur} {fmt(it.line_total)}</TableCell>
-                        <TableCell align="right" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{cur} {fmt(share)}</TableCell>
+                        <TableCell align="right" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{lineHasVat ? `${cur} ${fmt(share)}` : 'No VAT'}</TableCell>
                         <TableCell align="right" sx={{ pr: 2.5, fontWeight: 700, whiteSpace: 'nowrap' }}>{cur} {fmt(lineIncl)}</TableCell>
                       </TableRow>
                     );

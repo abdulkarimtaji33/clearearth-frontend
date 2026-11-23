@@ -22,6 +22,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Checkbox,
+  Tooltip,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
@@ -68,7 +70,12 @@ const ProformaInvoiceCreate = () => {
   );
 
   // VAT and total are always derived from the lines and the VAT % (never from the deal's stored amount).
-  const vatAmount = useMemo(() => Number(((linesSubtotal * num(vatPercentage)) / 100).toFixed(2)), [linesSubtotal, vatPercentage]);
+  // VAT is charged only on the lines whose VAT box is ticked.
+  const taxableSubtotal = useMemo(
+    () => items.reduce((s, r) => s + (r.vatApplicable === false ? 0 : num(r.lineTotal)), 0),
+    [items]
+  );
+  const vatAmount = useMemo(() => Number(((taxableSubtotal * num(vatPercentage)) / 100).toFixed(2)), [taxableSubtotal, vatPercentage]);
   const total = useMemo(() => Number((linesSubtotal + vatAmount).toFixed(2)), [linesSubtotal, vatAmount]);
 
   const fetchCatalog = useCallback(async () => {
@@ -120,6 +127,7 @@ const ProformaInvoiceCreate = () => {
           unitPrice: String(it.unitPrice ?? ''),
           lineTotal: String(it.lineTotal ?? ''),
           unitOfMeasure: it.unitOfMeasure || '',
+          vatApplicable: it.vatApplicable !== false,
           sortOrder: i,
         }))
       );
@@ -181,6 +189,7 @@ const ProformaInvoiceCreate = () => {
         unitPrice: '',
         lineTotal: '0.00',
         unitOfMeasure: '',
+        vatApplicable: true,
         sortOrder: prev.length,
       },
     ]);
@@ -223,6 +232,7 @@ const ProformaInvoiceCreate = () => {
           unitPrice: num(it.unitPrice),
           lineTotal: num(it.lineTotal),
           unitOfMeasure: it.unitOfMeasure || null,
+          vatApplicable: it.vatApplicable !== false,
           sortOrder: idx,
         })),
       });
@@ -332,6 +342,9 @@ const ProformaInvoiceCreate = () => {
                   <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
                     Unit price
                   </TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
+                    <Tooltip title="Tick if VAT applies to this line"><span>VAT</span></Tooltip>
+                  </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700, pr: 1, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' }}>
                     Total
                   </TableCell>
@@ -341,7 +354,7 @@ const ProformaInvoiceCreate = () => {
               <TableBody>
                 {items.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} sx={{ py: 4, textAlign: 'center' }}>
+                    <TableCell colSpan={7} sx={{ py: 4, textAlign: 'center' }}>
                       <Typography variant="body2" color="text.secondary" display="block" gutterBottom>
                         No lines — load from the deal quotation or click Add line.
                       </Typography>
@@ -412,6 +425,14 @@ const ProformaInvoiceCreate = () => {
                             sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                           />
                         </TableCell>
+                        <TableCell align="center">
+                          <Checkbox
+                            size="small"
+                            checked={row.vatApplicable !== false}
+                            onChange={(e) => updateLine(idx, 'vatApplicable', e.target.checked)}
+                            inputProps={{ 'aria-label': 'VAT applies to this line' }}
+                          />
+                        </TableCell>
                         <TableCell align="right" sx={{ pr: 1, maxWidth: 120 }}>
                           <TextField
                             size="small"
@@ -437,7 +458,7 @@ const ProformaInvoiceCreate = () => {
 
         <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, mb: 2 }}>
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>Amounts &amp; tax</Typography>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>VAT is calculated automatically from VAT % × line subtotal.</Typography>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>VAT is calculated automatically from VAT % × the lines with the VAT box ticked.</Typography>
           <Stack spacing={2} alignItems="flex-start" maxWidth={420}>
             <Typography variant="body2" color="text.secondary">
               Subtotal (sum of lines): <strong>{currency} {linesSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>

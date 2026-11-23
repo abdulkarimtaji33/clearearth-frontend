@@ -36,6 +36,7 @@ import {
 import { useAuth } from '../../../context/AuthContext';
 import apiService from '../../../services/api';
 import useUnitsOfMeasure from '../../../hooks/useUnitsOfMeasure';
+import PickupNoteForm, { emptyPickupNote } from '../../../components/erp/PickupNoteForm';
 
 const CONDITIONS = ['Good', 'Fair', 'Poor', 'Damaged'];
 
@@ -129,6 +130,8 @@ const DriverPickupTaskView = () => {
   const uomLabel = formatUomValue(uom, '');
   const [condition, setCondition] = useState('');
   const [remarks, setRemarks] = useState('');
+  const [pickupNote, setPickupNote] = useState(emptyPickupNote());
+  const [noteSaving, setNoteSaving] = useState(false);
   const [newPhotos, setNewPhotos] = useState([]); // { file, preview }
   const [pickupDate, setPickupDate] = useState(() => {
     const now = new Date();
@@ -153,6 +156,7 @@ const DriverPickupTaskView = () => {
       setUom(data.pickupUom || data.uom || data.material?.unit || '');
       if (data.pickupCondition) setCondition(data.pickupCondition);
       if (data.notes) setRemarks(data.notes);
+      if (data.pickupNote) setPickupNote({ ...emptyPickupNote(), ...data.pickupNote });
     } catch (e) {
       setFetchErr(e.message);
     } finally {
@@ -194,6 +198,20 @@ const DriverPickupTaskView = () => {
     }
   };
 
+  const handleSaveNote = async () => {
+    try {
+      setNoteSaving(true);
+      setActionErr('');
+      const res = await apiService.saveDriverPickupNote(taskId, pickupNote);
+      if (res?.data) setPickupNote({ ...emptyPickupNote(), ...res.data });
+      setSuccessMsg('Pick-up note saved');
+    } catch (e) {
+      setActionErr(e.message);
+    } finally {
+      setNoteSaving(false);
+    }
+  };
+
   const handleConfirm = async () => {
     try {
       setActing('confirm');
@@ -203,6 +221,7 @@ const DriverPickupTaskView = () => {
       if (uom) formData.append('uom', uom);
       if (condition) formData.append('condition', condition);
       if (remarks) formData.append('remarks', remarks);
+      formData.append('pickupNote', JSON.stringify(pickupNote));
       newPhotos.forEach(({ file }) => formData.append('photos', file));
       await apiService.completeDriverPickupWithData(taskId, formData);
       setNewPhotos([]);
@@ -533,6 +552,13 @@ const DriverPickupTaskView = () => {
       </Section>
 
       {/* Remarks */}
+      <Section icon={<IconBuilding size={16} color={theme.palette.primary.main} />} title="Pick-up Note">
+        <PickupNoteForm value={pickupNote} onChange={setPickupNote} />
+        <Button size="small" variant="outlined" sx={{ mt: 1.5 }} disabled={noteSaving} onClick={handleSaveNote}>
+          {noteSaving ? 'Saving…' : 'Save pick-up note'}
+        </Button>
+      </Section>
+
       <Section icon={<IconBuilding size={16} color={theme.palette.primary.main} />} title="Remarks">
         <TextField
           multiline

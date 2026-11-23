@@ -1528,6 +1528,10 @@ class ApiService {
     return this.post(`/driver/pickups/${taskId}/complete`);
   }
 
+  async saveDriverPickupNote(taskId, note) {
+    return this.put(`/driver/pickups/${taskId}/note`, note);
+  }
+
   async completeDriverPickupWithData(taskId, formData) {
     const url = `${this.baseURL}/driver/pickups/${taskId}/complete`;
     const token = this.getAuthToken();

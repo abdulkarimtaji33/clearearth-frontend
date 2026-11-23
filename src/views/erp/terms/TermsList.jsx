@@ -39,10 +39,13 @@ import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const TermsList = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { hasPermission } = useAuth();
+  const canSetDefault = hasPermission('settings.manage');
   const [terms, setTerms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -62,6 +65,17 @@ const TermsList = () => {
   const [dateTo, setDateTo] = useState('');
 
   useEffect(() => { fetchTerms(); }, [page, rowsPerPage, search, statusFilter, categoryFilter, dateFrom, dateTo]);
+
+  const toggleDefault = async (term) => {
+    try {
+      setError('');
+      await apiService.updateTermsAndConditions(term.id, { isDefault: !term.is_default });
+      setSuccess(term.is_default ? `"${term.title}" is no longer a default` : `"${term.title}" will now be selected automatically on new quotations`);
+      fetchTerms();
+    } catch (e) {
+      setError(e.message || 'Could not change the default');
+    }
+  };
 
   const fetchTerms = async () => {
     try {
@@ -233,6 +247,11 @@ const TermsList = () => {
         </Card>
 
         <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => { setAnchorEl(null); setSelectedTerm(null); }} PaperProps={{ sx: { borderRadius: 2, minWidth: 140 } }}>
+          {canSetDefault && selectedTerm && (
+            <MenuItemMui onClick={() => { toggleDefault(selectedTerm); setAnchorEl(null); }}>
+              <IconStar size={16} style={{ marginRight: 10 }} /> {selectedTerm.is_default ? 'Remove as default' : 'Make default'}
+            </MenuItemMui>
+          )}
           <MenuItemMui onClick={() => { navigate(`/erp/terms/edit/${selectedTerm?.id}`); setAnchorEl(null); }}>
             <IconEdit size={16} style={{ marginRight: 10 }} /> Edit
           </MenuItemMui>

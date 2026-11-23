@@ -20,6 +20,7 @@ import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 const validationSchema = Yup.object({
   title: Yup.string().required('Title is required'),
@@ -29,6 +30,8 @@ const validationSchema = Yup.object({
 const TermsForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canSetDefault = hasPermission('settings.manage');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -194,16 +197,24 @@ const TermsForm = () => {
                     />
 
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={values.isDefault}
-                            onChange={(e) => setFieldValue('isDefault', e.target.checked)}
-                            name="isDefault"
-                          />
-                        }
-                        label="Set as Default"
-                      />
+                      <Box>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={values.isDefault}
+                              onChange={(e) => setFieldValue('isDefault', e.target.checked)}
+                              name="isDefault"
+                              disabled={!canSetDefault}
+                            />
+                          }
+                          label="Default for new quotations"
+                        />
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {canSetDefault
+                            ? 'Selected automatically when anyone creates a quotation. They can remove it if it is not needed. Several terms can be defaults.'
+                            : 'Only an administrator can choose the default terms.'}
+                        </Typography>
+                      </Box>
                       <TextField
                         fullWidth
                         select

@@ -91,6 +91,9 @@ const QuotationForm = () => {
 
   const isEdit = Boolean(id);
 
+  // Ids of the terms an administrator marked as default (active ones only), kept for new quotations.
+  const defaultTermIdsRef = useRef([]);
+
   const recalcQuotationAmount = useCallback((items, vatPct, dealType) => {
     if (dealType === 'free_of_charge') return '0.00';
     const sub = items.reduce((sum, item) => sum + parseFloat(item.lineTotal || 0), 0);
@@ -125,16 +128,26 @@ const QuotationForm = () => {
       ? deal.termsList.map((t) => t.id)
       : (deal.terms_and_conditions_id ? [deal.terms_and_conditions_id] : []);
 
+    // A new quotation starts with the default terms when the deal has none of its own; they can be removed.
+    const finalTermsIds = termsIds.length > 0 || isEdit ? termsIds : defaultTermIdsRef.current;
+
     const total = recalcQuotationAmount(items, vatPct, dealType);
     setInitialValues((prev) => ({
       ...prev,
       dealId: deal.id,
       quotationAmount: total || prev.quotationAmount,
-      termsAndConditionsIds: termsIds,
+      termsAndConditionsIds: finalTermsIds,
     }));
     if (onAmount && total) onAmount(total);
-    setFieldValueRef.current?.('termsAndConditionsIds', termsIds);
-  }, [recalcQuotationAmount]);
+    setFieldValueRef.current?.('termsAndConditionsIds', finalTermsIds);
+  }, [recalcQuotationAmount, isEdit]);
+
+  useEffect(() => {
+    const defaults = termsAndConditions.filter((t) => t.is_default).map((t) => t.id);
+    defaultTermIdsRef.current = defaults;
+    if (isEdit || defaults.length === 0) return;
+    setInitialValues((prev) => ((prev.termsAndConditionsIds && prev.termsAndConditionsIds.length > 0) ? prev : { ...prev, termsAndConditionsIds: defaults }));
+  }, [termsAndConditions, isEdit]);
 
   const fetchData = useCallback(async () => {
     try {

@@ -1075,6 +1075,16 @@ class ApiService {
     return this.get('/dropdowns/all');
   }
 
+  /** Every country (existing dropdown values first). */
+  async getWorldCountries() {
+    return this.get('/dropdowns/world/countries');
+  }
+
+  /** Cities of one country (stored value, name or ISO code). */
+  async getWorldCities(country) {
+    return this.get('/dropdowns/world/cities', { country });
+  }
+
   async getDropdownsByCategory(category) {
     return this.get(`/dropdowns/category/${category}`);
   }

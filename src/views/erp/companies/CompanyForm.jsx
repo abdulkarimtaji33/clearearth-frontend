@@ -11,6 +11,7 @@ import {
   Alert,
   CircularProgress,
   Autocomplete,
+  createFilterOptions,
   IconButton,
   Table,
   TableBody,
@@ -55,6 +56,49 @@ const contactValidationSchema = Yup.object({
   email: Yup.string().email('Invalid email').nullable(),
   phone: phoneYup(Yup, { required: true, label: 'Phone number' }),
 });
+
+const searchFilter = createFilterOptions({ limit: 200 });
+
+/** City picker: loads the cities of the selected country; type to search, or type any city that is not listed. */
+const CityField = ({ country, value, onChange, onBlur, error, helperText }) => {
+  const [options, setOptions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    let active = true;
+    if (!country) { setOptions([]); return undefined; }
+    setLoading(true);
+    apiService.getWorldCities(country)
+      .then((r) => { if (active) setOptions(r.success && Array.isArray(r.data) ? r.data.map((o) => o.value) : []); })
+      .catch(() => { if (active) setOptions([]); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [country]);
+  return (
+    <Autocomplete
+      freeSolo
+      disabled={!country}
+      options={options}
+      loading={loading}
+      value={value || ''}
+      filterOptions={searchFilter}
+      onChange={(_, v) => onChange(v || '')}
+      onInputChange={(_, v, reason) => { if (reason === 'input') onChange(v); }}
+      onBlur={onBlur}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="City"
+          name="city"
+          required
+          error={error}
+          helperText={helperText}
+          placeholder={country ? 'Type to search cities' : 'Select a country first'}
+          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+        />
+      )}
+    />
+  );
+};
 
 const CompanyForm = () => {
   const { id } = useParams();
@@ -124,13 +168,17 @@ const CompanyForm = () => {
 
   const fetchDropdowns = useCallback(async () => {
     try {
-      const response = await apiService.getAllDropdowns();
+      const [response, world] = await Promise.all([
+        apiService.getAllDropdowns(),
+        apiService.getWorldCountries().catch(() => null),
+      ]);
       if (response.success) {
+        const worldCountries = world && world.success && Array.isArray(world.data) && world.data.length ? world.data : null;
         setDropdowns({
           designations: response.data.designations || [],
           industryTypes: response.data.industry_types || [],
           cities: response.data.uae_cities || [],
-          countries: response.data.countries || [],
+          countries: worldCountries || response.data.countries || [],
           contactRoles: response.data.contact_roles || [],
         });
       }
@@ -505,58 +553,37 @@ const CompanyForm = () => {
                       </Box>
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        select
-                        label="Country"
-                        name="country"
-                        value={values.country || ''}
-                        onChange={handleChange}
+                      <Autocomplete
+                        options={dropdowns.countries}
+                        getOptionLabel={(o) => o.display_name || ''}
+                        isOptionEqualToValue={(o, v) => o.value === v.value}
+                        filterOptions={searchFilter}
+                        value={dropdowns.countries.find((c) => c.value === values.country) || (values.country ? { value: values.country, display_name: values.country } : null)}
+                        onChange={(_, opt) => { setFieldValue('country', opt ? opt.value : ''); setFieldValue('city', ''); }}
                         onBlur={handleBlur}
-                        error={touched.country && Boolean(errors.country)}
-                        helperText={touched.country ? errors.country : ' '}
-                        required
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        SelectProps={{
-                          MenuProps: {
-                            PaperProps: {
-                              style: { maxHeight: 350 }
-                            }
-                          }
-                        }}
-                      >
-                        <MenuItem value="">Select Country</MenuItem>
-                        {dropdowns.countries.map((c) => (
-                          <MenuItem key={c.id} value={c.value}>{c.display_name}</MenuItem>
-                        ))}
-                      </TextField>
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Country"
+                            name="country"
+                            required
+                            error={touched.country && Boolean(errors.country)}
+                            helperText={touched.country ? errors.country : ' '}
+                            placeholder="Type to search countries"
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                          />
+                        )}
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        select
-                        label="City"
-                        name="city"
-                        value={values.city || ''}
-                        onChange={handleChange}
+                      <CityField
+                        country={values.country}
+                        value={values.city}
+                        onChange={(v) => setFieldValue('city', v)}
                         onBlur={handleBlur}
                         error={touched.city && Boolean(errors.city)}
                         helperText={touched.city ? errors.city : ' '}
-                        required
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        SelectProps={{
-                          MenuProps: {
-                            PaperProps: {
-                              style: { maxHeight: 350 }
-                            }
-                          }
-                        }}
-                      >
-                        <MenuItem value="">Select City</MenuItem>
-                        {dropdowns.cities.map((city) => (
-                          <MenuItem key={city.id} value={city.value}>{city.display_name}</MenuItem>
-                        ))}
-                      </TextField>
+                      />
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <TextField

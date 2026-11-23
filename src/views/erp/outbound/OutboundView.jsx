@@ -177,7 +177,7 @@ const OutboundView = () => {
             <Ref icon={IconPackage} label="GRN">
               <Link component="button" variant="body2" fontWeight={700} underline="hover" onClick={() => navigate(`/erp/grn/view/${ob.grn_id}`)}>{ob.grn?.grn_number || `#${ob.grn_id}`}</Link>
               <Typography variant="caption" color="text.secondary" display="block">
-                {ob.grn?.disposed_without_facility ? 'Disposed without coming to the facility' : (ob.grn?.storage_facility_id ? 'Stored at facility (see GRN)' : 'Facility not set')}
+                {ob.grn?.disposed_without_facility ? 'Disposed without coming to the facility' : (ob.grn?.storageFacility?.name ? `Stored at ${ob.grn.storageFacility.name}` : 'Facility not set')}
               </Typography>
             </Ref>
           </Grid>

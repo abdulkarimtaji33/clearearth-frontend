@@ -46,7 +46,7 @@ const VendorBills = () => {
 
   // New supplier bill without a PO (an unpaid expense)
   const emptyDirect = () => ({
-    mode: 'expense', woExpenseId: '', supplier: null, expenseAccountId: '', netAmount: '', vatRate: '5', vatManual: '', supplierInvoiceNo: '', supplierTrn: '',
+    mode: 'expense', woExpenseId: '', supplier: null, expenseAccountId: '', netAmount: '', vatRate: '5', vatManual: '', supplierInvoiceNo: '', supplierTrn: '', purchaseBillReference: '',
     billDate: today(), dueDate: '', attachmentPath: '', attachmentName: '', notes: '',
   });
   const [directOpen, setDirectOpen] = useState(false);
@@ -133,6 +133,7 @@ const VendorBills = () => {
         vatAmount: direct.vatRate === 'manual' ? dVat : undefined,
         supplierInvoiceNo: direct.supplierInvoiceNo.trim(),
         supplierTrn: direct.supplierTrn.trim() || undefined,
+        purchaseBillReference: (direct.purchaseBillReference || '').trim() || undefined,
         billDate: direct.billDate,
         dueDate: direct.dueDate || undefined,
         attachmentPath: direct.attachmentPath || undefined,
@@ -532,6 +533,7 @@ const VendorBills = () => {
             <Stack direction="row" spacing={2}>
               <TextField required label="Supplier invoice no." value={direct.supplierInvoiceNo} onChange={setD('supplierInvoiceNo')} fullWidth />
               <TextField label="Supplier TRN" value={direct.supplierTrn} onChange={setD('supplierTrn')} fullWidth />
+              <TextField label="Purchase-bill reference" value={direct.purchaseBillReference || ''} onChange={setD('purchaseBillReference')} inputProps={{ maxLength: 100 }} fullWidth />
             </Stack>
             <Stack direction="row" spacing={2}>
               <TextField required type="date" label="Bill date" value={direct.billDate} onChange={setD('billDate')} InputLabelProps={{ shrink: true }} fullWidth />

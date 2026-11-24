@@ -33,6 +33,7 @@ import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconTrash, IconUserPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import OrganizationDocumentationSection from '../../../components/erp/OrganizationDocumentationSection';
+import CountryCityFields from '../../../components/erp/CountryCityFields';
 import apiService from '../../../services/api';
 import { phoneYup, validatePhone, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 
@@ -515,60 +516,15 @@ const SupplierForm = () => {
                         </Box>
                       </Box>
                     </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        select
-                        label="Country"
-                        name="country"
-                        value={values.country || ''}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={touched.country && Boolean(errors.country)}
-                        helperText={touched.country ? errors.country : ' '}
-                        required
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        SelectProps={{
-                          MenuProps: {
-                            PaperProps: {
-                              style: { maxHeight: 350 }
-                            }
-                          }
-                        }}
-                      >
-                        <MenuItem value="">Select Country</MenuItem>
-                        {dropdowns.countries.map((c) => (
-                          <MenuItem key={c.id} value={c.value}>{c.display_name}</MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        select
-                        label="City"
-                        name="city"
-                        value={values.city || ''}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        error={touched.city && Boolean(errors.city)}
-                        helperText={touched.city ? errors.city : ' '}
-                        required
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        SelectProps={{
-                          MenuProps: {
-                            PaperProps: {
-                              style: { maxHeight: 350 }
-                            }
-                          }
-                        }}
-                      >
-                        <MenuItem value="">Select City</MenuItem>
-                        {dropdowns.cities.map((city) => (
-                          <MenuItem key={city.id} value={city.value}>{city.display_name}</MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
+                    <CountryCityFields
+                      country={values.country}
+                      city={values.city}
+                      onChange={setFieldValue}
+                      onBlur={handleBlur}
+                      countryError={touched.country ? errors.country : ''}
+                      cityError={touched.city ? errors.city : ''}
+                      gridSize={{ xs: 12, md: 6 }}
+                    />
                     <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth

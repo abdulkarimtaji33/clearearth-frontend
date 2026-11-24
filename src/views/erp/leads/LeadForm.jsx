@@ -24,6 +24,7 @@ import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import CountryCityFields from '../../../components/erp/CountryCityFields';
 import apiService from '../../../services/api';
 import { phoneYup, validatePhone, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
@@ -740,19 +741,13 @@ const LeadForm = () => {
                 <TextField fullWidth label="Email" type="email" value={newCompanyValues.email} onChange={(e) => setNewCompanyValues((v) => ({ ...v, email: e.target.value }))}
                   error={Boolean(newCompanyErrors.email)} helperText={newCompanyErrors.email} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField fullWidth select label="Country" required value={newCompanyValues.country} onChange={(e) => setNewCompanyValues((v) => ({ ...v, country: e.target.value }))}
-                  error={Boolean(newCompanyErrors.country)} helperText={newCompanyErrors.country} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
-                  {dropdowns.countries?.map((c) => <MenuItem key={c.id} value={c.value}>{c.display_name}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField fullWidth select label="City" required value={newCompanyValues.city} onChange={(e) => setNewCompanyValues((v) => ({ ...v, city: e.target.value }))}
-                  error={Boolean(newCompanyErrors.city)} helperText={newCompanyErrors.city} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 300 } } } }}>
-                  <MenuItem value="">None</MenuItem>
-                  {dropdowns.cities?.map((city) => <MenuItem key={city.id} value={city.value}>{city.display_name}</MenuItem>)}
-                </TextField>
-              </Grid>
+              <CountryCityFields
+                country={newCompanyValues.country}
+                city={newCompanyValues.city}
+                onChange={(f, v) => setNewCompanyValues((prev) => ({ ...prev, [f]: v }))}
+                countryError={newCompanyErrors.country}
+                cityError={newCompanyErrors.city}
+              />
               <Grid size={12}>
                 <TextField fullWidth label="Address" required value={newCompanyValues.address} onChange={(e) => setNewCompanyValues((v) => ({ ...v, address: e.target.value }))}
                   error={Boolean(newCompanyErrors.address)} helperText={newCompanyErrors.address} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />

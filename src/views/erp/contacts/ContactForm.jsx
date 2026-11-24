@@ -10,6 +10,7 @@ import * as Yup from 'yup';
 import { useNavigate, useParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconX, IconBuilding } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
+import CountryCityFields from '../../../components/erp/CountryCityFields';
 import apiService from '../../../services/api';
 import { phoneYup, validatePhone, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 
@@ -452,17 +453,13 @@ const ContactForm = () => {
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField fullWidth label="Email" type="email" value={newCompanyValues.email} onChange={e => setNewCompanyValues(v => ({ ...v, email: e.target.value }))} error={Boolean(newCompanyErrors.email)} helperText={newCompanyErrors.email || ' '} sx={tfSx} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField fullWidth select label="Country" value={newCompanyValues.country} onChange={e => setNewCompanyValues(v => ({ ...v, country: e.target.value }))} sx={tfSx} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 350 } } } }}>
-                {dropdowns.countries.map(c => <MenuItem key={c.id} value={c.value}>{c.display_name}</MenuItem>)}
-              </TextField>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField fullWidth select required label="City" value={newCompanyValues.city} onChange={e => setNewCompanyValues(v => ({ ...v, city: e.target.value }))} error={Boolean(newCompanyErrors.city)} helperText={newCompanyErrors.city || ' '} sx={tfSx} SelectProps={{ MenuProps: { PaperProps: { style: { maxHeight: 350 } } } }}>
-                <MenuItem value="">Select city</MenuItem>
-                {dropdowns.cities.map(c => <MenuItem key={c.id} value={c.value}>{c.display_name}</MenuItem>)}
-              </TextField>
-            </Grid>
+            <CountryCityFields
+              country={newCompanyValues.country}
+              city={newCompanyValues.city}
+              onChange={(f, v) => setNewCompanyValues(prev => ({ ...prev, [f]: v }))}
+              countryError={newCompanyErrors.country}
+              cityError={newCompanyErrors.city}
+            />
             <Grid size={12}>
               <TextField fullWidth required label="Address" value={newCompanyValues.address} onChange={e => setNewCompanyValues(v => ({ ...v, address: e.target.value }))} error={Boolean(newCompanyErrors.address)} helperText={newCompanyErrors.address || ' '} sx={tfSx} />
             </Grid>

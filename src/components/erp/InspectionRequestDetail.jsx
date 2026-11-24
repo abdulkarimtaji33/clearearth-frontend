@@ -282,6 +282,7 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reportFormErrors, setReportFormErrors] = useState({});
   const [reportSaving, setReportSaving] = useState(false);
+  const [reportPdfLoading, setReportPdfLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [unitsOfMeasure, setUnitsOfMeasure] = useState([]);
   const [reportForm, setReportForm] = useState({
@@ -935,12 +936,33 @@ const InspectionRequestDetail = ({ request, onRefresh, onClose, hideApproveButto
                     <Typography variant="subtitle1" fontWeight={700}>Inspection Report Details</Typography>
                   </Stack>
                   {report && (
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<IconDownload size={16} />}
+                        disabled={reportPdfLoading}
+                        onClick={async () => {
+                          try {
+                            setReportPdfLoading(true);
+                            await apiService.downloadInspectionReportPdf(request?.deal_id || request?.deal?.id);
+                          } catch (e) {
+                            setError?.(e.message || 'Could not download the report');
+                          } finally {
+                            setReportPdfLoading(false);
+                          }
+                        }}
+                        sx={{ borderRadius: 2, textTransform: 'none' }}
+                      >
+                        {reportPdfLoading ? 'Downloading...' : 'Download PDF'}
+                      </Button>
                     <Box sx={{ textAlign: 'right' }}>
                       <SmallLabel>Date Created</SmallLabel>
                       <Typography variant="body2" fontWeight={700}>
                         {new Date(report.createdAt || report.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                       </Typography>
                     </Box>
+                    </Stack>
                   )}
                 </Stack>
               </Box>

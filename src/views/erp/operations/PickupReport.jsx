@@ -78,14 +78,14 @@ const PickupReport = () => {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                {['Pickup date', 'Deal', 'Client', 'Driver', 'Helpers', 'Quantity', 'Condition', 'Facility', 'Status', 'Pickup note'].map((h) => <TableCell key={h} sx={head}>{h}</TableCell>)}
+                {['Pickup date', 'Deal', 'Client', 'Driver', 'Helpers', 'Quantity', 'Condition', 'Facility', 'Status', 'Note no.', 'Vehicle', 'Pickup note'].map((h) => <TableCell key={h} sx={head}>{h}</TableCell>)}
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={10} align="center" sx={{ py: 8 }}><CircularProgress size={28} /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={12} align="center" sx={{ py: 8 }}><CircularProgress size={28} /></TableCell></TableRow>
               ) : rows.length === 0 ? (
-                <TableRow><TableCell colSpan={10} align="center" sx={{ py: 8 }}>
+                <TableRow><TableCell colSpan={12} align="center" sx={{ py: 8 }}>
                   <IconFileCheck size={36} color={theme.palette.text.disabled} />
                   <Typography color="text.secondary" mt={1} fontWeight={600}>No pickups match these filters</Typography>
                 </TableCell></TableRow>
@@ -100,9 +100,13 @@ const PickupReport = () => {
                   <TableCell>{r.condition || '—'}</TableCell>
                   <TableCell>{r.storage_facility || '—'}</TableCell>
                   <TableCell><Chip size="small" label={r.status_label} color={STATUS_COLOR[r.status] || 'default'} sx={{ fontWeight: 700 }} /></TableCell>
+                  <TableCell>{r.note_available ? (r.note_number || '—') : <Typography variant="caption" color="text.secondary">Pending</Typography>}</TableCell>
+                  <TableCell>{r.note_available ? (r.note_vehicle_no || '—') : '—'}</TableCell>
                   <TableCell>
-                    <Tooltip title="Download the pickup note filled in by the driver">
-                      <IconButton size="small" color="primary" onClick={() => apiService.downloadPickupNotePdf(r.task_id).catch((e) => setError(e.message))}><IconDownload size={18} /></IconButton>
+                    <Tooltip title={r.note_available ? 'Download the pickup note' : 'Available once the work order is completed'}>
+                      <span>
+                        <IconButton size="small" color="primary" disabled={!r.note_available} onClick={() => apiService.downloadPickupNotePdf(r.task_id).catch((e) => setError(e.message))}><IconDownload size={18} /></IconButton>
+                      </span>
                     </Tooltip>
                   </TableCell>
                 </TableRow>

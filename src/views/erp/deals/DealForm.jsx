@@ -94,7 +94,7 @@ const validationSchema = Yup.object({
   supplierId: Yup.number().nullable(),
   hasDownstreamPartner: Yup.boolean(),
   downstreamPartnerSupplierId: Yup.number().nullable(),
-  title: Yup.string().trim().required('Title is required'),
+  title: Yup.string().trim(),
   inspectionRequired: Yup.boolean().required('Inspection required is required'),
   termsAndConditionsIds: Yup.array(),
 });
@@ -641,7 +641,6 @@ const DealForm = () => {
         companyId,
         contactId,
         assignedTo,
-        title: prev.title?.trim() ? prev.title : `Deal from Lead ${lead.lead_number || lead.id}`,
         description: prev.description?.trim() ? prev.description : (lead.notes || ''),
         pickupContactName: contactName || prev.pickupContactName,
         pickupContactNumber: lead.contact?.phone || lead.phone || prev.pickupContactNumber,
@@ -708,9 +707,6 @@ const DealForm = () => {
       setFieldValue('companyId', companyId);
       setFieldValue('contactId', contactId);
       if (assignedTo) setFieldValue('assignedTo', assignedTo);
-      if (!valuesRef.current?.title?.trim()) {
-        setFieldValue('title', `Deal from Lead ${lead.lead_number || lead.id}`);
-      }
       if (!valuesRef.current?.description?.trim()) {
         setFieldValue('description', lead.notes || '');
       }
@@ -1000,6 +996,25 @@ const DealForm = () => {
   };
 
   const dealIsQuotable = DEAL_QUOTABLE_STATUSES.includes(String(initialValues.status || '').toLowerCase());
+  const [approvedDocs, setApprovedDocs] = useState({ quotation: false, purchase: false });
+  useEffect(() => {
+    if (!isEdit || !id) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [qRes, poRes] = await Promise.all([
+          apiService.getQuotations({ dealId: id, pageSize: 50 }),
+          apiService.getPurchaseOrders({ dealId: id, pageSize: 50 }),
+        ]);
+        if (cancelled) return;
+        setApprovedDocs({
+          quotation: (qRes?.data || []).some((q) => q.status === 'approved'),
+          purchase: (poRes?.data || []).some((po) => po.status === 'approved' && po.company_id && !po.supplier_id && po.document_type !== 'bill'),
+        });
+      } catch (e) { /* buttons stay visible; the server still enforces the rule */ }
+    })();
+    return () => { cancelled = true; };
+  }, [isEdit, id]);
 
   if (!canEditDeals) return null;
 
@@ -1035,7 +1050,7 @@ const DealForm = () => {
           </Box>
           {isEdit && dealIsQuotable && (
             <Stack direction="row" spacing={1}>
-              {initialValues.dealType === 'offer_to_purchase' && (
+              {initialValues.dealType === 'offer_to_purchase' && !approvedDocs.purchase && (
                 <Button
                   variant="outlined"
                   size="small"
@@ -1104,9 +1119,9 @@ const DealForm = () => {
                         value={values.title}
                         onChange={handleChange}
                         onBlur={handleBlur}
-                        error={touched.title && Boolean(errors.title)}
-                        helperText={touched.title ? errors.title : ' '}
-                        required
+                        disabled
+                        placeholder="Generated on save"
+                        helperText="Filled automatically from the item and company"
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                       />
                       <LocalizationProvider dateAdapter={AdapterDayjs}>

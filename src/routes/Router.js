@@ -72,6 +72,7 @@ const PurchaseOrderView = Loadable(lazyWithChunkReload(() => import('../views/er
 const ClientPurchaseQuotationList = Loadable(lazyWithChunkReload(() => import('../views/erp/purchase-orders/ClientPurchaseQuotationList')));
 const VendorPurchaseQuotationList = Loadable(lazyWithChunkReload(() => import('../views/erp/purchase-orders/VendorPurchaseQuotationList')));
 const ClientPurchaseOrderList = Loadable(lazyWithChunkReload(() => import('../views/erp/purchase-orders/ClientPurchaseOrderList')));
+const AccountsPurchaseOrderList = Loadable(lazyWithChunkReload(() => import('../views/erp/purchase-orders/AccountsPurchaseOrderList')));
 const SupplierPurchaseOrderList = Loadable(lazyWithChunkReload(() => import('../views/erp/purchase-orders/SupplierPurchaseOrderList')));
 const RoleList = Loadable(lazyWithChunkReload(() => import('../views/erp/roles/RoleList')));
 const RoleForm = Loadable(lazyWithChunkReload(() => import('../views/erp/roles/RoleForm')));
@@ -233,6 +234,7 @@ const Router = createBrowserRouter([
       { path: '/erp/purchase-orders/view/:id', element: <PurchaseOrderView /> },
       { path: '/erp/purchase-orders/edit/:id', element: <RequireQuotationPoEditor><PurchaseOrderForm /></RequireQuotationPoEditor> },
       { path: '/erp/client-purchase-orders', element: <ClientPurchaseOrderList /> },
+      { path: '/erp/accounts/purchase-orders', element: <AccountsPurchaseOrderList /> },
       { path: '/erp/supplier-purchase-orders', element: <SupplierPurchaseOrderList /> },
       { path: '/erp/roles', element: <RequirePermission permission="roles.read"><RoleList /></RequirePermission> },
       { path: '/erp/roles/create', element: <RequirePermission permission="roles.read"><RoleForm /></RequirePermission> },

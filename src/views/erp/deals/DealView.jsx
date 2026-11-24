@@ -571,7 +571,16 @@ const DealView = () => {
 
   const dealStatusLower = String(deal?.status || '').toLowerCase();
   const canAttemptApproval = canEditDeals && deal && DEAL_APPROVABLE_STATUSES.includes(dealStatusLower);
-  const canCreateQuotation = canEditDeals && deal && DEAL_QUOTABLE_STATUSES.includes(dealStatusLower);
+  // Once a quotation is approved it is final: no further versions can be created for the deal.
+  const hasApprovedQuotation = relatedQuotations.some((q) => q.status === 'approved');
+  const hasApprovedClientPurchaseQuotation = relatedPOs.some(
+    (po) => po.status === 'approved' && po.company_id && !po.supplier_id && po.document_type !== 'bill'
+  );
+  const showServiceQuotationOption = deal?.deal_type !== 'offer_to_purchase' && !hasApprovedQuotation;
+  const showClientPurchaseOption = deal?.deal_type === 'offer_to_purchase' && !hasApprovedClientPurchaseQuotation;
+  const showVendorPurchaseOption = Boolean(deal?.downstream_partner_supplier_id);
+  const canCreateQuotation = canEditDeals && deal && DEAL_QUOTABLE_STATUSES.includes(dealStatusLower)
+    && (showServiceQuotationOption || showClientPurchaseOption || showVendorPurchaseOption);
   const canFlagOutcome = canEditDeals && deal && !DEAL_CLOSED_STATUSES.includes(dealStatusLower);
   const canMarkWon = canFlagOutcome && DEAL_WON_ELIGIBLE_STATUSES.includes(dealStatusLower);
 
@@ -859,7 +868,7 @@ const DealView = () => {
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
               slotProps={{ paper: { sx: { borderRadius: 2, minWidth: 280 } } }}
             >
-              {deal.deal_type === 'offer_to_purchase' && (
+              {showClientPurchaseOption && (
                 <MenuItem dense onClick={() => { navigate(`/erp/purchase-orders/create?dealId=${id}&side=client`); setQuotMenuAnchor(null); }}>
                   <ListItemIcon sx={{ minWidth: 36 }}><IconShoppingCart size={18} /></ListItemIcon>
                   <ListItemText primary="Purchase quotation" secondary="Client (company)" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
@@ -871,7 +880,7 @@ const DealView = () => {
                   <ListItemText primary="Purchase quotation" secondary="Downstream supplier" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />
                 </MenuItem>
               )}
-              {deal.deal_type !== 'offer_to_purchase' && (
+              {showServiceQuotationOption && (
                 <MenuItem dense onClick={() => { navigate(`/erp/quotations/create?dealId=${id}`); setQuotMenuAnchor(null); }}>
                   <ListItemIcon sx={{ minWidth: 36 }}><IconReceipt size={18} /></ListItemIcon>
                   <ListItemText primary="Service quotation" secondary="Client quotation" primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} secondaryTypographyProps={{ variant: 'caption' }} />

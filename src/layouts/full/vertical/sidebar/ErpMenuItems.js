@@ -91,7 +91,7 @@ const ErpMenuItems = [
       item('Sales Register', '/erp/registers/sales_invoices', IconBook, { permission: 'accounting.read' }),
     ]),
     item('Outbound (Accounts)', '/erp/supplier-purchase-orders', IconTruckDelivery, { permission: 'accounting.read' }, [
-      item('Purchase Orders', '/erp/supplier-purchase-orders', IconFileInvoice, { permission: 'accounting.read' }),
+      item('Purchase Orders', '/erp/accounts/purchase-orders', IconFileInvoice, { permission: 'accounting.read' }),
       item('Purchase Bills', '/erp/vendor-bills', IconReceipt, { permission: 'accounting.read' }),
       item('Purchase Register', '/erp/registers/purchase_bills', IconBook, { permission: 'accounting.read' }),
     ]),

@@ -5,6 +5,7 @@ import {
   MenuItem, Tabs, Tab, Checkbox, Autocomplete, ToggleButton, ToggleButtonGroup, FormControlLabel,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import { useSearchParams } from 'react-router';
 import { IconReceipt, IconUpload, IconPlus } from '@tabler/icons-react';
 import CascadingAccountSelect from '../../../components/erp/CascadingAccountSelect';
 import PageContainer from '../../../components/container/PageContainer';
@@ -21,6 +22,7 @@ const partyKey = (b) => `${b.supplier_id || ''}-${b.company_id || ''}`;
 
 const VendorBills = () => {
   const theme = useTheme();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState('awaiting');
   const [awaiting, setAwaiting] = useState([]);
   const [woAwaiting, setWoAwaiting] = useState([]);
@@ -175,6 +177,18 @@ const VendorBills = () => {
       notes: '',
     });
   };
+  // ?poId=<id> opens the Record bill form for that purchase order
+  useEffect(() => {
+    const poId = searchParams.get('poId');
+    if (!poId || loading) return;
+    const po = awaiting.find((x) => String(x.id) === String(poId));
+    if (po) openBill(po);
+    else setError(`Purchase order PO-${poId} has no amount awaiting a purchase bill (not approved, not a bill-flow order, or already fully billed).`);
+    const next = new URLSearchParams(searchParams);
+    next.delete('poId');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, loading, awaiting]);
   const setBill = (k) => (e) => setBillForm((f) => ({ ...f, [k]: e.target.value }));
   const billVat = billForm.vatMode === 'manual'
     ? (parseFloat(billForm.vatAmount) || 0)

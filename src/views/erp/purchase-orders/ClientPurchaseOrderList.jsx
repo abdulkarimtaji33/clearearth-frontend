@@ -9,7 +9,7 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import {
   IconSearch, IconPlus, IconEdit, IconTrash, IconDotsVertical,
-  IconFileDownload, IconHammer, IconShoppingCart,
+  IconFileDownload, IconHammer, IconShoppingCart, IconReceipt,
 } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
@@ -29,6 +29,7 @@ const ClientPurchaseOrderList = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, hasPermission } = useAuth();
+  const canCreatePurchaseBill = hasPermission('accounting.read') && hasPermission('accounting.update');
   const viewOnly = shouldHideDealFinancials(user);
   const allowCreateWorkOrder = canCreateWorkOrder(user, hasPermission);
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
@@ -270,6 +271,11 @@ const ClientPurchaseOrderList = () => {
               </MenuItem>
             );
           })()}
+          {isApproved(selectedOrder) && canCreatePurchaseBill && (
+            <MenuItem onClick={() => { navigate(`/erp/vendor-bills?poId=${selectedOrder?.id}`); setAnchorEl(null); }}>
+              <IconReceipt size={16} style={{ marginRight: 10 }} /> Create purchase bill
+            </MenuItem>
+          )}
           {!viewOnly && (
             <MenuItem onClick={() => { setDeleteDialogOpen(true); setAnchorEl(null); }} sx={{ color: 'error.main' }}>
               <IconTrash size={16} style={{ marginRight: 10 }} /> Delete

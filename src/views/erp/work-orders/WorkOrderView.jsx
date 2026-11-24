@@ -33,6 +33,7 @@ import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
 import { buildBillCreateUrl, getWorkOrderPurchaseBills } from '../../../utils/purchaseBills';
 import DealRequirementsBanner from './DealRequirementsBanner';
+import PickupNoteDialog from '../../../components/erp/PickupNoteDialog';
 
 const WO_STATUS_COLORS = {
   new: 'default',
@@ -79,6 +80,7 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
   const [editingNote, setEditingNote] = useState(false);
   const [noteValue, setNoteValue] = useState(task.notes || '');
   const [savingNote, setSavingNote] = useState(false);
+  const [pickupNoteOpen, setPickupNoteOpen] = useState(false);
 
   // Sync note value when task prop changes externally
   useEffect(() => {
@@ -371,6 +373,16 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
                   ].filter(Boolean).join(' · ')}
                 </Typography>
               </Stack>
+            )}
+
+            {/* Pick-up note the driver filled in: operations can view / edit it until the work order is completed */}
+            {isPickupTask(task) && task.id && (
+              <Box sx={{ mt: 1.5 }} onClick={e => e.stopPropagation()}>
+                <Button size="small" variant="outlined" startIcon={<IconPackage size={15} />} onClick={() => setPickupNoteOpen(true)} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>
+                  Pick-up note
+                </Button>
+                <PickupNoteDialog open={pickupNoteOpen} onClose={() => setPickupNoteOpen(false)} workOrderId={workOrderId} taskId={task.id} />
+              </Box>
             )}
 
             {/* Evidence files — shown for any task that has attachments, driver-uploaded or added from Edit Work Order */}

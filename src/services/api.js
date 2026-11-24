@@ -1528,6 +1528,14 @@ class ApiService {
     return this.post(`/driver/pickups/${taskId}/complete`);
   }
 
+  async getWorkOrderTaskPickupNote(workOrderId, taskId) {
+    return this.get(`/work-orders/${workOrderId}/tasks/${taskId}/pickup-note`);
+  }
+
+  async saveWorkOrderTaskPickupNote(workOrderId, taskId, note) {
+    return this.put(`/work-orders/${workOrderId}/tasks/${taskId}/pickup-note`, note);
+  }
+
   async getOutboundParties() {
     return this.get('/outbound/parties');
   }

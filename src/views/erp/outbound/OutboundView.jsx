@@ -90,8 +90,10 @@ const OutboundView = () => {
   useEffect(() => { load(); }, [id]);
 
   useEffect(() => {
-    apiService.getCompanies({ pageSize: 500 }).then((r) => setCompanies(Array.isArray(r.data) ? r.data : [])).catch(() => {});
-    apiService.getSuppliers({ pageSize: 500 }).then((r) => setSuppliers(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+    apiService.getOutboundParties().then((r) => {
+      setCompanies(Array.isArray(r.data?.companies) ? r.data.companies : []);
+      setSuppliers(Array.isArray(r.data?.suppliers) ? r.data.suppliers : []);
+    }).catch(() => {});
   }, []);
 
   const completed = ob?.status === 'completed';

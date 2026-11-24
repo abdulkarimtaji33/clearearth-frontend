@@ -160,6 +160,7 @@ const VendorBills = () => {
     setBillError('');
     setBillForm({
       supplierInvoiceNo: '',
+      purchaseBillReference: `PO-${po.id}`,
       supplierTrn: po.supplier?.vat_number || '',
       billDate: today(),
       dueDate: '',
@@ -212,6 +213,7 @@ const VendorBills = () => {
         expenseAccountId: parseInt(billForm.expenseAccountId, 10),
         approveOverage: billForm.approveOverage || undefined,
         supplierInvoiceNo: billForm.supplierInvoiceNo.trim(),
+        purchaseBillReference: (billForm.purchaseBillReference || '').trim() || undefined,
         supplierTrn: billForm.supplierTrn.trim() || undefined,
         billDate: billForm.billDate,
         dueDate: billForm.dueDate || undefined,
@@ -410,6 +412,7 @@ const VendorBills = () => {
                       <TableCell padding="checkbox" />
                       <TableCell sx={headCell}>Bill #</TableCell>
                       <TableCell sx={headCell}>Supplier invoice</TableCell>
+                      <TableCell sx={headCell}>Purchase-bill reference</TableCell>
                       <TableCell sx={headCell}>Party</TableCell>
                       <TableCell sx={headCell}>For</TableCell>
                       <TableCell sx={headCell}>Bill date</TableCell>
@@ -422,7 +425,7 @@ const VendorBills = () => {
                   </TableHead>
                   <TableBody>
                     {bills.length === 0 && (
-                      <TableRow><TableCell colSpan={11}align="center" sx={{ py: 5, color: 'text.secondary' }}>No vendor bills.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} align="center" sx={{ py: 5, color: 'text.secondary' }}>No vendor bills.</TableCell></TableRow>
                     )}
                     {bills.map((b) => {
                       const payable = b.status === 'open' || b.status === 'partial';
@@ -444,6 +447,7 @@ const VendorBills = () => {
                               <Button size="small" component="a" href={apiService.getUploadUrl(b.attachment_path)} target="_blank" sx={{ ml: 1, minWidth: 0 }}>file</Button>
                             )}
                           </TableCell>
+                          <TableCell>{b.purchase_bill_reference || '—'}</TableCell>
                           <TableCell>{b.party_name}</TableCell>
                           <TableCell>
                             <Typography variant="caption" color="text.secondary">
@@ -582,6 +586,7 @@ const VendorBills = () => {
               />
             )}
             <TextField required label="Supplier invoice no." value={billForm.supplierInvoiceNo || ''} onChange={setBill('supplierInvoiceNo')} fullWidth />
+            <TextField label="Purchase-bill reference" value={billForm.purchaseBillReference || ''} onChange={setBill('purchaseBillReference')} inputProps={{ maxLength: 100 }} fullWidth />
             <TextField label="Supplier TRN" value={billForm.supplierTrn || ''} onChange={setBill('supplierTrn')} fullWidth />
             <Stack direction="row" spacing={2}>
               <TextField required type="date" label="Bill date" value={billForm.billDate || ''} onChange={setBill('billDate')} InputLabelProps={{ shrink: true }} fullWidth />

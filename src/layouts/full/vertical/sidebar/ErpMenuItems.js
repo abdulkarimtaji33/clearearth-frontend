@@ -81,6 +81,10 @@ const ErpMenuItems = [
       leaf('Vendor Purchase Orders', '/erp/supplier-purchase-orders', { anyOf: ['deals.read', 'purchase_orders.read'] }),
     ]),
   ]),
+  item('Certificates', '/erp/certificates/requests', IconCertificate, { permission: 'certificates.read' }, [
+    leaf('Requests', '/erp/certificates/requests', { permission: 'certificates.read' }),
+    leaf('Register', '/erp/certificates/register', { permission: 'certificates.read' }),
+  ]),
 
   // ─── Accounts ───────────────────────────────────────────────────────────────
   heading('Accounts'),
@@ -149,14 +153,10 @@ const ErpMenuItems = [
   // ─── Operations ─────────────────────────────────────────────────────────────
   heading('Operations'),
   item('GRN', '/erp/grn', IconPackage, { permission: 'grn.read' }),
-  item('Outbound', '/erp/outbound', IconTruckDelivery, { anyOf: ['outbound.read', 'grn.read'] }),
+  item('Outbound', '/erp/outbound', IconTruckDelivery, { permission: 'outbound.read' }),
   item('Inventory', '/erp/inventory', IconBoxSeam, { permission: 'grn.read' }),
   item('Work Orders', '/erp/work-orders', IconHammer, { permission: 'operations.read' }),
   item('Pickup Report', '/erp/pickup-report', IconClipboardCheck, { permission: 'operations.read' }),
-  item('Certificates', '/erp/certificates/requests', IconCertificate, { permission: 'certificates.read' }, [
-    leaf('Requests', '/erp/certificates/requests', { permission: 'certificates.read' }),
-    leaf('Register', '/erp/certificates/register', { permission: 'certificates.read' }),
-  ]),
 
   // ─── Others ─────────────────────────────────────────────────────────────────
   heading('Others'),

@@ -85,6 +85,19 @@ const ErpMenuItems = [
   // ─── Accounts ───────────────────────────────────────────────────────────────
   heading('Accounts'),
   item('Accounts', '/erp/tax-invoices', IconCalculator, { permission: 'accounting.read' }, [
+    item('Inbound', '/erp/registers/purchase', IconTruckDelivery, { permission: 'accounting.read' }, [
+      leaf('Purchase Register', '/erp/registers/purchase', { permission: 'accounting.read' }),
+      leaf('Purchase Orders', '/erp/supplier-purchase-orders', { permission: 'accounting.read' }),
+      leaf('Purchase Invoices', '/erp/vendor-bills', { permission: 'accounting.read' }),
+      leaf('Service Register', '/erp/registers/service', { permission: 'accounting.read' }),
+      leaf('Service Orders', '/erp/service-orders', { permission: 'accounting.read' }),
+      leaf('Service Invoices', '/erp/tax-invoices', { permission: 'accounting.read' }),
+    ]),
+    item('Outbound', '/erp/registers/sales', IconTruckDelivery, { permission: 'accounting.read' }, [
+      leaf('Sales Register', '/erp/registers/sales', { permission: 'accounting.read' }),
+      leaf('Sales Orders', '/erp/outbound?type=sale', { permission: 'accounting.read' }),
+      leaf('Sales Invoices', '/erp/registers/sales?type=Sales%20Invoice', { permission: 'accounting.read' }),
+    ]),
     item('Inbound (Accounts)', '/erp/service-orders', IconTruckDelivery, { permission: 'accounting.read' }, [
       item('Sales Orders', '/erp/service-orders', IconFileInvoice, { permission: 'accounting.read' }),
       item('Sales Invoices', '/erp/tax-invoices', IconReceipt, { permission: 'accounting.read' }),
@@ -136,23 +149,10 @@ const ErpMenuItems = [
   // ─── Operations ─────────────────────────────────────────────────────────────
   heading('Operations'),
   item('GRN', '/erp/grn', IconPackage, { permission: 'grn.read' }),
-  item('Inbound', '/erp/registers/purchase', IconTruckDelivery, { anyOf: ['grn.read', 'outbound.read', 'operations.read'] }, [
-    leaf('Purchase Register', '/erp/registers/purchase', { anyOf: ['grn.read', 'outbound.read', 'purchase_orders.read'] }),
-    leaf('Purchase Orders', '/erp/supplier-purchase-orders', { anyOf: ['deals.read', 'purchase_orders.read'] }),
-    leaf('Purchase Invoices', '/erp/vendor-bills', { permission: 'accounting.read' }),
-    leaf('Service Register', '/erp/registers/service', { anyOf: ['grn.read', 'outbound.read', 'quotations.read'] }),
-    leaf('Service Orders', '/erp/service-orders', { anyOf: ['deals.read', 'quotations.read'] }),
-    leaf('Service Invoices', '/erp/tax-invoices', { permission: 'accounting.read' }),
-    leaf('Pickup Report', '/erp/pickup-report', { permission: 'operations.read' }),
-  ]),
-  item('Outbound', '/erp/outbound', IconTruckDelivery, { anyOf: ['outbound.read', 'grn.read'] }, [
-    leaf('Outbound', '/erp/outbound', { anyOf: ['outbound.read', 'grn.read'] }),
-    leaf('Sales Register', '/erp/registers/sales', { anyOf: ['outbound.read', 'grn.read'] }),
-    leaf('Sales Orders', '/erp/outbound?type=sale', { anyOf: ['outbound.read', 'grn.read'] }),
-    leaf('Sales Invoices', '/erp/registers/sales?type=Sales%20Invoice', { anyOf: ['outbound.read', 'grn.read'] }),
-  ]),
+  item('Outbound', '/erp/outbound', IconTruckDelivery, { anyOf: ['outbound.read', 'grn.read'] }),
   item('Inventory', '/erp/inventory', IconBoxSeam, { permission: 'grn.read' }),
   item('Work Orders', '/erp/work-orders', IconHammer, { permission: 'operations.read' }),
+  item('Pickup Report', '/erp/pickup-report', IconClipboardCheck, { permission: 'operations.read' }),
   item('Certificates', '/erp/certificates/requests', IconCertificate, { permission: 'certificates.read' }, [
     leaf('Requests', '/erp/certificates/requests', { permission: 'certificates.read' }),
     leaf('Register', '/erp/certificates/register', { permission: 'certificates.read' }),

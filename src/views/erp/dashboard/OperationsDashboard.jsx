@@ -22,7 +22,7 @@ const STATUS_COLOR = { not_started: 'default', in_progress: 'primary', completed
 const KPI_HREFS = {
   'Work orders in progress': '/erp/work-orders?status=in_progress',
   'Overdue tasks': '/erp/work-orders',
-  'Expenses pending': '/erp/accounts/work-orders',
+  'Expenses pending': '/erp/work-orders',
   'GRNs pending': '/erp/grn',
   'Pending outbounds': '/erp/outbound?status=pending_outbound',
 };

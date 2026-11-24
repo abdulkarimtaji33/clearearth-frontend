@@ -82,7 +82,7 @@ const AdminDashboard = ({ data, onRefresh, toolbar, hrSlot }) => {
       <Grid container spacing={2.5} mb={2.5}>
         {(data.kpis || []).map((k) => (
           <Grid key={k.label} size={{ xs: 12, sm: 6, md: 3 }}>
-            <KpiCard {...k} icon={KPI_ICONS[k.label]} />
+            <KpiCard {...k} icon={KPI_ICONS[k.label]} onClick={k.label === 'Pending outbounds' ? () => navigate('/erp/outbound?status=pending_outbound') : undefined} />
           </Grid>
         ))}
       </Grid>

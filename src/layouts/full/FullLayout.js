@@ -11,6 +11,7 @@ import ScrollToTop from '../../components/shared/ScrollToTop';
 import LoadingBar from '../../LoadingBar';
 import RealtimeNotificationToast from '../../components/notifications/RealtimeNotificationToast';
 import ImpersonationBanner from '../../components/shared/ImpersonationBanner';
+import ScrollToError from '../../components/shared/ScrollToError';
 
 
 const MainWrapper = styled('div')(() => ({
@@ -35,6 +36,7 @@ const FullLayout = () => {
   return (
     <>
       <LoadingBar />
+      <ScrollToError />
       <ImpersonationBanner />
       <RealtimeNotificationToast />
       <MainWrapper

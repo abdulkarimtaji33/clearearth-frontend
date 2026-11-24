@@ -24,6 +24,7 @@ const KPI_HREFS = {
   'Overdue tasks': '/erp/work-orders',
   'Expenses pending': '/erp/accounts/work-orders',
   'GRNs pending': '/erp/grn',
+  'Pending outbounds': '/erp/outbound?status=pending_outbound',
 };
 
 const daysOverdue = (endDate) => {

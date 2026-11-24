@@ -1061,7 +1061,7 @@ const DealForm = () => {
                   Create Purchase Quotation
                 </Button>
               )}
-              {initialValues.dealType !== 'offer_to_purchase' && (
+              {initialValues.dealType !== 'offer_to_purchase' && !approvedDocs.quotation && (
                 <Button
                   variant="outlined"
                   size="small"

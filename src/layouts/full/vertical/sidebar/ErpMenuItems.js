@@ -85,6 +85,16 @@ const ErpMenuItems = [
   // ─── Accounts ───────────────────────────────────────────────────────────────
   heading('Accounts'),
   item('Accounts', '/erp/tax-invoices', IconCalculator, { permission: 'accounting.read' }, [
+    item('Inbound (Accounts)', '/erp/service-orders', IconTruckDelivery, { permission: 'accounting.read' }, [
+      item('Sales Orders', '/erp/service-orders', IconFileInvoice, { permission: 'accounting.read' }),
+      item('Sales Invoices', '/erp/tax-invoices', IconReceipt, { permission: 'accounting.read' }),
+      item('Sales Register', '/erp/registers/sales_invoices', IconBook, { permission: 'accounting.read' }),
+    ]),
+    item('Outbound (Accounts)', '/erp/supplier-purchase-orders', IconTruckDelivery, { permission: 'accounting.read' }, [
+      item('Purchase Orders', '/erp/supplier-purchase-orders', IconFileInvoice, { permission: 'accounting.read' }),
+      item('Purchase Bills', '/erp/vendor-bills', IconReceipt, { permission: 'accounting.read' }),
+      item('Purchase Register', '/erp/registers/purchase_bills', IconBook, { permission: 'accounting.read' }),
+    ]),
     item('Sales & Receivables', '/erp/tax-invoices', IconCoin, { permission: 'accounting.read' }, [
       item('Proforma Invoices', '/erp/proforma-invoices', IconFileInvoice, { permission: 'accounting.read' }),
       item('Tax Invoices', '/erp/tax-invoices', IconReceipt, { permission: 'accounting.read' }),

@@ -18,6 +18,14 @@ const KINDS = {
     title: 'Service Register', sub: 'Offer to Service: service orders and service invoices (Accounts Receivable)',
     party: 'Customer', types: ['Service Order', 'Service Invoice'],
   },
+  sales_invoices: {
+    title: 'Sales Register', sub: 'All sales invoices (tax invoices created by Accounts from sales orders)',
+    party: 'Customer', types: ['Sales Invoice'],
+  },
+  purchase_bills: {
+    title: 'Purchase Register', sub: 'All purchase bills (bills converted from purchase orders)',
+    party: 'Vendor', types: ['Purchase Bill'], showBillReference: true,
+  },
   sales: {
     title: 'Sales Register', sub: 'Sales orders (outbound sales) and sales invoices (Accounts Receivable)',
     party: 'Customer', types: ['Sales Order', 'Sales Invoice'],
@@ -88,16 +96,16 @@ const RegisterList = () => {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                <TableCell sx={head}>Type</TableCell><TableCell sx={head}>Reference</TableCell><TableCell sx={head}>{meta.party}</TableCell>
+                <TableCell sx={head}>Type</TableCell><TableCell sx={head}>Reference</TableCell>{meta.showBillReference && <TableCell sx={head}>Purchase-bill reference</TableCell>}<TableCell sx={head}>{meta.party}</TableCell>
                 <TableCell sx={head}>Date</TableCell><TableCell sx={head} align="right">Amount</TableCell><TableCell sx={head} align="right">Balance due</TableCell>
                 <TableCell sx={head}>Status</TableCell><TableCell />
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8} align="center" sx={{ py: 8 }}><CircularProgress size={28} /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 8 }}><CircularProgress size={28} /></TableCell></TableRow>
               ) : rows.length === 0 ? (
-                <TableRow><TableCell colSpan={8} align="center" sx={{ py: 8 }}>
+                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 8 }}>
                   <IconFileCheck size={36} color={theme.palette.text.disabled} />
                   <Typography color="text.secondary" mt={1} fontWeight={600}>No records found</Typography>
                 </TableCell></TableRow>
@@ -105,6 +113,7 @@ const RegisterList = () => {
                 <TableRow key={`${r.type}-${r.reference}-${i}`} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(r.link)}>
                   <TableCell><Chip size="small" variant="outlined" label={r.type} sx={{ fontWeight: 600 }} /></TableCell>
                   <TableCell><Typography variant="body2" fontWeight={700} sx={{ fontFamily: 'monospace' }}>{r.reference}</Typography></TableCell>
+                  {meta.showBillReference && <TableCell>{r.bill_reference || '—'}</TableCell>}
                   <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 220 }}>{r.party || '—'}</Typography></TableCell>
                   <TableCell>{r.date ? String(r.date).slice(0, 10) : '—'}</TableCell>
                   <TableCell align="right">{fmt(r.amount)}</TableCell>

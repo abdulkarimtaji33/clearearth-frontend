@@ -140,7 +140,7 @@ const TaxInvoiceList = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.info.main, 0.06) }}>
-                    {['Number', 'Proforma', 'Deal', 'Date', 'Due', 'Payment', 'Total (AED)', ''].map((h, i) => (
+                    {['Number', 'Proforma', 'Deal', 'Date', 'Due', 'Payment', 'Total', ''].map((h, i) => (
                       <TableCell key={h} align={i === 6 ? 'right' : i === 7 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                     ))}
                   </TableRow>
@@ -179,7 +179,7 @@ const TaxInvoiceList = () => {
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <Chip size="small" label={(r.payment_status || 'unpaid').replace(/_/g, ' ')} color={PAYMENT_COLOR[r.payment_status] || 'default'} sx={{ fontWeight: 700, textTransform: 'capitalize' }} />
                         </TableCell>
-                        <TableCell align="right"><Typography variant="body2" fontWeight={700}>{fmt(r.total)}</Typography></TableCell>
+                        <TableCell align="right"><Typography variant="body2" fontWeight={700}>{r.currency || 'AED'} {fmt(r.total)}</Typography></TableCell>
                         <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                           <Tooltip title="View">
                             <IconButton size="small" onClick={() => navigate(`/erp/tax-invoices/view/${r.id}`)} sx={{ mr: 0.5 }}>

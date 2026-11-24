@@ -137,7 +137,7 @@ const ProformaInvoiceList = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                    {['Number', 'Deal', 'Quotation', 'Invoice date', 'Due date', 'Total (AED)', ''].map((h, i) => (
+                    {['Number', 'Deal', 'Quotation', 'Invoice date', 'Due date', 'Total', ''].map((h, i) => (
                       <TableCell key={h} align={i === 5 ? 'right' : i === 6 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                     ))}
                   </TableRow>
@@ -173,7 +173,7 @@ const ProformaInvoiceList = () => {
                         <TableCell><Typography variant="body2" color="text.secondary">#{r.quotation?.id ?? '—'}</Typography></TableCell>
                         <TableCell><Typography variant="body2">{r.invoice_date || '—'}</Typography></TableCell>
                         <TableCell><Typography variant="body2">{r.due_date || '—'}</Typography></TableCell>
-                        <TableCell align="right"><Typography variant="body2" fontWeight={700}>{fmt(r.total)}</Typography></TableCell>
+                        <TableCell align="right"><Typography variant="body2" fontWeight={700}>{r.currency || 'AED'} {fmt(r.total)}</Typography></TableCell>
                         <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                           <Tooltip title="View">
                             <IconButton size="small" onClick={() => navigate(`/erp/proforma-invoices/view/${r.id}`)} sx={{ mr: 0.5 }}>

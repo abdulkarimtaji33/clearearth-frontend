@@ -530,7 +530,7 @@ const DealList = () => {
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Deal</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Company</TableCell>
                   {!hideDealAmounts && (
-                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }} align="right">Total (AED)</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }} align="right">Total</TableCell>
                   )}
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>Inspection</TableCell>
@@ -579,7 +579,7 @@ const DealList = () => {
                       </TableCell>
                       {!hideDealAmounts && (
                       <TableCell align="right">
-                        <Typography variant="body2" fontWeight={700}>{Number(deal.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+                        <Typography variant="body2" fontWeight={700}>{deal.currency || 'AED'} {Number(deal.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
                         <Typography variant="caption" color="text.secondary">+VAT {Number(deal.vat_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
                       </TableCell>
                       )}

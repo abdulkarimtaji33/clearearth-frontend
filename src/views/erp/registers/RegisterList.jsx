@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box, Typography, Stack, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip,
-  CircularProgress, Alert, TablePagination, TextField, MenuItem, Link, InputAdornment,
+  CircularProgress, Alert, TablePagination, TextField, MenuItem, Link, InputAdornment, Button,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { IconBook, IconSearch, IconFileCheck } from '@tabler/icons-react';
+import { IconBook, IconSearch, IconFileCheck, IconFileSpreadsheet } from '@tabler/icons-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { downloadCsv } from '../../../utils/csvExport';
+import { DEFAULT_CURRENCY } from '../../../utils/currency';
 
 const KINDS = {
   purchase: {
@@ -62,6 +64,34 @@ const RegisterList = () => {
   useEffect(() => { setPage(0); }, [kind, type]);
   useEffect(() => { load(); }, [load]);
 
+  const [exporting, setExporting] = useState(false);
+  // Exports every row that matches the current search and document type (not just the visible page) as a CSV file.
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const pageSize = 100;
+      let all = [];
+      for (let p = 1; p <= 200; p += 1) {
+        const res = await apiService.getRegister(kind, { page: p, pageSize, search: search || undefined, type: type || undefined });
+        const chunk = Array.isArray(res.data) ? res.data : [];
+        all = all.concat(chunk);
+        const totalItems = res.pagination?.totalItems ?? all.length;
+        if (!chunk.length || all.length >= totalItems) break;
+      }
+      const headers = ['Type', 'Reference', ...(meta.showBillReference ? ['Purchase-bill reference'] : []), meta.party, 'Date', 'Currency', 'Amount', 'Balance due', 'Status'];
+      const rowsOut = all.map((r) => [
+        r.type, r.reference, ...(meta.showBillReference ? [r.bill_reference || ''] : []), r.party || '', r.date ? String(r.date).slice(0, 10) : '',
+        r.currency || DEFAULT_CURRENCY, Number(r.amount || 0).toFixed(2), r.balance != null ? Number(r.balance).toFixed(2) : '', String(r.status || '').replace(/_/g, ' '),
+      ]);
+      downloadCsv(`${meta.title.toLowerCase().replace(/\s+/g, '-')}-${kind}-${new Date().toISOString().slice(0, 10)}`, headers, rowsOut);
+      setError('');
+    } catch (e) {
+      setError(e.message || 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const head = { fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary', whiteSpace: 'nowrap' };
 
   return (
@@ -90,6 +120,12 @@ const RegisterList = () => {
               <MenuItem value="">All documents</MenuItem>
               {meta.types.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
             </TextField>
+            <Button
+              variant="outlined" startIcon={exporting ? <CircularProgress size={16} /> : <IconFileSpreadsheet size={18} />}
+              onClick={handleExport} disabled={exporting || total === 0} sx={{ borderRadius: 2, fontWeight: 600, ml: 'auto' }}
+            >
+              Export to Excel (CSV)
+            </Button>
           </Stack>
         </Box>
         <TableContainer>
@@ -97,15 +133,15 @@ const RegisterList = () => {
             <TableHead>
               <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
                 <TableCell sx={head}>Type</TableCell><TableCell sx={head}>Reference</TableCell>{meta.showBillReference && <TableCell sx={head}>Purchase-bill reference</TableCell>}<TableCell sx={head}>{meta.party}</TableCell>
-                <TableCell sx={head}>Date</TableCell><TableCell sx={head} align="right">Amount</TableCell><TableCell sx={head} align="right">Balance due</TableCell>
+                <TableCell sx={head}>Date</TableCell><TableCell sx={head}>Currency</TableCell><TableCell sx={head} align="right">Amount</TableCell><TableCell sx={head} align="right">Balance due</TableCell>
                 <TableCell sx={head}>Status</TableCell><TableCell />
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 8 }}><CircularProgress size={28} /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} align="center" sx={{ py: 8 }}><CircularProgress size={28} /></TableCell></TableRow>
               ) : rows.length === 0 ? (
-                <TableRow><TableCell colSpan={9} align="center" sx={{ py: 8 }}>
+                <TableRow><TableCell colSpan={10} align="center" sx={{ py: 8 }}>
                   <IconFileCheck size={36} color={theme.palette.text.disabled} />
                   <Typography color="text.secondary" mt={1} fontWeight={600}>No records found</Typography>
                 </TableCell></TableRow>
@@ -116,6 +152,7 @@ const RegisterList = () => {
                   {meta.showBillReference && <TableCell>{r.bill_reference || '—'}</TableCell>}
                   <TableCell><Typography variant="body2" noWrap sx={{ maxWidth: 220 }}>{r.party || '—'}</Typography></TableCell>
                   <TableCell>{r.date ? String(r.date).slice(0, 10) : '—'}</TableCell>
+                  <TableCell>{r.currency || DEFAULT_CURRENCY}</TableCell>
                   <TableCell align="right">{fmt(r.amount)}</TableCell>
                   <TableCell align="right">{r.balance != null ? fmt(r.balance) : '—'}</TableCell>
                   <TableCell><Chip size="small" label={String(r.status || '').replace(/_/g, ' ')} color={COLOR[r.status] || 'default'} sx={{ textTransform: 'capitalize', fontWeight: 700 }} /></TableCell>

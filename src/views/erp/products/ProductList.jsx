@@ -242,7 +242,7 @@ const ProductList = () => {
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.04) }}>
-                  {['Name', 'Category', 'Unit', 'Price (AED)', 'Status', ''].map((h, i) => (
+                  {['Name', 'Category', 'Unit', 'Price', 'Status', ''].map((h, i) => (
                     <TableCell key={i} align={i === 5 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                   ))}
                 </TableRow>
@@ -268,7 +268,7 @@ const ProductList = () => {
                       </TableCell>
                       <TableCell><Chip label={product.category} size="small" color="primary" variant="outlined" sx={{ fontWeight: 600 }} /></TableCell>
                       <TableCell><Typography variant="body2" color="text.secondary">{formatUomValue(product.unit_of_measure)}</Typography></TableCell>
-                      <TableCell><Typography variant="body2" fontWeight={600}>{product.price ? Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" fontWeight={600}>{product.price ? `${product.currency || 'AED'} ${Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</Typography></TableCell>
                       <TableCell><Chip label={product.status} size="small" color={product.status === 'active' ? 'success' : 'default'} sx={{ fontWeight: 600 }} /></TableCell>
                       <TableCell align="right" onClick={e => e.stopPropagation()}>
                         <IconButton size="small" onClick={e => { setAnchorEl(e.currentTarget); setSelectedProduct(product); }} sx={{ borderRadius: 1.5 }}>

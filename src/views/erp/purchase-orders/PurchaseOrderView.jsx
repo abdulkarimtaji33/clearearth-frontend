@@ -296,7 +296,7 @@ const PurchaseOrderView = () => {
               <Box>
                 <Typography variant="overline" color="text.secondary" fontWeight={700} letterSpacing={1}>Total amount</Typography>
                 <Typography variant="h3" fontWeight={800} color="secondary.main">
-                  AED {linesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {po?.currency || 'AED'} {linesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </Typography>
               </Box>
             )}
@@ -430,7 +430,7 @@ const PurchaseOrderView = () => {
           {!viewOnly && (
             <Box sx={{ px: 2.5, py: 2, borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end', gap: 3 }}>
               <Typography variant="body2" color="text.secondary" fontWeight={600}>Total</Typography>
-              <Typography variant="subtitle1" fontWeight={800}>AED {linesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
+              <Typography variant="subtitle1" fontWeight={800}>{po?.currency || 'AED'} {linesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
             </Box>
           )}
         </Paper>

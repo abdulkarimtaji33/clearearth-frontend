@@ -272,8 +272,8 @@ const OutboundView = () => {
                 <TableCell sx={{ fontWeight: 700 }}>Item</TableCell>
                 <TableCell sx={{ fontWeight: 700, width: 170 }}>UOM</TableCell>
                 <TableCell sx={{ fontWeight: 700, width: 130 }} align="right">Amount</TableCell>
-                {showValue && <TableCell sx={{ fontWeight: 700, width: 170 }} align="right">{isFoc ? 'Value of Material (VoM) / unit' : 'Price / unit'}</TableCell>}
-                {showValue && <TableCell sx={{ fontWeight: 700, width: 120 }} align="right">Total</TableCell>}
+                {showValue && <TableCell sx={{ fontWeight: 700, width: 170 }} align="right">{isFoc ? 'Value of Material (VoM) / unit' : 'Price / unit'} ({ob?.currency || 'AED'})</TableCell>}
+                {showValue && <TableCell sx={{ fontWeight: 700, width: 120 }} align="right">Total ({ob?.currency || 'AED'})</TableCell>}
                 {editable && <TableCell sx={{ width: 48 }} />}
               </TableRow>
             </TableHead>
@@ -290,7 +290,7 @@ const OutboundView = () => {
               ))}
               {showValue && lines.length > 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} align="right" sx={{ fontWeight: 800 }}>Total value</TableCell>
+                  <TableCell colSpan={4} align="right" sx={{ fontWeight: 800 }}>Total value ({ob?.currency || 'AED'})</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 800 }}>{fmt(total)}</TableCell>
                   {editable && <TableCell />}
                 </TableRow>

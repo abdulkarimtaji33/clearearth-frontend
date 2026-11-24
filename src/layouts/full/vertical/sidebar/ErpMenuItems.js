@@ -89,19 +89,6 @@ const ErpMenuItems = [
   // ─── Accounts ───────────────────────────────────────────────────────────────
   heading('Accounts'),
   item('Accounts', '/erp/tax-invoices', IconCalculator, { permission: 'accounting.read' }, [
-    item('Inbound', '/erp/registers/purchase', IconTruckDelivery, { permission: 'accounting.read' }, [
-      leaf('Purchase Register', '/erp/registers/purchase', { permission: 'accounting.read' }),
-      leaf('Purchase Orders', '/erp/supplier-purchase-orders', { permission: 'accounting.read' }),
-      leaf('Purchase Invoices', '/erp/vendor-bills', { permission: 'accounting.read' }),
-      leaf('Service Register', '/erp/registers/service', { permission: 'accounting.read' }),
-      leaf('Service Orders', '/erp/service-orders', { permission: 'accounting.read' }),
-      leaf('Service Invoices', '/erp/tax-invoices', { permission: 'accounting.read' }),
-    ]),
-    item('Outbound', '/erp/registers/sales', IconTruckDelivery, { permission: 'accounting.read' }, [
-      leaf('Sales Register', '/erp/registers/sales', { permission: 'accounting.read' }),
-      leaf('Sales Orders', '/erp/outbound?type=sale', { permission: 'accounting.read' }),
-      leaf('Sales Invoices', '/erp/registers/sales?type=Sales%20Invoice', { permission: 'accounting.read' }),
-    ]),
     item('Inbound (Accounts)', '/erp/service-orders', IconTruckDelivery, { permission: 'accounting.read' }, [
       item('Sales Orders', '/erp/service-orders', IconFileInvoice, { permission: 'accounting.read' }),
       item('Sales Invoices', '/erp/tax-invoices', IconReceipt, { permission: 'accounting.read' }),

@@ -11,6 +11,7 @@ import CascadingAccountSelect from '../../../components/erp/CascadingAccountSele
 import PageContainer from '../../../components/container/PageContainer';
 import DebitNoteDialog from './DebitNoteDialog';
 import apiService from '../../../services/api';
+import { CURRENCIES } from '../../../utils/currency';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
 import { filterCashBankAccounts, filterActiveByType, isPostable, overdrawInfo } from '../../../utils/accountTree';
 
@@ -48,7 +49,7 @@ const VendorBills = () => {
 
   // New supplier bill without a PO (an unpaid expense)
   const emptyDirect = () => ({
-    mode: 'expense', woExpenseId: '', supplier: null, expenseAccountId: '', netAmount: '', vatRate: '5', vatManual: '', supplierInvoiceNo: '', supplierTrn: '', purchaseBillReference: '',
+    mode: 'expense', currency: 'AED', woExpenseId: '', supplier: null, expenseAccountId: '', netAmount: '', vatRate: '5', vatManual: '', supplierInvoiceNo: '', supplierTrn: '', purchaseBillReference: '',
     billDate: today(), dueDate: '', attachmentPath: '', attachmentName: '', notes: '',
   });
   const [directOpen, setDirectOpen] = useState(false);
@@ -133,6 +134,7 @@ const VendorBills = () => {
         supplierId: direct.supplier.id,
         vatRate: direct.vatRate === 'manual' ? 'manual' : parseFloat(direct.vatRate) || 0,
         vatAmount: direct.vatRate === 'manual' ? dVat : undefined,
+        currency: direct.mode === 'wo' ? 'AED' : (direct.currency || 'AED'),
         supplierInvoiceNo: direct.supplierInvoiceNo.trim(),
         supplierTrn: direct.supplierTrn.trim() || undefined,
         purchaseBillReference: (direct.purchaseBillReference || '').trim() || undefined,
@@ -219,7 +221,7 @@ const VendorBills = () => {
     if (billForm.dueDate && billForm.dueDate < billForm.billDate) { setBillError('Due date cannot be before the bill date'); return; }
     if (!(parseFloat(billForm.subtotal) > 0)) { setBillError('Amount (excluding VAT) must be greater than zero'); return; }
     if (!billForm.expenseAccountId) { setBillError('Select the expense head and sub-head'); return; }
-    if (billOverage > 0.01 && !billForm.approveOverage) { setBillError(`The bill is AED ${fmt(billOverage)} above what is left on the PO. Tick "Approve the extra amount" to continue.`); return; }
+    if (billOverage > 0.01 && !billForm.approveOverage) { setBillError(`The bill is ${billPo?.currency || 'AED'} ${fmt(billOverage)} above what is left on the PO. Tick "Approve the extra amount" to continue.`); return; }
     try {
       setBillSaving(true);
       setBillError('');
@@ -291,7 +293,7 @@ const VendorBills = () => {
       });
       setPayOpen(false);
       setSelected({});
-      setSuccess(`Supplier payment of AED ${fmt(payTotal)} recorded`);
+      setSuccess(`Supplier payment of ${[...new Set(selectedBills.map((b) => b.currency || 'AED'))].join(' / ')} ${fmt(payTotal)} recorded`);
       await load();
     } catch (e) {
       setPayError(e.message || 'Failed to record payment');
@@ -471,8 +473,8 @@ const VendorBills = () => {
                           </TableCell>
                           <TableCell>{b.bill_date?.slice?.(0, 10)}</TableCell>
                           <TableCell>{b.due_date?.slice?.(0, 10) || '—'}</TableCell>
-                          <TableCell align="right">{fmt(b.total)}</TableCell>
-                          <TableCell align="right"><strong>{fmt(b.balance_due)}</strong></TableCell>
+                          <TableCell align="right">{b.currency || 'AED'} {fmt(b.total)}</TableCell>
+                          <TableCell align="right"><strong>{b.currency || 'AED'} {fmt(b.balance_due)}</strong></TableCell>
                           <TableCell>
                             <Chip size="small" label={b.status} color={STATUS_COLOR[b.status] || 'default'} sx={{ textTransform: 'capitalize' }} />
                             {parseFloat(b.debit_note_amount) > 0 && (
@@ -554,16 +556,19 @@ const VendorBills = () => {
               <TextField type="date" label="Due date" value={direct.dueDate} onChange={setD('dueDate')} InputLabelProps={{ shrink: true }} inputProps={{ min: direct.billDate || undefined }} fullWidth />
             </Stack>
             <Stack direction="row" spacing={2}>
-              <TextField required type="number" label="Amount before VAT (AED)" value={direct.mode === 'wo' ? String(dNet || '') : direct.netAmount} onChange={setD('netAmount')} disabled={direct.mode === 'wo'} inputProps={{ min: 0, step: 'any' }} fullWidth />
+              <TextField select label="Currency" value={direct.mode === 'wo' ? 'AED' : (direct.currency || 'AED')} onChange={setD('currency')} disabled={direct.mode === 'wo'} sx={{ minWidth: 120 }}>
+                {CURRENCIES.map(([code]) => <MenuItem key={code} value={code}>{code}</MenuItem>)}
+              </TextField>
+              <TextField required type="number" label={`Amount before VAT (${direct.mode === 'wo' ? 'AED' : (direct.currency || 'AED')})`} value={direct.mode === 'wo' ? String(dNet || '') : direct.netAmount} onChange={setD('netAmount')} disabled={direct.mode === 'wo'} inputProps={{ min: 0, step: 'any' }} fullWidth />
               <TextField select label="VAT" value={direct.vatRate} onChange={setD('vatRate')} fullWidth>
                 <MenuItem value="5">5%</MenuItem>
                 <MenuItem value="manual">Manual amount</MenuItem>
                 <MenuItem value="0">No VAT</MenuItem>
               </TextField>
               {direct.vatRate === 'manual' && (
-                <TextField type="number" label="VAT (AED)" value={direct.vatManual} onChange={setD('vatManual')} inputProps={{ min: 0, step: 'any' }} fullWidth />
+                <TextField type="number" label={`VAT (${direct.mode === 'wo' ? 'AED' : (direct.currency || 'AED')})`} value={direct.vatManual} onChange={setD('vatManual')} inputProps={{ min: 0, step: 'any' }} fullWidth />
               )}
-              <TextField label="Total (AED)" value={fmt(dTotal)} disabled fullWidth />
+              <TextField label={`Total (${direct.mode === 'wo' ? 'AED' : (direct.currency || 'AED')})`} value={fmt(dTotal)} disabled fullWidth />
             </Stack>
             <Box>
               <Button component="label" size="small" variant="outlined" startIcon={uploading ? <CircularProgress size={14} /> : <IconUpload size={14} />} disabled={uploading} sx={{ borderRadius: 2 }}>
@@ -586,7 +591,7 @@ const VendorBills = () => {
         <DialogTitle>Record vendor bill — PO #{billPo?.id}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            {billPo?.party_name} · AED {fmt(billPo?.unbilled_amount)} left to bill on this PO. Posts Dr expense head + Dr Input VAT / Cr Accounts Payable, under the supplier.
+            {billPo?.party_name} · {billPo?.currency || 'AED'} {fmt(billPo?.unbilled_amount)} left to bill on this PO. Posts Dr expense head + Dr Input VAT / Cr Accounts Payable, under the supplier.
           </Typography>
           {billError && <Alert severity="error" sx={{ mb: 2 }}>{billError}</Alert>}
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -609,20 +614,20 @@ const VendorBills = () => {
               <TextField type="date" label="Due date" value={billForm.dueDate || ''} onChange={setBill('dueDate')} InputLabelProps={{ shrink: true }} inputProps={{ min: billForm.billDate || undefined }} fullWidth />
             </Stack>
             <Stack direction="row" spacing={2}>
-              <TextField required type="number" label="Amount excl. VAT (AED)" value={billForm.subtotal || ''} onChange={setBill('subtotal')} inputProps={{ min: 0, step: 'any' }} fullWidth />
+              <TextField required type="number" label={`Amount excl. VAT (${billPo?.currency || 'AED'})`} value={billForm.subtotal || ''} onChange={setBill('subtotal')} inputProps={{ min: 0, step: 'any' }} fullWidth />
               <TextField select label="VAT" value={billForm.vatMode || '5'} onChange={setBill('vatMode')} fullWidth>
                 <MenuItem value="5">5%</MenuItem>
                 <MenuItem value="manual">Manual amount</MenuItem>
                 <MenuItem value="0">No VAT</MenuItem>
               </TextField>
               {billForm.vatMode === 'manual' && (
-                <TextField type="number" label="VAT (AED)" value={billForm.vatAmount || ''} onChange={setBill('vatAmount')} inputProps={{ min: 0, step: 'any' }} fullWidth />
+                <TextField type="number" label={`VAT (${billPo?.currency || 'AED'})`} value={billForm.vatAmount || ''} onChange={setBill('vatAmount')} inputProps={{ min: 0, step: 'any' }} fullWidth />
               )}
-              <TextField label="Total (AED)" value={fmt(billTotal)} disabled fullWidth />
+              <TextField label={`Total (${billPo?.currency || 'AED'})`} value={fmt(billTotal)} disabled fullWidth />
             </Stack>
             {billOverage > 0.01 && (
               <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                This bill is <strong>AED {fmt(billOverage)}</strong> above what is left on the PO. The difference is posted to the expense head.
+                This bill is <strong>{billPo?.currency || 'AED'} {fmt(billOverage)}</strong> above what is left on the PO. The difference is posted to the expense head.
                 <Box>
                   <FormControlLabel control={<Checkbox size="small" checked={!!billForm.approveOverage} onChange={(e) => setBillForm((f) => ({ ...f, approveOverage: e.target.checked }))} />} label="Approve the extra amount" />
                 </Box>
@@ -660,15 +665,15 @@ const VendorBills = () => {
             {selectedBills.map((b) => (
               <Stack key={b.id} direction="row" spacing={2} alignItems="center">
                 <Typography variant="body2" sx={{ minWidth: 140 }}>{b.bill_number} · {b.supplier_invoice_no}</Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110 }}>Balance {fmt(b.balance_due)}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110 }}>Balance {b.currency || 'AED'} {fmt(b.balance_due)}</Typography>
                 <TextField
-                  size="small" type="number" label="Pay (AED)" value={payAmounts[b.id] ?? ''}
+                  size="small" type="number" label={`Pay (${b.currency || 'AED'})`} value={payAmounts[b.id] ?? ''}
                   onChange={(e) => setPayAmounts((a) => ({ ...a, [b.id]: e.target.value }))}
                   inputProps={{ min: 0, step: 'any' }} fullWidth
                 />
               </Stack>
             ))}
-            <Typography variant="subtitle2">Total payment: AED {fmt(payTotal)}</Typography>
+            <Typography variant="subtitle2">Total payment: {[...new Set(selectedBills.map((b) => b.currency || 'AED'))].join(' / ')} {fmt(payTotal)}</Typography>
             {overdrawInfo(allAccounts, payForm.accountId, payTotal) && (
               <Alert severity="warning" sx={{ borderRadius: 2 }}>
                 This payment takes the account below zero.

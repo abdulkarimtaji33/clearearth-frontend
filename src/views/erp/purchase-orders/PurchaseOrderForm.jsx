@@ -28,6 +28,7 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconTrash, IconFileDownload } from '@tabler/icons-react';
+import { CURRENCIES } from '../../../utils/currency';
 import PageContainer from '../../../components/container/PageContainer';
 import UomSelectField from '../../../components/erp/UomSelectField';
 import apiService from '../../../services/api';
@@ -91,6 +92,7 @@ const PurchaseOrderForm = () => {
     companyId: companyIdFromUrl || null,
     supplierId: supplierIdFromUrl || null,
     poDate: new Date().toISOString().split('T')[0],
+    currency: 'AED',
     expectedDelivery: '',
     expenseAccountId: '',
     status: supplierIdFromUrl ? 'approved' : 'new',
@@ -144,6 +146,7 @@ const PurchaseOrderForm = () => {
           companyId: po.company_id || null,
           supplierId: po.supplier_id || null,
           poDate: po.po_date || new Date().toISOString().split('T')[0],
+          currency: po.currency || 'AED',
           expectedDelivery: po.expected_delivery || '',
           expenseAccountId: po.expense_account_id ? String(po.expense_account_id) : '',
           status: po.status || 'new',
@@ -178,6 +181,7 @@ const PurchaseOrderForm = () => {
     setInitialValues((prev) => ({
       ...prev,
       dealId: deal.id,
+      currency: deal.currency || prev.currency || 'AED',
       ...(useDownstreamSupplier
         ? { supplierId: supplierIdOverride, companyId: null }
         : isOtp
@@ -333,6 +337,7 @@ const PurchaseOrderForm = () => {
         companyId: values.companyId || null,
         supplierId: values.supplierId || null,
         poDate: values.poDate,
+        currency: values.currency || 'AED',
         expectedDelivery: values.expectedDelivery || null,
         expenseAccountId: values.expenseAccountId ? Number(values.expenseAccountId) : null,
         ...(canChangeStatus && isClientQuotation ? { status: values.status } : {}),
@@ -572,6 +577,20 @@ const PurchaseOrderForm = () => {
                     />
 
                     <TextField
+                      select
+                      fullWidth
+                      label="Currency"
+                      name="currency"
+                      value={values.currency || 'AED'}
+                      onChange={handleChange}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 280 }}
+                    >
+                      {CURRENCIES.map(([code, name]) => (
+                        <MenuItem key={code} value={code}>{code} - {name}</MenuItem>
+                      ))}
+                    </TextField>
+
+                    <TextField
                       fullWidth
                       label="Expected Delivery (Optional)"
                       name="expectedDelivery"
@@ -763,7 +782,7 @@ const PurchaseOrderForm = () => {
                   {isBillMode && (
                     <Stack direction="row" justifyContent="flex-end" mt={2}>
                       <Typography variant="subtitle1" fontWeight={700}>
-                        Bill subtotal: AED {billSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        Bill subtotal: {values.currency || 'AED'} {billSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </Typography>
                     </Stack>
                   )}

@@ -144,7 +144,7 @@ const QuotationList = () => {
   const canGenerateInvoiceFlag = canGenerateInvoice(user);
   const canCreateWorkOrderFlag = canCreateWorkOrder(user, hasPermission);
   const isOrdersView = location.pathname.includes('/service-orders');
-  const tableHeaders = ['Deal', 'Ver.', 'Prepared By', 'Date', 'Pickup', 'Items', ...(viewOnly ? [] : ['Amount (AED)']), 'Status', ''];
+  const tableHeaders = ['Deal', 'Ver.', 'Prepared By', 'Date', 'Pickup', 'Items', ...(viewOnly ? [] : ['Amount']), 'Status', ''];
   const listReturnEnc = encodeURIComponent(`${location.pathname}${location.search || ''}`);
   const theme = useTheme();
   const [quotations, setQuotations] = useState([]);
@@ -296,7 +296,7 @@ const QuotationList = () => {
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
                     {tableHeaders.map((h, i) => (
-                      <TableCell key={i} align={h === 'Amount (AED)' ? 'right' : i === tableHeaders.length - 1 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
+                      <TableCell key={i} align={h === 'Amount' ? 'right' : i === tableHeaders.length - 1 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
@@ -331,7 +331,7 @@ const QuotationList = () => {
                         <TableCell><Typography variant="body2" color="text.secondary">{q.deal?.items?.length ?? 0}</Typography></TableCell>
                         {!viewOnly && (
                           <TableCell align="right">
-                            <Typography variant="body2" fontWeight={600}>{parseFloat(q.quotation_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
+                            <Typography variant="body2" fontWeight={600}>{q.currency || 'AED'} {parseFloat(q.quotation_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
                           </TableCell>
                         )}
                         <TableCell onClick={e => e.stopPropagation()}>

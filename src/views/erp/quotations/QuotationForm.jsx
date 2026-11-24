@@ -34,6 +34,13 @@ import TermsOrderSelector from '../../../components/erp/TermsOrderSelector';
 import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 
+const CURRENCIES = [
+  ['AED', 'UAE Dirham'], ['USD', 'US Dollar'], ['EUR', 'Euro'], ['GBP', 'British Pound'], ['SAR', 'Saudi Riyal'],
+  ['QAR', 'Qatari Riyal'], ['KWD', 'Kuwaiti Dinar'], ['OMR', 'Omani Rial'], ['BHD', 'Bahraini Dinar'], ['INR', 'Indian Rupee'],
+  ['PKR', 'Pakistani Rupee'], ['CNY', 'Chinese Yuan'], ['JPY', 'Japanese Yen'], ['CHF', 'Swiss Franc'], ['CAD', 'Canadian Dollar'],
+  ['AUD', 'Australian Dollar'], ['EGP', 'Egyptian Pound'], ['TRY', 'Turkish Lira'], ['ZAR', 'South African Rand'],
+];
+
 const QUOTABLE_DEAL_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
 
 const initialLineItem = () => ({
@@ -84,6 +91,7 @@ const QuotationForm = () => {
     preparedBy: null,
     quotationDate: new Date().toISOString().split('T')[0],
     quotationAmount: '',
+    currency: 'AED',
     status: 'new',
     remarks: '',
     termsAndConditionsIds: [],
@@ -187,6 +195,7 @@ const QuotationForm = () => {
           preparedBy: q.prepared_by || null,
           quotationDate: q.quotation_date || new Date().toISOString().split('T')[0],
           quotationAmount: String(q.quotation_amount ?? ''),
+          currency: q.currency || 'AED',
           status: q.status || 'new',
           remarks: q.remarks || '',
           termsAndConditionsIds: [],
@@ -337,6 +346,7 @@ const QuotationForm = () => {
         preparedBy: values.preparedBy,
         quotationDate: values.quotationDate,
         quotationAmount: parseFloat(values.quotationAmount) || 0,
+        currency: values.currency || 'AED',
         ...(canChangeStatus ? { status: values.status } : {}),
         remarks: values.remarks || null,
       };
@@ -451,8 +461,23 @@ const QuotationForm = () => {
                     />
 
                     <TextField
+                      select
                       fullWidth
-                      label="Quotation Amount (AED) (Required)"
+                      label="Currency"
+                      name="currency"
+                      value={values.currency || 'AED'}
+                      onChange={handleChange}
+                      disabled={isEdit}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    >
+                      {CURRENCIES.map(([code, name]) => (
+                        <MenuItem key={code} value={code}>{code} - {name}</MenuItem>
+                      ))}
+                    </TextField>
+
+                    <TextField
+                      fullWidth
+                      label={`Quotation Amount (${values.currency || 'AED'}) (Required)`}
                       name="quotationAmount"
                       type="number"
                       value={values.quotationAmount}

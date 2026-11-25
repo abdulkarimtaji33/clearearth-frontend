@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router';
 import { IconCoin, IconArrowRight } from '@tabler/icons-react';
 import apiService from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { baseCurrency } from '../../utils/currency';
 
 /**
  * Small commission summary card for the sales dashboard — accrued/paid totals
@@ -61,13 +62,13 @@ const CommissionSummaryCard = () => {
               <Box>
                 <Typography variant="caption" color="text.secondary" display="block">Accrued</Typography>
                 <Typography variant="body2" fontWeight={800} color={theme.palette.warning.dark}>
-                  AED {Number(totalAccrued).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {baseCurrency()} {Number(totalAccrued).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </Typography>
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary" display="block">Paid</Typography>
                 <Typography variant="body2" fontWeight={800} color="success.main">
-                  AED {Number(totalPaid).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {baseCurrency()} {Number(totalPaid).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </Typography>
               </Box>
             </Stack>

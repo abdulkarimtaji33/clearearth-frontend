@@ -9,6 +9,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
 import { localToday, localYearStart } from '../../../utils/dateLocal';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => {
   const v = Number(n || 0);
@@ -82,7 +83,7 @@ const CashFlowView = () => {
             <Stack direction="row" alignItems="center" spacing={1.5}>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="h6" fontWeight={800}>Cash Flow Statement (Indirect Method)</Typography>
-                <Typography variant="caption" color="text.secondary">For the period {dateFrom} to {dateTo} | Amounts in AED | {d.cash_account_count} cash / bank account{d.cash_account_count === 1 ? '' : 's'} included</Typography>
+                <Typography variant="caption" color="text.secondary">For the period {dateFrom} to {dateTo} | Amounts in {baseCurrency()} | {d.cash_account_count} cash / bank account{d.cash_account_count === 1 ? '' : 's'} included</Typography>
               </Box>
               <Chip size="small" color={d.reconciled ? 'success' : 'error'} label={d.reconciled ? 'Reconciles to the bank and cash balances' : `Does not reconcile (difference ${fmt(d.difference)})`} />
             </Stack>

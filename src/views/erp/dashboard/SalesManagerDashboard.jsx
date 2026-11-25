@@ -13,7 +13,8 @@ import {
 } from '@tabler/icons-react';
 import KpiCard from './shared/KpiCard';
 import apiService from '../../../services/api';
-import CommissionSummaryCard from '../../../components/erp/CommissionSummaryCard';
+import CommissionSummaryCard from '../../../components/erp/CommissionSummaryCard';
+import { baseCurrency } from '../../../utils/currency';
 
 const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
 
@@ -134,7 +135,7 @@ const SalesManagerDashboard = ({ data, onRefresh }) => {
                       </Stack>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="caption" color="text.secondary">{repName(deal)}</Typography>
-                        {deal.total > 0 && <Typography variant="caption" color="text.disabled">· AED {Number(deal.total).toLocaleString()}</Typography>}
+                        {deal.total > 0 && <Typography variant="caption" color="text.disabled">· {baseCurrency()} {Number(deal.total).toLocaleString()}</Typography>}
                         <Typography variant="caption" color="text.disabled">· {daysSince(deal.created_at)}d ago</Typography>
                       </Stack>
                     </Box>
@@ -170,7 +171,7 @@ const SalesManagerDashboard = ({ data, onRefresh }) => {
                         {q.deal && <Typography variant="caption" color="text.secondary">· {q.deal.deal_number} {q.deal.title}</Typography>}
                       </Stack>
                       <Stack direction="row" spacing={1}>
-                        {q.total > 0 && <Typography variant="caption" color="text.disabled">AED {Number(q.total).toLocaleString()}</Typography>}
+                        {q.total > 0 && <Typography variant="caption" color="text.disabled">{baseCurrency()} {Number(q.total).toLocaleString()}</Typography>}
                         <Typography variant="caption" color="text.disabled">· {daysSince(q.created_at)}d ago</Typography>
                       </Stack>
                     </Box>
@@ -229,7 +230,7 @@ const SalesManagerDashboard = ({ data, onRefresh }) => {
                           </Box>
                         </Stack>
                         <Typography variant="body2" fontWeight={900} color="success.main">
-                          AED {total.toLocaleString()}
+                          {baseCurrency()} {total.toLocaleString()}
                         </Typography>
                       </Stack>
                       <LinearProgress variant="determinate" value={pct}
@@ -264,7 +265,7 @@ const SalesManagerDashboard = ({ data, onRefresh }) => {
                       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={0.5}>
                         <Typography variant="body2" fontWeight={700}>{meta.label}</Typography>
                         <Stack direction="row" alignItems="center" spacing={1}>
-                          {p.value > 0 && <Typography variant="caption" color="text.secondary">AED {Number(p.value).toLocaleString()}</Typography>}
+                          {p.value > 0 && <Typography variant="caption" color="text.secondary">{baseCurrency()} {Number(p.value).toLocaleString()}</Typography>}
                           <Typography variant="body2" fontWeight={900} color={p.count > 0 ? 'text.primary' : 'text.disabled'}>{p.count}</Typography>
                         </Stack>
                       </Stack>
@@ -306,7 +307,7 @@ const SalesManagerDashboard = ({ data, onRefresh }) => {
                     <Stack direction="row" spacing={0.75} alignItems="center">
                       <Typography variant="caption" color="text.secondary">{d.deal_number}</Typography>
                       <Typography variant="caption" color="text.disabled">· {repName(d)}</Typography>
-                      {d.total > 0 && <Typography variant="caption" color="text.disabled">· AED {Number(d.total).toLocaleString()}</Typography>}
+                      {d.total > 0 && <Typography variant="caption" color="text.disabled">· {baseCurrency()} {Number(d.total).toLocaleString()}</Typography>}
                     </Stack>
                   </Box>
                   <Chip size="small" label={meta.label} color={meta.chipColor} sx={{ fontWeight: 700, fontSize: '0.68rem', height: 20, ml: 1, flexShrink: 0 }} />

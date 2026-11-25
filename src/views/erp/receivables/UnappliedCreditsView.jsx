@@ -9,6 +9,7 @@ import { IconArrowLeft, IconWallet } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { extractListData } from '../../../utils/reportApi';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -87,7 +88,7 @@ const UnappliedCreditsView = () => {
       .filter((a) => Number.isFinite(a.amount) && a.amount > 0);
     if (allocationList.length === 0) { setError('Apply the credit to at least one invoice.'); return; }
     if (totalAllocated - activeCredit.unappliedAmount > 0.01) {
-      setError(`Allocated total (AED ${fmt(totalAllocated)}) cannot exceed the available credit (AED ${fmt(activeCredit.unappliedAmount)}).`);
+      setError(`Allocated total (${baseCurrency()} ${fmt(totalAllocated)}) cannot exceed the available credit (${baseCurrency()} ${fmt(activeCredit.unappliedAmount)}).`);
       return;
     }
 
@@ -147,7 +148,7 @@ const UnappliedCreditsView = () => {
                     <TableCell>{c.companyName || '—'}</TableCell>
                     <TableCell>{c.receiptNumber || '—'}</TableCell>
                     <TableCell>{c.paidAt || '—'}</TableCell>
-                    <TableCell align="right">AED {fmt(c.unappliedAmount)}</TableCell>
+                    <TableCell align="right">{baseCurrency()} {fmt(c.unappliedAmount)}</TableCell>
                     <TableCell align="right">
                       <Button size="small" variant="outlined" onClick={() => startApply(c)} sx={{ borderRadius: 2 }}>
                         Apply to invoice(s)
@@ -165,7 +166,7 @@ const UnappliedCreditsView = () => {
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(theme.palette.background.default, 0.6) }}>
             <Typography variant="subtitle2" fontWeight={800}>
-              Apply AED {fmt(activeCredit.unappliedAmount)} credit — {activeCredit.companyName}
+              Apply {baseCurrency()} {fmt(activeCredit.unappliedAmount)} credit — {activeCredit.companyName}
             </Typography>
             <Button size="small" onClick={cancelApply} sx={{ borderRadius: 2 }}>Cancel</Button>
           </Stack>
@@ -216,7 +217,7 @@ const UnappliedCreditsView = () => {
               <Divider />
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 2.5, py: 1.75 }}>
                 <Typography variant="body2" color="text.secondary">
-                  Allocated: <strong>AED {fmt(totalAllocated)}</strong> · Remaining credit after: <strong>AED {fmt(Math.max(0, remainingAfter))}</strong>
+                  Allocated: <strong>{baseCurrency()} {fmt(totalAllocated)}</strong> · Remaining credit after: <strong>{baseCurrency()} {fmt(Math.max(0, remainingAfter))}</strong>
                 </Typography>
                 <Button variant="contained" color="info" onClick={submitApply} disabled={saving} sx={{ borderRadius: 2 }}>
                   {saving ? <CircularProgress size={20} /> : 'Apply credit'}

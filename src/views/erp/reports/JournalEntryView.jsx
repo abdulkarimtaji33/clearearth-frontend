@@ -9,7 +9,8 @@ import { IconArrowLeft, IconBook2, IconArrowBackUp } from '@tabler/icons-react';
 import { useNavigate, useParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { asArray } from '../../../utils/reportApi';
+import { asArray } from '../../../utils/reportApi';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -186,7 +187,7 @@ const JournalEntryView = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  {['Account Code', 'Account Name', 'Description', 'Debit (AED)', 'Credit (AED)'].map((h) => (
+                  {['Account Code', 'Account Name', 'Description', `Debit (${baseCurrency()})`, `Credit (${baseCurrency()})`].map((h) => (
                     <TableCell key={h} align={h.includes('Debit') || h.includes('Credit') ? 'right' : 'left'} sx={{ fontWeight: 700 }}>{h}</TableCell>
                   ))}
                 </TableRow>
@@ -221,7 +222,7 @@ const JournalEntryView = () => {
           <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
             {isBalanced
               ? <Alert severity="success" sx={{ py: 0.5 }}>Entry is balanced — Debits = Credits</Alert>
-              : <Alert severity="error" sx={{ py: 0.5 }}>Entry is NOT balanced — difference: AED {fmt(Math.abs(totalDebit - totalCredit))}</Alert>}
+              : <Alert severity="error" sx={{ py: 0.5 }}>Entry is NOT balanced — difference: {baseCurrency()} {fmt(Math.abs(totalDebit - totalCredit))}</Alert>}
           </Box>
         </Paper>
       </Stack>

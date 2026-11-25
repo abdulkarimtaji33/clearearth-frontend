@@ -10,7 +10,8 @@ import { useNavigate, useSearchParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { localToday, localYearStart, localDate } from '../../../utils/dateLocal';
-import { asArray, normalizeGeneralLedger } from '../../../utils/reportApi';
+import { asArray, normalizeGeneralLedger } from '../../../utils/reportApi';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -135,9 +136,9 @@ const GeneralLedgerView = () => {
   };
 
   const colHeaders = viewAll
-    ? ['Date', 'Account', 'Entry #', 'Description', 'Paid to', 'Received from', 'Type', 'Debit (AED)', 'Credit (AED)']
-    : ['Date', 'Entry #', 'Description', 'Paid to', 'Received from', 'Type', 'Debit (AED)', 'Credit (AED)', 'Balance (AED)'];
-  const rightCols = new Set(['Debit (AED)', 'Credit (AED)', 'Balance (AED)']);
+    ? ['Date', 'Account', 'Entry #', 'Description', 'Paid to', 'Received from', 'Type', `Debit (${baseCurrency()})`, `Credit (${baseCurrency()})`]
+    : ['Date', 'Entry #', 'Description', 'Paid to', 'Received from', 'Type', `Debit (${baseCurrency()})`, `Credit (${baseCurrency()})`, `Balance (${baseCurrency()})`];
+  const rightCols = new Set([`Debit (${baseCurrency()})`, `Credit (${baseCurrency()})`, `Balance (${baseCurrency()})`]);
 
   return (
     <PageContainer title="General Ledger" description="Running balance per account">
@@ -349,12 +350,12 @@ const GeneralLedgerView = () => {
                 </Box>
                 <StatBox
                   label="Opening Balance"
-                  value={`AED ${fmt(data.openingBalance)}`}
+                  value={`${baseCurrency()} ${fmt(data.openingBalance)}`}
                   sub={dateFrom}
                 />
                 <StatBox
                   label="Closing Balance"
-                  value={`AED ${fmt(data.closingBalance ?? data.lines?.at(-1)?.running_balance)}`}
+                  value={`${baseCurrency()} ${fmt(data.closingBalance ?? data.lines?.at(-1)?.running_balance)}`}
                   sub={dateTo}
                   color={
                     (data.closingBalance ?? 0) >= (data.openingBalance ?? 0) ? 'success.main' : 'error.main'
@@ -362,7 +363,7 @@ const GeneralLedgerView = () => {
                 />
                 <StatBox
                   label="Net Movement"
-                  value={`AED ${fmt(Math.abs((data.closingBalance ?? 0) - (data.openingBalance ?? 0)))}`}
+                  value={`${baseCurrency()} ${fmt(Math.abs((data.closingBalance ?? 0) - (data.openingBalance ?? 0)))}`}
                   sub={(data.closingBalance ?? 0) >= (data.openingBalance ?? 0) ? '▲ increase' : '▼ decrease'}
                 />
                 <StatBox

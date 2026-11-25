@@ -9,7 +9,8 @@ import PageContainer from '../../../components/container/PageContainer';
 import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
 import { localToday, localYearStart, localDate } from '../../../utils/dateLocal';
-import { normalizeTrialBalance, asArray } from '../../../utils/reportApi';
+import { normalizeTrialBalance, asArray } from '../../../utils/reportApi';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -87,8 +88,8 @@ const TrialBalanceView = () => {
         <>
           <Box mb={2}>
             {data.is_balanced
-              ? <Alert severity="success" icon={false} sx={{ fontWeight: 700 }}>✓ Trial Balance is IN BALANCE — Total Debits = Total Credits = AED {fmt(data.totals?.total_debit)}</Alert>
-              : <Alert severity="error" icon={false} sx={{ fontWeight: 700 }}>✗ OUT OF BALANCE — Difference: AED {fmt(Math.abs((data.totals?.total_debit || 0) - (data.totals?.total_credit || 0)))}</Alert>}
+              ? <Alert severity="success" icon={false} sx={{ fontWeight: 700 }}>✓ Trial Balance is IN BALANCE — Total Debits = Total Credits = {baseCurrency()} {fmt(data.totals?.total_debit)}</Alert>
+              : <Alert severity="error" icon={false} sx={{ fontWeight: 700 }}>✗ OUT OF BALANCE — Difference: {baseCurrency()} {fmt(Math.abs((data.totals?.total_debit || 0) - (data.totals?.total_credit || 0)))}</Alert>}
           </Box>
 
           <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
@@ -102,9 +103,9 @@ const TrialBalanceView = () => {
                     <TableCell sx={{ fontWeight: 700, width: 100 }}>Code</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Account Name</TableCell>
                     <TableCell sx={{ fontWeight: 700, width: 120 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700, width: 150 }} align="right">Debit (AED)</TableCell>
-                    <TableCell sx={{ fontWeight: 700, width: 150 }} align="right">Credit (AED)</TableCell>
-                    <TableCell sx={{ fontWeight: 700, width: 150 }} align="right">Balance (AED)</TableCell>
+                    <TableCell sx={{ fontWeight: 700, width: 150 }} align="right">Debit ({baseCurrency()})</TableCell>
+                    <TableCell sx={{ fontWeight: 700, width: 150 }} align="right">Credit ({baseCurrency()})</TableCell>
+                    <TableCell sx={{ fontWeight: 700, width: 150 }} align="right">Balance ({baseCurrency()})</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

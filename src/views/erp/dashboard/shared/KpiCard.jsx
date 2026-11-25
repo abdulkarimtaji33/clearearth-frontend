@@ -1,9 +1,10 @@
 import React from 'react';
 import { Box, Paper, Typography, Stack } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
+import { baseCurrency } from '../../../../utils/currency';
 
 const fmtCurrency = (v) =>
-  `AED ${Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  `${baseCurrency()} ${Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const KpiCard = ({ label, value, sub, format = 'number', color = 'primary', highlight, icon: Icon, onClick }) => {
   const theme = useTheme();

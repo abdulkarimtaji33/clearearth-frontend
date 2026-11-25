@@ -46,7 +46,7 @@ import {
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { formatByCurrency } from '../../../utils/currency';
+import { formatByCurrency, baseCurrency } from '../../../utils/currency';
 
 const StatCell = ({ value, label, icon: Icon, color }) => {
   const theme = useTheme();
@@ -388,7 +388,7 @@ const CompanyView = () => {
                 ['90+', fin.receivablesAging?.bucket_over_90],
               ].map(([label, val]) => (
                 <Grid key={label} size={{ xs: 6, sm: 3 }}>
-                  <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography fontWeight={700}>AED {fmt(val)}</Typography></Paper>
+                  <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography fontWeight={700}>{baseCurrency()} {fmt(val)}</Typography></Paper>
                 </Grid>
               ))}
             </Grid>

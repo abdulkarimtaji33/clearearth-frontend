@@ -19,7 +19,8 @@ import CascadingAccountSelect from '../../../components/erp/CascadingAccountSele
 import PayeeSelect, { rememberPayee } from '../../../components/erp/PayeeSelect';
 import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFields';
 import apiService from '../../../services/api';
-import { filterActiveByType, overdrawInfo } from '../../../utils/accountTree';
+import { filterActiveByType, overdrawInfo } from '../../../utils/accountTree';
+import { baseCurrency } from '../../../utils/currency';
 
 const round2 = (n) => Math.round((parseFloat(n) || 0) * 100) / 100;
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -168,7 +169,7 @@ const ExpenseCreate = () => {
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <TextField
                   required fullWidth size="small" type="number" inputProps={{ min: 0, step: '0.01' }}
-                  label="Amount before VAT (AED)" value={netAmount} onChange={(e) => setNetAmount(e.target.value)} sx={field}
+                  label={`Amount before VAT (${baseCurrency()})`} value={netAmount} onChange={(e) => setNetAmount(e.target.value)} sx={field}
                 />
                 <TextField select fullWidth size="small" label="VAT" value={vatRate} onChange={(e) => setVatRate(e.target.value)} sx={field}>
                   <MenuItem value="5">5%</MenuItem>
@@ -179,13 +180,13 @@ const ExpenseCreate = () => {
               {vatRate === 'manual' && (
                 <TextField
                   fullWidth size="small" type="number" inputProps={{ min: 0, step: '0.01' }}
-                  label="VAT amount (AED)" value={vatManual} onChange={(e) => setVatManual(e.target.value)} sx={field}
+                  label={`VAT amount (${baseCurrency()})`} value={vatManual} onChange={(e) => setVatManual(e.target.value)} sx={field}
                   helperText="Type the VAT shown on the supplier's receipt or invoice"
                 />
               )}
               <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(theme.palette.primary.main, 0.06) }}>
-                <Stack direction="row" justifyContent="space-between"><Typography variant="body2">VAT (recoverable)</Typography><Typography variant="body2" fontWeight={700}>AED {fmt(vat)}</Typography></Stack>
-                <Stack direction="row" justifyContent="space-between"><Typography variant="subtitle2" fontWeight={800}>Total paid</Typography><Typography variant="subtitle2" fontWeight={800}>AED {fmt(total)}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography variant="body2">VAT (recoverable)</Typography><Typography variant="body2" fontWeight={700}>{baseCurrency()} {fmt(vat)}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between"><Typography variant="subtitle2" fontWeight={800}>Total paid</Typography><Typography variant="subtitle2" fontWeight={800}>{baseCurrency()} {fmt(total)}</Typography></Stack>
               </Box>
 
               <TextField

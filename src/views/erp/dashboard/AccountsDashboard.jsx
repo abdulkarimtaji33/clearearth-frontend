@@ -6,7 +6,8 @@ import {
   IconReceiptTax, IconReceiptRefund, IconReceipt, IconCoin, IconArrowRight,
   IconTrendingUp, IconTrendingDown, IconAlertTriangle,
 } from '@tabler/icons-react';
-import KpiCard from './shared/KpiCard';
+import KpiCard from './shared/KpiCard';
+import { baseCurrency } from '../../../utils/currency';
 
 const KPI_LABEL_MAP = {
   'Outstanding AR': 'Accounts Receivable (money owed to you)',
@@ -39,7 +40,7 @@ const AgingBar = ({ label, buckets, color }) => {
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
         <Typography variant="subtitle2" fontWeight={800}>{label}</Typography>
         <Typography variant="body2" fontWeight={700} color={`${color}.main`}>
-          AED {total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          {baseCurrency()} {total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
         </Typography>
       </Stack>
       <Stack spacing={0.75}>
@@ -54,7 +55,7 @@ const AgingBar = ({ label, buckets, color }) => {
                   <Typography variant="caption" color="text.secondary" fontWeight={600}>{bucket} days</Typography>
                 </Stack>
                 <Typography variant="caption" fontWeight={700}>
-                  AED {parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  {baseCurrency()} {parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </Typography>
               </Stack>
               <LinearProgress
@@ -112,7 +113,7 @@ const AccountsDashboard = ({ data }) => {
                     <IconTrendingUp size={15} color={theme.palette.success.main} />
                     <Typography variant="body2" fontWeight={700} color="success.main">Accounts Receivable — money owed to you</Typography>
                   </Stack>
-                  <Typography variant="body2" fontWeight={800}>AED {Number(arTotal).toLocaleString()}</Typography>
+                  <Typography variant="body2" fontWeight={800}>{baseCurrency()} {Number(arTotal).toLocaleString()}</Typography>
                 </Stack>
                 <LinearProgress variant="determinate" value={(arTotal / maxVal) * 100} sx={{ height: 10, borderRadius: 4, bgcolor: alpha(theme.palette.success.main, 0.1), '& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: 'success.main' } }} />
               </Box>
@@ -122,7 +123,7 @@ const AccountsDashboard = ({ data }) => {
                     <IconTrendingDown size={15} color={theme.palette.error.main} />
                     <Typography variant="body2" fontWeight={700} color="error.main">Accounts Payable — money you owe</Typography>
                   </Stack>
-                  <Typography variant="body2" fontWeight={800}>AED {Number(apTotal).toLocaleString()}</Typography>
+                  <Typography variant="body2" fontWeight={800}>{baseCurrency()} {Number(apTotal).toLocaleString()}</Typography>
                 </Stack>
                 <LinearProgress variant="determinate" value={(apTotal / maxVal) * 100} sx={{ height: 10, borderRadius: 4, bgcolor: alpha(theme.palette.error.main, 0.1), '& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: 'error.main' } }} />
               </Box>

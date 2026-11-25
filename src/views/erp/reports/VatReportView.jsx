@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { localToday, localDate } from '../../../utils/dateLocal';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => {
   const v = Number(n || 0);
@@ -95,17 +96,17 @@ const VatReportView = () => {
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, flex: 1, borderColor: alpha(theme.palette.error.main, 0.3) }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700}>OUTPUT TAX (after credit notes)</Typography>
-              <Typography variant="h5" fontWeight={800} color="error.main">AED {fmt(d.output_vat?.net)}</Typography>
-              <Typography variant="caption" color="text.secondary">on sales of AED {fmt(d.output_vat?.standard_rated_sales)}</Typography>
+              <Typography variant="h5" fontWeight={800} color="error.main">{baseCurrency()} {fmt(d.output_vat?.net)}</Typography>
+              <Typography variant="caption" color="text.secondary">on sales of {baseCurrency()} {fmt(d.output_vat?.standard_rated_sales)}</Typography>
             </Paper>
             <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, flex: 1, borderColor: alpha(theme.palette.success.main, 0.3) }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700}>INPUT TAX (after debit notes)</Typography>
-              <Typography variant="h5" fontWeight={800} color="success.main">AED {fmt(d.input_vat?.net)}</Typography>
-              <Typography variant="caption" color="text.secondary">on expenses of AED {fmt(d.input_vat?.standard_rated_purchases)}</Typography>
+              <Typography variant="h5" fontWeight={800} color="success.main">{baseCurrency()} {fmt(d.input_vat?.net)}</Typography>
+              <Typography variant="caption" color="text.secondary">on expenses of {baseCurrency()} {fmt(d.input_vat?.standard_rated_purchases)}</Typography>
             </Paper>
             <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, flex: 1, borderColor: alpha(theme.palette[net >= 0 ? 'warning' : 'info'].main, 0.5) }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700}>{net >= 0 ? 'NET VAT PAYABLE TO FTA' : 'NET VAT REFUNDABLE FROM FTA'}</Typography>
-              <Typography variant="h5" fontWeight={800} color={net >= 0 ? 'warning.main' : 'info.main'}>AED {fmt(Math.abs(net))}</Typography>
+              <Typography variant="h5" fontWeight={800} color={net >= 0 ? 'warning.main' : 'info.main'}>{baseCurrency()} {fmt(Math.abs(net))}</Typography>
               <Typography variant="caption" color="text.secondary">Output tax − input tax</Typography>
             </Paper>
           </Stack>
@@ -121,8 +122,8 @@ const VatReportView = () => {
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700, width: 70 }}>Box</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>Amount (AED)</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>VAT (AED)</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Amount ({baseCurrency()})</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>VAT ({baseCurrency()})</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

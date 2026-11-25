@@ -9,7 +9,8 @@ import PageContainer from '../../../components/container/PageContainer';
 import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
 import { localToday, localYearStart, localDate } from '../../../utils/dateLocal';
-import { normalizeBalanceSheet, asArray } from '../../../utils/reportApi';
+import { normalizeBalanceSheet, asArray } from '../../../utils/reportApi';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -85,14 +86,14 @@ const BalanceSheetView = () => {
         <>
           <Box mb={2}>
             {d.is_balanced
-              ? <Alert severity="success" icon={false} sx={{ fontWeight: 700 }}>✓ Balance Sheet is IN BALANCE — Assets = Liabilities + Equity = AED {fmt(d.total_assets)}</Alert>
-              : <Alert severity="error" icon={false} sx={{ fontWeight: 700 }}>✗ OUT OF BALANCE — Assets: AED {fmt(d.total_assets)} vs L+E: AED {fmt((d.total_liabilities || 0) + (d.total_equity || 0))} | Difference: AED {fmt(Math.abs((d.total_assets || 0) - (d.total_liabilities || 0) - (d.total_equity || 0)))}</Alert>}
+              ? <Alert severity="success" icon={false} sx={{ fontWeight: 700 }}>✓ Balance Sheet is IN BALANCE — Assets = Liabilities + Equity = {baseCurrency()} {fmt(d.total_assets)}</Alert>
+              : <Alert severity="error" icon={false} sx={{ fontWeight: 700 }}>✗ OUT OF BALANCE — Assets: {baseCurrency()} {fmt(d.total_assets)} vs L+E: {baseCurrency()} {fmt((d.total_liabilities || 0) + (d.total_equity || 0))} | Difference: {baseCurrency()} {fmt(Math.abs((d.total_assets || 0) - (d.total_liabilities || 0) - (d.total_equity || 0)))}</Alert>}
           </Box>
 
           <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
             <Box sx={{ px: 2.5, py: 2, bgcolor: alpha(theme.palette.grey[500], 0.06), borderBottom: '1px solid', borderColor: 'divider' }}>
               <Typography variant="h6" fontWeight={800}>Balance Sheet</Typography>
-              <Typography variant="caption" color="text.secondary">As at {asOfDate} | Amounts in AED</Typography>
+              <Typography variant="caption" color="text.secondary">As at {asOfDate} | Amounts in {baseCurrency()}</Typography>
             </Box>
             <TableContainer>
               <Table size="small">

@@ -28,7 +28,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
 import WorkTypesManageDialog from './WorkTypesManageDialog';
 import TaskStatusSegments from './TaskStatusSegments';
-import DealRequirementsBanner from './DealRequirementsBanner';
+import DealRequirementsBanner from './DealRequirementsBanner';
+import { baseCurrency } from '../../../utils/currency';
 
 const WO_STATUS_OPTIONS = ['new', 'in_progress', 'completed', 'cancelled'];
 // Role names (users.role.name in the DB) that can be assigned a work order task. Matched
@@ -131,7 +132,7 @@ const SortableTaskRow = ({ task, idx, theme, getTaskLabel, getAssigneeName, STAT
             <Stack spacing={0.25}>
               <Stack direction="row" alignItems="center" spacing={0.5}>
                 <IconCurrencyDollar size={13} style={{ opacity: 0.4 }} />
-                <Typography variant="body2" fontWeight={600}>AED {sumTaskExpenses(task).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
+                <Typography variant="body2" fontWeight={600}>{baseCurrency()} {sumTaskExpenses(task).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
               </Stack>
               {(task.expenses || []).filter(e => e.amount !== '' && Number.isFinite(parseFloat(e.amount))).length > 1 && (
                 <Typography variant="caption" color="text.secondary">{task.expenses.filter(e => e.amount !== '' && Number.isFinite(parseFloat(e.amount))).length} lines</Typography>
@@ -1038,7 +1039,7 @@ const WorkOrderForm = () => {
                               value={row.amount}
                               onChange={e => setDrawerExpenseRow(ei, 'amount', e.target.value)}
                               inputProps={{ min: 0, step: '0.01' }}
-                              InputProps={{ startAdornment: <InputAdornment position="start">AED</InputAdornment> }}
+                              InputProps={{ startAdornment: <InputAdornment position="start">{baseCurrency()}</InputAdornment> }}
                               sx={{ minWidth: { sm: 160 }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                             />
                             <Button

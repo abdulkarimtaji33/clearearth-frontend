@@ -33,7 +33,8 @@ import LocationPickerDialog from '../../../components/LocationPickerDialog';
 import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
 import { buildBillCreateUrl, getWorkOrderPurchaseBills } from '../../../utils/purchaseBills';
 import DealRequirementsBanner from './DealRequirementsBanner';
-import PickupNoteDialog from '../../../components/erp/PickupNoteDialog';
+import PickupNoteDialog from '../../../components/erp/PickupNoteDialog';
+import { baseCurrency } from '../../../utils/currency';
 
 const WO_STATUS_COLORS = {
   new: 'default',
@@ -262,7 +263,7 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
                     <Stack key={ex.id ?? `ex-${exi}`} direction="row" alignItems="center" spacing={0.5} flexWrap="wrap" sx={{ maxWidth: '100%', gap: 0.5 }}>
                       <IconCurrencyDollar size={13} style={{ opacity: 0.45, flexShrink: 0 }} />
                       <Typography variant="caption" color="text.secondary" noWrap title={ex.description || ''}>
-                        {ex.description ? `${ex.description}: ` : ''}AED {parseFloat(ex.amount).toLocaleString()}
+                        {ex.description ? `${ex.description}: ` : ''}{baseCurrency()} {parseFloat(ex.amount).toLocaleString()}
                       </Typography>
                       <Chip size="small" label={acc.label} color={acc.color} sx={{ height: 20, fontSize: '0.62rem', fontWeight: 700 }} />
                     </Stack>
@@ -271,7 +272,7 @@ const SortableTaskCard = ({ task, idx, tasks, workOrderId, onStatusUpdated, onNo
               ) : task.expense != null ? (
                 <Stack direction="row" alignItems="center" spacing={0.5}>
                   <IconCurrencyDollar size={13} style={{ opacity: 0.45 }} />
-                  <Typography variant="caption" color="text.secondary">AED {parseFloat(task.expense).toLocaleString()}</Typography>
+                  <Typography variant="caption" color="text.secondary">{baseCurrency()} {parseFloat(task.expense).toLocaleString()}</Typography>
                 </Stack>
               ) : null}
             </Stack>
@@ -1034,7 +1035,7 @@ const WorkOrderView = () => {
             },
             totalExpense > 0 && {
               label: 'Total Expense',
-              value: `AED ${totalExpense.toLocaleString()}`,
+              value: `${baseCurrency()} ${totalExpense.toLocaleString()}`,
               sub: 'across all tasks',
               color: theme.palette.warning.main,
             },
@@ -1524,7 +1525,7 @@ const WorkOrderView = () => {
                     <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Status</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Notes</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Expense Description</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Amount (AED)</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Amount ({baseCurrency()})</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: 'text.secondary' }}>Accounts</TableCell>
                   </TableRow>
                 </TableHead>

@@ -50,7 +50,9 @@ import apiService from '../../../services/api';
 import TermsOrderSelector from '../../../components/erp/TermsOrderSelector';
 import { phoneYup, sanitizePhoneInput, PHONE_MAX_DIGITS, PHONE_PLACEHOLDER, PHONE_HELP_TEXT } from '../../../utils/phone';
 import { useAuth } from '../../../context/AuthContext';
-import { formatStatusLabel } from '../../../utils/recordStatus';
+import { formatStatusLabel } from '../../../utils/recordStatus';
+import CurrencySelect from '../../../components/erp/CurrencySelect';
+import { baseCurrency } from '../../../utils/currency';
 
 const DEAL_APPROVAL_ELIGIBLE_STATUSES = ['new'];
 const DEAL_QUOTABLE_STATUSES = ['approved', 'quotation_sent', 'negotiation', 'won'];
@@ -273,7 +275,7 @@ const DealForm = () => {
     description: '',
     dealDate: new Date().toISOString().split('T')[0],
     vatPercentage: 5,
-    currency: 'AED',
+    currency: baseCurrency(),
     status: 'new',
     lossReason: '',
     assignedTo: null,
@@ -1948,6 +1950,8 @@ const DealForm = () => {
                         At least one product/service is required
                       </Typography>
                     </Box>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                    <CurrencySelect size="small" label="Currency" name="currency" value={values.currency || 'AED'} onChange={handleChange} sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                     <Button
                       variant="contained"
                       startIcon={<IconPlus size={20} />}
@@ -1956,6 +1960,7 @@ const DealForm = () => {
                     >
                       Add Item
                     </Button>
+                    </Stack>
                   </Stack>
 
                   {lineItems.length === 0 ? (
@@ -2235,23 +2240,17 @@ const DealForm = () => {
                       </TextField>
                     </Grid>
                     <Grid size={{ xs: 12, md: 3 }}>
-                      <TextField
+                      <CurrencySelect
                         fullWidth
-                        select
+                        required
                         label="Currency"
                         name="currency"
                         value={values.currency || 'AED'}
                         onChange={handleChange}
-                        onBlur={handleBlur}
                         error={touched.currency && Boolean(errors.currency)}
                         helperText={touched.currency ? errors.currency : ' '}
-                        required
                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      >
-                        <MenuItem value="AED">AED</MenuItem>
-                        <MenuItem value="USD">USD</MenuItem>
-                        <MenuItem value="EUR">EUR</MenuItem>
-                      </TextField>
+                      />
                     </Grid>
                   </Grid>
                 </CardContent>

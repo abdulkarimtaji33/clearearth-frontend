@@ -44,7 +44,8 @@ import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
+import { baseCurrency } from '../../../utils/currency';
 
 const SupplierList = () => {
   const navigate = useNavigate();
@@ -262,7 +263,7 @@ const SupplierList = () => {
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.04) }}>
-                  {['Supplier', 'Primary Contact', 'Email', 'Phone', 'Industry', 'Balance owed (AED)', 'Status', ''].map((h, i) => (
+                  {['Supplier', 'Primary Contact', 'Email', 'Phone', 'Industry', `Balance owed (${baseCurrency()})`, 'Status', ''].map((h, i) => (
                     <TableCell key={i} align={i === 5 ? 'right' : i === 7 ? 'right' : 'left'} sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>{h}</TableCell>
                   ))}
                 </TableRow>

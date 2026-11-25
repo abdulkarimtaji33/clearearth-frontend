@@ -1,3 +1,4 @@
+import { baseCurrency } from '../../../../utils/currency';
 export const TYPES = ['asset', 'liability', 'equity', 'revenue', 'expense'];
 
 export const TYPE_META = {
@@ -130,7 +131,7 @@ export function descendantIds(accounts, id) {
 
 export function toCsv(rows, byId) {
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const head = ['Code', 'Name', 'Type', 'Kind', 'Sub-type', 'Parent', 'Balance (AED)', 'Status'];
+  const head = ['Code', 'Name', 'Type', 'Kind', 'Sub-type', 'Parent', `Balance (${baseCurrency()})`, 'Status'];
   const lines = rows.map((a) => {
     const parent = a.parent_id != null ? byId[a.parent_id] : null;
     const bal = a.is_group ? a.rollup_balance : a.balance;

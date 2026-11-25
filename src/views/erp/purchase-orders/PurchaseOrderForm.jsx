@@ -28,7 +28,6 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { IconArrowLeft, IconPlus, IconTrash, IconFileDownload } from '@tabler/icons-react';
-import { CURRENCIES } from '../../../utils/currency';
 import PageContainer from '../../../components/container/PageContainer';
 import UomSelectField from '../../../components/erp/UomSelectField';
 import apiService from '../../../services/api';
@@ -37,7 +36,9 @@ import CascadingAccountSelect from '../../../components/erp/CascadingAccountSele
 import { filterActiveByType } from '../../../utils/accountTree';
 import { useAuth } from '../../../context/AuthContext';
 import { canChangeRecordStatus, formatStatusLabel } from '../../../utils/recordStatus';
-import { billListPath } from '../../../utils/purchaseBills';
+import { billListPath } from '../../../utils/purchaseBills';
+import CurrencySelect from '../../../components/erp/CurrencySelect';
+import { baseCurrency } from '../../../utils/currency';
 
 
 const initialItem = () => ({
@@ -92,7 +93,7 @@ const PurchaseOrderForm = () => {
     companyId: companyIdFromUrl || null,
     supplierId: supplierIdFromUrl || null,
     poDate: new Date().toISOString().split('T')[0],
-    currency: 'AED',
+    currency: baseCurrency(),
     expectedDelivery: '',
     expenseAccountId: '',
     status: supplierIdFromUrl ? 'approved' : 'new',
@@ -576,19 +577,7 @@ const PurchaseOrderForm = () => {
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 280 }}
                     />
 
-                    <TextField
-                      select
-                      fullWidth
-                      label="Currency"
-                      name="currency"
-                      value={values.currency || 'AED'}
-                      onChange={handleChange}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 280 }}
-                    >
-                      {CURRENCIES.map(([code, name]) => (
-                        <MenuItem key={code} value={code}>{code} - {name}</MenuItem>
-                      ))}
-                    </TextField>
+                    <CurrencySelect fullWidth label="Currency" name="currency" value={values.currency || 'AED'} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 }, maxWidth: 280 }} />
 
                     <TextField
                       fullWidth

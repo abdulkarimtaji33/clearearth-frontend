@@ -7,6 +7,7 @@ import {
   IconClipboardList, IconPackage, IconReceipt2,
   IconArrowUpRight, IconArrowDownRight, IconMinus,
 } from '@tabler/icons-react';
+import { baseCurrency } from '../../../utils/currency';
 
 const METRIC_ICONS = {
   leadsCreated: IconUsers,
@@ -21,9 +22,9 @@ const METRIC_ICONS = {
 const compactCurrency = (v) => {
   const n = Number(v) || 0;
   const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `AED ${(n / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `AED ${(n / 1_000).toFixed(1)}K`;
-  return `AED ${n.toLocaleString()}`;
+  if (abs >= 1_000_000) return `${baseCurrency()} ${(n / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${baseCurrency()} ${(n / 1_000).toFixed(1)}K`;
+  return `${baseCurrency()} ${n.toLocaleString()}`;
 };
 
 const metricValue = (m) => (m.format === 'currency' ? compactCurrency(m.value) : Number(m.value || 0).toLocaleString());

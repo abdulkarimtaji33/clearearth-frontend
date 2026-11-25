@@ -9,6 +9,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
 import { localToday, localYearStart, localDate } from '../../../utils/dateLocal';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => {
   const v = Number(n || 0);
@@ -148,7 +149,7 @@ const IncomeStatementView = () => {
           <Box sx={{ px: 2.5, py: 2, bgcolor: alpha(theme.palette.grey[500], 0.06), borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography variant="h6" fontWeight={800}>Income Statement</Typography>
             <Typography variant="caption" color="text.secondary">
-              For the period {data.date_from} to {data.date_to}{cmp ? ` compared with ${data.comparative_from} to ${data.comparative_to}` : ''} | Amounts in AED | Lines with no activity are hidden
+              For the period {data.date_from} to {data.date_to}{cmp ? ` compared with ${data.comparative_from} to ${data.comparative_to}` : ''} | Amounts in {baseCurrency()} | Lines with no activity are hidden
             </Typography>
           </Box>
           <TableContainer>

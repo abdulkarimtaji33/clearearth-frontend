@@ -8,7 +8,8 @@ import { IconArrowLeft, IconChartHistogram } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { asArray } from '../../../utils/reportApi';
+import { asArray } from '../../../utils/reportApi';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -70,7 +71,7 @@ const AgingSummaryView = () => {
           <Grid key={c.label} size={{ xs: 12, sm: 6, md: 3 }}>
             <Paper variant="outlined" sx={{ borderRadius: 3, p: 2.5, borderColor: alpha(c.color, 0.35) }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">{c.label}</Typography>
-              <Typography variant="h5" fontWeight={800} sx={{ color: c.color, mt: 0.5 }}>AED {fmt(c.value)}</Typography>
+              <Typography variant="h5" fontWeight={800} sx={{ color: c.color, mt: 0.5 }}>{baseCurrency()} {fmt(c.value)}</Typography>
             </Paper>
           </Grid>
         ))}

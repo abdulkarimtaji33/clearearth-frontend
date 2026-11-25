@@ -10,6 +10,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { filterCashBankAccounts, isPostable, overdrawInfo } from '../../../utils/accountTree';
 import { localToday } from '../../../utils/dateLocal';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const label = (a) => `${a.code} — ${a.name}`;
@@ -78,7 +79,7 @@ const Transfers = () => {
         transferDate: form.date, referenceNo: form.ref || undefined, notes: form.notes || undefined, confirmNegative: negativeOk || undefined,
       });
       setOpen(false);
-      setSuccess(`Transfer ${res.data.transfer_number}: AED ${fmt(amt)} moved from ${byId(form.from) ? byId(form.from).name : 'one account'} to ${byId(form.to) ? byId(form.to).name : 'the other'}`);
+      setSuccess(`Transfer ${res.data.transfer_number}: ${baseCurrency()} ${fmt(amt)} moved from ${byId(form.from) ? byId(form.from).name : 'one account'} to ${byId(form.to) ? byId(form.to).name : 'the other'}`);
       await Promise.all([load(), loadAccounts()]);
     } catch (e) {
       setFormError(e.message || 'Could not record the transfer');
@@ -183,12 +184,12 @@ const Transfers = () => {
               {cashBank.map((a) => <MenuItem key={a.id} value={String(a.id)} disabled={String(a.id) === form.from}>{label(a)}</MenuItem>)}
             </TextField>
             <Stack direction="row" spacing={2}>
-              <TextField required type="number" label="Amount (AED)" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} inputProps={{ min: 0, step: 'any' }} fullWidth />
+              <TextField required type="number" label={`Amount (${baseCurrency()})`} value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} inputProps={{ min: 0, step: 'any' }} fullWidth />
               <TextField required type="date" label="Date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
             </Stack>
             {overdraw && (
               <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                This takes {label(overdraw.account)} below zero (balance AED {overdraw.balance.toFixed(2)}, it would become {overdraw.after.toFixed(2)}).
+                This takes {label(overdraw.account)} below zero (balance {baseCurrency()} {overdraw.balance.toFixed(2)}, it would become {overdraw.after.toFixed(2)}).
                 <Box><Checkbox size="small" checked={negativeOk} onChange={(e) => setNegativeOk(e.target.checked)} /> Transfer anyway</Box>
               </Alert>
             )}

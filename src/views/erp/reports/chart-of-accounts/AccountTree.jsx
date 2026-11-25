@@ -8,6 +8,7 @@ import {
 } from '@tabler/icons-react';
 import GlAmountLink from '../../../../components/erp/GlAmountLink';
 import { TYPES, TYPE_META, visibleRows, matchesFilters, subTypeLabel, fmtMoney } from './coaUtils';
+import { baseCurrency } from '../../../../utils/currency';
 
 const Highlight = ({ text, q }) => {
   const s = String(text ?? '');
@@ -24,7 +25,7 @@ const Highlight = ({ text, q }) => {
   );
 };
 
-const HEADERS = ['Code', 'Account', 'Kind', 'Sub-type', 'Balance (AED)', 'Status', ''];
+const HEADERS = ['Code', 'Account', 'Kind', 'Sub-type', `Balance (${baseCurrency()})`, 'Status', ''];
 
 const Row = ({ acc, q, expandedNow, onToggle, onOpen, onAddSub, onEdit, onToggleActive, theme, showType }) => {
   const meta = TYPE_META[acc.type];
@@ -109,7 +110,7 @@ const Head = () => (
   <TableHead>
     <TableRow>
       {HEADERS.map((h) => (
-        <TableCell key={h} align={h === 'Balance (AED)' ? 'right' : 'left'} sx={{ fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', color: 'text.secondary' }}>{h}</TableCell>
+        <TableCell key={h} align={String(h).startsWith('Balance') ? 'right' : 'left'} sx={{ fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', color: 'text.secondary' }}>{h}</TableCell>
       ))}
     </TableRow>
   </TableHead>

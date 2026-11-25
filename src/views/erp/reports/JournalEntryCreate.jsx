@@ -20,7 +20,8 @@ import {
   loadStoredOptions,
   saveStoredOptions,
   mergeSelectOptions,
-} from '../../../constants/expenseFormOptions';
+} from '../../../constants/expenseFormOptions';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const EMPTY_LINE = { accountId: '', debit: '', credit: '', description: '' };
@@ -86,7 +87,7 @@ const JournalEntryCreate = () => {
   const handleSubmit = async () => {
     if (!entryDate) { setError('Entry date is required.'); return; }
     if (!description) { setError('Description is required.'); return; }
-    if (!isBalanced) { setError(`Entry must balance. Current difference: AED ${fmt(diff)}`); return; }
+    if (!isBalanced) { setError(`Entry must balance. Current difference: ${baseCurrency()} ${fmt(diff)}`); return; }
     const validLines = lines.filter((l) => l.accountId && (parseFloat(l.debit) > 0 || parseFloat(l.credit) > 0));
     if (validLines.length < 2) { setError('At least 2 lines are required.'); return; }
 
@@ -189,8 +190,8 @@ const JournalEntryCreate = () => {
                 <TableRow>
                   <TableCell sx={{ fontWeight: 700, minWidth: 280 }}>Account</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Line Description</TableCell>
-                  <TableCell sx={{ fontWeight: 700, width: 160 }} align="right">Debit (AED)</TableCell>
-                  <TableCell sx={{ fontWeight: 700, width: 160 }} align="right">Credit (AED)</TableCell>
+                  <TableCell sx={{ fontWeight: 700, width: 160 }} align="right">Debit ({baseCurrency()})</TableCell>
+                  <TableCell sx={{ fontWeight: 700, width: 160 }} align="right">Credit ({baseCurrency()})</TableCell>
                   <TableCell sx={{ width: 40 }} />
                 </TableRow>
               </TableHead>
@@ -237,9 +238,9 @@ const JournalEntryCreate = () => {
           </TableContainer>
           <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
             {isBalanced && totalDebit > 0
-              ? <Alert severity="success" sx={{ py: 0.5, borderRadius: 2 }}>Balanced — Debits = Credits = AED {fmt(totalDebit)}</Alert>
+              ? <Alert severity="success" sx={{ py: 0.5, borderRadius: 2 }}>Balanced — Debits = Credits = {baseCurrency()} {fmt(totalDebit)}</Alert>
               : <Alert severity={totalDebit > 0 || totalCredit > 0 ? 'error' : 'info'} sx={{ py: 0.5, borderRadius: 2 }}>
-                  {totalDebit === 0 && totalCredit === 0 ? 'Enter amounts above' : `Out of balance by AED ${fmt(diff)}`}
+                  {totalDebit === 0 && totalCredit === 0 ? 'Enter amounts above' : `Out of balance by ${baseCurrency()} ${fmt(diff)}`}
                 </Alert>}
           </Box>
         </Paper>

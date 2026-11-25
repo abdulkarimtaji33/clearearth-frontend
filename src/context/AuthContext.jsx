@@ -2,6 +2,7 @@ import { createContext, useState, useEffect, useCallback } from 'react';
 import React from 'react';
 import apiService from '../services/api';
 import { getUserRole, normalizePermissions, collectPermissionsFromUserPayload } from '../utils/authHelpers';
+import { setBaseCurrency } from '../utils/currency';
 
 export const AuthContext = createContext(undefined);
 
@@ -26,6 +27,7 @@ export const AuthProvider = ({ children }) => {
         const userPayload = data.user || data;
         setUser(userPayload);
         setTenant(data.tenant ?? userPayload.tenant);
+        setBaseCurrency((data.tenant ?? userPayload.tenant)?.baseCurrency);
         setPermissions(collectPermissionsFromUserPayload(data));
         setIsAuthenticated(true);
         // Cache tenant logo so Logo.js can read it without an extra API call

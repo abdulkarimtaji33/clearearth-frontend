@@ -6,6 +6,7 @@ import { IconX, IconPlus, IconEdit, IconPlayerPause, IconPlayerPlay } from '@tab
 import GlAmountLink from '../../../../components/erp/GlAmountLink';
 import apiService from '../../../../services/api';
 import { TYPE_META, pathTo, subTypeLabel, fmtMoney } from './coaUtils';
+import { baseCurrency } from '../../../../utils/currency';
 
 const Stat = ({ label, children }) => (
   <Box>
@@ -59,7 +60,7 @@ const AccountDrawer = ({ account, accounts, byId, onClose, onOpen, onAddSub, onE
       </Breadcrumbs>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
-        <Stat label={account.is_group ? 'Total of this group (AED)' : 'Balance (AED)'}>
+        <Stat label={account.is_group ? `Total of this group (${baseCurrency()})` : `Balance (${baseCurrency()})`}>
           {account.is_group || balance == null
             ? fmtMoney(balance)
             : <GlAmountLink accountId={account.id} title="View postings that make up this balance">{fmtMoney(balance)}</GlAmountLink>}

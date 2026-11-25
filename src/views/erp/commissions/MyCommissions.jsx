@@ -8,6 +8,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { IconCoin, IconCheck, IconClock } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { baseCurrency } from '../../../utils/currency';
 
 const STATUS_META = {
   accrued: { label: 'Accrued', color: 'warning' },
@@ -29,7 +30,7 @@ const StatCard = ({ icon, label, value, color }) => (
           {label}
         </Typography>
         <Typography variant="h5" fontWeight={800}>
-          AED {Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          {baseCurrency()} {Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </Typography>
       </Box>
     </Stack>

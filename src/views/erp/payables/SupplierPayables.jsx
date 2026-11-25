@@ -11,6 +11,7 @@ import {
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { localToday } from '../../../utils/dateLocal';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const BUCKETS = [
@@ -88,8 +89,8 @@ const SupplierPayables = () => {
       {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
       <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-        <Stat label="Total owed" value={`AED ${fmt(totals?.total)}`} color="primary" hint={`${totals?.billCount || 0} open bill${totals?.billCount === 1 ? '' : 's'}`} />
-        <Stat label="Overdue" value={`AED ${fmt(totals?.overdue)}`} color={totals?.overdue > 0 ? 'error' : undefined} hint="past the due date" />
+        <Stat label="Total owed" value={`${baseCurrency()} ${fmt(totals?.total)}`} color="primary" hint={`${totals?.billCount || 0} open bill${totals?.billCount === 1 ? '' : 's'}`} />
+        <Stat label="Overdue" value={`${baseCurrency()} ${fmt(totals?.overdue)}`} color={totals?.overdue > 0 ? 'error' : undefined} hint="past the due date" />
         <Stat label="Suppliers owed" value={String((data?.suppliers || []).length)} />
       </Stack>
 
@@ -131,13 +132,13 @@ const SupplierPayables = () => {
                   <TableCell sx={head} align="right">Bills</TableCell>
                   {tab === 'outstanding' ? (
                     <>
-                      <TableCell sx={head} align="right">Overdue (AED)</TableCell>
-                      <TableCell sx={head} align="right">Total owed (AED)</TableCell>
+                      <TableCell sx={head} align="right">Overdue ({baseCurrency()})</TableCell>
+                      <TableCell sx={head} align="right">Total owed ({baseCurrency()})</TableCell>
                     </>
                   ) : (
                     <>
                       {BUCKETS.map((b) => <TableCell key={b.key} sx={head} align="right">{b.label}</TableCell>)}
-                      <TableCell sx={head} align="right">Total (AED)</TableCell>
+                      <TableCell sx={head} align="right">Total ({baseCurrency()})</TableCell>
                     </>
                   )}
                   <TableCell />

@@ -13,6 +13,7 @@ import ActionableList from './shared/ActionableList';
 import DashboardChart from './shared/DashboardChart';
 import OperationsPulsePanel from './OperationsPulsePanel';
 import { useAuth } from '../../../context/AuthContext';
+import { baseCurrency } from '../../../utils/currency';
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -185,7 +186,7 @@ const AdminDashboard = ({ data, onRefresh, toolbar, hrSlot }) => {
                     </Box>
                     <Stack direction="row" spacing={1} alignItems="center" flexShrink={0} ml={1}>
                       <Chip size="small" label={(d.status || '').replace(/_/g, ' ')} color={DEAL_STATUS_COLOR[d.status] || 'default'} sx={{ fontWeight: 700, fontSize: '0.68rem', textTransform: 'capitalize', height: 22 }} />
-                      {d.total > 0 && <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>AED {Number(d.total).toLocaleString()}</Typography>}
+                      {d.total > 0 && <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>{baseCurrency()} {Number(d.total).toLocaleString()}</Typography>}
                     </Stack>
                   </Stack>
                 ))

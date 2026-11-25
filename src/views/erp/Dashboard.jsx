@@ -32,7 +32,8 @@ import Chart from 'react-apexcharts';
 import PageContainer from '../../components/container/PageContainer';
 import ListDateRangeFilter from '../../components/erp/ListDateRangeFilter';
 import apiService from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
+import { baseCurrency } from '../../utils/currency';
 
 
 const STATUS_COLORS = {
@@ -206,7 +207,7 @@ const Dashboard = () => {
           <StatCard title="Deals" value={deals.length} subtitle="Active deals" icon={IconBriefcase} color="secondary" loading={loading} onClick={() => navigate('/erp/deals')} />
           <StatCard
             title="Deal Value"
-            value={loading ? '—' : `AED ${stats.totalDealValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
+            value={loading ? '—' : `${baseCurrency()} ${stats.totalDealValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
             subtitle="Total pipeline value"
             icon={IconCurrencyDollar}
             color="success"

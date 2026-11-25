@@ -23,7 +23,8 @@ import {
   resolveDefaultPaymentAccountId,
   accountLabel,
 } from '../../constants/paymentAccounts';
-import { isPostable, overdrawInfo } from '../../utils/accountTree';
+import { isPostable, overdrawInfo } from '../../utils/accountTree';
+import { baseCurrency } from '../../utils/currency';
 
 /**
  * Shared payment method dropdown + GL account picker for record-payment dialogs.
@@ -136,7 +137,7 @@ const PaymentRecordingFields = ({
           </TextField>
           {overdraw && (
             <Alert severity="warning" sx={{ mt: 1, borderRadius: 2 }}>
-              This payment takes {accountLabel(overdraw.account)} below zero (balance AED {overdraw.balance.toFixed(2)}, it would become {overdraw.after.toFixed(2)}).
+              This payment takes {accountLabel(overdraw.account)} below zero (balance {baseCurrency()} {overdraw.balance.toFixed(2)}, it would become {overdraw.after.toFixed(2)}).
               {onNegativeConfirmedChange && (
                 <FormControlLabel
                   sx={{ display: 'block', mt: 0.5 }}

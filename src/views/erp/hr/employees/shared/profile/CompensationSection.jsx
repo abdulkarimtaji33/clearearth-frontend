@@ -14,6 +14,7 @@ import {
   SectionCard, EmptyState, LoadingBlock, StatusChip, DetailGrid, DetailItem, tableSx, inputSx, dialogPaperProps,
   fmtDate, fmtMoney, humanize,
 } from '../../../components/HrUi';
+import { baseCurrency } from '../../../../../../utils/currency';
 
 /** Sum of the visible compensation fields, folding in transport_allowance silently so a
  * legacy non-zero value still counts toward the displayed total. */
@@ -173,7 +174,7 @@ const CompensationEditDialog = ({ open, onClose, employeeId, onSaved, current })
     <TextField
       fullWidth type="number" label={label} required={required}
       inputProps={{ min: 0, step: 0.01 }}
-      InputProps={{ startAdornment: <InputAdornment position="start">AED</InputAdornment> }}
+      InputProps={{ startAdornment: <InputAdornment position="start">{baseCurrency()}</InputAdornment> }}
       value={values[key]}
       onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
       sx={inputSx}

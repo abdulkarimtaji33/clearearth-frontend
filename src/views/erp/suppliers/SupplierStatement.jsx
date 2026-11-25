@@ -9,6 +9,7 @@ import { IconArrowLeft, IconPrinter } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { localToday, localYearStart } from '../../../utils/dateLocal';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const BUCKETS = [
@@ -84,7 +85,7 @@ const SupplierStatement = () => {
                 </Box>
                 <Box textAlign={{ sm: 'right' }}>
                   <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>We owe this supplier</Typography>
-                  <Typography variant="h3" fontWeight={800} color={data.balanceDue > 0.005 ? 'warning.dark' : 'success.main'}>AED {fmt(data.balanceDue)}</Typography>
+                  <Typography variant="h3" fontWeight={800} color={data.balanceDue > 0.005 ? 'warning.dark' : 'success.main'}>{baseCurrency()} {fmt(data.balanceDue)}</Typography>
                   <Typography variant="caption" color="text.secondary">Billed {fmt(data.billedTotal)} · Paid / settled {fmt(data.paidTotal)}</Typography>
                 </Box>
               </Stack>
@@ -107,9 +108,9 @@ const SupplierStatement = () => {
                       <TableCell sx={head}>Date</TableCell>
                       <TableCell sx={head}>Type</TableCell>
                       <TableCell sx={head}>Details</TableCell>
-                      <TableCell sx={head} align="right">Billed (AED)</TableCell>
-                      <TableCell sx={head} align="right">Paid / credited (AED)</TableCell>
-                      <TableCell sx={head} align="right">Balance (AED)</TableCell>
+                      <TableCell sx={head} align="right">Billed ({baseCurrency()})</TableCell>
+                      <TableCell sx={head} align="right">Paid / credited ({baseCurrency()})</TableCell>
+                      <TableCell sx={head} align="right">Balance ({baseCurrency()})</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>

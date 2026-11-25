@@ -9,7 +9,8 @@ import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
-import { extractListData } from '../../../utils/reportApi';
+import { extractListData } from '../../../utils/reportApi';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -123,7 +124,7 @@ const PurchasePaymentReceiptsList = () => {
                     <TableCell>{r.paid_to || r.party_name || '—'}</TableCell>
                     <TableCell>{r.payment_method || '—'}</TableCell>
                     <TableCell>{r.reference_no || '—'}</TableCell>
-                    <TableCell align="right"><Typography fontWeight={800}>AED {fmt(r.amount)}</Typography></TableCell>
+                    <TableCell align="right"><Typography fontWeight={800}>{baseCurrency()} {fmt(r.amount)}</Typography></TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                         <Button size="small" variant="outlined" startIcon={<IconEye size={14} />} onClick={() => navigate(`/erp/payment-receipts/${r.id}`)} sx={{ borderRadius: 2 }}>

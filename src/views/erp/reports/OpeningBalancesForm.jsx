@@ -8,7 +8,8 @@ import { IconArrowLeft, IconScale } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { asArray } from '../../../utils/reportApi';
+import { asArray } from '../../../utils/reportApi';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -120,7 +121,7 @@ const OpeningBalancesForm = () => {
                         <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Account Name</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Normal Balance</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Opening Balance (AED)</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="right">Opening Balance ({baseCurrency()})</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -154,16 +155,16 @@ const OpeningBalancesForm = () => {
               <Stack direction="row" spacing={4}>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Total Debits (Assets + Expenses)</Typography>
-                  <Typography variant="h6" fontWeight={700}>AED {fmt(totalDebit)}</Typography>
+                  <Typography variant="h6" fontWeight={700}>{baseCurrency()} {fmt(totalDebit)}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" color="text.secondary">Total Credits (Liabilities + Equity + Revenue)</Typography>
-                  <Typography variant="h6" fontWeight={700}>AED {fmt(totalCredit)}</Typography>
+                  <Typography variant="h6" fontWeight={700}>{baseCurrency()} {fmt(totalCredit)}</Typography>
                 </Box>
               </Stack>
               {isBalanced
                 ? <Alert severity="success" sx={{ py: 0.5 }}>Balanced — ready to post</Alert>
-                : <Alert severity="warning" sx={{ py: 0.5 }}>Difference: AED {fmt(diff)} — the system will plug this to Retained Earnings</Alert>}
+                : <Alert severity="warning" sx={{ py: 0.5 }}>Difference: {baseCurrency()} {fmt(diff)} — the system will plug this to Retained Earnings</Alert>}
             </Stack>
           </Paper>
 

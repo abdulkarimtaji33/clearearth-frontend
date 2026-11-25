@@ -12,9 +12,10 @@ import CascadingAccountSelect from '../../../components/erp/CascadingAccountSele
 import PageContainer from '../../../components/container/PageContainer';
 import DebitNoteDialog from './DebitNoteDialog';
 import apiService from '../../../services/api';
-import { CURRENCIES } from '../../../utils/currency';
+import { baseCurrency } from '../../../utils/currency';
 import { PAYMENT_METHOD_OPTIONS } from '../../../constants/paymentMethods';
-import { filterCashBankAccounts, filterActiveByType, isPostable, overdrawInfo } from '../../../utils/accountTree';
+import { filterCashBankAccounts, filterActiveByType, isPostable, overdrawInfo } from '../../../utils/accountTree';
+import CurrencySelect from '../../../components/erp/CurrencySelect';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const today = () => new Date().toISOString().slice(0, 10);
@@ -545,7 +546,7 @@ const VendorBills = () => {
               >
                 {woAwaiting.map((e) => (
                   <MenuItem key={e.id} value={String(e.id)}>
-                    WO #{e.work_order?.id || '—'} · {e.description || 'expense'} · AED {fmt(e.amount)}
+                    WO #{e.work_order?.id || '—'} · {e.description || 'expense'} · {baseCurrency()} {fmt(e.amount)}
                   </MenuItem>
                 ))}
               </TextField>
@@ -570,9 +571,7 @@ const VendorBills = () => {
               <TextField type="date" label="Due date" value={direct.dueDate} onChange={setD('dueDate')} InputLabelProps={{ shrink: true }} inputProps={{ min: direct.billDate || undefined }} fullWidth />
             </Stack>
             <Stack direction="row" spacing={2}>
-              <TextField select label="Currency" value={direct.mode === 'wo' ? 'AED' : (direct.currency || 'AED')} onChange={setD('currency')} disabled={direct.mode === 'wo'} sx={{ minWidth: 120 }}>
-                {CURRENCIES.map(([code]) => <MenuItem key={code} value={code}>{code}</MenuItem>)}
-              </TextField>
+              <CurrencySelect label="Currency" value={direct.mode === 'wo' ? 'AED' : (direct.currency || 'AED')} onChange={setD('currency')} disabled={direct.mode === 'wo'} sx={{ minWidth: 120 }} />
               <TextField required type="number" label={`Amount before VAT (${direct.mode === 'wo' ? 'AED' : (direct.currency || 'AED')})`} value={direct.mode === 'wo' ? String(dNet || '') : direct.netAmount} onChange={setD('netAmount')} disabled={direct.mode === 'wo'} inputProps={{ min: 0, step: 'any' }} fullWidth />
               <TextField select label="VAT" value={direct.vatRate} onChange={setD('vatRate')} fullWidth>
                 <MenuItem value="5">5%</MenuItem>
@@ -667,7 +666,7 @@ const VendorBills = () => {
         open={!!debitBillId}
         vendorBillId={debitBillId}
         onClose={() => setDebitBillId(null)}
-        onIssued={(n) => { setDebitBillId(null); setSuccess(`Debit note ${n.debit_note_number} recorded for AED ${fmt(n.total)}`); load(); }}
+        onIssued={(n) => { setDebitBillId(null); setSuccess(`Debit note ${n.debit_note_number} recorded for ${(bills.find((b) => b.id === debitBillId) || {}).currency || 'AED'} ${fmt(n.total)}`); load(); }}
       />
 
       {/* Pay selected */}

@@ -5,6 +5,7 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconSearch, IconX, IconListTree, IconList } from '@tabler/icons-react';
 import { TYPES, TYPE_META, DEFAULT_FILTERS, fmtMoney, isFiltering } from './coaUtils';
+import { baseCurrency } from '../../../../utils/currency';
 
 /** Summary cards (one per type, clickable) + sticky filter bar. */
 const AccountFilters = ({ accounts, filters, setFilters, view, setView, onExpandAll, onCollapseAll, shown, total }) => {
@@ -41,7 +42,7 @@ const AccountFilters = ({ accounts, filters, setFilters, view, setView, onExpand
               </Typography>
               <Typography variant="h5" fontWeight={800}>{s.count}</Typography>
               <Typography variant="caption" color="text.secondary">
-                accounts · net AED {fmtMoney(s.net)}
+                accounts · net {baseCurrency()} {fmtMoney(s.net)}
               </Typography>
             </Paper>
           );

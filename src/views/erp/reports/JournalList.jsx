@@ -13,7 +13,8 @@ import {
 import { useNavigate } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
-import { normalizeJournalListResponse } from '../../../utils/reportApi';
+import { normalizeJournalListResponse } from '../../../utils/reportApi';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -217,10 +218,10 @@ const JournalList = () => {
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: isDark ? alpha(theme.palette.primary.main, 0.08) : alpha(theme.palette.primary.main, 0.04) }}>
-                {['Entry #', 'Date', 'Description', 'Type', 'Debit (AED)', 'Credit (AED)', 'Created by', 'Status', ''].map((h) => (
+                {['Entry #', 'Date', 'Description', 'Type', `Debit (${baseCurrency()})`, `Credit (${baseCurrency()})`, 'Created by', 'Status', ''].map((h) => (
                   <TableCell
                     key={h || 'actions'}
-                    align={['Debit (AED)', 'Credit (AED)', ''].includes(h) ? 'right' : 'left'}
+                    align={[`Debit (${baseCurrency()})`, `Credit (${baseCurrency()})`, ''].includes(h) ? 'right' : 'left'}
                     sx={{ fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: 0.6, color: 'text.secondary', whiteSpace: 'nowrap', py: 1.5 }}
                   >
                     {h}

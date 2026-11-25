@@ -12,6 +12,7 @@ import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFiel
 import apiService from '../../../services/api';
 import { overdrawInfo } from '../../../utils/accountTree';
 import { localToday } from '../../../utils/dateLocal';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const round2 = (n) => Math.round((parseFloat(n) || 0) * 100) / 100;
@@ -92,7 +93,7 @@ const SupplierAdvances = () => {
         confirmNegative: negativeOk || undefined,
       });
       setRecOpen(false);
-      setSuccess(`Advance ${res.data.advance_number} of AED ${fmt(amt)} recorded for ${res.data.party_name}`);
+      setSuccess(`Advance ${res.data.advance_number} of ${baseCurrency()} ${fmt(amt)} recorded for ${res.data.party_name}`);
       await load();
     } catch (e) {
       setFormError(e.message || 'Could not record the advance');
@@ -118,12 +119,12 @@ const SupplierAdvances = () => {
     if (!pickedBill) { setApplyError('Choose the bill to apply the advance to'); return; }
     const a = applyAmount === '' ? maxApply : round2(applyAmount);
     if (!(a > 0)) { setApplyError('Enter an amount greater than zero'); return; }
-    if (a > maxApply + 0.01) { setApplyError(`You can apply at most AED ${fmt(maxApply)} to this bill`); return; }
+    if (a > maxApply + 0.01) { setApplyError(`You can apply at most ${baseCurrency()} ${fmt(maxApply)} to this bill`); return; }
     try {
       setApplySaving(true); setApplyError('');
       await apiService.applySupplierAdvance(applyAdv.id, { vendorBillId: pickedBill.id, amount: a, appliedAt: applyDate });
       setApplyAdv(null);
-      setSuccess(`AED ${fmt(a)} of advance ${applyAdv.advance_number} applied to ${pickedBill.bill_number}`);
+      setSuccess(`${baseCurrency()} ${fmt(a)} of advance ${applyAdv.advance_number} applied to ${pickedBill.bill_number}`);
       await load();
     } catch (e) {
       setApplyError(e.message || 'Could not apply the advance');
@@ -243,7 +244,7 @@ const SupplierAdvances = () => {
               renderInput={(p) => <TextField {...p} required label="Supplier" />}
             />
             <Stack direction="row" spacing={2}>
-              <TextField required type="number" label="Advance amount (AED)" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} inputProps={{ min: 0, step: 'any' }} fullWidth />
+              <TextField required type="number" label={`Advance amount (${baseCurrency()})`} value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} inputProps={{ min: 0, step: 'any' }} fullWidth />
               <TextField type="date" label="Date paid" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
             </Stack>
             <PaymentRecordingFields
@@ -272,7 +273,7 @@ const SupplierAdvances = () => {
         <DialogTitle>Apply advance {applyAdv?.advance_number}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            {applyAdv?.party_name} · AED {fmt(applyAdv?.remaining)} of this advance is still unused. Applying it settles part or all of a bill without moving any cash.
+            {applyAdv?.party_name} · {baseCurrency()} {fmt(applyAdv?.remaining)} of this advance is still unused. Applying it settles part or all of a bill without moving any cash.
           </Typography>
           {applyError && <Alert severity="error" sx={{ mb: 2 }}>{applyError}</Alert>}
           {!applyOpts && !applyError && <Box display="flex" justifyContent="center" py={3}><CircularProgress size={24} /></Box>}
@@ -284,15 +285,15 @@ const SupplierAdvances = () => {
               <TextField select required label="Bill to settle" value={applyBillId} onChange={(e) => { setApplyBillId(e.target.value); setApplyAmount(''); }} fullWidth>
                 {applyOpts.bills.map((b) => (
                   <MenuItem key={b.id} value={String(b.id)}>
-                    {b.bill_number} · invoice {b.supplier_invoice_no} · owed AED {fmt(b.balance_due)}
+                    {b.bill_number} · invoice {b.supplier_invoice_no} · owed {baseCurrency()} {fmt(b.balance_due)}
                   </MenuItem>
                 ))}
               </TextField>
               {pickedBill && (
                 <TextField
-                  type="number" label="Amount to apply (AED)" value={applyAmount} onChange={(e) => setApplyAmount(e.target.value)}
+                  type="number" label={`Amount to apply (${baseCurrency()})`} value={applyAmount} onChange={(e) => setApplyAmount(e.target.value)}
                   placeholder={String(maxApply)} inputProps={{ min: 0, step: 'any', max: maxApply }}
-                  helperText={`Leave blank to apply AED ${fmt(maxApply)} (the most this bill and this advance allow)`} fullWidth
+                  helperText={`Leave blank to apply ${baseCurrency()} ${fmt(maxApply)} (the most this bill and this advance allow)`} fullWidth
                 />
               )}
               <TextField type="date" label="Apply on" value={applyDate} onChange={(e) => setApplyDate(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: String(applyAdv?.advance_date || '').slice(0, 10) }} fullWidth />

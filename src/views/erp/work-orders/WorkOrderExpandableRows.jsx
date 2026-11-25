@@ -28,7 +28,8 @@ import {
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import apiService from '../../../services/api';
-import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
+import TaskStatusSegments, { taskStatusColor } from './TaskStatusSegments';
+import { baseCurrency } from '../../../utils/currency';
 
 export const WO_STATUS_COLORS = {
   new: 'default',
@@ -313,7 +314,7 @@ export const WorkOrderRow = ({
                             const n = task.expenses?.length || 1;
                             return (
                               <Chip
-                                label={n > 1 ? `AED ${expSum.toLocaleString()} (${n})` : `AED ${expSum.toLocaleString()}`}
+                                label={n > 1 ? `${baseCurrency()} ${expSum.toLocaleString()} (${n})` : `${baseCurrency()} ${expSum.toLocaleString()}`}
                                 size="small"
                                 variant="outlined"
                                 color="primary"

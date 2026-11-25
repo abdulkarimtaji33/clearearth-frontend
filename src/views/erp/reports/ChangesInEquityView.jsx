@@ -9,7 +9,8 @@ import PageContainer from '../../../components/container/PageContainer';
 import GlAmountLink from '../../../components/erp/GlAmountLink';
 import apiService from '../../../services/api';
 import { localToday, localYearStart, localDate } from '../../../utils/dateLocal';
-import { normalizeChangesInEquity, buildChangesInEquityRows, asArray } from '../../../utils/reportApi';
+import { normalizeChangesInEquity, buildChangesInEquityRows, asArray } from '../../../utils/reportApi';
+import { baseCurrency } from '../../../utils/currency';
 
 const fmt = (n) => {
   const v = Number(n || 0);
@@ -87,7 +88,7 @@ const ChangesInEquityView = () => {
         <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
           <Box sx={{ px: 2.5, py: 2, bgcolor: alpha(theme.palette.grey[500], 0.06), borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography variant="h6" fontWeight={800}>Statement of Changes in Equity</Typography>
-            <Typography variant="caption" color="text.secondary">For the period {dateFrom} to {dateTo} | Amounts in AED</Typography>
+            <Typography variant="caption" color="text.secondary">For the period {dateFrom} to {dateTo} | Amounts in {baseCurrency()}</Typography>
           </Box>
           <TableContainer>
             <Table size="small">

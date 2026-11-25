@@ -36,7 +36,8 @@ import PaymentRecordingFields from '../../../components/erp/PaymentRecordingFiel
 import PaymentHistoryDialog from '../../../components/erp/PaymentHistoryDialog';
 import apiService from '../../../services/api';
 import { resolveDefaultPaymentAccountId } from '../../../constants/paymentAccounts';
-import { overdrawInfo } from '../../../utils/accountTree';
+import { overdrawInfo } from '../../../utils/accountTree';
+import { baseCurrency } from '../../../utils/currency';
 
 const BASE_CATEGORY_FILTER = [
   { value: '', label: 'All categories' },
@@ -357,7 +358,7 @@ const ExpensesList = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: alpha(theme.palette.success.main, 0.06) }}>
-                    {['Date', 'Expense head', 'GL account', 'Amount (AED)', 'Settlement', 'Paid to', 'Method', 'Work order', 'Deal', 'Link', ''].map((h, i) => (
+                    {['Date', 'Expense head', 'GL account', `Amount (${baseCurrency()})`, 'Settlement', 'Paid to', 'Method', 'Work order', 'Deal', 'Link', ''].map((h, i) => (
                       <TableCell
                         key={h || 'actions'}
                         align={i === 3 || i === 10 ? 'right' : 'left'}
@@ -565,7 +566,7 @@ const ExpensesList = () => {
           {payRow && (
             <Typography variant="body2" color="text.secondary" fontWeight={400}>
               Expense #{payRow.id} — balance{' '}
-              <strong>AED {fmtMoney(Math.max(0, (parseFloat(payRow.amount) || 0) - (parseFloat(payRow.paid_amount) || 0)))}</strong>
+              <strong>{baseCurrency()} {fmtMoney(Math.max(0, (parseFloat(payRow.amount) || 0) - (parseFloat(payRow.paid_amount) || 0)))}</strong>
             </Typography>
           )}
         </DialogTitle>
@@ -574,7 +575,7 @@ const ExpensesList = () => {
             {payDialogError && <Alert severity="error" onClose={() => setPayDialogError('')}>{payDialogError}</Alert>}
             <TextField
               size="small"
-              label="Amount (AED)"
+              label={`Amount (${baseCurrency()})`}
               type="number"
               inputProps={{ min: 0.01, step: '0.01' }}
               value={payAmount}

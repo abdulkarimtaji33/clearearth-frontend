@@ -10,6 +10,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
 import { filterCashBankAccounts, isPostable } from '../../../utils/accountTree';
 import { localToday } from '../../../utils/dateLocal';
+import { baseCurrency } from '../../../utils/currency';
 
 const round2 = (n) => Math.round((parseFloat(n) || 0) * 100) / 100;
 const fmt = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -154,7 +155,7 @@ const BankReconciliation = () => {
         await loadHistory();
         navigate(`/erp/bank-reconciliation/${res.data.id}`);
       } else {
-        setSuccess(`Draft saved. Difference still to explain: AED ${fmt(res.data.difference)}`);
+        setSuccess(`Draft saved. Difference still to explain: ${baseCurrency()} ${fmt(res.data.difference)}`);
         await loadWorkspace(); await loadHistory();
       }
     } catch (e) {
@@ -234,12 +235,12 @@ const BankReconciliation = () => {
               <TextField
                 size="small" type="number" label="Closing balance on the statement" value={statementBalance}
                 onChange={(e) => setStatementBalance(e.target.value)}
-                InputProps={{ startAdornment: <InputAdornment position="start">AED</InputAdornment> }} sx={{ minWidth: 240 }}
+                InputProps={{ startAdornment: <InputAdornment position="start">{baseCurrency()}</InputAdornment> }} sx={{ minWidth: 240 }}
               />
             </Stack>
             {ws?.lastCompleted && (
               <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-                Last completed reconciliation: statement of {ws.lastCompleted.statement_date}, balance AED {fmt(ws.lastCompleted.statement_balance)}.
+                Last completed reconciliation: statement of {ws.lastCompleted.statement_date}, balance {baseCurrency()} {fmt(ws.lastCompleted.statement_balance)}.
               </Typography>
             )}
           </Card>
@@ -262,10 +263,10 @@ const BankReconciliation = () => {
                 {importInfo && <Alert severity="info" sx={{ mb: 1.5, borderRadius: 2 }} onClose={() => setImportInfo('')}>{importInfo}</Alert>}
 
                 <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap mb={2}>
-                  {stat('Statement balance', hasBalance ? `AED ${fmt(statementBalance)}` : '—')}
-                  {stat('Cleared (ticked) balance', `AED ${fmt(cleared)}`)}
-                  {stat('Difference', difference === null ? '—' : `AED ${fmt(difference)}`, difference === null ? 'primary' : balanced ? 'success' : 'error')}
-                  {stat('Book balance (ledger)', `AED ${fmt(ws.bookBalance)}`, 'info')}
+                  {stat('Statement balance', hasBalance ? `${baseCurrency()} ${fmt(statementBalance)}` : '—')}
+                  {stat('Cleared (ticked) balance', `${baseCurrency()} ${fmt(cleared)}`)}
+                  {stat('Difference', difference === null ? '—' : `${baseCurrency()} ${fmt(difference)}`, difference === null ? 'primary' : balanced ? 'success' : 'error')}
+                  {stat('Book balance (ledger)', `${baseCurrency()} ${fmt(ws.bookBalance)}`, 'info')}
                 </Stack>
 
                 <Stack direction="row" spacing={1} mb={1}>
@@ -307,7 +308,7 @@ const BankReconciliation = () => {
                 <TextField multiline minRows={2} fullWidth label="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} sx={{ mb: 2 }} />
                 {difference !== null && !balanced && (
                   <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
-                    The difference is <strong>AED {fmt(difference)}</strong>. Tick the missing entries, or check the closing balance you typed. You can save as a draft and come back.
+                    The difference is <strong>{baseCurrency()} {fmt(difference)}</strong>. Tick the missing entries, or check the closing balance you typed. You can save as a draft and come back.
                   </Alert>
                 )}
                 <Stack direction="row" spacing={1.5}>

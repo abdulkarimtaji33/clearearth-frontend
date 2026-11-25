@@ -8,7 +8,8 @@ import {
 import KpiCard from './shared/KpiCard';
 import ActionableList from './shared/ActionableList';
 import { useAuth } from '../../../context/AuthContext';
-import CommissionSummaryCard from '../../../components/erp/CommissionSummaryCard';
+import CommissionSummaryCard from '../../../components/erp/CommissionSummaryCard';
+import { baseCurrency } from '../../../utils/currency';
 
 const STAGE_META = {
   new:              { color: 'default',  label: 'New' },
@@ -77,7 +78,7 @@ const SalesDashboard = ({ data }) => {
                 onClick={() => navigate(`/erp/deals/view/${d.id}`)}>
                 <Typography variant="body2" fontWeight={600}>{d.title || d.deal_number}</Typography>
                 <Stack direction="row" spacing={1} alignItems="center">
-                  {d.total > 0 && <Typography variant="caption" color="text.secondary">AED {Number(d.total).toLocaleString()}</Typography>}
+                  {d.total > 0 && <Typography variant="caption" color="text.secondary">{baseCurrency()} {Number(d.total).toLocaleString()}</Typography>}
                   <Chip size="small" label="Pending" color="warning" sx={{ fontWeight: 700, height: 20, fontSize: '0.68rem' }} />
                 </Stack>
               </Stack>
@@ -110,7 +111,7 @@ const SalesDashboard = ({ data }) => {
                 <Stack direction="row" alignItems="center" justifyContent="space-between" mb={0.5}>
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <Chip size="small" label={meta.label} color={meta.color} sx={{ fontWeight: 700, fontSize: '0.72rem', height: 22 }} />
-                    {col.value > 0 && <Typography variant="caption" color="text.secondary">AED {Number(col.value).toLocaleString()}</Typography>}
+                    {col.value > 0 && <Typography variant="caption" color="text.secondary">{baseCurrency()} {Number(col.value).toLocaleString()}</Typography>}
                   </Stack>
                   <Typography variant="body2" fontWeight={800} color={col.count > 0 ? 'text.primary' : 'text.disabled'}>
                     {col.count}
@@ -144,7 +145,7 @@ const SalesDashboard = ({ data }) => {
                   <Typography variant="body2" fontWeight={600} noWrap>{d.title}</Typography>
                   <Stack direction="row" spacing={0.75} alignItems="center">
                     <Typography variant="caption" color="text.secondary">{d.deal_number}</Typography>
-                    {d.total > 0 && <Typography variant="caption" color="text.disabled">· AED {Number(d.total).toLocaleString()}</Typography>}
+                    {d.total > 0 && <Typography variant="caption" color="text.disabled">· {baseCurrency()} {Number(d.total).toLocaleString()}</Typography>}
                   </Stack>
                 </Box>
                 <Chip size="small" label={meta.label} color={meta.color} sx={{ fontWeight: 700, fontSize: '0.68rem', height: 22, ml: 1, flexShrink: 0 }} />

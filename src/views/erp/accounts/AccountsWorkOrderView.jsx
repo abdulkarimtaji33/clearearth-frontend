@@ -45,7 +45,8 @@ import {
   loadStoredOptions,
   saveStoredOptions,
   mergeSelectOptions,
-} from '../../../constants/expenseFormOptions';
+} from '../../../constants/expenseFormOptions';
+import { baseCurrency } from '../../../utils/currency';
 
 const WO_STATUS_COLORS = {
   new: 'default',
@@ -464,7 +465,7 @@ const AccountsWorkOrderView = () => {
               <Box sx={{ p: 2 }}>
                 {task.expense != null ? (
                   <Typography variant="body2" color="text.secondary">
-                    This task uses a legacy single expense field (AED {num(task.expense).toFixed(2)}). Only structured expense lines can be approved — edit the work order in Operations to split into lines.
+                    This task uses a legacy single expense field ({baseCurrency()} {num(task.expense).toFixed(2)}). Only structured expense lines can be approved — edit the work order in Operations to split into lines.
                   </Typography>
                 ) : (
                   <Typography variant="body2" color="text.secondary">No expense lines on this task.</Typography>
@@ -629,7 +630,7 @@ const AccountsWorkOrderView = () => {
                   ['Inspection Date', r.inspection_datetime ? new Date(r.inspection_datetime).toLocaleString() : '—'],
                   ['Cargo Packing Type', r.cargo_type || '—'],
                   ['Approximate Weight', r.approximate_weight != null ? `${r.approximate_weight} ${formatUomValue(r.weight_uom, '')}`.trim() : '—'],
-                  ['Approximate Value', r.approximate_value != null ? `AED ${parseFloat(r.approximate_value).toLocaleString()}` : '—'],
+                  ['Approximate Value', r.approximate_value != null ? `${wo?.deal?.currency || 'AED'} ${parseFloat(r.approximate_value).toLocaleString()}` : '—'],
                   ['Transportation', r.transportation_arrangement || '—'],
                   ['Notes', r.notes || '—'],
                 ];
@@ -676,7 +677,7 @@ const AccountsWorkOrderView = () => {
                   helperText="Required — the expense head debited by this expense (e.g. 5410 Fuel)."
                 />
               )}
-              <TextField label="Amount (AED)" size="small" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} fullWidth />
+              <TextField label={`Amount (${baseCurrency()})`} size="small" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} fullWidth />
               <TextField label="Expense date" type="date" size="small" value={form.expenseDate} onChange={(e) => setForm((f) => ({ ...f, expenseDate: e.target.value }))} InputLabelProps={{ shrink: true }} fullWidth />
               <PayeeSelect
                 value={form.paidTo}

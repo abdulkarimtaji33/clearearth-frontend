@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import {
   Box, Card, CardContent, Typography, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Chip, CircularProgress, Alert, Grid, Paper, Stack, TablePagination,
@@ -42,19 +43,21 @@ const MyCommissions = () => {
   const [error, setError] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      const res = await apiService.getMyCommissions({ page: page + 1, limit: rowsPerPage });
+      const res = await apiService.getMyCommissions({ page: page + 1, limit: rowsPerPage, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
       if (res.success) setData(res.data);
     } catch (err) {
       setError(err.message || 'Failed to load commissions');
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, dateFrom, dateTo]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -90,6 +93,17 @@ const MyCommissions = () => {
 
       <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
         <CardContent sx={{ p: 0 }}>
+          <Box sx={{ p: 2 }}>
+            <ListDateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+              onToChange={(v) => { setDateTo(v); setPage(0); }}
+              onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+              helperText="Commission date"
+              compact
+            />
+          </Box>
           {loading ? (
             <Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box>
           ) : commissions.length === 0 ? (
@@ -117,10 +131,10 @@ const MyCommissions = () => {
                             {c.quotation?.reference_number ? `QT-${c.quotation.reference_number}` : `#${c.quotation_id}`}
                           </TableCell>
                           <TableCell>{c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}</TableCell>
-                          <TableCell align="right">AED {Number(c.quotation_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell align="right">{c.currency || 'AED'} {Number(c.quotation_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell align="right">{c.commission_percentage}%</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 700 }}>
-                            AED {Number(c.commission_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {c.currency || 'AED'} {Number(c.commission_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell>
                             <Chip size="small" label={meta.label} color={meta.color} sx={{ fontWeight: 700 }} />

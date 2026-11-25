@@ -53,6 +53,9 @@ const ReceivePaymentView = () => {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [invoicesLoading, setInvoicesLoading] = useState(false);
+  // Customer payments are received against invoices: show their currency (AED when the invoices are in mixed currencies).
+  const invoiceCurrencies = [...new Set(invoices.map((i) => i.currency || 'AED'))];
+  const payCurrency = invoiceCurrencies.length === 1 ? invoiceCurrencies[0] : 'AED';
   const [allocations, setAllocations] = useState({}); // invoiceId -> amount string
 
   const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -157,11 +160,11 @@ const ReceivePaymentView = () => {
     if (!(paymentAccountId || defaultPayAccountId)) { setError('Select the cash or bank account the receipt goes into.'); return; }
 
     if (remaining < -0.01) {
-      setError(`Allocated total (AED ${fmt(totalAllocated)}) cannot exceed the amount received (AED ${fmt(receivedNum)}).`);
+      setError(`Allocated total (${payCurrency} ${fmt(totalAllocated)}) cannot exceed the amount received (${payCurrency} ${fmt(receivedNum)}).`);
       return;
     }
     if (remaining > 0.01 && !recordAsAdvance) {
-      setError(`AED ${fmt(remaining)} is unallocated. Check "Record remainder as advance payment" to proceed, or allocate it to an invoice.`);
+      setError(`${payCurrency} ${fmt(remaining)} is unallocated. Check "Record remainder as advance payment" to proceed, or allocate it to an invoice.`);
       return;
     }
 
@@ -180,7 +183,7 @@ const ReceivePaymentView = () => {
         allowUnapplied: remaining > 0.01 ? true : undefined,
       });
       if (res.success) {
-        const advanceNote = remaining > 0.01 ? ` AED ${fmt(remaining)} recorded as an advance/unapplied credit.` : '';
+        const advanceNote = remaining > 0.01 ? ` ${payCurrency} ${fmt(remaining)} recorded as an advance/unapplied credit.` : '';
         setSuccess(`Payment received and applied to ${allocationList.length} invoice(s).${advanceNote}`);
         setAmountReceived('');
         setReferenceNo('');
@@ -334,7 +337,7 @@ const ReceivePaymentView = () => {
             {remaining > 0.01 && (
               <Box sx={{ px: 2.5, pt: 1.75 }}>
                 <Alert severity="warning" sx={{ borderRadius: 2, mb: 1 }}>
-                  AED {fmt(remaining)} will be recorded as an advance/unapplied credit for this customer — it can be applied to a future invoice later from Receivables &rsaquo; Unapplied Credits.
+                  {payCurrency} {fmt(remaining)} will be recorded as an advance/unapplied credit for this customer — it can be applied to a future invoice later from Receivables &rsaquo; Unapplied Credits.
                 </Alert>
                 <FormControlLabel
                   control={<Checkbox checked={recordAsAdvance} onChange={(e) => setRecordAsAdvance(e.target.checked)} />}
@@ -344,11 +347,11 @@ const ReceivePaymentView = () => {
             )}
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ px: 2.5, py: 1.75 }}>
               <Stack direction="row" spacing={1.5} alignItems="center">
-                <Typography variant="body2" color="text.secondary">Allocated: <strong>AED {fmt(totalAllocated)}</strong></Typography>
-                <Typography variant="body2" color="text.secondary">Received: <strong>AED {fmt(receivedNum)}</strong></Typography>
+                <Typography variant="body2" color="text.secondary">Allocated: <strong>{payCurrency} {fmt(totalAllocated)}</strong></Typography>
+                <Typography variant="body2" color="text.secondary">Received: <strong>{payCurrency} {fmt(receivedNum)}</strong></Typography>
                 <Chip
                   size="small"
-                  label={Math.abs(remaining) < 0.01 ? 'Balanced' : `Unapplied: AED ${fmt(remaining)}`}
+                  label={Math.abs(remaining) < 0.01 ? 'Balanced' : `Unapplied: ${payCurrency} ${fmt(remaining)}`}
                   color={Math.abs(remaining) < 0.01 ? 'success' : 'warning'}
                   sx={{ fontWeight: 700 }}
                 />

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import {
   Box, Typography, Stack, Paper, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, Chip, CircularProgress, Alert, TablePagination, TextField, MenuItem, Link, Button, InputAdornment,
@@ -29,6 +30,8 @@ const CertificateRequestList = () => {
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -36,6 +39,7 @@ const CertificateRequestList = () => {
       const res = await apiService.getCertificateRequests({
         page: page + 1, pageSize: rowsPerPage, status: status || undefined, search: search || undefined,
         mine: isVerifier ? undefined : true,
+        dateFrom: dateFrom || undefined, dateTo: dateTo || undefined,
       });
       setRows(Array.isArray(res.data) ? res.data : []);
       setTotal(res.pagination?.totalItems ?? 0);
@@ -44,7 +48,7 @@ const CertificateRequestList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, status, search, isVerifier]);
+  }, [page, rowsPerPage, status, search, isVerifier, dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -88,6 +92,17 @@ const CertificateRequestList = () => {
           </Stack>
         </Box>
 
+        <Box sx={{ px: 2, pb: 2 }}>
+          <ListDateRangeFilter
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+            onToChange={(v) => { setDateTo(v); setPage(0); }}
+            onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+            helperText="Collection date"
+            compact
+          />
+        </Box>
         <TableContainer sx={{ overflowX: 'auto' }}>
           <Table size="small">
             <TableHead>

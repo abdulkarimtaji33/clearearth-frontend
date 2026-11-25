@@ -46,6 +46,7 @@ import {
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { formatByCurrency } from '../../../utils/currency';
 
 const StatCell = ({ value, label, icon: Icon, color }) => {
   const theme = useTheme();
@@ -377,7 +378,7 @@ const CompanyView = () => {
           <Stack spacing={2}>
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
               <Typography variant="body2" color="text.secondary">Total outstanding (unpaid / partial tax invoices)</Typography>
-              <Typography variant="h5" fontWeight={800} color="warning.main">AED {fmt(fin.receivablesOutstanding)}</Typography>
+              <Typography variant="h5" fontWeight={800} color="warning.main">{formatByCurrency(fin.receivablesByCurrency, fin.receivablesOutstanding)}</Typography>
             </Paper>
             <Grid container spacing={1}>
               {[

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import {
   Box, Typography, Stack, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip,
   CircularProgress, Alert, TablePagination, TextField, MenuItem, Link, InputAdornment, Button,
@@ -50,16 +51,18 @@ const RegisterList = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiService.getRegister(kind, { page: page + 1, pageSize: rowsPerPage, search: search || undefined, type: type || undefined });
+      const res = await apiService.getRegister(kind, { page: page + 1, pageSize: rowsPerPage, search: search || undefined, type: type || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
       setRows(Array.isArray(res.data) ? res.data : []);
       setTotal(res.pagination?.totalItems ?? 0);
       setError('');
     } catch (e) { setError(e.message); } finally { setLoading(false); }
-  }, [kind, page, rowsPerPage, search, type]);
+  }, [kind, page, rowsPerPage, search, type, dateFrom, dateTo]);
 
   useEffect(() => { setPage(0); }, [kind, type]);
   useEffect(() => { load(); }, [load]);
@@ -72,7 +75,7 @@ const RegisterList = () => {
       const pageSize = 100;
       let all = [];
       for (let p = 1; p <= 200; p += 1) {
-        const res = await apiService.getRegister(kind, { page: p, pageSize, search: search || undefined, type: type || undefined });
+        const res = await apiService.getRegister(kind, { page: p, pageSize, search: search || undefined, type: type || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
         const chunk = Array.isArray(res.data) ? res.data : [];
         all = all.concat(chunk);
         const totalItems = res.pagination?.totalItems ?? all.length;
@@ -127,6 +130,17 @@ const RegisterList = () => {
               Export to Excel (CSV)
             </Button>
           </Stack>
+          <Box sx={{ mt: 2 }}>
+            <ListDateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+              onToChange={(v) => { setDateTo(v); setPage(0); }}
+              onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+              helperText="Document date"
+              compact
+            />
+          </Box>
         </Box>
         <TableContainer>
           <Table size="small">

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import {
   Alert, Autocomplete, Box, Button, Card, Checkbox, Chip, CircularProgress, Dialog, DialogActions, DialogContent,
   DialogTitle, InputAdornment, MenuItem, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -22,6 +23,8 @@ const SupplierAdvances = () => {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [debounced, setDebounced] = useState('');
   const [openOnly, setOpenOnly] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -55,7 +58,7 @@ const SupplierAdvances = () => {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiService.getSupplierAdvances({ page: page + 1, pageSize, search: debounced || undefined, openOnly: openOnly === 'open' ? 'true' : undefined });
+      const res = await apiService.getSupplierAdvances({ page: page + 1, pageSize, search: debounced || undefined, openOnly: openOnly === 'open' ? 'true' : undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
       setRows(res.data || []);
       setTotal(res.pagination?.totalItems ?? (res.data || []).length);
       setError('');
@@ -64,7 +67,7 @@ const SupplierAdvances = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, debounced, openOnly]);
+  }, [page, pageSize, debounced, openOnly, dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -165,6 +168,17 @@ const SupplierAdvances = () => {
           </ToggleButtonGroup>
         </Stack>
 
+        <Box sx={{ mb: 2 }}>
+          <ListDateRangeFilter
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+            onToChange={(v) => { setDateTo(v); setPage(0); }}
+            onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+            helperText="Advance date"
+            compact
+          />
+        </Box>
         {loading ? (
           <Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box>
         ) : rows.length === 0 ? (

@@ -221,9 +221,9 @@ const PayablesList = () => {
                     <TableCell><Typography variant="caption" color="text.secondary" display="block">{r.party_label}</Typography><Typography variant="body2">{r.party_name}</Typography></TableCell>
                     <TableCell>{r.po_date || '—'}</TableCell>
                     <TableCell>{r.due_date || '—'}</TableCell>
-                    <TableCell align="right">AED {fmt(r.po_total)}</TableCell>
-                    <TableCell align="right">AED {fmt(r.paid_amount)}</TableCell>
-                    <TableCell align="right"><Typography fontWeight={800} color="secondary.dark">AED {fmt(r.balance_due)}</Typography></TableCell>
+                    <TableCell align="right">{r.currency || 'AED'} {fmt(r.po_total)}</TableCell>
+                    <TableCell align="right">{r.currency || 'AED'} {fmt(r.paid_amount)}</TableCell>
+                    <TableCell align="right"><Typography fontWeight={800} color="secondary.dark">{r.currency || 'AED'} {fmt(r.balance_due)}</Typography></TableCell>
                     <TableCell><Chip size="small" label={r.payment_status} color={PAYMENT_COLOR[r.payment_status] || 'default'} sx={{ fontWeight: 700, textTransform: 'capitalize' }} /></TableCell>
                     <TableCell>{r.days_open ?? '—'}</TableCell>
                     <TableCell align="right">
@@ -250,14 +250,14 @@ const PayablesList = () => {
           {payRow && (
             <Typography variant="body2" color="text.secondary" fontWeight={400}>
               PO #{payRow.id} · {payRow.party_name} — balance{' '}
-              <strong>AED {fmt(parseFloat(payRow.balance_due) || 0)}</strong>
+              <strong>{payRow.currency || 'AED'} {fmt(parseFloat(payRow.balance_due) || 0)}</strong>
             </Typography>
           )}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1, minWidth: 320 }}>
             {payDialogError && <Alert severity="error" onClose={() => setPayDialogError('')}>{payDialogError}</Alert>}
-            <TextField size="small" label="Amount (AED)" type="number" inputProps={{ min: 0.01, step: '0.01' }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+            <TextField size="small" label={`Amount (${payRow?.currency || 'AED'})`} type="number" inputProps={{ min: 0.01, step: '0.01' }} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
             <PaymentRecordingFields
               paymentMethod={payMethod}
               onPaymentMethodChange={setPayMethod}

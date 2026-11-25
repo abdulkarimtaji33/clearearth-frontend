@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import {
   Box, Typography, Stack, Paper, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Chip, CircularProgress, Alert, TablePagination, TextField, MenuItem, Link, InputAdornment,
@@ -23,11 +24,13 @@ const GrnList = () => {
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiService.getGrns({ page: page + 1, pageSize: rowsPerPage, status: status || undefined, search: search || undefined });
+      const res = await apiService.getGrns({ page: page + 1, pageSize: rowsPerPage, status: status || undefined, search: search || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
       setRows(Array.isArray(res.data) ? res.data : []);
       setTotal(res.pagination?.totalItems ?? 0);
     } catch (e) {
@@ -35,7 +38,7 @@ const GrnList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, status, search]);
+  }, [page, rowsPerPage, status, search, dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -126,6 +129,17 @@ const GrnList = () => {
           </Stack>
         </Box>
 
+        <Box sx={{ px: 2, pb: 2 }}>
+          <ListDateRangeFilter
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+            onToChange={(v) => { setDateTo(v); setPage(0); }}
+            onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+            helperText="GRN created date"
+            compact
+          />
+        </Box>
         <TableContainer sx={{ overflowX: 'auto' }}>
           <Table size="small">
             <TableHead>

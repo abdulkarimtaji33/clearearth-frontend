@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import {
   Box, Card, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   CircularProgress, Alert, Stack, Chip, Dialog, DialogTitle, DialogContent, DialogActions, TextField,
@@ -29,6 +30,8 @@ const VendorBills = () => {
   const [woAwaiting, setWoAwaiting] = useState([]);
   const [bills, setBills] = useState([]);
   const [statusFilter, setStatusFilter] = useState('unpaid');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -70,7 +73,7 @@ const VendorBills = () => {
       const [aw, wo, bl] = await Promise.all([
         apiService.getVendorBillsAwaiting(),
         apiService.getVendorBillsAwaitingWo().catch(() => ({ data: [] })),
-        apiService.getVendorBills({ page: 1, pageSize: 500, status: statusFilter || undefined }),
+        apiService.getVendorBills({ page: 1, pageSize: 500, status: statusFilter || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined }),
       ]);
       setAwaiting(Array.isArray(aw.data) ? aw.data : []);
       setWoAwaiting(Array.isArray(wo.data) ? wo.data : []);
@@ -81,7 +84,7 @@ const VendorBills = () => {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -422,6 +425,17 @@ const VendorBills = () => {
                   Pay selected{selectedBills.length ? ` (${selectedBills.length})` : ''}
                 </Button>
               </Stack>
+              <Box sx={{ px: 2, pb: 2 }}>
+                <ListDateRangeFilter
+                  dateFrom={dateFrom}
+                  dateTo={dateTo}
+                  onFromChange={(v) => { setDateFrom(v); setSelected({}); }}
+                  onToChange={(v) => { setDateTo(v); setSelected({}); }}
+                  onClear={() => { setDateFrom(''); setDateTo(''); setSelected({}); }}
+                  helperText="Bill date"
+                  compact
+                />
+              </Box>
               <TableContainer>
                 <Table size="small">
                   <TableHead>

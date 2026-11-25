@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ListDateRangeFilter from '../../../../components/erp/ListDateRangeFilter';
 import {
   Box, Card, Typography, Button, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TextField, InputAdornment, MenuItem, Chip, Alert,
@@ -69,6 +70,8 @@ const EmployeeList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(0);
@@ -85,7 +88,7 @@ const EmployeeList = () => {
     try {
       setLoading(true);
       setError('');
-      const res = await apiService.getHrEmployees({ page: page + 1, pageSize: rowsPerPage, search, departmentId, status });
+      const res = await apiService.getHrEmployees({ page: page + 1, pageSize: rowsPerPage, search, departmentId, status, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
       if (res.success) {
         setEmployees(res.data || []);
         setTotal(res.pagination?.totalItems || (res.data || []).length);
@@ -95,7 +98,7 @@ const EmployeeList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, departmentId, status]);
+  }, [page, rowsPerPage, search, departmentId, status, dateFrom, dateTo]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -170,6 +173,17 @@ const EmployeeList = () => {
 
           {error && <Alert severity="error" sx={{ m: 2, borderRadius: 2 }}>{error}</Alert>}
 
+          <Box sx={{ px: 2, pb: 2 }}>
+            <ListDateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+              onToChange={(v) => { setDateTo(v); setPage(0); }}
+              onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+              helperText="Joining date"
+              compact
+            />
+          </Box>
           <TableContainer sx={{ maxHeight: 640 }}>
             <Table stickyHeader sx={{ minWidth: 860 }}>
               <TableHead>

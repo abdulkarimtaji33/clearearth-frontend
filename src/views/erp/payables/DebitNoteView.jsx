@@ -65,7 +65,7 @@ const DebitNoteView = () => {
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700 }}>Amount (AED)</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700 }}>Amount ({note.vendorBill?.currency || 'AED'})</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

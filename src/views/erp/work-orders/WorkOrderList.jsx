@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import {
   Box,
   Card,
@@ -48,6 +49,8 @@ const WorkOrderList = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [totalCount, setTotalCount] = useState(0);
 
   const fetchWorkOrders = useCallback(async () => {
@@ -56,6 +59,8 @@ const WorkOrderList = () => {
       const params = { page: page + 1, pageSize: rowsPerPage };
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
       const res = await apiService.getWorkOrders(params);
       if (res.success) {
         setWorkOrders(Array.isArray(res.data) ? res.data : []);
@@ -66,7 +71,7 @@ const WorkOrderList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, statusFilter]);
+  }, [page, rowsPerPage, search, statusFilter, dateFrom, dateTo]);
 
   useEffect(() => { fetchWorkOrders(); }, [fetchWorkOrders]);
 
@@ -122,6 +127,17 @@ const WorkOrderList = () => {
             </Stack>
           </Box>
 
+          <Box sx={{ px: 2, pb: 2 }}>
+            <ListDateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+              onToChange={(v) => { setDateTo(v); setPage(0); }}
+              onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+              helperText="Work order created date"
+              compact
+            />
+          </Box>
           <CardContent sx={{ p: 0 }}>
             <TableContainer>
               <Table>

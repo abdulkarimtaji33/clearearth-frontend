@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import {
   Box, Typography, Stack, Paper, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Chip, CircularProgress, Alert, TablePagination, TextField, MenuItem, Link, InputAdornment,
@@ -30,6 +31,8 @@ const InventoryList = () => {
   const [search, setSearch] = useState('');
   const [grnNumber, setGrnNumber] = useState('');
   const [status, setStatus] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -41,6 +44,8 @@ const InventoryList = () => {
         search: search || undefined,
         grnNumber: grnNumber || undefined,
         status: status || undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
       });
       setRows(Array.isArray(res.data) ? res.data : []);
       setTotal(res.pagination?.totalItems ?? 0);
@@ -49,11 +54,11 @@ const InventoryList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, grnNumber, status]);
+  }, [page, rowsPerPage, search, grnNumber, status, dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
 
-  const hasFilters = !!(search || grnNumber || status);
+  const hasFilters = !!(search || grnNumber || status || dateFrom || dateTo);
 
   return (
     <PageContainer title="Inventory" description="All items received across every GRN">
@@ -112,6 +117,17 @@ const InventoryList = () => {
           </Stack>
         </Box>
 
+        <Box sx={{ px: 2, pb: 2 }}>
+          <ListDateRangeFilter
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+            onToChange={(v) => { setDateTo(v); setPage(0); }}
+            onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+            helperText="Received date (GRN created)"
+            compact
+          />
+        </Box>
         <TableContainer sx={{ overflowX: 'auto' }}>
           <Table size="small">
             <TableHead>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import {
   Alert,
   Box,
@@ -33,6 +34,8 @@ const CreditNoteList = () => {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [debounced, setDebounced] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,7 +48,7 @@ const CreditNoteList = () => {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiService.getCreditNotes({ page: page + 1, pageSize, search: debounced || undefined });
+      const res = await apiService.getCreditNotes({ page: page + 1, pageSize, search: debounced || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
       setRows(res.data || []);
       setTotal(res.pagination?.totalItems ?? (res.data || []).length);
       setError('');
@@ -54,7 +57,7 @@ const CreditNoteList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, debounced]);
+  }, [page, pageSize, debounced, dateFrom, dateTo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -85,6 +88,17 @@ const CreditNoteList = () => {
           sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
         />
 
+        <Box sx={{ mb: 2 }}>
+          <ListDateRangeFilter
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onFromChange={(v) => { setDateFrom(v); setPage(0); }}
+            onToChange={(v) => { setDateTo(v); setPage(0); }}
+            onClear={() => { setDateFrom(''); setDateTo(''); setPage(0); }}
+            helperText="Credit note date"
+            compact
+          />
+        </Box>
         {loading ? (
           <Box display="flex" justifyContent="center" py={6}><CircularProgress /></Box>
         ) : rows.length === 0 ? (

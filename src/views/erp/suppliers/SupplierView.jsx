@@ -46,6 +46,7 @@ import {
 } from '@tabler/icons-react';
 import PageContainer from '../../../components/container/PageContainer';
 import apiService from '../../../services/api';
+import { formatByCurrency } from '../../../utils/currency';
 
 const StatCell = ({ value, label, icon: Icon, color }) => {
   const theme = useTheme();
@@ -409,7 +410,7 @@ const SupplierView = () => {
           <Stack spacing={2}>
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
               <Typography variant="body2" color="text.secondary">Outstanding on approved POs</Typography>
-              <Typography variant="h5" fontWeight={800} color="warning.main">AED {fmt(fin.payablesOutstanding)}</Typography>
+              <Typography variant="h5" fontWeight={800} color="warning.main">{formatByCurrency(fin.payablesByCurrency, fin.payablesOutstanding)}</Typography>
             </Paper>
             <Typography variant="caption" color="text.secondary">Open balances by purchase order (same as Purchase orders tab).</Typography>
             <Button variant="outlined" size="small" onClick={() => navigate('/erp/payables')} sx={{ alignSelf: 'flex-start', borderRadius: 2 }}>Payables register</Button>

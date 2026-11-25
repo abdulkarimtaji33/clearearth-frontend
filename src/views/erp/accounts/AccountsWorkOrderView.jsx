@@ -568,7 +568,7 @@ const AccountsWorkOrderView = () => {
                         <TableCell>#{po.id}</TableCell>
                         <TableCell sx={{ textTransform: 'capitalize' }}>{(po.document_type || '').replace(/_/g, ' ') || '—'}</TableCell>
                         <TableCell>{po.supplier?.company_name || po.company?.company_name || '—'}</TableCell>
-                        <TableCell align="right">AED {total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell align="right">{po.currency || 'AED'} {total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell><Chip size="small" label={psMeta.label} color={psMeta.color} sx={{ fontWeight: 700 }} /></TableCell>
                       </TableRow>
                     );
@@ -609,7 +609,7 @@ const AccountsWorkOrderView = () => {
                 {wo.deal.total != null && (
                   <Stack direction="row" alignItems="center" spacing={2}>
                     <Typography variant="body2" color="text.secondary" sx={{ width: 160 }}>Deal total:</Typography>
-                    <Typography variant="body2" fontWeight={700}>AED {parseFloat(wo.deal.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
+                    <Typography variant="body2" fontWeight={700}>{wo.deal.currency || 'AED'} {parseFloat(wo.deal.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</Typography>
                   </Stack>
                 )}
               </Stack>

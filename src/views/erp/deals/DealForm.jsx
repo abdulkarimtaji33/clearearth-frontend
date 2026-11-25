@@ -1113,7 +1113,7 @@ const DealForm = () => {
                   <Divider sx={{ mb: 4 }} />
                   
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr 1fr' }, gap: 3 }}>
                       <TextField
                         fullWidth
                         label="Deal Title"
@@ -1144,6 +1144,17 @@ const DealForm = () => {
                           }}
                         />
                       </LocalizationProvider>
+                      <CurrencySelect
+                        fullWidth
+                        required
+                        label="Currency"
+                        name="currency"
+                        value={values.currency || 'AED'}
+                        onChange={handleChange}
+                        error={touched.currency && Boolean(errors.currency)}
+                        helperText={touched.currency ? errors.currency : ' '}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      />
                     </Box>
                     <TextField
                       fullWidth
@@ -1950,8 +1961,6 @@ const DealForm = () => {
                         At least one product/service is required
                       </Typography>
                     </Box>
-                    <Stack direction="row" spacing={2} alignItems="center">
-                    <CurrencySelect size="small" label="Currency" name="currency" value={values.currency || 'AED'} onChange={handleChange} sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
                     <Button
                       variant="contained"
                       startIcon={<IconPlus size={20} />}
@@ -1960,7 +1969,6 @@ const DealForm = () => {
                     >
                       Add Item
                     </Button>
-                    </Stack>
                   </Stack>
 
                   {lineItems.length === 0 ? (
@@ -2163,7 +2171,7 @@ const DealForm = () => {
                     Status
                   </Typography>
                   <Typography variant="body2" color="text.secondary" mb={4}>
-                    Deal status and currency
+                    Deal status and payment status
                   </Typography>
                   <Divider sx={{ mb: 4 }} />
                   
@@ -2238,19 +2246,6 @@ const DealForm = () => {
                         <MenuItem value="partial_advance">Partial Advance</MenuItem>
                         <MenuItem value="fully_received">Fully Received</MenuItem>
                       </TextField>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 3 }}>
-                      <CurrencySelect
-                        fullWidth
-                        required
-                        label="Currency"
-                        name="currency"
-                        value={values.currency || 'AED'}
-                        onChange={handleChange}
-                        error={touched.currency && Boolean(errors.currency)}
-                        helperText={touched.currency ? errors.currency : ' '}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      />
                     </Grid>
                   </Grid>
                 </CardContent>

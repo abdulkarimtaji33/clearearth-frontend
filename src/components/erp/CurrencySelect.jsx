@@ -23,7 +23,10 @@ const CurrencySelect = ({
       disabled={disabled}
       size={size}
       fullWidth={fullWidth}
-      sx={sx}
+      // Wide enough for "CODE - Name" wherever it is placed (flex rows used to squeeze it to a few letters),
+      // and the open list is as wide as its longest name instead of the input.
+      sx={[{ minWidth: 260 }, ...(Array.isArray(sx) ? sx : [sx])]}
+      slotProps={{ popper: { style: { width: 'fit-content', minWidth: 320 }, placement: 'bottom-start' } }}
       getOptionLabel={(o) => o.label || ''}
       isOptionEqualToValue={(a, b) => a.code === b.code}
       onChange={(_, v) => { if (v && onChange) onChange({ target: { name, value: v.code } }); }}

@@ -139,11 +139,13 @@ const QuotationForm = () => {
     setInitialValues((prev) => ({
       ...prev,
       dealId: deal.id,
+      currency: deal.currency || prev.currency,
       quotationAmount: total || prev.quotationAmount,
       termsAndConditionsIds: finalTermsIds,
     }));
     if (onAmount && total) onAmount(total);
     setFieldValueRef.current?.('termsAndConditionsIds', finalTermsIds);
+    if (deal.currency) setFieldValueRef.current?.('currency', deal.currency);
   }, [recalcQuotationAmount, isEdit]);
 
   useEffect(() => {
@@ -456,7 +458,7 @@ const QuotationForm = () => {
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
 
-                    <CurrencySelect fullWidth label="Currency" name="currency" value={values.currency || 'AED'} onChange={handleChange} disabled={isEdit} sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                    <CurrencySelect fullWidth label="Currency" name="currency" value={values.currency || 'AED'} onChange={handleChange} disabled helperText="Follows the deal" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
 
                     <TextField
                       fullWidth

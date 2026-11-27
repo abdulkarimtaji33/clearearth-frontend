@@ -27,7 +27,8 @@ const NavItem = ({ item, level, pathDirect, onClick, hideMenu }) => {
 
   const isActive = pathDirect === item.href;
   const ListItemStyled = styled(ListItem)(() => ({
-    whiteSpace: 'nowrap',
+    whiteSpace: level > 1 ? 'normal' : 'nowrap',
+    alignItems: level > 1 ? 'flex-start' : 'center',
     marginBottom: '2px',
     padding: '8px 10px',
     borderRadius: `${isBorderRadius}px`,

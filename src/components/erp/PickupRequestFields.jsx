@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box, Stack, Typography, TextField, ToggleButtonGroup, ToggleButton, Switch, Chip,
-  Grid, MenuItem, CircularProgress, Alert, Paper,
+  Grid, MenuItem, CircularProgress, Alert, Paper, Button, IconButton,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import {
-  IconUser, IconCalendarEvent, IconPackage, IconTruck, IconChecklist, IconCertificate, IconNotes,
+  IconUser, IconCalendarEvent, IconPackage, IconTruck, IconChecklist, IconCertificate, IconNotes, IconPhoto, IconX,
 } from '@tabler/icons-react';
 import apiService from '../../services/api';
 
@@ -101,6 +101,8 @@ const PickupRequestFields = ({ sourceType, sourceId, enabled, onEnabledChange, v
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   const loadDefaults = useCallback(async () => {
     setLoading(true);
@@ -116,6 +118,33 @@ const PickupRequestFields = ({ sourceType, sourceId, enabled, onEnabledChange, v
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceType, sourceId]);
+
+  // A pickup / delivery request is always part of approving (there is no longer an on/off switch).
+  useEffect(() => {
+    if (!enabled) onEnabledChange?.(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const addPhotos = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    setUploading(true);
+    setUploadError('');
+    try {
+      const added = [];
+      for (const f of files) {
+        const res = await apiService.uploadDealImage(f);
+        const url = res?.data?.url;
+        if (url) added.push({ url, name: f.name });
+      }
+      set({ photos: [...(value?.photos || []), ...added] });
+    } catch (e) {
+      setUploadError(e.message || 'Could not upload the photo');
+    } finally {
+      setUploading(false);
+    }
+  };
+  const removePhoto = (url) => set({ photos: (value?.photos || []).filter((p) => p.url !== url) });
 
   useEffect(() => {
     if (enabled && !value) loadDefaults();
@@ -150,11 +179,10 @@ const PickupRequestFields = ({ sourceType, sourceId, enabled, onEnabledChange, v
         <Stack direction="row" spacing={1.25} alignItems="center">
           <IconTruck size={22} color={theme.palette.primary.main} />
           <Box>
-            <Typography fontWeight={800}>Schedule a pickup or delivery with operations</Typography>
-            <Typography variant="caption" color="text.secondary">Most details are filled in from the deal. Check them and complete the rest.</Typography>
+            <Typography fontWeight={800}>Schedule the pickup or delivery with operations</Typography>
+            <Typography variant="caption" color="text.secondary">Required before approval. One request per deal; most details are filled in from the deal.</Typography>
           </Box>
         </Stack>
-        <Switch checked={!!enabled} onChange={(e) => onEnabledChange(e.target.checked)} />
       </Paper>
 
       {enabled && (
@@ -254,6 +282,28 @@ const PickupRequestFields = ({ sourceType, sourceId, enabled, onEnabledChange, v
 
               <Card icon={<IconCertificate size={18} />} title="Certificates">
                 <ChipPicker label="Certificate required (leave empty if none)" items={CERTIFICATES} selected={value.certificates || []} onToggle={(k) => toggleIn('certificates', k)} />
+              </Card>
+
+              <Card icon={<IconPhoto size={18} />} title="Photos">
+                <Stack spacing={1.25}>
+                  <Box>
+                    <Button component="label" variant="outlined" size="small" disabled={uploading} startIcon={uploading ? <CircularProgress size={14} /> : <IconPhoto size={16} />}>
+                      {uploading ? 'Uploading…' : 'Attach photos'}
+                      <input hidden type="file" accept="image/*" multiple onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }} />
+                    </Button>
+                  </Box>
+                  {uploadError && <Alert severity="error" sx={{ borderRadius: 2 }}>{uploadError}</Alert>}
+                  {(value.photos || []).length > 0 && (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {value.photos.map((p) => (
+                        <Box key={p.url} sx={{ position: 'relative', width: 92, height: 92, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                          <a href={p.url} target="_blank" rel="noreferrer"><img src={p.url} alt={p.name || 'Photo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></a>
+                          <IconButton size="small" onClick={() => removePhoto(p.url)} sx={{ position: 'absolute', top: 2, right: 2, bgcolor: 'rgba(255,255,255,0.9)', p: 0.25 }}><IconX size={14} /></IconButton>
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                </Stack>
               </Card>
 
               <Card icon={<IconNotes size={18} />} title="Notes">

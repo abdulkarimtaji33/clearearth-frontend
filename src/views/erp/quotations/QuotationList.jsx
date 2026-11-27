@@ -234,7 +234,7 @@ const QuotationList = () => {
   };
   const isApproved = (q) => String(q?.status || '').toLowerCase() === 'approved';
 
-  const pageTitle = isOrdersView ? 'Clients Service Orders' : 'Service Quotations';
+  const pageTitle = isOrdersView ? 'Clients Service Orders' : 'Client Service Quotations';
   const pageDesc = isOrdersView
     ? 'Approved quotations; export as service order PDF'
     : 'Drafts and pending quotations; approve to move to Clients Service Orders';

@@ -72,7 +72,7 @@ const ErpMenuItems = [
   ]),
   item('Service and Purchase', '/erp/quotations', IconReceipt, { anyOf: ['deals.read', 'quotations.read', 'purchase_orders.read'] }, [
     item('Quotations', '/erp/quotations', IconFileText, { anyOf: ['deals.read', 'quotations.read', 'purchase_orders.read'] }, [
-      leaf('Service Quotation', '/erp/quotations', { anyOf: ['deals.read', 'quotations.read'] }),
+      leaf('Client Service Quotations', '/erp/quotations', { anyOf: ['deals.read', 'quotations.read'] }),
       leaf('Client purchase quotations', '/erp/client-purchase-quotations', { anyOf: ['deals.read', 'purchase_orders.read'] }),
     ]),
     item('Orders', '/erp/service-orders', IconShoppingCart, { anyOf: ['deals.read', 'quotations.read', 'purchase_orders.read'] }, [
@@ -142,6 +142,7 @@ const ErpMenuItems = [
   item('GRN', '/erp/grn', IconPackage, { permission: 'grn.read' }),
   item('Outbound', '/erp/outbound', IconTruckDelivery, { permission: 'outbound.read' }),
   item('Inventory', '/erp/inventory', IconBoxSeam, { permission: 'grn.read' }),
+  item('Material Tracking', '/erp/warehouse', IconBoxSeam, { permission: 'grn.read' }),
   item('Work Orders', '/erp/work-orders', IconHammer, { permission: 'operations.read' }),
   item('Pickup Report', '/erp/pickup-report', IconClipboardCheck, { permission: 'operations.read' }),
 

@@ -10,6 +10,7 @@ import PageContainer from '../../../components/container/PageContainer';
 import ApprovalWorkflowDialogs from '../../../components/erp/ApprovalWorkflowDialogs';
 import ApproveQuotationConfirmDialog from '../../../components/erp/ApproveQuotationConfirmDialog';
 import PickupDatePanel from '../../../components/erp/PickupDatePanel';
+import QuotationCorrectionPanel from '../../../components/erp/QuotationCorrectionPanel';
 import DealRequirementsBanner from '../work-orders/DealRequirementsBanner';
 import QuotationVersionBadge from '../../../components/erp/QuotationVersionBadge';
 import apiService from '../../../services/api';
@@ -128,7 +129,7 @@ const QuotationView = () => {
     setApproveError('');
     try {
       setApproveLoading(true);
-      await apiService.approveQuotation(id, approvePickupDate || null, approvePickupNote || undefined, approveRequestEnabled ? approvePickupRequest : undefined);
+      await apiService.approveQuotation(id, approvePickupDate || null, approvePickupNote || undefined, approvePickupRequest || undefined);
       setApproveConfirmOpen(false);
       setApprovePickupDate('');
       await fetchQ();
@@ -262,6 +263,15 @@ const QuotationView = () => {
 
         <DealRequirementsBanner deal={q.deal} />
 
+        {isApproved && (
+          <QuotationCorrectionPanel
+            quotationId={id}
+            hasInvoice={Boolean(q.proformaInvoice?.id)}
+            canRequest={allowGenerateInvoice}
+            canAnswer={!isOperationsUser && (canDirectApprove || String(q.prepared_by) === String(user?.id))}
+          />
+        )}
+
         {isApproved && q.requested_pickup_date && (
           <PickupDatePanel
             entity={{ ...q, request_note: q.pickup_request_note }}
@@ -357,7 +367,7 @@ const QuotationView = () => {
               </Box>
             )}
             <Stack spacing={0.5} alignItems={{ xs: 'flex-start', sm: viewOnly ? 'flex-start' : 'flex-end' }}>
-              <Typography variant="body2" color="text.secondary">Date: <strong>{q.quotation_date || '—'}</strong></Typography>
+              <Typography variant="body2" color="text.secondary">Date: <strong>{q.quotation_date || '—'}</strong>{q.expiry_date ? <> &nbsp;·&nbsp; Expires: <strong>{q.expiry_date}</strong></> : null}</Typography>
               <Typography variant="body2" color="text.secondary">Prepared by: <strong>{preparedName}</strong></Typography>
             </Stack>
           </Stack>

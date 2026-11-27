@@ -421,6 +421,18 @@ class ApiService {
   }
 
   // Inspection Requests
+  async getQuotationCorrections(id) {
+    return this.get(`/quotations/${id}/correction-requests`);
+  }
+
+  async requestQuotationCorrection(id, message) {
+    return this.post(`/quotations/${id}/correction-requests`, { message });
+  }
+
+  async resolveQuotationCorrection(id, requestId, note) {
+    return this.post(`/quotations/${id}/correction-requests/${requestId}/resolve`, { note: note || undefined });
+  }
+
   async getInspectionRequests(params) {
     return this.get('/inspection-requests', params);
   }

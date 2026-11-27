@@ -80,7 +80,7 @@ const InspectionDashboard = ({ data, onRefresh }) => {
       <Grid container spacing={2.5} mb={3.5}>
         {(data.kpis || []).map((k) => (
           <Grid key={k.label} size={{ xs: 6, sm: 3 }}>
-            <KpiCard {...k} color={k.highlight ? 'error' : 'primary'} highlight={k.highlight} />
+            <KpiCard {...k} color={k.highlight ? 'error' : 'primary'} highlight={k.highlight} onClick={k.href ? () => navigate(k.href) : undefined} />
           </Grid>
         ))}
       </Grid>

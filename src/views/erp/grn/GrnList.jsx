@@ -26,11 +26,13 @@ const GrnList = () => {
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [pickupFrom, setPickupFrom] = useState('');
+  const [pickupTo, setPickupTo] = useState('');
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiService.getGrns({ page: page + 1, pageSize: rowsPerPage, status: status || undefined, search: search || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined });
+      const res = await apiService.getGrns({ page: page + 1, pageSize: rowsPerPage, status: status || undefined, search: search || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined, pickupFrom: pickupFrom || undefined, pickupTo: pickupTo || undefined });
       setRows(Array.isArray(res.data) ? res.data : []);
       setTotal(res.pagination?.totalItems ?? 0);
     } catch (e) {
@@ -38,11 +40,11 @@ const GrnList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, status, search, dateFrom, dateTo]);
+  }, [page, rowsPerPage, status, search, dateFrom, dateTo, pickupFrom, pickupTo]);
 
   useEffect(() => { load(); }, [load]);
 
-  const colSpan = 9;
+  const colSpan = 10;
 
   return (
     <PageContainer title="GRN" description="Goods received notes">
@@ -139,12 +141,23 @@ const GrnList = () => {
             helperText="GRN created date"
             compact
           />
+          <Box sx={{ mt: 1.5 }}>
+            <ListDateRangeFilter
+              dateFrom={pickupFrom}
+              dateTo={pickupTo}
+              onFromChange={(v) => { setPickupFrom(v); setPage(0); }}
+              onToChange={(v) => { setPickupTo(v); setPage(0); }}
+              onClear={() => { setPickupFrom(''); setPickupTo(''); setPage(0); }}
+              helperText="Pickup / delivery date"
+              compact
+            />
+          </Box>
         </Box>
         <TableContainer sx={{ overflowX: 'auto' }}>
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                {['GRN #', 'Deal', 'Client / Lead', 'Sales person', 'Work Order', 'Items', 'Status', 'Created', ''].map((h) => (
+                {['GRN #', 'Deal', 'Client / Lead', 'Sales person', 'Work Order', 'Items', 'Status', 'Pickup / Delivery date', 'Created', ''].map((h) => (
                   <TableCell
                     key={h || 'actions'}
                     sx={{ fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.5, py: 1.5, whiteSpace: 'nowrap', color: 'text.secondary' }}
@@ -281,6 +294,9 @@ const GrnList = () => {
                             '& .MuiChip-label': { px: 1.2 },
                           }}
                         />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" noWrap>{r.pickup_delivery_date || '—'}</Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary" noWrap>

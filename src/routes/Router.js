@@ -102,6 +102,8 @@ const OutboundView = Loadable(lazyWithChunkReload(() => import('../views/erp/out
 const RegisterList = Loadable(lazyWithChunkReload(() => import('../views/erp/registers/RegisterList')));
 const PickupReport = Loadable(lazyWithChunkReload(() => import('../views/erp/operations/PickupReport')));
 const InventoryList = Loadable(lazyWithChunkReload(() => import('../views/erp/grn/InventoryList')));
+const WarehouseTracking = Loadable(lazyWithChunkReload(() => import('../views/erp/warehouse/WarehouseTracking')));
+const WarehouseBatchView = Loadable(lazyWithChunkReload(() => import('../views/erp/warehouse/WarehouseBatchView')));
 const CertificateRequestList = Loadable(lazyWithChunkReload(() => import('../views/erp/certificates/CertificateRequestList')));
 const CertificateRequestForm = Loadable(lazyWithChunkReload(() => import('../views/erp/certificates/CertificateRequestForm')));
 const CertificateRequestDetail = Loadable(lazyWithChunkReload(() => import('../views/erp/certificates/CertificateRequestDetail')));
@@ -258,6 +260,8 @@ const Router = createBrowserRouter([
       { path: '/erp/registers/:kind', element: <RegisterList /> },
       { path: '/erp/pickup-report', element: <PickupReport /> },
       { path: '/erp/inventory', element: <InventoryList /> },
+      { path: '/erp/warehouse', element: <WarehouseTracking /> },
+      { path: '/erp/warehouse/batch/:id', element: <WarehouseBatchView /> },
       { path: '/erp/certificates/requests', element: <CertificateRequestList /> },
       { path: '/erp/certificates/requests/new', element: <CertificateRequestForm /> },
       { path: '/erp/certificates/requests/view/:id', element: <CertificateRequestDetail /> },

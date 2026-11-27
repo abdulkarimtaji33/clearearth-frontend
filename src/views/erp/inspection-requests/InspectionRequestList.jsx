@@ -31,7 +31,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { IconSearch, IconFileReport, IconClipboardCheck, IconEye, IconCheck, IconX } from '@tabler/icons-react';
-import { useNavigate, Link } from 'react-router';
+import { useNavigate, Link, useSearchParams } from 'react-router';
 import PageContainer from '../../../components/container/PageContainer';
 import ListDateRangeFilter from '../../../components/erp/ListDateRangeFilter';
 import apiService from '../../../services/api';
@@ -83,7 +83,11 @@ const InspectionRequestList = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [searchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('stage') || '');
+  const [updatedFrom] = useState(searchParams.get('updatedFrom') || '');
+  const [requestedBy, setRequestedBy] = useState('');
+  const [requesters, setRequesters] = useState([]);
   const [priorityFilter, setPriorityFilter] = useState('');
   const [rejectDialog, setRejectDialog] = useState({ open: false, req: null });
   const [rejectReason, setRejectReason] = useState('');
@@ -98,6 +102,8 @@ const InspectionRequestList = () => {
       if (dateTo) params.dateTo = dateTo;
       if (statusFilter) params.status = statusFilter;
       if (priorityFilter) params.priority = priorityFilter;
+      if (requestedBy) params.requestedBy = requestedBy;
+      if (updatedFrom && statusFilter === 'completed') params.updatedFrom = updatedFrom;
       const response = await apiService.getInspectionRequests(params);
       if (response.success) {
         setRequests(Array.isArray(response.data) ? response.data : []);
@@ -108,9 +114,12 @@ const InspectionRequestList = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, search, dateFrom, dateTo, statusFilter, priorityFilter]);
+  }, [page, rowsPerPage, search, dateFrom, dateTo, statusFilter, priorityFilter, requestedBy, updatedFrom]);
 
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
+  useEffect(() => {
+    apiService.get('/inspection-requests/requesters').then((r) => setRequesters(Array.isArray(r?.data) ? r.data : [])).catch(() => {});
+  }, []);
 
   const handleAcceptConfirm = async () => {
     if (!acceptDialog.req) return;
@@ -194,6 +203,14 @@ const InspectionRequestList = () => {
                   {Object.entries(INSPECTION_STATUS_CONFIG).map(([v, c]) => (
                     <MenuItem key={v} value={v}>{c.label}</MenuItem>
                   ))}
+                  <MenuItem value="completed">Completed (any)</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ minWidth: 180 }}>
+                <InputLabel>Requested by</InputLabel>
+                <Select value={requestedBy} onChange={e => { setRequestedBy(e.target.value); setPage(0); }} label="Requested by" sx={{ borderRadius: 2 }}>
+                  <MenuItem value="">Everyone</MenuItem>
+                  {requesters.map((u) => <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>)}
                 </Select>
               </FormControl>
               <FormControl size="small" sx={{ minWidth: 140 }}>

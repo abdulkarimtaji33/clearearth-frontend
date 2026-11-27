@@ -128,7 +128,7 @@ const OperationsDashboard = ({ data }) => {
       </Grid>
 
       <Box mb={3.5}>
-        <ActionableList title="Bottlenecks & approvals" items={data.actionables} />
+        <ActionableList title="Needs Action" items={data.actionables} />
       </Box>
 
       <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden', mb: 3.5 }}>

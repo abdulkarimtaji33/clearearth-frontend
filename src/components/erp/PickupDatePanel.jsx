@@ -44,6 +44,16 @@ const RequestDetails = ({ r }) => {
           <Typography variant="body2" fontWeight={600}>{v || '-'}</Typography>
         </Box>
       ))}
+      {(r.photos || []).length > 0 && (
+        <Box sx={{ gridColumn: { sm: '1 / span 2' }, display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ minWidth: 150 }}>Photos</Typography>
+          {r.photos.map((p) => (
+            <a key={p.url} href={p.url} target="_blank" rel="noreferrer">
+              <img src={p.url} alt={p.name || 'Photo'} style={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 8, border: '1px solid #ddd' }} />
+            </a>
+          ))}
+        </Box>
+      )}
     </Box>
   );
 };

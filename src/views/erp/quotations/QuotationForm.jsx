@@ -87,6 +87,7 @@ const QuotationForm = () => {
     preparedBy: null,
     quotationDate: new Date().toISOString().split('T')[0],
     quotationAmount: '',
+    expiryDate: (() => { const d = new Date(); d.setDate(d.getDate() + 10); return d.toISOString().split('T')[0]; })(),
     currency: baseCurrency(),
     status: 'new',
     remarks: '',
@@ -193,6 +194,7 @@ const QuotationForm = () => {
           preparedBy: q.prepared_by || null,
           quotationDate: q.quotation_date || new Date().toISOString().split('T')[0],
           quotationAmount: String(q.quotation_amount ?? ''),
+          expiryDate: q.expiry_date || '',
           currency: q.currency || 'AED',
           status: q.status || 'new',
           remarks: q.remarks || '',
@@ -344,6 +346,7 @@ const QuotationForm = () => {
         preparedBy: values.preparedBy,
         quotationDate: values.quotationDate,
         quotationAmount: parseFloat(values.quotationAmount) || 0,
+        expiryDate: values.expiryDate || null,
         currency: values.currency || 'AED',
         ...(canChangeStatus ? { status: values.status } : {}),
         remarks: values.remarks || null,
@@ -455,6 +458,19 @@ const QuotationForm = () => {
                       helperText={touched.quotationDate && errors.quotationDate}
                       required
                       InputLabelProps={{ shrink: true }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    />
+
+                    <TextField
+                      fullWidth
+                      label="Quote Expiry Date"
+                      name="expiryDate"
+                      type="date"
+                      value={values.expiryDate || ''}
+                      onChange={handleChange}
+                      InputLabelProps={{ shrink: true }}
+                      InputProps={{ inputProps: { min: values.quotationDate || undefined } }}
+                      helperText="Shown with the document details on the quotation"
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
 

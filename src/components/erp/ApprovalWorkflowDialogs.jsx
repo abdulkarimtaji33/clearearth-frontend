@@ -42,7 +42,7 @@ const ApprovalWorkflowDialogs = ({
   const [pickupNote, setPickupNote] = useState('');
   const [requestEnabled, setRequestEnabled] = useState(false);
   const [pickupRequest, setPickupRequest] = useState(null);
-  const missing = requestSource && requestEnabled ? missingPickupRequestFields(pickupRequest) : [];
+  const missing = requestSource && showPickupDate ? (pickupRequest ? missingPickupRequestFields(pickupRequest) : ['Pickup / delivery request']) : [];
 
   const handleDecideLater = () => {
     setPinDialogOpen(false);
@@ -62,7 +62,7 @@ const ApprovalWorkflowDialogs = ({
   };
 
   const handleSendForApproval = async () => {
-    const useRequest = requestSource && requestEnabled && pickupRequest;
+    const useRequest = requestSource && pickupRequest;
     await onRequestApproval?.(
       showPickupDate ? ((useRequest ? pickupRequest.requestDate : pickupDate) || null) : undefined,
       showPickupDate ? ((useRequest ? pickupRequest.additionalNotes : pickupNote.trim()) || undefined) : undefined,

@@ -104,7 +104,7 @@ const PurchaseOrderView = () => {
     setApproveError('');
     try {
       setApproveLoading(true);
-      await apiService.approvePurchaseOrder(id, approvePickupDate || null, approvePickupNote || undefined, approveRequestEnabled ? approvePickupRequest : undefined);
+      await apiService.approvePurchaseOrder(id, approvePickupDate || null, approvePickupNote || undefined, approvePickupRequest || undefined);
       setApproveConfirmOpen(false);
       setApprovePickupDate('');
       await fetchPo();

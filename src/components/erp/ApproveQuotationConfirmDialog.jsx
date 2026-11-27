@@ -27,7 +27,7 @@ const ApproveQuotationConfirmDialog = ({
   pickupRequest = null,
   onPickupRequestChange,
 }) => {
-  const missing = requestSource && requestEnabled ? missingPickupRequestFields(pickupRequest) : [];
+  const missing = requestSource ? (pickupRequest ? missingPickupRequestFields(pickupRequest) : ['Pickup / delivery request']) : [];
   const handleRequestChange = (v) => {
     onPickupRequestChange?.(v);
     onPickupDateChange?.(v?.requestDate || '');
